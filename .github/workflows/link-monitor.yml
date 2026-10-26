@@ -1,0 +1,27 @@
+name: link monitor
+
+on:
+  schedule:
+    # Weekly, Monday 04:00 UTC. Reachability needs the open internet, so it is
+    # deliberately separate from the per-push verify workflow.
+    - cron: '0 4 * * 1'
+  workflow_dispatch:
+
+jobs:
+  anchors:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Structural audit
+        run: npm run links:check
+      - name: Reachability
+        run: npm run links:check:online
+        continue-on-error: true
+      - name: Summary
+        if: always()
+        run: echo "Reachability failures are reported above; fix stale anchors in src/data/ndeEd/sources.ts."

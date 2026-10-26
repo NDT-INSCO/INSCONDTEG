@@ -1,0 +1,482 @@
+{
+  "format": "EDB-INDEX",
+  "version": "1.0",
+  "generatedAt": "2026-10-21T08:26:47.365Z",
+  "generator": "INSCO-EDB-Builder/1.0",
+  "books": [
+    {
+      "id": "edb-book-ut",
+      "file": "book-ut.edb",
+      "kind": "textbook",
+      "title": {
+        "ar": "المرجع الأكاديمي في فحص الموجات فوق الصوتية (UT)",
+        "en": "Academic Textbook of Ultrasonic Testing (UT)"
+      },
+      "subtitle": {
+        "ar": "الفيزياء الصوتية، محولات الطاقة، قانون سنيل، ومنحنيات المعايرة DAC وDGS",
+        "en": "Wave Acoustics, Transducers, Snell’s Law, and DAC/DGS Calibration"
+      },
+      "discipline": "UT",
+      "pages": 11,
+      "estimatedMinutes": 480,
+      "accent": "#22d3ee",
+      "edition": "الطبعة الهندسية المعتمدة - 2026",
+      "standards": [
+        "ASME Sec V Art 4",
+        "ASME Sec VIII Div 1",
+        "AWS D1.1",
+        "ISO 17640",
+        "API 1104"
+      ],
+      "checksum": "408297e397a2040d1802943f0e25ddfce9edf0c66cd25b0423dc5320e1f20fa1",
+      "bytes": 39960
+    },
+    {
+      "id": "edb-book-pt",
+      "file": "book-pt.edb",
+      "kind": "textbook",
+      "title": {
+        "ar": "المرجع الأكاديمي في فحص السوائل النافذة (PT)",
+        "en": "Academic Textbook of Liquid Penetrant Testing (PT)"
+      },
+      "subtitle": {
+        "ar": "الخاصية الشعرية، تصنيف AMS 2644، خطوات المعالجة الستة، وتفسير الدلالات",
+        "en": "Capillary Action, AMS 2644 Classification, 6-Step Processing, and Evaluation"
+      },
+      "discipline": "PT",
+      "pages": 9,
+      "estimatedMinutes": 360,
+      "accent": "#f472b6",
+      "edition": "الطبعة الهندسية المعتمدة - 2026",
+      "standards": [
+        "ASME Sec V Art 6",
+        "ASTM E165",
+        "AMS 2644",
+        "ISO 3452",
+        "AWS D1.1"
+      ],
+      "checksum": "81adae2f175739c9487402f45fda5d47050dfde9956dabcae55d6786fd9e133b",
+      "bytes": 31386
+    },
+    {
+      "id": "edb-book-mt",
+      "file": "book-mt.edb",
+      "kind": "textbook",
+      "title": {
+        "ar": "المرجع الأكاديمي في فحص الجسيمات المغناطيسية (MT)",
+        "en": "Academic Textbook of Magnetic Particle Testing (MT)"
+      },
+      "subtitle": {
+        "ar": "النظرية المغناطيسية، مجالات التسرب، الحواضن، وإزالة المغنطة المتبقية",
+        "en": "Magnetism, Flux Leakage, Yokes, Coils & Demagnetization"
+      },
+      "discipline": "MT",
+      "pages": 9,
+      "estimatedMinutes": 360,
+      "accent": "#f59e0b",
+      "edition": "الطبعة الهندسية المعتمدة - 2026",
+      "standards": [
+        "ASME Sec V Art 7",
+        "ASTM E709",
+        "ISO 9934",
+        "AWS D1.1",
+        "API 1104"
+      ],
+      "checksum": "c0951d6ab29a6cc276b4694398621c2347e22c20abf08c791d78e28917e95d5d",
+      "bytes": 32443
+    },
+    {
+      "id": "edb-book-rt",
+      "file": "book-rt.edb",
+      "kind": "textbook",
+      "title": {
+        "ar": "المرجع الأكاديمي في فحص التصوير الإشعاعي (RT)",
+        "en": "Academic Textbook of Radiographic Testing (RT)"
+      },
+      "subtitle": {
+        "ar": "فيزياء الأشعة، النظائر المشعة، جودة الصورة IQI، وتفسير الأفلام الصناعية",
+        "en": "Radiation Physics, Radioisotopes, Image Quality Indicators & Film Interpretation"
+      },
+      "discipline": "RT",
+      "pages": 9,
+      "estimatedMinutes": 480,
+      "accent": "#a78bfa",
+      "edition": "الطبعة الهندسية المعتمدة - 2026",
+      "standards": [
+        "ASME Sec V Art 2",
+        "ASME Sec VIII",
+        "API 1104",
+        "ISO 17636",
+        "ASTM E1032"
+      ],
+      "checksum": "050b300c1ccbcf90d9117134b382a7dd11aa26cb25619aee4bfc670c9fc28d38",
+      "bytes": 35710
+    },
+    {
+      "id": "edb-book-et",
+      "file": "book-et.edb",
+      "kind": "textbook",
+      "title": {
+        "ar": "المرجع الأكاديمي في فحص التيارات الدوامية (ET)",
+        "en": "Academic Textbook of Eddy Current Testing (ET)"
+      },
+      "subtitle": {
+        "ar": "الحث الكهرومغناطيسي، عمق التغلغل القياسي، ومستوى الممانعة المركبة",
+        "en": "Electromagnetic Induction, Standard Depth of Penetration & Impedance Plane"
+      },
+      "discipline": "ET",
+      "pages": 9,
+      "estimatedMinutes": 360,
+      "accent": "#34d399",
+      "edition": "الطبعة الهندسية المعتمدة - 2026",
+      "standards": [
+        "ASME Sec V Art 8",
+        "ASTM E243",
+        "ASTM E426",
+        "ISO 15549",
+        "ASME Sec XI"
+      ],
+      "checksum": "9efa6f5b8f88fe02a08b8dfab68239582e90cbdf2e0e5a1ed3676e2ba64e2ff4",
+      "bytes": 34072
+    },
+    {
+      "id": "edb-book-vt",
+      "file": "book-vt.edb",
+      "kind": "textbook",
+      "title": {
+        "ar": "المرجع الأكاديمي في الفحص البصري والهندسي (VT)",
+        "en": "Academic Textbook of Visual & Optical Testing (VT)"
+      },
+      "subtitle": {
+        "ar": "البصريات، حدّة الإبصار، أجهزة القياس الميكانيكية، والفحص عن بعد RVI",
+        "en": "Optics, Vision Acuity, Mechanical Weld Gauges, and Remote Visual Inspection (RVI)"
+      },
+      "discipline": "VT",
+      "pages": 9,
+      "estimatedMinutes": 360,
+      "accent": "#38bdf8",
+      "edition": "الطبعة الهندسية المعتمدة - 2026",
+      "standards": [
+        "ASME Sec V Art 9",
+        "AWS B1.11",
+        "ISO 17637",
+        "API 570",
+        "AWS D1.1"
+      ],
+      "checksum": "266f23e0d4e60ddc715c95ef37b42cd6c771f7ddbcd95b954647b425fa159115",
+      "bytes": 32813
+    },
+    {
+      "id": "edb-book-materials",
+      "file": "book-materials.edb",
+      "kind": "textbook",
+      "title": {
+        "ar": "المرجع الأكاديمي في علم المواد وتشكيل العيوب (Materials & Flaws)",
+        "en": "Academic Textbook of Materials Science & Flaw Formation"
+      },
+      "subtitle": {
+        "ar": "البنى البلورية، مخطط Fe-C، عيوب السباكة والتشكيل، وآليات تلف API 571",
+        "en": "Crystal Lattices, Fe-C Phase Diagram, Manufacturing Flaws & API 571 Damage"
+      },
+      "discipline": "MATERIALS",
+      "pages": 9,
+      "estimatedMinutes": 480,
+      "accent": "#fb923c",
+      "edition": "الطبعة الهندسية المعتمدة - 2026",
+      "standards": [
+        "API 571",
+        "ASME Sec IX",
+        "ASTM A370",
+        "API 579 FFS",
+        "NACE MR0175"
+      ],
+      "checksum": "95e0e69bf9db7667690d51d5b42e22a14e7cff5b22953a11c9acd22f91ad0c1d",
+      "bytes": 34474
+    },
+    {
+      "id": "edb-book-intro",
+      "file": "book-intro.edb",
+      "kind": "textbook",
+      "title": {
+        "ar": "المرجع الأكاديمي في مدخل وفلسفة الاختبارات غير الإتلافية والمعايير العالمية",
+        "en": "Academic Textbook of NDT Scope, Philosophy & Global Standards"
+      },
+      "subtitle": {
+        "ar": "منظومات التأهيل، الكودات العالمية، ميكانيكا الكسر، وتقييم الصلاحية للخدمة FFS",
+        "en": "Personnel Qualification, Global Codes, Fracture Mechanics & Fitness-for-Service"
+      },
+      "discipline": "INTRO",
+      "pages": 9,
+      "estimatedMinutes": 360,
+      "accent": "#e2c275",
+      "edition": "الطبعة الهندسية المعتمدة - 2026",
+      "standards": [
+        "ASNT SNT-TC-1A",
+        "ASNT CP-189",
+        "ISO 9712",
+        "ASME Sec V",
+        "API 579 FFS"
+      ],
+      "checksum": "25148b60964f70a49c25e3679e8e38d7d71e5ab8754393c0e13e08242891137e",
+      "bytes": 38103
+    },
+    {
+      "id": "edb-book-paut-tofd",
+      "file": "book-paut-tofd.edb",
+      "kind": "textbook",
+      "title": {
+        "ar": "المرجع الأكاديمي في تقنيات الموجات الصوتية المتقدمة (PAUT & TOFD)",
+        "en": "Academic Textbook of Advanced Ultrasonic Testing (PAUT & TOFD)"
+      },
+      "subtitle": {
+        "ar": "المصفوفات الطورية، قوانين البؤرة وتأخيرات الإطلاق، حيود قمة الشق، وتقدير الارتفاع الشاقولي",
+        "en": "Phased Array Architecture, Focal Delay Laws, Tip Diffraction, & Sizing Algorithms"
+      },
+      "discipline": "PAUT_TOFD",
+      "pages": 9,
+      "estimatedMinutes": 720,
+      "accent": "#60a5fa",
+      "edition": "الطبعة الهندسية المتقدمة - 2026",
+      "standards": [
+        "ASME Sec V Art 4",
+        "ASME Code Case 2235",
+        "ISO 13588",
+        "ISO 10863",
+        "API 1104 App A"
+      ],
+      "checksum": "7f70fbd3e7191edf7c8b0f28265735c84bf4d9ff6c771742730982b85c9e911e",
+      "bytes": 37810
+    },
+    {
+      "id": "edb-book-welding-codes",
+      "file": "book-welding-codes.edb",
+      "kind": "textbook",
+      "title": {
+        "ar": "المرجع الأكاديمي في تفتيش اللحام ومعايير القبول الهندسية (Welding Quality & Codes)",
+        "en": "Academic Textbook of Welding Quality & International Acceptance Codes"
+      },
+      "subtitle": {
+        "ar": "عمليات اللحام، عيوب الصهر والتشكيل، ومعايير القبول والرفض وفق ASME Sec VIII و ASME B31.3 و AWS D1.1",
+        "en": "Fusion Welding Processes, Defect Morphologies, & Code Acceptance under ASME & AWS"
+      },
+      "discipline": "WELDING_CODES",
+      "pages": 9,
+      "estimatedMinutes": 600,
+      "accent": "#f87171",
+      "edition": "الطبعة المعتمدة للمواصفات - 2026",
+      "standards": [
+        "ASME Sec VIII Div 1 UW-51",
+        "ASME B31.3 Table 341.3.2",
+        "AWS D1.1 Clause 6",
+        "ASME Sec IX",
+        "API 579-1/ASME FFS-1"
+      ],
+      "checksum": "b9d19166ba2576b1651787e691219ea493702439db25d995acb0f850ef95ca7e",
+      "bytes": 39172
+    },
+    {
+      "id": "edb-book-ae-lt",
+      "file": "book-ae-lt.edb",
+      "kind": "textbook",
+      "title": {
+        "ar": "المرجع الأكاديمي في فحص الانبعاث الصوتي واختبارات التسريب (AE & LT)",
+        "en": "Academic Textbook of Acoustic Emission & Leak Testing (AE & LT)"
+      },
+      "subtitle": {
+        "ar": "أمواج الإجهاد العابرة، تأثير كايزر وفيليسيتي، تحديد مواقع المصادر TDOA، ومطياف كتلة الهيليوم",
+        "en": "Transient Stress Waves, Kaiser/Felicity Ratios, TDOA Planar Location, & Helium Mass Spectrometry"
+      },
+      "discipline": "AE_LT",
+      "pages": 9,
+      "estimatedMinutes": 600,
+      "accent": "#2dd4bf",
+      "edition": "الطبعة الهندسية التخصصية - 2026",
+      "standards": [
+        "ASME Sec V Art 10 (LT)",
+        "ASME Sec V Art 11 & 12 (AE)",
+        "ISO 16148",
+        "ASTM E1316",
+        "ASTM E499"
+      ],
+      "checksum": "6b7756046fb95f5c3da5f9770826dc805b72f45dea34cc1737237a854cf057f8",
+      "bytes": 40970
+    },
+    {
+      "id": "edb-course-nde-physics",
+      "file": "course-nde-physics.edb",
+      "kind": "course",
+      "title": {
+        "ar": "أساسيات الفيزياء والقياس لـ NDT",
+        "en": "NDT Physics & Measurement Foundations"
+      },
+      "subtitle": {
+        "ar": "الموجات، المقاومة الصوتية، المغناطيسية، الإشعاع، والخاصية الشعرية",
+        "en": "Waves, acoustic impedance, magnetism, radiation and capillarity"
+      },
+      "discipline": "conventional_ndt",
+      "pages": 8,
+      "estimatedMinutes": 118,
+      "accent": "#e2c275",
+      "edition": "إصدار المقرر 1.0 — 2026",
+      "standards": [
+        "ASME Sec V Art. 4/6/7/9",
+        "ASTM E1316",
+        "ISO 9712 principles"
+      ],
+      "checksum": "eca70a9a6aba0a16469e0058c247d32bd87600a527dd645a1c57afc8a8752f2c",
+      "bytes": 41457
+    },
+    {
+      "id": "edb-course-nde-vt",
+      "file": "course-nde-vt.edb",
+      "kind": "course",
+      "title": {
+        "ar": "الفحص البصري الهندسي (VT)",
+        "en": "Engineering Visual Testing (VT)"
+      },
+      "subtitle": {
+        "ar": "الإبصار، التباين، هندسة الوصلة، الإضاءة، والتوثيق",
+        "en": "Vision, contrast, weld geometry, lighting and records"
+      },
+      "discipline": "conventional_ndt",
+      "pages": 7,
+      "estimatedMinutes": 96,
+      "accent": "#38bdf8",
+      "edition": "إصدار المقرر 1.0 — 2026",
+      "standards": [
+        "ASME Sec V Art. 9",
+        "AWS D1.1 visual acceptance",
+        "API 1104 visual acceptance"
+      ],
+      "checksum": "5709d08477c3f81f7f77d071187430ef2ad744cc0e499cbf19b42886f994a644",
+      "bytes": 36031
+    },
+    {
+      "id": "edb-course-nde-pt",
+      "file": "course-nde-pt.edb",
+      "kind": "course",
+      "title": {
+        "ar": "السوائل النافذة (PT)",
+        "en": "Liquid Penetrant Testing (PT)"
+      },
+      "subtitle": {
+        "ar": "المبدأ، المواد، الضبط، التطبيق، والتفسير",
+        "en": "Principle, materials, control, application and interpretation"
+      },
+      "discipline": "conventional_ndt",
+      "pages": 8,
+      "estimatedMinutes": 120,
+      "accent": "#f472b6",
+      "edition": "إصدار المقرر 1.0 — 2026",
+      "standards": [
+        "ASME Sec V Art. 6",
+        "ASTM E165 / E1417",
+        "ISO 3452"
+      ],
+      "checksum": "3e9a84999a56e332700a72b167d2bf2d23fdf700f21471bbba643eb6b0c46283",
+      "bytes": 45697
+    },
+    {
+      "id": "edb-course-nde-mt",
+      "file": "course-nde-mt.edb",
+      "kind": "course",
+      "title": {
+        "ar": "الجسيمات المغناطيسية (MT)",
+        "en": "Magnetic Particle Testing (MT)"
+      },
+      "subtitle": {
+        "ar": "المبدأ، التمغنط، الجسيمات، المعدات، والتفسير",
+        "en": "Principle, magnetization, particles, equipment and interpretation"
+      },
+      "discipline": "conventional_ndt",
+      "pages": 8,
+      "estimatedMinutes": 116,
+      "accent": "#f59e0b",
+      "edition": "إصدار المقرر 1.0 — 2026",
+      "standards": [
+        "ASME Sec V Art. 7",
+        "ASTM E709 / E1444",
+        "ISO 9934"
+      ],
+      "checksum": "bd21643a47f898f827b1528d47bce7ec90a73963dbfb591998b23a5ea259c63f",
+      "bytes": 44454
+    },
+    {
+      "id": "edb-course-nde-ut",
+      "file": "course-nde-ut.edb",
+      "kind": "course",
+      "title": {
+        "ar": "الموجات فوق الصوتية (UT)",
+        "en": "Ultrasonic Testing (UT)"
+      },
+      "subtitle": {
+        "ar": "المبدأ، الحزمة، العرض، المعايرة، اللحام، والتقنيات المتقدمة",
+        "en": "Principle, beam, display, calibration, welds and advanced techniques"
+      },
+      "discipline": "conventional_ndt",
+      "pages": 9,
+      "estimatedMinutes": 150,
+      "accent": "#22d3ee",
+      "edition": "إصدار المقرر 1.0 — 2026",
+      "standards": [
+        "ASME Sec V Art. 4",
+        "ASME Sec VIII Div. 1",
+        "AWS D1.1",
+        "ISO 17640"
+      ],
+      "checksum": "6774a90d526d33d0a655d1de842b83362e629ee9c418da2a6225f465bcd685b2",
+      "bytes": 47524
+    },
+    {
+      "id": "edb-course-nde-rt",
+      "file": "course-nde-rt.edb",
+      "kind": "course",
+      "title": {
+        "ar": "التصوير الإشعاعي الصناعي (RT)",
+        "en": "Industrial Radiographic Testing (RT)"
+      },
+      "subtitle": {
+        "ar": "المصادر، التوهين، الفيلم، الجودة، التفسير، والسلامة",
+        "en": "Sources, attenuation, film, quality, interpretation and safety"
+      },
+      "discipline": "conventional_ndt",
+      "pages": 8,
+      "estimatedMinutes": 132,
+      "accent": "#a78bfa",
+      "edition": "إصدار المقرر 1.0 — 2026",
+      "standards": [
+        "ASME Sec V Art. 2",
+        "ASTM E94 / E1742",
+        "ISO 17636"
+      ],
+      "checksum": "1a51c720bf276d055595432ecd34382a87c5cbab0cf10d9324b8be895c4fec42",
+      "bytes": 41644
+    },
+    {
+      "id": "edb-course-nde-et",
+      "file": "course-nde-et.edb",
+      "kind": "course",
+      "title": {
+        "ar": "التيارات الدوامية المتقدمة (ET)",
+        "en": "Advanced Eddy Current Testing (ET)"
+      },
+      "subtitle": {
+        "ar": "الحث الكهرومغناطيسي، المستوى الممانعي، المسابر، والقياس دون تلامس",
+        "en": "Electromagnetic induction, the impedance plane, probes and non-contact measurement"
+      },
+      "discipline": "ndt_advanced",
+      "pages": 8,
+      "estimatedMinutes": 144,
+      "accent": "#34d399",
+      "edition": "إصدار المقرر 1.0 — 2026",
+      "standards": [
+        "ASME Sec V Art. 8",
+        "ISO 15548",
+        "ASTM E426",
+        "ASTM E309"
+      ],
+      "checksum": "2e652acbbfe87ad78fb399e0e3d720253d2e53fe669279795e51c4d663e41607",
+      "bytes": 47189
+    }
+  ]
+}

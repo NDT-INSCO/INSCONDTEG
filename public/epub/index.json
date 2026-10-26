@@ -1,0 +1,422 @@
+{
+  "format": "EPUB-INDEX",
+  "version": "1.0",
+  "generatedAt": "2026-10-21T00:00:00Z",
+  "generator": "INSCO-EPUB-Builder/1.0",
+  "books": [
+    {
+      "id": "edb-book-ut",
+      "file": "book-ut.epub",
+      "kind": "textbook",
+      "title": {
+        "ar": "المرجع الأكاديمي في فحص الموجات فوق الصوتية (UT)",
+        "en": "Academic Textbook of Ultrasonic Testing (UT)"
+      },
+      "subtitle": {
+        "ar": "الفيزياء الصوتية، محولات الطاقة، قانون سنيل، ومنحنيات المعايرة DAC وDGS",
+        "en": "Wave Acoustics, Transducers, Snell’s Law, and DAC/DGS Calibration"
+      },
+      "discipline": "UT",
+      "pages": 11,
+      "languages": [
+        "ar",
+        "en"
+      ],
+      "bytes": 33961,
+      "checksum": "63c396b09cb6c2b51c3323126dc2997a29de01e6c1f57cd7a5ecda20961f67a3",
+      "untranslated": 3,
+      "modified": "2026-10-21T00:00:00Z"
+    },
+    {
+      "id": "edb-book-pt",
+      "file": "book-pt.epub",
+      "kind": "textbook",
+      "title": {
+        "ar": "المرجع الأكاديمي في فحص السوائل النافذة (PT)",
+        "en": "Academic Textbook of Liquid Penetrant Testing (PT)"
+      },
+      "subtitle": {
+        "ar": "الخاصية الشعرية، تصنيف AMS 2644، خطوات المعالجة الستة، وتفسير الدلالات",
+        "en": "Capillary Action, AMS 2644 Classification, 6-Step Processing, and Evaluation"
+      },
+      "discipline": "PT",
+      "pages": 9,
+      "languages": [
+        "ar",
+        "en"
+      ],
+      "bytes": 28957,
+      "checksum": "b630c1ff2be35297237dcee43c57d43ef21671faa29d2f69c4b4b49752ffd48b",
+      "untranslated": 5,
+      "modified": "2026-10-21T00:00:00Z"
+    },
+    {
+      "id": "edb-book-mt",
+      "file": "book-mt.epub",
+      "kind": "textbook",
+      "title": {
+        "ar": "المرجع الأكاديمي في فحص الجسيمات المغناطيسية (MT)",
+        "en": "Academic Textbook of Magnetic Particle Testing (MT)"
+      },
+      "subtitle": {
+        "ar": "النظرية المغناطيسية، مجالات التسرب، الحواضن، وإزالة المغنطة المتبقية",
+        "en": "Magnetism, Flux Leakage, Yokes, Coils & Demagnetization"
+      },
+      "discipline": "MT",
+      "pages": 9,
+      "languages": [
+        "ar",
+        "en"
+      ],
+      "bytes": 29214,
+      "checksum": "c4be19a8bada2278c727eb4fd8205fd45f04af019292e355540edfb14543d408",
+      "untranslated": 8,
+      "modified": "2026-10-21T00:00:00Z"
+    },
+    {
+      "id": "edb-book-rt",
+      "file": "book-rt.epub",
+      "kind": "textbook",
+      "title": {
+        "ar": "المرجع الأكاديمي في فحص التصوير الإشعاعي (RT)",
+        "en": "Academic Textbook of Radiographic Testing (RT)"
+      },
+      "subtitle": {
+        "ar": "فيزياء الأشعة، النظائر المشعة، جودة الصورة IQI، وتفسير الأفلام الصناعية",
+        "en": "Radiation Physics, Radioisotopes, Image Quality Indicators & Film Interpretation"
+      },
+      "discipline": "RT",
+      "pages": 9,
+      "languages": [
+        "ar",
+        "en"
+      ],
+      "bytes": 30509,
+      "checksum": "efb740bf5cb8a862954a551a839aac61ca53fdd5e97a00acc40dab23be566f5a",
+      "untranslated": 47,
+      "modified": "2026-10-21T00:00:00Z"
+    },
+    {
+      "id": "edb-book-et",
+      "file": "book-et.epub",
+      "kind": "textbook",
+      "title": {
+        "ar": "المرجع الأكاديمي في فحص التيارات الدوامية (ET)",
+        "en": "Academic Textbook of Eddy Current Testing (ET)"
+      },
+      "subtitle": {
+        "ar": "الحث الكهرومغناطيسي، عمق التغلغل القياسي، ومستوى الممانعة المركبة",
+        "en": "Electromagnetic Induction, Standard Depth of Penetration & Impedance Plane"
+      },
+      "discipline": "ET",
+      "pages": 9,
+      "languages": [
+        "ar",
+        "en"
+      ],
+      "bytes": 29726,
+      "checksum": "f513c93ef44ee292fa95079e44e25023fb3e039b9a76eb8b4082229341a1fa49",
+      "untranslated": 27,
+      "modified": "2026-10-21T00:00:00Z"
+    },
+    {
+      "id": "edb-book-vt",
+      "file": "book-vt.epub",
+      "kind": "textbook",
+      "title": {
+        "ar": "المرجع الأكاديمي في الفحص البصري والهندسي (VT)",
+        "en": "Academic Textbook of Visual & Optical Testing (VT)"
+      },
+      "subtitle": {
+        "ar": "البصريات، حدّة الإبصار، أجهزة القياس الميكانيكية، والفحص عن بعد RVI",
+        "en": "Optics, Vision Acuity, Mechanical Weld Gauges, and Remote Visual Inspection (RVI)"
+      },
+      "discipline": "VT",
+      "pages": 9,
+      "languages": [
+        "ar",
+        "en"
+      ],
+      "bytes": 29087,
+      "checksum": "35983f0b0f07165e396b640bad18bc8728c75d9bd5d330f56164b86a51fef8ae",
+      "untranslated": 42,
+      "modified": "2026-10-21T00:00:00Z"
+    },
+    {
+      "id": "edb-book-materials",
+      "file": "book-materials.epub",
+      "kind": "textbook",
+      "title": {
+        "ar": "المرجع الأكاديمي في علم المواد وتشكيل العيوب (Materials & Flaws)",
+        "en": "Academic Textbook of Materials Science & Flaw Formation"
+      },
+      "subtitle": {
+        "ar": "البنى البلورية، مخطط Fe-C، عيوب السباكة والتشكيل، وآليات تلف API 571",
+        "en": "Crystal Lattices, Fe-C Phase Diagram, Manufacturing Flaws & API 571 Damage"
+      },
+      "discipline": "MATERIALS",
+      "pages": 9,
+      "languages": [
+        "ar",
+        "en"
+      ],
+      "bytes": 30278,
+      "checksum": "898cf6e60643bc0d7dc0ea0ac65a5da7c4ddf05bb2430429c7cb0c66cdca9f7e",
+      "untranslated": 26,
+      "modified": "2026-10-21T00:00:00Z"
+    },
+    {
+      "id": "edb-book-intro",
+      "file": "book-intro.epub",
+      "kind": "textbook",
+      "title": {
+        "ar": "المرجع الأكاديمي في مدخل وفلسفة الاختبارات غير الإتلافية والمعايير العالمية",
+        "en": "Academic Textbook of NDT Scope, Philosophy & Global Standards"
+      },
+      "subtitle": {
+        "ar": "منظومات التأهيل، الكودات العالمية، ميكانيكا الكسر، وتقييم الصلاحية للخدمة FFS",
+        "en": "Personnel Qualification, Global Codes, Fracture Mechanics & Fitness-for-Service"
+      },
+      "discipline": "INTRO",
+      "pages": 9,
+      "languages": [
+        "ar",
+        "en"
+      ],
+      "bytes": 31311,
+      "checksum": "4e4a9bf097bff5baa3c4de9b423681e82eb8bdbdd5f940a984cbe388441a8192",
+      "untranslated": 35,
+      "modified": "2026-10-21T00:00:00Z"
+    },
+    {
+      "id": "edb-book-paut-tofd",
+      "file": "book-paut-tofd.epub",
+      "kind": "textbook",
+      "title": {
+        "ar": "المرجع الأكاديمي في تقنيات الموجات الصوتية المتقدمة (PAUT & TOFD)",
+        "en": "Academic Textbook of Advanced Ultrasonic Testing (PAUT & TOFD)"
+      },
+      "subtitle": {
+        "ar": "المصفوفات الطورية، قوانين البؤرة وتأخيرات الإطلاق، حيود قمة الشق، وتقدير الارتفاع الشاقولي",
+        "en": "Phased Array Architecture, Focal Delay Laws, Tip Diffraction, & Sizing Algorithms"
+      },
+      "discipline": "PAUT_TOFD",
+      "pages": 9,
+      "languages": [
+        "ar",
+        "en"
+      ],
+      "bytes": 32109,
+      "checksum": "8426387df9305cfd21d361c3ba156b621c3d57f49253e841d88f7de9a879f953",
+      "untranslated": 8,
+      "modified": "2026-10-21T00:00:00Z"
+    },
+    {
+      "id": "edb-book-welding-codes",
+      "file": "book-welding-codes.epub",
+      "kind": "textbook",
+      "title": {
+        "ar": "المرجع الأكاديمي في تفتيش اللحام ومعايير القبول الهندسية (Welding Quality & Codes)",
+        "en": "Academic Textbook of Welding Quality & International Acceptance Codes"
+      },
+      "subtitle": {
+        "ar": "عمليات اللحام، عيوب الصهر والتشكيل، ومعايير القبول والرفض وفق ASME Sec VIII و ASME B31.3 و AWS D1.1",
+        "en": "Fusion Welding Processes, Defect Morphologies, & Code Acceptance under ASME & AWS"
+      },
+      "discipline": "WELDING_CODES",
+      "pages": 9,
+      "languages": [
+        "ar",
+        "en"
+      ],
+      "bytes": 32164,
+      "checksum": "3b2891d93df78575fbc938e17c3b46b981ffe1ea1d23222766b301695daf03cf",
+      "untranslated": 1,
+      "modified": "2026-10-21T00:00:00Z"
+    },
+    {
+      "id": "edb-book-ae-lt",
+      "file": "book-ae-lt.epub",
+      "kind": "textbook",
+      "title": {
+        "ar": "المرجع الأكاديمي في فحص الانبعاث الصوتي واختبارات التسريب (AE & LT)",
+        "en": "Academic Textbook of Acoustic Emission & Leak Testing (AE & LT)"
+      },
+      "subtitle": {
+        "ar": "أمواج الإجهاد العابرة، تأثير كايزر وفيليسيتي، تحديد مواقع المصادر TDOA، ومطياف كتلة الهيليوم",
+        "en": "Transient Stress Waves, Kaiser/Felicity Ratios, TDOA Planar Location, & Helium Mass Spectrometry"
+      },
+      "discipline": "AE_LT",
+      "pages": 9,
+      "languages": [
+        "ar",
+        "en"
+      ],
+      "bytes": 33706,
+      "checksum": "b33f5186bd0538c0b4ad75cca3a4dbc37bf11549571102ca2f418a8d3d2d68ee",
+      "untranslated": 7,
+      "modified": "2026-10-21T00:00:00Z"
+    },
+    {
+      "id": "edb-course-nde-physics",
+      "file": "course-nde-physics.epub",
+      "kind": "course",
+      "title": {
+        "ar": "أساسيات الفيزياء والقياس لـ NDT",
+        "en": "NDT Physics & Measurement Foundations"
+      },
+      "subtitle": {
+        "ar": "الموجات، المقاومة الصوتية، المغناطيسية، الإشعاع، والخاصية الشعرية",
+        "en": "Waves, acoustic impedance, magnetism, radiation and capillarity"
+      },
+      "discipline": "conventional_ndt",
+      "pages": 8,
+      "languages": [
+        "ar",
+        "en"
+      ],
+      "bytes": 32115,
+      "checksum": "3f427dc022bf4cf6bc7bd7e3961792db54797af907c95270d6f57ee4a468fa39",
+      "untranslated": 0,
+      "modified": "2026-10-21T00:00:00Z"
+    },
+    {
+      "id": "edb-course-nde-vt",
+      "file": "course-nde-vt.epub",
+      "kind": "course",
+      "title": {
+        "ar": "الفحص البصري الهندسي (VT)",
+        "en": "Engineering Visual Testing (VT)"
+      },
+      "subtitle": {
+        "ar": "الإبصار، التباين، هندسة الوصلة، الإضاءة، والتوثيق",
+        "en": "Vision, contrast, weld geometry, lighting and records"
+      },
+      "discipline": "conventional_ndt",
+      "pages": 7,
+      "languages": [
+        "ar",
+        "en"
+      ],
+      "bytes": 28702,
+      "checksum": "33b0d4fc2c3124576652e0d1c140e13bc9bec5aa4d83f3e08d2aaeecea55ca44",
+      "untranslated": 0,
+      "modified": "2026-10-21T00:00:00Z"
+    },
+    {
+      "id": "edb-course-nde-pt",
+      "file": "course-nde-pt.epub",
+      "kind": "course",
+      "title": {
+        "ar": "السوائل النافذة (PT)",
+        "en": "Liquid Penetrant Testing (PT)"
+      },
+      "subtitle": {
+        "ar": "المبدأ، المواد، الضبط، التطبيق، والتفسير",
+        "en": "Principle, materials, control, application and interpretation"
+      },
+      "discipline": "conventional_ndt",
+      "pages": 8,
+      "languages": [
+        "ar",
+        "en"
+      ],
+      "bytes": 32213,
+      "checksum": "c84c181e89f5ff81257be59d4c4c9dae6f9804924e627fd81f3afeea4c834765",
+      "untranslated": 0,
+      "modified": "2026-10-21T00:00:00Z"
+    },
+    {
+      "id": "edb-course-nde-mt",
+      "file": "course-nde-mt.epub",
+      "kind": "course",
+      "title": {
+        "ar": "الجسيمات المغناطيسية (MT)",
+        "en": "Magnetic Particle Testing (MT)"
+      },
+      "subtitle": {
+        "ar": "المبدأ، التمغنط، الجسيمات، المعدات، والتفسير",
+        "en": "Principle, magnetization, particles, equipment and interpretation"
+      },
+      "discipline": "conventional_ndt",
+      "pages": 8,
+      "languages": [
+        "ar",
+        "en"
+      ],
+      "bytes": 31532,
+      "checksum": "af5a293c3cb561bf85cb4f006bcd2e0deff9141dedfa98e73eab24f4d5c4feab",
+      "untranslated": 0,
+      "modified": "2026-10-21T00:00:00Z"
+    },
+    {
+      "id": "edb-course-nde-ut",
+      "file": "course-nde-ut.epub",
+      "kind": "course",
+      "title": {
+        "ar": "الموجات فوق الصوتية (UT)",
+        "en": "Ultrasonic Testing (UT)"
+      },
+      "subtitle": {
+        "ar": "المبدأ، الحزمة، العرض، المعايرة، اللحام، والتقنيات المتقدمة",
+        "en": "Principle, beam, display, calibration, welds and advanced techniques"
+      },
+      "discipline": "conventional_ndt",
+      "pages": 9,
+      "languages": [
+        "ar",
+        "en"
+      ],
+      "bytes": 34879,
+      "checksum": "ca912f28b1af2800c99afaa268c9955aa5b9af5b523ee26a2fcf5e9431444177",
+      "untranslated": 0,
+      "modified": "2026-10-21T00:00:00Z"
+    },
+    {
+      "id": "edb-course-nde-rt",
+      "file": "course-nde-rt.epub",
+      "kind": "course",
+      "title": {
+        "ar": "التصوير الإشعاعي الصناعي (RT)",
+        "en": "Industrial Radiographic Testing (RT)"
+      },
+      "subtitle": {
+        "ar": "المصادر، التوهين، الفيلم، الجودة، التفسير، والسلامة",
+        "en": "Sources, attenuation, film, quality, interpretation and safety"
+      },
+      "discipline": "conventional_ndt",
+      "pages": 8,
+      "languages": [
+        "ar",
+        "en"
+      ],
+      "bytes": 31529,
+      "checksum": "1c29c333719ed4c70619735b4a8eaba9eef5a2e94d0a92c083ca403fca2660a1",
+      "untranslated": 0,
+      "modified": "2026-10-21T00:00:00Z"
+    },
+    {
+      "id": "edb-course-nde-et",
+      "file": "course-nde-et.epub",
+      "kind": "course",
+      "title": {
+        "ar": "التيارات الدوامية المتقدمة (ET)",
+        "en": "Advanced Eddy Current Testing (ET)"
+      },
+      "subtitle": {
+        "ar": "الحث الكهرومغناطيسي، المستوى الممانعي، المسابر، والقياس دون تلامس",
+        "en": "Electromagnetic induction, the impedance plane, probes and non-contact measurement"
+      },
+      "discipline": "ndt_advanced",
+      "pages": 8,
+      "languages": [
+        "ar",
+        "en"
+      ],
+      "bytes": 33509,
+      "checksum": "f94521a0c1a244a68e581f68f739f8b901753375397751a9c6d3369b25fc5187",
+      "untranslated": 0,
+      "modified": "2026-10-21T00:00:00Z"
+    }
+  ]
+}

@@ -1,0 +1,81 @@
+name: deploy
+
+# Builds the site from source and publishes it to GitHub Pages.
+#
+# Why a workflow instead of "Deploy from a branch → /docs": the committed
+# `docs/` folder is a build artifact, and a stale one is exactly how a site
+# goes live with broken JavaScript. Here every deploy rebuilds from `src/`,
+# checks the result with `npm run site:check`, and only then publishes.
+#
+# One-time setup (Settings → Pages → Build and deployment → Source: GitHub
+# Actions) is described in documentation/DEPLOY_GITHUB_PAGES_AR.md.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time; never cancel a publish halfway through.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      # A GitHub Pages *project* site is served from /<repo-name>/, so the asset
+      # base has to match the repository this workflow runs in.
+      # In NDT-INSCO/INSCONDT the site is published at
+      # https://ndt-insco.github.io/INSCONDT/
+      # Override it with a repository variable named SITE_BASE — for example `/`
+      # when the site is served from a custom domain's root.
+      SITE_BASE: ${{ vars.SITE_BASE || format('/{0}/', github.event.repository.name) }}
+      # Optional: point the AI tutor at an external gateway (Cloud Run, VPS…).
+      # Leave the repository variable unset to keep the assistant's honest
+      # "not configured" message on the static site. See .env.example.
+      VITE_AI_BASE_URL: ${{ vars.VITE_AI_BASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Check the published folder
+        run: npm run site:check
+
+      # `enablement: true` lets the workflow create the Pages site on its own when
+      # it is still disabled (Settings → Pages → Source). It only works if the
+      # token is allowed to administer Pages; otherwise the run stops here and
+      # prints exactly that, and the site has to be enabled once by hand — see
+      # documentation/DEPLOY_GITHUB_PAGES_AR.md.
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,6 @@
+{
+  "name": "INSCO - NDT & Engineering Services",
+  "description": "الموقع التفاعلي الذكي لشركة إنسكو الدولية للخدمات والمقاولات: الفحوصات غير التدميرية (NDT)، المعالجة الحرارية بعد اللحام (PWHT)، منصة خدمة العملاء الذكية، ماسنجر طلب الخدمات، والأكاديمية التعليمية التخصصية.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

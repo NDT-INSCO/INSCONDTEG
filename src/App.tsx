@@ -1,11 +1,20 @@
 import React, { Suspense, useEffect, useState } from 'react';
 import { CompanyPortal } from './components/company/CompanyPortal';
+import { PortalChooser } from './components/PortalChooser';
+import { MobileNavDrawer } from './components/MobileNavDrawer';
 import { GlobalHeaderSearch } from './components/GlobalHeaderSearch';
 import { GlobalThemeSwitcher } from './components/GlobalThemeSwitcher';
 import { Language } from './types';
 import { AcademyTab, readAcademyTab } from './academyTabs';
 import { INSCO_COMPANY_DATA } from './data/inscoCompanyData';
+import { downloadTrainingSyllabus } from './utils/trainingSyllabusGenerator';
 import { useTheme } from './utils/themeStore';
+import {
+  readPortalChoice,
+  savePortalChoice,
+  shouldOfferPortalChooser,
+  type PortalChoice,
+} from './utils/portalChoice';
 import { 
   Globe, 
   GraduationCap, 
@@ -15,7 +24,10 @@ import {
   ArrowRight,
   Phone,
   Mail,
-  Award
+  Award,
+  Menu,
+  MessageCircle,
+  Download
 } from 'lucide-react';
 
 // The academy carries the whole NDT library (textbooks, encyclopedia, quizzes,
@@ -23,6 +35,12 @@ import {
 // so it is split out and fetched when the academy is actually opened.
 const EducationalAcademy = React.lazy(() =>
   import('./components/EducationalAcademy').then(module => ({ default: module.EducationalAcademy }))
+);
+
+// The demonstrations page carries four interactive simulators. It is its own
+// route now, so it is fetched on demand instead of shipping with the profile.
+const CompanyDemoPortal = React.lazy(() =>
+  import('./components/company/CompanyDemoPortal').then(module => ({ default: module.CompanyDemoPortal }))
 );
 
 function AcademyLoading({ isAr }: { isAr: boolean }) {
@@ -44,6 +62,13 @@ function AcademyLoading({ isAr }: { isAr: boolean }) {
 
 const LANGUAGE_KEY = 'insco_language_v1';
 
+/** `#demo` is the technical-demonstrations page, not an academy tab. */
+function isDemoHash(hash: string): boolean {
+  return hash.replace(/^#/, '').trim().toLowerCase() === 'demo';
+}
+
+type AppView = 'company' | 'academy' | 'demo';
+
 function readLanguage(): Language {
   try {
     return localStorage.getItem(LANGUAGE_KEY) === 'en' ? 'en' : 'ar';
@@ -55,14 +80,28 @@ function readLanguage(): Language {
 export const App: React.FC = () => {
   const [language, setLanguage] = useState<Language>(readLanguage);
   const { theme, isLight } = useTheme();
-  // A shared link such as `/-Project-/#courses` must open the academy, not the
-  // company profile with an ignored hash.
-  const [currentView, setCurrentView] = useState<'company' | 'academy'>(() =>
-    readAcademyTab(window.location.hash) ? 'academy' : 'company'
-  );
+  // A shared link such as `/-Project-/#courses` must open the academy, and
+  // `#demo` must open the demonstrations page, not the profile with a dead hash.
+  const [initialHash] = useState(() => window.location.hash);
+  const [currentView, setCurrentView] = useState<AppView>(() => {
+    const hash = window.location.hash;
+    if (readAcademyTab(hash)) return 'academy';
+    if (isDemoHash(hash)) return 'demo';
+    return 'company';
+  });
   const [academySubTab, setAcademySubTab] = useState<AcademyTab | undefined>(() =>
     readAcademyTab(window.location.hash)
   );
+  const [portalChoice, setPortalChoice] = useState<PortalChoice | null>(() => readPortalChoice());
+  const [chooserOpen, setChooserOpen] = useState(() =>
+    shouldOfferPortalChooser({
+      choice: readPortalChoice(),
+      hasAcademyHash: Boolean(readAcademyTab(initialHash)),
+      hasDemoHash: isDemoHash(initialHash),
+      view: readAcademyTab(initialHash) ? 'academy' : isDemoHash(initialHash) ? 'demo' : 'company',
+    })
+  );
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const isAr = language === 'ar';
   const ArrowIcon = isAr ? ArrowLeft : ArrowRight;
@@ -85,13 +124,18 @@ export const App: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Back/forward between a cleared hash and a shared academy link.
+  // Back/forward between a cleared hash, a shared academy link and `#demo`.
   useEffect(() => {
     const onHashChange = () => {
-      const tab = readAcademyTab(window.location.hash);
+      const hash = window.location.hash;
+      const tab = readAcademyTab(hash);
       if (tab) {
         setAcademySubTab(tab);
         setCurrentView('academy');
+        return;
+      }
+      if (isDemoHash(hash)) {
+        setCurrentView('demo');
       }
     };
     window.addEventListener('hashchange', onHashChange);
@@ -116,6 +160,38 @@ export const App: React.FC = () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
+
+  // Page-level destinations live in the hash so they can be shared/bookmarked.
+  const handleOpenDemo = () => {
+    setCurrentView('demo');
+    window.history.replaceState(
+      null,
+      '',
+      `${window.location.pathname}${window.location.search}#demo`
+    );
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleChoosePortal = (choice: PortalChoice) => {
+    savePortalChoice(choice);
+    setPortalChoice(choice);
+    setChooserOpen(false);
+    if (choice === 'academy') handleNavigateToAcademy();
+  };
+
+  // Six corporate destinations and one action — the same list on every screen.
+  const corporateNav = [
+    {
+      ar: 'الرئيسية',
+      en: 'Home',
+      onClick: () => handleNavigateToCompany(),
+      current: currentView === 'company',
+    },
+    { ar: 'خدماتنا', en: 'Services', onClick: () => handleNavigateToCompany('services') },
+    { ar: 'إمكانياتنا', en: 'Capabilities', onClick: () => handleNavigateToCompany('fleet-inspector') },
+    { ar: 'مشروعاتنا', en: 'Projects', onClick: () => handleNavigateToCompany('projects') },
+    { ar: 'ملف التأهيل', en: 'Vendor dossier', onClick: () => handleNavigateToCompany('vault') },
+  ];
 
   return (
     <div
@@ -156,69 +232,36 @@ export const App: React.FC = () => {
             </div>
           </button>
 
-          {/* Zone 2: Clean Single-line Navigation Links */}
-          <nav className="hidden xl:flex items-center gap-5 text-xs font-semibold text-slate-300">
+          {/* Zone 2: Six corporate destinations, one action, one academy door. */}
+          <nav
+            aria-label={isAr ? 'التنقل الرئيسي' : 'Main navigation'}
+            className="hidden xl:flex items-center gap-4 text-xs font-semibold text-slate-300"
+          >
+            {corporateNav.map(item => (
+              <button
+                key={item.en}
+                type="button"
+                onClick={item.onClick}
+                aria-current={item.current ? 'page' : undefined}
+                className={`hover:text-cyan-400 transition whitespace-nowrap cursor-pointer ${
+                  item.current ? 'text-cyan-400 font-bold' : ''
+                }`}
+              >
+                {isAr ? item.ar : item.en}
+              </button>
+            ))}
             <button
               type="button"
-              onClick={() => handleNavigateToCompany()}
-              className={`hover:text-cyan-400 transition whitespace-nowrap cursor-pointer ${
-                currentView === 'company' ? 'text-cyan-400 font-bold' : ''
-              }`}
+              onClick={() => handleNavigateToCompany('rfq')}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 px-3 py-1.5 text-slate-950 font-black transition whitespace-nowrap cursor-pointer"
             >
-              {isAr ? 'الرئيسية وملف الشركة' : 'Profile'}
+              {isAr ? 'اطلب عرض سعر' : 'Request a quote'}
             </button>
-
-            <button
-              type="button"
-              onClick={() => handleNavigateToCompany('services')}
-              className="hover:text-cyan-400 transition whitespace-nowrap cursor-pointer"
-            >
-              {isAr ? 'الخدمات وأسطول PWHT' : 'Services & Fleet'}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleNavigateToCompany('certifications')}
-              className="hover:text-cyan-400 transition whitespace-nowrap cursor-pointer"
-            >
-              {isAr ? 'شهادات الجودة (ISO)' : 'Accreditations'}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleNavigateToCompany('projects')}
-              className="hover:text-cyan-400 transition whitespace-nowrap cursor-pointer"
-            >
-              {isAr ? 'سابقة الأعمال' : 'Track Record'}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleNavigateToCompany('testimonials')}
-              className="hover:text-cyan-400 transition whitespace-nowrap cursor-pointer flex items-center gap-1"
-            >
-              <span>{isAr ? 'آراء العملاء' : 'Testimonials'}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleNavigateToCompany('hologram-lab')}
-              className="hover:text-cyan-400 transition whitespace-nowrap cursor-pointer"
-            >
-              {isAr ? 'المختبر ثلاثي الأبعاد (3D)' : '3D Lab'}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleNavigateToCompany('vault')}
-              className="hover:text-cyan-400 transition whitespace-nowrap cursor-pointer"
-            >
-              {isAr ? 'ملف التأهيل (PDF)' : 'Vendor Vault'}
-            </button>
-
+            <span aria-hidden="true" className="h-4 w-px bg-slate-700" />
             <button
               type="button"
               onClick={() => handleNavigateToAcademy()}
+              aria-current={currentView === 'academy' ? 'page' : undefined}
               className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md transition whitespace-nowrap cursor-pointer ${
                 currentView === 'academy'
                   ? 'bg-cyan-600 text-white font-bold'
@@ -240,27 +283,53 @@ export const App: React.FC = () => {
           </div>
 
           {/* Zone 3: Primary Action & Language Toggle */}
-          <div className="flex items-center gap-2.5 shrink-0">
-            {currentView === 'company' ? (
-              <a
-                href={INSCO_COMPANY_DATA.pdfBrochureUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold transition whitespace-nowrap"
-              >
-                <FileText className="w-3.5 h-3.5" />
-                <span>{isAr ? 'بروشور PDF' : 'Brochure PDF'}</span>
-              </a>
-            ) : (
+          <div className="flex items-center gap-2 shrink-0">
+            {currentView !== 'company' ? (
               <button
                 type="button"
                 onClick={() => handleNavigateToCompany()}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs font-semibold border border-slate-700 transition whitespace-nowrap cursor-pointer"
               >
                 <Building2 className="w-3.5 h-3.5" />
-                <span>{isAr ? 'بوابة الشركة' : 'Corporate Portal'}</span>
+                <span className="hidden sm:inline">{isAr ? 'بوابة الشركة' : 'Corporate Portal'}</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => handleNavigateToCompany('rfq')}
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black transition whitespace-nowrap cursor-pointer"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>{isAr ? 'اطلب عرض سعر' : 'Request a quote'}</span>
               </button>
             )}
+
+            {portalChoice && (
+              <button
+                type="button"
+                onClick={() => setChooserOpen(true)}
+                aria-label={isAr ? 'تبديل البوابة' : 'Switch portal'}
+                title={isAr ? 'تبديل البوابة' : 'Switch portal'}
+                className="hidden lg:inline-flex items-center justify-center p-2 rounded-lg border border-slate-700 text-slate-400 hover:text-cyan-300 hover:border-cyan-500/50 transition cursor-pointer"
+              >
+                {portalChoice === 'company' ? (
+                  <GraduationCap className="w-3.5 h-3.5" />
+                ) : (
+                  <Building2 className="w-3.5 h-3.5" />
+                )}
+              </button>
+            )}
+
+            {/* One menu instead of the old 14-chip strip. */}
+            <button
+              type="button"
+              onClick={() => setMenuOpen(true)}
+              aria-label={isAr ? 'فتح قائمة التنقل' : 'Open navigation menu'}
+              aria-expanded={menuOpen}
+              className="xl:hidden inline-flex items-center justify-center p-2 rounded-lg border border-slate-700 text-slate-200 hover:bg-slate-800 transition cursor-pointer"
+            >
+              <Menu className="w-4 h-4" />
+            </button>
 
             <GlobalThemeSwitcher language={language} />
 
@@ -277,13 +346,27 @@ export const App: React.FC = () => {
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1">
-        {currentView === 'company' ? (
+      <main className="flex-1 pb-20 xl:pb-0">
+        {currentView === 'company' && (
           <CompanyPortal
             language={language}
             onNavigateToAcademy={handleNavigateToAcademy}
+            onOpenDemo={handleOpenDemo}
           />
-        ) : (
+        )}
+
+        {currentView === 'demo' && (
+          <Suspense fallback={<AcademyLoading isAr={isAr} />}>
+            <CompanyDemoPortal
+              language={language}
+              onBack={() => handleNavigateToCompany()}
+              onRequestQuote={() => handleNavigateToCompany('rfq')}
+              onOpenAcademy={tab => handleNavigateToAcademy(tab as AcademyTab | undefined)}
+            />
+          </Suspense>
+        )}
+
+        {currentView === 'academy' && (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
             {/* Integrated Academy Bar linking back to Company facade */}
             <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -303,14 +386,25 @@ export const App: React.FC = () => {
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => handleNavigateToCompany()}
-                className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition cursor-pointer whitespace-nowrap"
-              >
-                <span>{isAr ? 'العودة إلى ملف وخدمات الشركة' : 'Back to Corporate Profile'}</span>
-                <ArrowIcon className="w-3.5 h-3.5" />
-              </button>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => downloadTrainingSyllabus(language)}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition cursor-pointer whitespace-nowrap"
+                >
+                  <Download className="w-3.5 h-3.5 text-amber-400" />
+                  <span>{isAr ? 'تحميل المنهج التدريبي (Syllabus)' : 'Download training syllabus'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleNavigateToCompany()}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition cursor-pointer whitespace-nowrap"
+                >
+                  <span>{isAr ? 'العودة إلى ملف وخدمات الشركة' : 'Back to Corporate Profile'}</span>
+                  <ArrowIcon className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
 
             {/* Mount Full Educational Academy */}
@@ -323,6 +417,47 @@ export const App: React.FC = () => {
           </div>
         )}
       </main>
+
+      {/* One mobile menu for both portals */}
+      <MobileNavDrawer
+        open={menuOpen}
+        language={language}
+        onClose={() => setMenuOpen(false)}
+        onNavigateSection={sectionId => handleNavigateToCompany(sectionId)}
+        onOpenDemo={handleOpenDemo}
+        onOpenAcademy={tab => handleNavigateToAcademy(tab)}
+      />
+
+      {/* First-visit fork between the two audiences (never covers a deep link) */}
+      {chooserOpen && (
+        <PortalChooser
+          language={language}
+          onChoose={handleChoosePortal}
+          onDismiss={() => setChooserOpen(false)}
+        />
+      )}
+
+      {/* Sticky conversion bar on phones */}
+      {currentView === 'company' && (
+        <div className="xl:hidden fixed bottom-0 inset-x-0 z-40 border-t border-slate-800 bg-slate-950/95 backdrop-blur px-3 py-2 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => handleNavigateToCompany('rfq')}
+            className="flex-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 px-3 py-2.5 text-sm font-black transition cursor-pointer"
+          >
+            {isAr ? 'اطلب عرض سعر' : 'Request a quote'}
+          </button>
+          <a
+            href={`https://wa.me/${INSCO_COMPANY_DATA.contacts.whatsapp.replace(/[^\d]/g, '')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-700 px-3 py-2.5 text-xs font-semibold text-slate-200 hover:bg-slate-800 transition"
+          >
+            <MessageCircle className="w-4 h-4 text-emerald-400" />
+            <span>{isAr ? 'واتساب' : 'WhatsApp'}</span>
+          </a>
+        </div>
+      )}
 
       {/* Corporate Comprehensive Footer */}
       <footer className="border-t border-slate-800 bg-slate-950 pt-12 pb-8 text-xs text-slate-400">
@@ -356,6 +491,15 @@ export const App: React.FC = () => {
                 <li>{isAr ? 'فحوصات سطحية (MT, PT, VT, Coating)' : 'Surface NDT (MT, PT, VT)'}</li>
                 <li>{isAr ? 'تحليل سبائك واختبار صلادة (PMI, Hardness)' : 'Positive Material ID (PMI & Hardness)'}</li>
                 <li>{isAr ? 'اختبارات هيدروستاتيكية وتوريد عمالة' : 'Hydrostatic Testing & Manpower'}</li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={handleOpenDemo}
+                    className="text-cyan-400 hover:text-cyan-300 underline underline-offset-4 transition cursor-pointer"
+                  >
+                    {isAr ? 'العرض الفني التفاعلي (محاكيات ومعامل)' : 'Technical demonstrations (simulators & labs)'}
+                  </button>
+                </li>
               </ul>
             </div>
 

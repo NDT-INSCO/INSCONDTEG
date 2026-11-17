@@ -1,14 +1,9 @@
 import React from 'react';
 import { Language } from '../../types';
 import { CompanyHero } from './CompanyHero';
-import { CompanyQuickActionsSection } from './CompanyQuickActionsSection';
 import { CompanyServicesSection } from './CompanyServicesSection';
 import { CompanyProjectCostEstimator } from './CompanyProjectCostEstimator';
 import { CompanyFleetInspector } from './CompanyFleetInspector';
-import { AdvancedMotionVisualizerSection } from './AdvancedMotionVisualizerSection';
-import { PwhtCycleSimulator } from './PwhtCycleSimulator';
-import { RadiographicFilmViewer } from './RadiographicFilmViewer';
-import { CompanyUltrasonicLabSection } from './CompanyUltrasonicLabSection';
 import { CompanyCertificationsSection } from './CompanyCertificationsSection';
 import { CompanyStandardsMatrix } from './CompanyStandardsMatrix';
 import { CompanyProjectsSection } from './CompanyProjectsSection';
@@ -16,15 +11,32 @@ import { CompanyTestimonialsSection } from './CompanyTestimonialsSection';
 import { CompanyAcademyHighlight } from './CompanyAcademyHighlight';
 import { CompanyVendorVaultSection } from './CompanyVendorVaultSection';
 import { CompanyContactSection } from './CompanyContactSection';
+import { CompanyQuickActionsSection } from './CompanyQuickActionsSection';
 
 interface CompanyPortalProps {
   language: Language;
   onNavigateToAcademy: (initialSubTab?: any) => void;
+  /** Opens the technical demonstrations page (`#demo`). */
+  onOpenDemo?: () => void;
 }
 
+/**
+ * The corporate landing page, ordered as a buyer's decision, not as a feature list:
+ *
+ *   1 who we are  → 2 what we do → 3 are we qualified → 4 can we deliver
+ *   → 5 have we done it → 6 vendor dossier → 7 ask for a quote
+ *
+ * The interactive labs used to sit between step 2 and step 3 and pushed the
+ * accreditations to the tenth screen. They now live in `CompanyDemoPortal`
+ * (`#demo`), unchanged, with a link from the services section and the footer.
+ * Nothing was deleted: the estimator moved into the RFQ section as an optional
+ * first step, and the old 14-chip jump strip is replaced by the header menu and
+ * the mobile drawer.
+ */
 export const CompanyPortal: React.FC<CompanyPortalProps> = ({
   language,
   onNavigateToAcademy,
+  onOpenDemo,
 }) => {
   const scrollToSection = (sectionId: string) => {
     const el = document.getElementById(sectionId);
@@ -35,109 +47,71 @@ export const CompanyPortal: React.FC<CompanyPortalProps> = ({
 
   const isAr = language === 'ar';
 
-  const quickNav = [
-    { id: 'quick-actions', label: isAr ? 'إجراءات سريعة' : 'Quick Actions' },
-    { id: 'services', label: isAr ? 'الخدمات' : 'Services' },
-    { id: 'cost-estimator', label: isAr ? 'حاسبة التكلفة' : 'Estimator' },
-    { id: 'fleet-inspector', label: isAr ? 'الأسطول (48+)' : 'Fleet' },
-    { id: 'hologram-lab', label: isAr ? 'مختبر 3D' : '3D Lab' },
-    { id: 'pwht-simulator', label: isAr ? 'محاكي PWHT' : 'PWHT Sim' },
-    { id: 'radiography-viewer', label: isAr ? 'أفلام RT' : 'RT Lightbox' },
-    { id: 'ultrasonic-lab', label: isAr ? 'أجهزة UT/PAUT' : 'UT/PAUT Lab' },
-    { id: 'certifications', label: isAr ? 'شهادات ISO' : 'ISO Certs' },
-    { id: 'standards-matrix', label: isAr ? 'الأكواد الهندسية' : 'Codes' },
-    { id: 'projects', label: isAr ? 'سابقة الأعمال' : 'Projects' },
-    { id: 'testimonials', label: isAr ? 'آراء العملاء' : 'Testimonials' },
-    { id: 'vault', label: isAr ? 'البروشور PDF' : 'Brochure' },
-    { id: 'rfq', label: isAr ? 'طلب تسعير' : 'RFQ' },
-  ];
-
   return (
-    <div className="space-y-0">
-      {/* Mobile Sticky Quick Jump Strip */}
-      <div className="xl:hidden sticky top-[57px] z-40 bg-slate-950/95 backdrop-blur border-b border-slate-800/80 px-4 py-2 overflow-x-auto scrollbar-none flex items-center gap-1.5">
-        {quickNav.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => scrollToSection(item.id)}
-            className="px-2.5 py-1 rounded-md bg-slate-900 border border-slate-800 hover:border-cyan-500/50 text-[11px] font-mono text-slate-300 hover:text-cyan-400 whitespace-nowrap cursor-pointer transition"
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
-
-      {/* 1. Hero Section based on Brochure Pages 1 & 2 */}
+    <div id="top" className="space-y-0">
+      {/* 1. Who we are, what we do, and the one action we want. */}
       <CompanyHero
         language={language}
         onNavigateToAcademy={() => onNavigateToAcademy()}
         onNavigateToSection={scrollToSection}
+        onOpenDemo={onOpenDemo}
       />
 
-      {/* 1b. One-Click Quick Actions: Request Quote & Download Training Syllabus */}
-      <CompanyQuickActionsSection
-        language={language}
-        onRequestQuote={() => scrollToSection('rfq')}
-        onOpenCurriculum={() => onNavigateToAcademy('curriculum')}
-      />
-
-      {/* 2. 12 NDT Inspection Methods & 16-Unit PWHT Fleet */}
+      {/* 2. What we do: the four service families and the 12 methods. */}
       <CompanyServicesSection
         language={language}
         onNavigateToAcademyModule={(subTab) => onNavigateToAcademy(subTab)}
+        onOpenDemo={onOpenDemo}
       />
 
-      {/* 2a. Interactive Project Cost & Mobilization Requirements Estimator */}
-      <CompanyProjectCostEstimator
-        language={language}
-        onTransferToRfq={() => scrollToSection('rfq')}
-      />
-
-      {/* 2b. Traceable Equipment & Calibrated Instrument Fleet (48+ Units) */}
-      <CompanyFleetInspector language={language} />
-
-      {/* 3. Interactive 3D Hologram & Animated Motion Graphics Lab */}
-      <AdvancedMotionVisualizerSection language={language} />
-
-      {/* 3b. Live 6-Channel PWHT Heat Treatment Cycle Simulator (65 kW Fleet) */}
-      <PwhtCycleSimulator language={language} />
-
-      {/* 3c. Digital Radiograph Lightbox & Flaw Interpretation Lab (RT Film) */}
-      <RadiographicFilmViewer
-        language={language}
-        onOpenFullRtLab={() => onNavigateToAcademy('rt_lab')}
-      />
-
-      {/* 3d. Interactive Digital Ultrasonic (UT) & Phased Array (PAUT) Flaw Detector Lab */}
-      <CompanyUltrasonicLabSection
-        language={language}
-        onNavigateToAcademy={onNavigateToAcademy}
-      />
-
-      {/* 4. Accreditations: Triple ISO, IRCA Lead Auditor, ENRRA License, 5 Reasons */}
+      {/* 3. Are we qualified? Accreditations first, then the code matrix. */}
       <CompanyCertificationsSection language={language} />
-
-      {/* 4b. International Codes & Standards Matrix (ASME, API, AWS, ISO) */}
       <CompanyStandardsMatrix language={language} />
 
-      {/* 5. Academy Highlight within Corporate Layout */}
+      {/* 4. Can we deliver? Owned fleet, calibration and regional coverage. */}
+      <CompanyFleetInspector language={language} />
+
+      {/* 5. Have we done it? Projects, then attributable client statements. */}
+      <CompanyProjectsSection language={language} />
+      <CompanyTestimonialsSection language={language} />
+
+      {/* 6. Vendor dossier and evidence annexes. */}
+      <CompanyVendorVaultSection language={language} />
+
+      {/* Bridge for engineers who arrived through the corporate door. */}
       <CompanyAcademyHighlight
         language={language}
         onNavigateToAcademy={(subTab) => onNavigateToAcademy(subTab)}
       />
 
-      {/* 6. Proven Track Record & Major Power Facilities */}
-      <CompanyProjectsSection language={language} />
-
-      {/* 7. Attributable Client Testimonials & Success Stories (Framer Motion) */}
-      <CompanyTestimonialsSection language={language} />
-
-      {/* 8. Vendor Vault: 50-Page PDF Brochure & Evidence Annexes A-E */}
-      <CompanyVendorVaultSection language={language} />
-
-      {/* 9. Direct Dispatch, 24/7 Operations & Interactive RFQ */}
-      <CompanyContactSection language={language} />
+      {/* 7. Ask for a quote. The estimator is an optional first step, not a section. */}
+      <CompanyContactSection
+        language={language}
+        topSlot={
+          <div>
+            {/* Express quotation only — the syllabus lives in the academy now. */}
+            <div className="mb-8 -mx-4 sm:mx-0 rounded-none sm:rounded-2xl overflow-hidden border-y sm:border border-slate-800">
+              <CompanyQuickActionsSection language={language} mode="quote" onRequestQuote={() => scrollToSection('rfq')} />
+            </div>
+            <div className="mb-4 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
+              <div>
+                <div className="text-xs font-mono uppercase tracking-wider text-cyan-400">
+                  {isAr ? 'خطوة اختيارية قبل الإرسال' : 'Optional step before sending'}
+                </div>
+                <h3 className="text-lg sm:text-xl font-bold text-white">
+                  {isAr ? 'قدّر نطاق العمل واحتياج التحرك' : 'Estimate scope and mobilisation'}
+                </h3>
+              </div>
+              <p className="text-xs text-slate-400 max-w-md">
+                {isAr
+                  ? 'أرقام تقديرية للتحضير فقط؛ عرض السعر الرسمي يصدر من قطاع العمليات الفنية.'
+                  : 'Indicative planning figures only; the official quote is issued by technical operations.'}
+              </p>
+            </div>
+            <CompanyProjectCostEstimator language={language} onTransferToRfq={() => scrollToSection('rfq')} />
+          </div>
+        }
+      />
     </div>
   );
 };

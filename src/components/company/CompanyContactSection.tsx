@@ -15,11 +15,14 @@ interface CompanyContactSectionProps {
   language: Language;
   /** Testing seam: lets a test drive the network outcome without a server. */
   submitRequest?: typeof submitRfq;
+  /** Optional block rendered inside the RFQ section, above the form (the estimator). */
+  topSlot?: React.ReactNode;
 }
 
 export const CompanyContactSection: React.FC<CompanyContactSectionProps> = ({
   language,
   submitRequest,
+  topSlot,
 }) => {
   const isAr = language === 'ar';
   const sendToServer = submitRequest ?? submitRfq;
@@ -144,6 +147,8 @@ export const CompanyContactSection: React.FC<CompanyContactSectionProps> = ({
               : 'Our operations team is on call 24/7 to mobilize PWHT fleets and certified NDT personnel to refinery shutdowns and emergency outages.'}
           </p>
         </div>
+
+        {topSlot && <div className="mb-10">{topSlot}</div>}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Left Column: Contact Cards & Addresses */}

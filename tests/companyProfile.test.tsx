@@ -92,7 +92,7 @@ test('CompanyHero renders official brochure facade in Arabic with metrics and PD
   assert.ok(ui.getAllByText(/وحدة معالجة حرارية/i).length > 0);
 
   // Check PDF link
-  const pdfLink = ui.getByRole('link', { name: /تحميل ملف الشركة الرسمي \(PDF\)/i });
+  const pdfLink = ui.getByRole('link', { name: /ملف الشركة \(PDF\)/i });
   assert.equal(pdfLink.getAttribute('href'), INSCO_COMPANY_DATA.pdfBrochureUrl);
 });
 
@@ -248,8 +248,9 @@ test('App root renders corporate facade by default and switches to Educational A
   const backBtn = ui.getByRole('button', { name: /العودة إلى ملف وخدمات الشركة/i });
   fireEvent.click(backBtn);
 
-  // Corporate portal restored
-  assert.ok(ui.getAllByText(/الرئيسية وملف الشركة/i).length > 0);
+  // Corporate portal restored: the six-link corporate nav is back
+  assert.ok(ui.getAllByRole('button', { name: 'خدماتنا' }).length > 0);
+  assert.ok(ui.getAllByRole('button', { name: 'ملف التأهيل' }).length > 0);
 });
 
 test('CompanyFleetInspector displays calibrated equipment registry and allows category filtering', () => {
@@ -438,22 +439,22 @@ test('GlobalHeaderSearch filters services, educational modules, and company info
   });
   fireEvent.click(isoOption);
 
-  // Restored to Company Portal view
-  assert.ok(ui.getAllByText(/بروشور PDF/i).length > 0);
+  // Restored to Company Portal view (header now leads with the quote action)
+  assert.ok(ui.getAllByRole('button', { name: /اطلب عرض سعر/i }).length > 0);
 });
 
-test('CompanyQuickActionsSection renders on CompanyPortal and executes one-click Request Quote and Download Training Syllabus', async () => {
+test('the corporate portal keeps express quotation and hands the training syllabus to the academy', async () => {
   const { CompanyPortal } = await import('../src/components/company/CompanyPortal');
+  const { CompanyQuickActionsSection } = await import('../src/components/company/CompanyQuickActionsSection');
   const { buildTrainingSyllabusDocument } = await import('../src/utils/trainingSyllabusGenerator');
 
-  // 1. Verify generated syllabus document contains all 8 disciplines and ASNT/ISO metadata
+  // The generated syllabus document is unchanged (same 8 disciplines, ASNT/ISO metadata).
   const syllabusEn = buildTrainingSyllabusDocument('en');
   assert.equal(syllabusEn.filename, 'INSCO_NDT_Training_Syllabus_2026.html');
   assert.equal(syllabusEn.stats.disciplineCount, 8);
   assert.ok(syllabusEn.stats.moduleCount > 10);
   assert.match(syllabusEn.content, /ASNT SNT-TC-1A/i);
 
-  // Track programmatic anchor download click
   let clickedDownloadFilename: string | null = null;
   const origClick = dom.window.HTMLAnchorElement.prototype.click;
   dom.window.HTMLAnchorElement.prototype.click = function () {
@@ -463,29 +464,41 @@ test('CompanyQuickActionsSection renders on CompanyPortal and executes one-click
   try {
     const ui = render(<CompanyPortal language="en" onNavigateToAcademy={() => {}} />);
 
-    // Quick Actions section is rendered with both primary buttons
-    assert.ok(ui.getAllByText(/Quick Actions/i).length > 0);
-    const quoteBtn = ui.getByRole('button', { name: /^Request Quote$/i });
-    const syllabusBtn = ui.getByRole('button', { name: /^Download Training Syllabus$/i });
-    assert.ok(quoteBtn);
-    assert.ok(syllabusBtn);
+    // The corporate portal keeps the express quotation card only: the audit
+    // asked us to stop mixing a training download into the commercial path.
+    assert.ok(ui.getAllByText(/Express quotation/i).length > 0);
+    assert.equal(
+      ui.queryByRole('button', { name: /^Download Training Syllabus$/i }),
+      null,
+      'the training syllabus must not sit inside the commercial RFQ flow'
+    );
 
-    // One-click Request Quote activates Express Quote state and focuses #rfq-company-input
+    const quoteBtn = ui.getByRole('button', { name: /^Request Quote$/i });
     fireEvent.click(quoteBtn);
     assert.ok(ui.getByText(/RFQ form activated and focused/i));
-    assert.ok(ui.getByText(/Express Quote Ready/i));
     const companyInput = ui.container.querySelector('#rfq-company-input');
     assert.equal(document.activeElement, companyInput);
 
-    // Clicking a 1-click preset updates the RFQ service select value
+    // The estimator is an optional step inside the RFQ section, not a section of its own.
+    const rfqForm = ui.container.querySelector('#rfq');
+    const estimator = ui.container.querySelector('#cost-estimator');
+    assert.ok(rfqForm && estimator, 'both the RFQ form and the estimator must exist');
+    assert.ok(
+      rfqForm!.closest('section#contact')!.contains(estimator!),
+      'the estimator must live inside the RFQ section'
+    );
+
     fireEvent.click(ui.getByRole('button', { name: /^Gamma & X-Ray RT$/i }));
     const rfqSelect = ui.container.querySelector('#rfq select') as HTMLSelectElement;
     assert.equal(rfqSelect.value, 'rt_gamma');
 
-    // One-click Download Training Syllabus triggers browser file download and displays status
+    // The syllabus moved to the academy, where its download still works.
+    cleanup();
+    const academyCard = render(<CompanyQuickActionsSection language="en" mode="syllabus" />);
+    const syllabusBtn = academyCard.getByRole('button', { name: /^Download Training Syllabus$/i });
     fireEvent.click(syllabusBtn);
     assert.equal(clickedDownloadFilename, 'INSCO_NDT_Training_Syllabus_2026.html');
-    assert.ok(ui.getByText(/Syllabus downloaded: INSCO_NDT_Training_Syllabus_2026\.html/i));
+    assert.ok(academyCard.getByText(/Syllabus downloaded: INSCO_NDT_Training_Syllabus_2026\.html/i));
   } finally {
     dom.window.HTMLAnchorElement.prototype.click = origClick;
   }

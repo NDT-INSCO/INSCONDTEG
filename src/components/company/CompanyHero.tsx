@@ -13,12 +13,15 @@ interface CompanyHeroProps {
   language: Language;
   onNavigateToAcademy: () => void;
   onNavigateToSection: (sectionId: string) => void;
+  /** Opens the technical demonstrations page (`#demo`). */
+  onOpenDemo?: () => void;
 }
 
 export const CompanyHero: React.FC<CompanyHeroProps> = ({
   language,
   onNavigateToAcademy,
   onNavigateToSection,
+  onOpenDemo,
 }) => {
   const isAr = language === 'ar';
   const ArrowIcon = isAr ? ArrowLeft : ArrowRight;
@@ -67,38 +70,56 @@ export const CompanyHero: React.FC<CompanyHeroProps> = ({
                 : 'A certified partner to leading mega-projects, industrial plants, and power stations across the Middle East and Africa since 2010, backed by an owned automated fleet and triple ISO accreditations.'}
             </p>
 
-            {/* CTAs */}
+            {/* CTAs — one primary action, one secondary document, then the
+                engineer-facing doors as quiet text links. */}
             <div className="flex flex-wrap items-center gap-3 pt-2">
-              <a
-                href={INSCO_COMPANY_DATA.pdfBrochureUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-medium text-sm transition shadow-sm"
+              <button
+                type="button"
+                onClick={() => onNavigateToSection('rfq')}
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm transition shadow-sm cursor-pointer"
               >
                 <FileText className="w-4 h-4 shrink-0" />
                 <span className="whitespace-nowrap">
-                  {isAr ? 'تحميل ملف الشركة الرسمي (PDF)' : 'Download Profile Brochure (PDF)'}
-                </span>
-              </a>
-
-              <button
-                type="button"
-                onClick={onNavigateToAcademy}
-                className="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 font-medium text-sm border border-slate-700 transition cursor-pointer"
-              >
-                <Layers className="w-4 h-4 shrink-0" />
-                <span className="whitespace-nowrap">
-                  {isAr ? 'بوابة أكاديمية إنسكو الهندسية' : 'Enter INSCO Engineering Academy'}
+                  {isAr ? 'اطلب عرض سعر' : 'Request a quote'}
                 </span>
                 <ArrowIcon className="w-4 h-4 shrink-0" />
               </button>
 
+              <a
+                href={INSCO_COMPANY_DATA.pdfBrochureUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-lg border border-slate-700 hover:border-cyan-500/60 bg-slate-900/60 text-slate-200 hover:text-white font-medium text-sm transition"
+              >
+                <FileText className="w-4 h-4 shrink-0" />
+                <span className="whitespace-nowrap">
+                  {isAr ? 'ملف الشركة (PDF)' : 'Company profile (PDF)'}
+                </span>
+              </a>
+
+              {onOpenDemo && (
+                <button
+                  type="button"
+                  onClick={onOpenDemo}
+                  className="inline-flex items-center gap-2 px-4 py-3 rounded-lg text-cyan-300 hover:text-cyan-200 hover:bg-slate-900 font-medium text-sm transition cursor-pointer"
+                >
+                  <Activity className="w-4 h-4 shrink-0" />
+                  <span className="whitespace-nowrap">
+                    {isAr ? 'شاهد العرض الفني' : 'See the demonstrations'}
+                  </span>
+                </button>
+              )}
+
               <button
                 type="button"
-                onClick={() => onNavigateToSection('rfq')}
-                className="inline-flex items-center gap-2 px-4 py-3 rounded-lg text-slate-300 hover:text-white hover:bg-slate-900 font-medium text-sm transition cursor-pointer"
+                onClick={onNavigateToAcademy}
+                className="inline-flex items-center gap-2 px-4 py-3 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-900 font-medium text-sm transition cursor-pointer"
               >
-                <span>{isAr ? 'طلب عرض سعر واعتماد مورد' : 'Request RFQ & Pre-qual'}</span>
+                <Layers className="w-4 h-4 shrink-0" />
+                <span className="whitespace-nowrap">
+                  {isAr ? 'أكاديمية إنسكو' : 'INSCO Academy'}
+                </span>
+                <ArrowIcon className="w-3.5 h-3.5 shrink-0" />
               </button>
             </div>
 

@@ -32,3 +32,16 @@ jobs:
 
       - name: Production build
         run: npm run build
+
+      # Pages publishes `main` → `/docs` (branch source), so the committed
+      # folder *is* the site. Building here and diffing catches a source change
+      # that forgot to ship the rebuilt folder — a stale `docs/` is how the live
+      # site once went blank.
+      - name: Committed docs/ matches this build
+        run: |
+          npm run site:check
+          if [ -n "$(git status --porcelain docs)" ]; then
+            echo "::error::docs/ is stale. Run 'npm run build' and commit the result."
+            git status --short docs | head -30
+            exit 1
+          fi

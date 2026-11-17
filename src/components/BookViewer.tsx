@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { clickable, clickableRow } from '../utils/a11y';
 import { 
   BookOpen, 
   ChevronRight, 
@@ -571,8 +572,8 @@ export const BookViewer: React.FC<BookViewerProps> = ({
           <div className="absolute bottom-1 left-1 w-7 h-7 border-b-2 border-l-2 border-amber-400/70 rounded-bl-xl pointer-events-none z-30" />
 
           {/* Bookmark Silk Ribbon Hanging from Top */}
-          <div 
-            onClick={() => toggleBookmark(activeBook.id, currentPage.pageNumber)}
+          <div
+            {...clickable(() => toggleBookmark(activeBook.id, currentPage.pageNumber), isAr ? 'شريط العلامة المرجعية (Enter للتثبيت)' : 'Bookmark ribbon (press Enter to toggle)')}
             className="absolute -top-3 left-16 sm:left-24 z-40 w-5 h-16 bg-gradient-to-b from-rose-600 via-rose-700 to-rose-900 shadow-xl cursor-pointer hover:h-20 transition-all rounded-b-md"
             title={isAr ? 'شريط العلامة المرجعية (انقر للتثبيت)' : 'Silk Bookmark Ribbon (Click to toggle)'}
           >
@@ -908,8 +909,10 @@ export const BookViewer: React.FC<BookViewerProps> = ({
               </div>
 
               {/* Interactive Corner Curl Cue */}
-              <div 
-                onClick={currentPageIndex < totalPages - 1 ? flipToNextPage : undefined}
+              <div
+                {...(currentPageIndex < totalPages - 1
+                  ? clickable(flipToNextPage, isAr ? 'حافة الصفحة: تقليب للأمام' : 'Page corner: turn forward')
+                  : {})}
                 className="absolute bottom-2 end-2 w-10 h-10 cursor-pointer overflow-hidden opacity-60 hover:opacity-100 transition-opacity pointer-events-auto"
                 title={isAr ? 'انقر على حافة الصفحة للتقليب' : 'Click corner to flip page'}
               >

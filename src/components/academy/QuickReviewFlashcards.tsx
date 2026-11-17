@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { clickable, clickableRow } from '../../utils/a11y';
 import { 
   Sparkles, 
   RotateCw, 
@@ -218,8 +219,8 @@ export const QuickReviewFlashcards: React.FC<QuickReviewFlashcardsProps> = ({
           </div>
 
           {/* 3D Flip Card */}
-          <div 
-            onClick={() => setIsFlipped(prev => !prev)}
+          <div
+            {...clickable(() => setIsFlipped(prev => !prev), isAr ? 'اقلب البطاقة' : 'Flip the card')}
             className="cursor-pointer select-none perspective-1000 min-h-[320px] md:min-h-[350px] relative rounded-2xl bg-gradient-to-b from-[#131938] to-[#0c1026] border-2 border-[#2b3566] hover:border-amber-400/60 p-6 md:p-8 flex flex-col justify-between shadow-2xl transition-all duration-300 hover:shadow-amber-500/10 group"
           >
             {/* Top Prompt */}

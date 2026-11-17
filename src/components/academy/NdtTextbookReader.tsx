@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { clickable, clickableRow } from '../../utils/a11y';
 import { 
   BookOpen, 
   ChevronRight, 
@@ -234,11 +235,11 @@ export const NdtTextbookReader: React.FC<NdtTextbookReaderProps> = ({
                 return (
                   <div
                     key={book.id}
-                    onClick={() => {
+                    {...clickable(() => {
                       setActiveBookId(book.id);
                       setCurrentPageIndex(0);
                       window.scrollTo({ top: 300, behavior: 'smooth' });
-                    }}
+                    }, isAr ? 'فتح الكتاب' : 'Open the book')}
                     className="group relative bg-[#0c102a] hover:bg-[#12173d] border-2 border-[#1e265c] hover:border-amber-400/80 rounded-3xl p-5 transition-all duration-300 cursor-pointer shadow-xl flex flex-col justify-between hover:-translate-y-1.5"
                   >
                     {/* Realistic Book Spine Effect */}

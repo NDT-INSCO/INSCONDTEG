@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { clickable, clickableRow } from '../../../utils/a11y';
 import { Language } from '../../../types';
 import { recordSimulationAttempt } from '../../../utils/simulationHistoryStore';
 import {
@@ -1947,7 +1948,7 @@ export const DacCalibrationBuilder: React.FC<DacCalibrationBuilderProps> = ({
               {thicknessComparisonRows.map((row) => (
                 <tr
                   key={row.thicknessMm}
-                  onClick={() => setSpecimenThicknessMm(row.thicknessMm)}
+                  {...clickableRow(() => setSpecimenThicknessMm(row.thicknessMm), row.isCurrent)}
                   className={`transition cursor-pointer ${
                     row.isCurrent
                       ? 'bg-cyan-950/40 text-white font-bold'

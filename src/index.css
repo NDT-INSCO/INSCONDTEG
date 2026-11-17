@@ -259,3 +259,29 @@ body {
 :root[data-theme="light"] .shadow-black\/70 {
   --tw-shadow-color: rgba(15, 23, 42, 0.14);
 }
+/* ---------------------------------------------------------------------------
+   Audit (D): keyboard focus must always be visible.
+   Surfaces that are not native buttons but behave like controls (cards, table
+   rows, timeline nodes) are announced with role="button" and made focusable by
+   src/utils/a11y.ts. A component-level `focus-visible:ring-*` wins because
+   `:where()` keeps this rule at zero specificity.
+--------------------------------------------------------------------------- */
+:where([role="button"], [role="link"], tr[tabindex="0"]):focus-visible {
+  outline: 2px solid #fbbf24;
+  outline-offset: 2px;
+}
+
+:root[data-theme="light"] :where([role="button"], [role="link"], tr[tabindex="0"]):focus-visible {
+  outline-color: #b45309;
+}
+
+/* Respect users who ask the OS to reduce motion: the flip/scale affordances
+   become instant instead of animated. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { clickable, clickableRow } from '../../../utils/a11y';
 import { Language } from '../../../types';
 import { VirtualSignaturePad } from './VirtualSignaturePad';
 import { DacCalibrationBuilder } from './DacCalibrationBuilder';
@@ -1958,7 +1959,7 @@ export const ComprehensiveWeldUtSimulator: React.FC<ComprehensiveWeldUtSimulator
                   {allDefectsToleranceSchedule.map(({ defect, tolerance }) => (
                     <tr
                       key={defect.id}
-                      onClick={() => {
+                      {...clickableRow(() => {
                         setSelectedFlawId(defect.id);
                         setProbeAngleDeg(defect.optimalAngleDeg);
                         setPautCursorAngleDeg(defect.optimalAngleDeg === 0 ? 45 : defect.optimalAngleDeg);
@@ -1966,7 +1967,7 @@ export const ComprehensiveWeldUtSimulator: React.FC<ComprehensiveWeldUtSimulator
                         if (autoAlertOnDefectSelect) {
                           setIsToleranceModalOpen(true);
                         }
-                      }}
+                      })}
                       className={`border-b border-slate-800/70 cursor-pointer transition ${
                         selectedFlawId === defect.id ? 'bg-cyan-950/50 text-white' : 'text-slate-300 hover:bg-slate-900'
                       }`}
@@ -3352,7 +3353,7 @@ export const ComprehensiveWeldUtSimulator: React.FC<ComprehensiveWeldUtSimulator
                 return (
                   <div
                     key={item.step}
-                    onClick={item.apply}
+                    {...clickable(item.apply, isAr ? 'تطبيق الخطوة' : 'Apply step')}
                     className={`p-3 rounded-xl border transition cursor-pointer flex items-start gap-3 ${
                       done
                         ? 'bg-emerald-950/25 border-emerald-500/40 text-emerald-100'
@@ -3964,7 +3965,7 @@ export const ComprehensiveWeldUtSimulator: React.FC<ComprehensiveWeldUtSimulator
                     return (
                       <tr
                         key={defect.id}
-                        onClick={() => setSelectedFlawId(defect.id)}
+                        {...clickableRow(() => setSelectedFlawId(defect.id))}
                         className={`border-b border-slate-800/70 cursor-pointer transition ${
                           isCurrent ? 'bg-cyan-950/45 text-white' : 'text-slate-300 hover:bg-slate-900/70'
                         }`}

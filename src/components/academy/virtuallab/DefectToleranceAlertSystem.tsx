@@ -1,4 +1,5 @@
 import React, { useEffect, useId, useState } from 'react';
+import { clickable, clickableRow } from '../../../utils/a11y';
 import { Language } from '../../../types';
 import {
   ALL_WELD_DEFECTS_CATALOG,
@@ -434,18 +435,21 @@ export const DefectToleranceModal: React.FC<DefectToleranceModalProps> = ({
   }));
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-sm"
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5">
+      <button
+        type="button"
+        tabIndex={-1}
+        aria-label={isAr ? 'إغلاق النافذة' : 'Close dialog'}
+        onClick={onClose}
+        className="absolute inset-0 w-full h-full bg-slate-950/80 backdrop-blur-sm cursor-default"
+      />
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descId}
         dir={isAr ? 'rtl' : 'ltr'}
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-700 bg-[#080d1a] text-slate-100 shadow-2xl"
+        className="relative z-10 w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-700 bg-[#080d1a] text-slate-100 shadow-2xl"
       >
         {/* Top Instrument Alert Header */}
         <div
@@ -656,7 +660,9 @@ export const DefectToleranceModal: React.FC<DefectToleranceModalProps> = ({
                     return (
                       <tr
                         key={codeMeta.id}
-                        onClick={() => onSelectCode && onSelectCode(codeMeta.id)}
+                        {...(onSelectCode
+                          ? clickableRow(() => onSelectCode(codeMeta.id), isCurrent)
+                          : {})}
                         className={`border-b border-slate-800/70 transition ${
                           onSelectCode ? 'cursor-pointer' : ''
                         } ${

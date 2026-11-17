@@ -1,4 +1,4 @@
-import React, { Suspense, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { Language } from '../../types';
 import { COMPANY_MEDIA } from '../../data/companyMedia';
 const InteractiveInspectionHologram = React.lazy(() =>
@@ -23,6 +23,15 @@ interface AdvancedMotionVisualizerSectionProps {
 export const AdvancedMotionVisualizerSection: React.FC<AdvancedMotionVisualizerSectionProps> = ({ language }) => {
   const isAr = language === 'ar';
   const [selectedGalleryImg, setSelectedGalleryImg] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (selectedGalleryImg === null) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSelectedGalleryImg(null);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [selectedGalleryImg]);
 
   const galleryItems = [
     {
@@ -108,10 +117,13 @@ export const AdvancedMotionVisualizerSection: React.FC<AdvancedMotionVisualizerS
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
             {galleryItems.map((item, idx) => (
-              <div
+              <button
                 key={idx}
+                type="button"
                 onClick={() => setSelectedGalleryImg(idx)}
-                className="group relative rounded-xl overflow-hidden border border-slate-800 bg-slate-900/50 hover:border-cyan-500/50 transition duration-300 cursor-pointer shadow-lg flex flex-col justify-between"
+                aria-haspopup="dialog"
+                aria-label={`${item.title[language]} — ${isAr ? 'فتح الصورة بالحجم الكامل' : 'open full size'}`}
+                className="group relative text-start rounded-xl overflow-hidden border border-slate-800 bg-slate-900/50 hover:border-cyan-500/50 transition duration-300 cursor-pointer shadow-lg flex flex-col justify-between focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
               >
                 {/* Image Viewport */}
                 <div className="relative h-52 overflow-hidden bg-slate-950">
@@ -149,7 +161,7 @@ export const AdvancedMotionVisualizerSection: React.FC<AdvancedMotionVisualizerS
                     {item.equipment}
                   </div>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </div>
@@ -157,13 +169,20 @@ export const AdvancedMotionVisualizerSection: React.FC<AdvancedMotionVisualizerS
         {/* Modal for full image inspection */}
         {selectedGalleryImg !== null && (
           <div
-            className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 sm:p-6"
-            onClick={() => setSelectedGalleryImg(null)}
+            role="dialog"
+            aria-modal="true"
+            aria-label={galleryItems[selectedGalleryImg].title[language]}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
           >
-            <div
-              className="relative max-w-4xl w-full bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl space-y-4 p-6"
-              onClick={(e) => e.stopPropagation()}
-            >
+            {/* Backdrop is a real control: click or Escape closes, tabbing skips it. */}
+            <button
+              type="button"
+              tabIndex={-1}
+              aria-label={isAr ? 'إغلاق معاينة الصورة' : 'Close image preview'}
+              onClick={() => setSelectedGalleryImg(null)}
+              className="absolute inset-0 bg-slate-950/90 backdrop-blur-md cursor-default"
+            />
+            <div className="relative max-w-4xl w-full bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl space-y-4 p-6">
               <div className="flex items-center justify-between pb-3 border-b border-slate-800">
                 <div>
                   <span className="text-xs font-mono text-cyan-400">{galleryItems[selectedGalleryImg].code}</span>

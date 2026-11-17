@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { clickable, clickableRow } from '../../../utils/a11y';
 import {
   Camera,
   CameraOff,
@@ -2035,7 +2036,7 @@ export const ArCompleteRtCodeSimulator: React.FC<ArCompleteRtCodeSimulatorProps>
                     <div
                       key={v.codeId}
                       data-testid={`code-verdict-row-${v.codeId}`}
-                      onClick={() => setTargetExamCodeId(v.codeId)}
+                      {...clickable(() => setTargetExamCodeId(v.codeId), isAr ? 'اختيار كود التقييم' : 'Select evaluation code')}
                       className={`rounded-2xl border p-3 transition cursor-pointer ${
                         targetExamCodeId === v.codeId
                           ? 'border-cyan-400 bg-cyan-500/10'

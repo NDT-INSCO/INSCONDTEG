@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { clickable, clickableRow } from '../../utils/a11y';
 import {
   Compass,
   CheckCircle2,
@@ -237,7 +238,7 @@ export const AcademyRoadmap: React.FC<AcademyRoadmapProps> = ({
   };
 
   // Helper to toggle completion directly
-  const handleToggleMilestone = (m: RoadmapMilestone, e?: React.MouseEvent) => {
+  const handleToggleMilestone = (m: RoadmapMilestone, e?: { stopPropagation(): void }) => {
     e?.stopPropagation();
     if (m.sourceType === 'library_lesson') {
       const rawId = m.id.replace('lib_', '');
@@ -944,8 +945,8 @@ export const AcademyRoadmap: React.FC<AcademyRoadmapProps> = ({
               return (
                 <div key={milestone.id} className="relative group">
                   {/* Timeline Node Bullet */}
-                  <div 
-                    onClick={(e) => handleToggleMilestone(milestone, e)}
+                  <div
+                    {...clickable((e) => handleToggleMilestone(milestone, e), isAr ? 'تحديث حالة الإنجاز' : 'Toggle milestone completion')}
                     className={`absolute -start-[35px] sm:-start-[43px] top-4 w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 flex items-center justify-center cursor-pointer transition-all duration-300 z-10 ${
                       isDone
                         ? 'bg-emerald-500 border-emerald-300 text-slate-950 shadow-lg shadow-emerald-500/30 scale-105'
@@ -958,7 +959,7 @@ export const AcademyRoadmap: React.FC<AcademyRoadmapProps> = ({
 
                   {/* Milestone Card */}
                   <div
-                    onClick={() => setSelectedMilestoneId(isSelected ? null : milestone.id)}
+                    {...clickable(() => setSelectedMilestoneId(isSelected ? null : milestone.id), isAr ? 'تفاصيل المرحلة' : 'Milestone details')}
                     className={`rounded-2xl border p-5 transition-all duration-300 cursor-pointer ${
                       isSelected
                         ? 'border-amber-400/80 bg-[#161a3f] shadow-xl'

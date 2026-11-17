@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { clickable, clickableRow } from '../../utils/a11y';
 import { 
   Trophy, 
   Medal, 
@@ -452,8 +453,8 @@ export const KnowledgeLeaderboard: React.FC<KnowledgeLeaderboardProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end pt-4">
         {/* Rank 2 (Silver) */}
         {top2 && (
-          <div 
-            onClick={() => setSelectedStudent(top2)}
+          <div
+            {...clickable(() => setSelectedStudent(top2), isAr ? 'ملف المتصدر الثاني' : 'Second place profile')}
             className="order-2 md:order-1 rounded-3xl bg-gradient-to-b from-[#13193e] to-[#0a0d24] border-2 border-slate-400/40 p-6 shadow-xl relative hover:border-slate-300 transition-all cursor-pointer group"
           >
             <div className="absolute -top-5 left-1/2 -translate-x-1/2 w-10 h-10 rounded-2xl bg-gradient-to-br from-slate-200 to-slate-400 text-slate-900 flex items-center justify-center font-black text-lg shadow-lg border border-white">
@@ -495,8 +496,8 @@ export const KnowledgeLeaderboard: React.FC<KnowledgeLeaderboardProps> = ({
 
         {/* Rank 1 (Gold - Elevated Champion) */}
         {top1 && (
-          <div 
-            onClick={() => setSelectedStudent(top1)}
+          <div
+            {...clickable(() => setSelectedStudent(top1), isAr ? 'ملف المتصدر الأول' : 'Top student profile')}
             className="order-1 md:order-2 rounded-3xl bg-gradient-to-b from-[#1c2254] via-[#141a42] to-[#0a0d24] border-2 border-amber-400 p-7 shadow-2xl shadow-amber-500/20 relative md:-translate-y-4 hover:border-amber-300 transition-all cursor-pointer group"
           >
             {/* Crown Badge */}
@@ -550,8 +551,8 @@ export const KnowledgeLeaderboard: React.FC<KnowledgeLeaderboardProps> = ({
 
         {/* Rank 3 (Bronze) */}
         {top3 && (
-          <div 
-            onClick={() => setSelectedStudent(top3)}
+          <div
+            {...clickable(() => setSelectedStudent(top3), isAr ? 'ملف المتصدر الثالث' : 'Third place profile')}
             className="order-3 rounded-3xl bg-gradient-to-b from-[#13193e] to-[#0a0d24] border-2 border-amber-700/40 p-6 shadow-xl relative hover:border-amber-600 transition-all cursor-pointer group"
           >
             <div className="absolute -top-5 left-1/2 -translate-x-1/2 w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-700 to-orange-800 text-white flex items-center justify-center font-black text-lg shadow-lg border border-amber-500">
@@ -730,9 +731,9 @@ export const KnowledgeLeaderboard: React.FC<KnowledgeLeaderboardProps> = ({
             const rankNumber = idx + 1;
 
             return (
-              <div 
+              <div
                 key={student.id}
-                onClick={() => setSelectedStudent(student)}
+                {...clickable(() => setSelectedStudent(student), isAr ? 'ملف الطالب' : 'Student profile')}
                 className={`p-4 grid grid-cols-12 items-center text-xs transition cursor-pointer group ${
                   isSelf 
                     ? 'bg-cyan-950/30 hover:bg-cyan-950/50 border-s-4 border-cyan-400' 

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { clickable, clickableRow } from '../../../utils/a11y';
 import { Language } from '../../../types';
 import { UtFlawDetectorDevice } from './UtFlawDetectorDevice';
 import { PautOmniScanDevice } from './PautOmniScanDevice';
@@ -281,7 +282,7 @@ export const NdtVirtualLabWorkbench: React.FC<NdtVirtualLabWorkbenchProps> = ({ 
             return (
               <div
                 key={m.id}
-                onClick={() => handleToggleMission(m.id)}
+                {...clickable(() => handleToggleMission(m.id), isAr ? 'تحديث إنجاز المهمة' : 'Toggle mission completion')}
                 className={`p-3 rounded-lg border transition cursor-pointer flex items-start gap-2.5 ${
                   isDone
                     ? 'bg-emerald-950/20 border-emerald-500/40 text-emerald-200'

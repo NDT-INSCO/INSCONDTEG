@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Language } from '../../types';
 import { INSCO_COMPANY_DATA } from '../../data/inscoCompanyData';
+import { COMPANY_MEDIA } from '../../data/companyMedia';
 import { CompanyRegionalFleetMap } from './CompanyRegionalFleetMap';
 import { 
   Flame, 
@@ -27,9 +28,9 @@ export const CompanyServicesSection: React.FC<CompanyServicesSectionProps> = ({
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [selectedMethodId, setSelectedMethodId] = useState<string>('UT');
 
-  const pwhtImagePath = '/src/assets/images/pwht_heat_treatment_1792692336668.jpg';
-  const rtImagePath = '/src/assets/images/radiography_gamma_scan_1792692355717.jpg';
-  const pautImagePath = '/src/assets/images/paut_flaw_detector_1792692369481.jpg';
+  const pwhtImagePath = COMPANY_MEDIA.pwhtHeatTreatment;
+  const rtImagePath = COMPANY_MEDIA.radiographyGammaScan;
+  const pautImagePath = COMPANY_MEDIA.pautFlawDetector;
 
   const categories = [
     { id: 'all', label: { ar: 'كافة الخدمات والفحوصات (12)', en: 'All Services (12)' } },

@@ -1,6 +1,7 @@
 import React, { Suspense, useState } from 'react';
 import { Language } from '../../types';
 import { INSCO_COMPANY_DATA } from '../../data/inscoCompanyData';
+import { COMPANY_MEDIA } from '../../data/companyMedia';
 import { FileText, ArrowRight, ArrowLeft, ShieldCheck, Zap, Award, Layers, Sparkles, Activity, Eye } from 'lucide-react';
 // three.js is ~1 MB. It powers a decorative 3D hologram, so it must not sit in
 // the first payload of a page that mostly serves text.
@@ -23,7 +24,7 @@ export const CompanyHero: React.FC<CompanyHeroProps> = ({
   const ArrowIcon = isAr ? ArrowLeft : ArrowRight;
   const [activeVisualMode, setActiveVisualMode] = useState<'photo' | '3d'>('photo');
 
-  const heroImagePath = '/src/assets/images/hero_ndt_inspection_1792692322245.jpg';
+  const heroImagePath = COMPANY_MEDIA.heroInspection;
 
   return (
     <section className="relative overflow-hidden pt-8 pb-16 border-b border-slate-800">

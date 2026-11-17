@@ -1,5 +1,6 @@
 import React, { Suspense, useState } from 'react';
 import { Language } from '../../types';
+import { COMPANY_MEDIA } from '../../data/companyMedia';
 const InteractiveInspectionHologram = React.lazy(() =>
   import('./InteractiveInspectionHologram').then(module => ({ default: module.InteractiveInspectionHologram }))
 );
@@ -27,7 +28,7 @@ export const AdvancedMotionVisualizerSection: React.FC<AdvancedMotionVisualizerS
     {
       title: { ar: 'الفحص الميداني بالموجات فوق الصوتية (UT)', en: 'Ultrasonic Field Inspection (UT)' },
       subtitle: { ar: 'فحص خطوط الأنابيب بمحطات الطاقة العملاقة', en: 'Pipeline Inspection in Power Stations' },
-      src: '/src/assets/images/hero_ndt_inspection_1792692322245.jpg',
+      src: COMPANY_MEDIA.heroInspection,
       code: 'ASME Sec. V Art. 4',
       badge: 'UT / PAUT',
       equipment: 'Olympus 5.0 MHz · Krautkramer USM 35X'
@@ -35,7 +36,7 @@ export const AdvancedMotionVisualizerSection: React.FC<AdvancedMotionVisualizerS
     {
       title: { ar: 'أسطول المعالجة الحرارية بعد اللحام (PWHT)', en: 'Post-Weld Heat Treatment Fleet (PWHT)' },
       subtitle: { ar: '16 وحدة أوتوماتيكية مبرمجة 65 kW بالقاهرة', en: '16 Fully-Owned 65 kW Automated Units' },
-      src: '/src/assets/images/pwht_heat_treatment_1792692336668.jpg',
+      src: COMPANY_MEDIA.pwhtHeatTreatment,
       code: 'AWS D10.10 & ASME B31.3',
       badge: '750°C SOAK',
       equipment: 'Cooperheat / Stork 65 kW Programmed System'
@@ -43,7 +44,7 @@ export const AdvancedMotionVisualizerSection: React.FC<AdvancedMotionVisualizerS
     {
       title: { ar: 'التصوير الإشعاعي الصناعي بجاما (RT)', en: 'Industrial Radiography Gamma Testing (RT)' },
       subtitle: { ar: 'ترخيص رسمي من هيئة الرقابة النووية (ENRRA)', en: 'ENRRA Licensed Radiation Practices' },
-      src: '/src/assets/images/radiography_gamma_scan_1792692355717.jpg',
+      src: COMPANY_MEDIA.radiographyGammaScan,
       code: 'ENRRA LS.0112 · ISO 17636',
       badge: 'Ir-192 / Se-75',
       equipment: 'Sentinel 880 Delta / Spec 150 Projectors'
@@ -51,7 +52,7 @@ export const AdvancedMotionVisualizerSection: React.FC<AdvancedMotionVisualizerS
     {
       title: { ar: 'المصفوفات الطورية وكشف العيوب (PAUT)', en: 'Phased Array Flaw Imaging (PAUT)' },
       subtitle: { ar: 'مسح قطاعي متقدم S-Scan للشروخ ونقص الانصهار', en: 'Sectorial S-Scan Weld Root Integrity' },
-      src: '/src/assets/images/paut_flaw_detector_1792692369481.jpg',
+      src: COMPANY_MEDIA.pautFlawDetector,
       code: 'ASME Sec. V Art. 4 App.',
       badge: 'Multi-Angle 35°-70°',
       equipment: 'Olympus OmniScan X3 64:128PR'

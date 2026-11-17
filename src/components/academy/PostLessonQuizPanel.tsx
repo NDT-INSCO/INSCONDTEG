@@ -122,9 +122,9 @@ export const PostLessonQuizPanel: React.FC<PostLessonQuizPanelProps> = ({
               </>
             )}
           </div>
-          <h4 className="text-base font-bold text-white">
+          <p className="text-base font-bold text-white">
             {isAr ? pack.title.ar : pack.title.en}
-          </h4>
+          </p>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">

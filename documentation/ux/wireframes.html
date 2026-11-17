@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>INSCO — Wireframes مقترحة (مراجعة تصميم)</title>
+<style>
+  :root{
+    --navy:#0b1026; --navy2:#111736; --line:#2b3565; --ink:#e8ecfb; --muted:#9aa6cf;
+    --cyan:#22d3ee; --amber:#fbbf24; --ok:#34d399; --wire:#8b95b8;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--navy);color:var(--ink);
+       font-family:"Segoe UI",Tahoma,"Noto Naskh Arabic",system-ui,sans-serif;font-size:14px;line-height:1.7}
+  a{color:var(--cyan)}
+  header.top{position:sticky;top:0;z-index:20;background:rgba(11,16,38,.96);
+    border-bottom:1px solid var(--line);backdrop-filter:blur(8px)}
+  .top-in{max-width:1180px;margin:0 auto;padding:12px 20px 0}
+  .brandline{display:flex;align-items:center;gap:12px;justify-content:space-between;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.2px}
+  .dot{width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,var(--cyan),#2563eb)}
+  .brand small{display:block;font-weight:500;color:var(--muted);font-size:11px}
+  .badge-review{border:1px solid var(--amber);color:var(--amber);border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700}
+  nav.tabs{display:flex;gap:6px;overflow-x:auto;padding:12px 0 0;scrollbar-width:none}
+  nav.tabs button{white-space:nowrap;background:transparent;color:var(--muted);border:1px solid transparent;
+    border-bottom:none;border-radius:10px 10px 0 0;padding:8px 12px;font:inherit;font-size:12.5px;cursor:pointer}
+  nav.tabs button:hover{color:var(--ink);background:#151c3d}
+  nav.tabs button[aria-selected="true"]{background:#151c3d;color:var(--ink);border-color:var(--line);
+    box-shadow:inset 0 2px 0 var(--cyan)}
+  main{max-width:1180px;margin:0 auto;padding:22px 20px 80px}
+  section.panel{display:none}
+  section.panel.on{display:block}
+  h1{font-size:22px;margin:0 0 6px}
+  h2{font-size:17px;margin:26px 0 10px;padding-inline-start:10px;border-inline-start:3px solid var(--cyan)}
+  h3{font-size:14px;margin:16px 0 6px;color:var(--cyan)}
+  p.lead{color:var(--muted);margin:0 0 18px;max-width:78ch}
+  .split{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:22px;align-items:start}
+  @media (max-width:900px){.split{grid-template-columns:1fr}}
+  /* ---------- wireframe primitives ---------- */
+  .wf{background:#0e1430;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .wf-bar{display:flex;align-items:center;gap:8px;padding:8px 12px;background:#131a3c;border-bottom:1px solid var(--line);
+    font-size:11.5px;color:var(--muted)}
+  .wf-bar b{color:var(--ink);font-size:12px}
+  .wf-body{padding:14px}
+  .blk{border:1px dashed var(--wire);border-radius:10px;padding:10px 12px;margin:0 0 10px;position:relative;background:#0c1230}
+  .blk.solid{border-style:solid;border-color:var(--line)}
+  .blk .n{position:absolute;inset-inline-start:-1px;inset-block-start:-1px;background:var(--cyan);color:#04121c;
+    font-weight:800;font-size:10.5px;padding:1px 7px;border-radius:9px 0 9px 0}
+  .blk .t{font-weight:700;font-size:12.5px;margin-bottom:2px}
+  .blk .d{color:var(--muted);font-size:11.5px}
+  .ph{height:52px;border:1px dashed #59628a;border-radius:8px;display:grid;place-items:center;color:#77809f;
+    font-size:10.5px;margin:8px 0;background:repeating-linear-gradient(45deg,#101736,#101736 6px,#131a3c 6px,#131a3c 12px)}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .btn{border-radius:8px;padding:6px 12px;font-size:11.5px;font-weight:700;border:1px solid var(--line);color:var(--ink);background:#161d42}
+  .btn.primary{background:var(--amber);color:#241a00;border-color:var(--amber)}
+  .btn.cyan{background:var(--cyan);color:#04202a;border-color:var(--cyan)}
+  .btn.ghost{background:transparent}
+  .btn.small{padding:4px 9px;font-size:10.5px}
+  .tag{font-size:10px;border:1px solid var(--line);border-radius:999px;padding:1px 8px;color:var(--muted)}
+  .tag.ok{border-color:#1e6a52;color:var(--ok)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  @media (max-width:640px){.grid3,.grid4{grid-template-columns:1fr 1fr}}
+  .mini{border:1px solid var(--line);border-radius:8px;padding:8px;font-size:11px;color:var(--muted);background:#0b1130}
+  .mini b{display:block;color:var(--ink);font-size:11.5px;margin-bottom:2px}
+  .nav-demo{display:flex;gap:12px;align-items:center;justify-content:space-between;
+    border:1px solid var(--line);border-radius:10px;padding:8px 12px;background:#111736;font-size:11.5px;flex-wrap:wrap}
+  .nav-demo .links{display:flex;gap:12px;flex-wrap:wrap;color:var(--muted)}
+  .nav-demo .links .active{color:var(--cyan);font-weight:700}
+  /* ---------- annotations ---------- */
+  .notes{display:flex;flex-direction:column;gap:12px}
+  .note{border:1px solid var(--line);border-inline-start:3px solid var(--cyan);border-radius:10px;padding:10px 12px;background:#0f1534}
+  .note b{display:block;font-size:12.5px;margin-bottom:3px}
+  .note p{margin:0;color:var(--muted);font-size:11.5px}
+  .note.warn{border-inline-start-color:var(--amber)}
+  .note.ok{border-inline-start-color:var(--ok)}
+  table{width:100%;border-collapse:collapse;font-size:12px;margin:10px 0 18px}
+  th,td{border:1px solid var(--line);padding:7px 9px;text-align:start;vertical-align:top}
+  th{background:#141b3d;font-size:11.5px;color:#cfd8ff}
+  td code,code{background:#1a2148;border-radius:4px;padding:1px 5px;font-family:ui-monospace,Menlo,monospace;font-size:11px;direction:ltr;display:inline-block}
+  .journey{display:grid;gap:10px}
+  .step{display:grid;grid-template-columns:34px 1fr;gap:10px;border:1px solid var(--line);border-radius:10px;padding:10px;background:#0f1534}
+  .step .num{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:#1b2350;color:var(--cyan);font-weight:800;font-size:12px}
+  .step b{font-size:12.5px}
+  .step p{margin:2px 0 0;color:var(--muted);font-size:11.5px}
+  .step .cta{margin-top:6px}
+  .phone{max-width:300px;border:8px solid #1b2350;border-radius:26px;padding:6px;background:#0e1430}
+  .phone .wf-body{padding:10px}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:11px;margin-top:6px}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-inline-end:5px;vertical-align:middle}
+  .muted{color:var(--muted)}
+  .kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  @media (max-width:700px){.kpi{grid-template-columns:1fr 1fr}}
+  .kpi div{border:1px solid var(--line);border-radius:10px;padding:8px;text-align:center;background:#0f1534}
+  .kpi b{display:block;font-size:16px;color:var(--cyan)}
+  .kpi span{font-size:10.5px;color:var(--muted)}
+  .swatches{display:flex;gap:8px;flex-wrap:wrap}
+  .sw{width:104px;border:1px solid var(--line);border-radius:10px;overflow:hidden;font-size:10px}
+  .sw i{display:block;height:40px}
+  .sw span{display:block;padding:5px 7px;color:var(--muted);direction:ltr;text-align:start}
+  footer.foot{border-top:1px solid var(--line);margin-top:34px;padding-top:12px;color:var(--muted);font-size:11px}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <div class="brandline">
+      <div class="brand"><span class="dot"></span><span>INSCO — Wireframes<small>مراجعة تصميم قبل التنفيذ · ليست واجهة نهائية</small></span></div>
+      <span class="badge-review">P0 — بانتظار الاعتماد</span>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="لوحات الوايرفريم">
+      <button role="tab" aria-selected="true" data-t="t1">1 · بوابة الاختيار</button>
+      <button role="tab" aria-selected="false" data-t="t2">2 · الرئيسية (سطح المكتب)</button>
+      <button role="tab" aria-selected="false" data-t="t3">3 · الموبايل والقائمة</button>
+      <button role="tab" aria-selected="false" data-t="t4">4 · صفحة الخدمات</button>
+      <button role="tab" aria-selected="false" data-t="t5">5 · العرض الفني</button>
+      <button role="tab" aria-selected="false" data-t="t6">6 · الأكاديمية</button>
+      <button role="tab" aria-selected="false" data-t="t7">7 · التنقل: الحالي ← المقترح</button>
+      <button role="tab" aria-selected="false" data-t="t8">8 · نظام التصميم</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<!-- ============ 1 · بوابة الاختيار ============ -->
+<section class="panel on" id="t1">
+  <h1>بوابة الاختيار: بابان واضحان بدل قائمة واحدة مزدحمة</h1>
+  <p class="lead">تظهر عند أول زيارة فقط (وتُستدعى من الشعار في كل وقت). الهدف: يقرر الزائر في ثانيتين أي عالم يخصه، بدون أن يرى 14 اختصاراً لا تخصه. الاختيار يُحفظ محلياً فلا يُسأل مرة أخرى.</p>
+  <div class="split">
+    <div class="wf">
+      <div class="wf-bar"><b>شاشة الدخول</b> · أول زيارة / زر الشعار</div>
+      <div class="wf-body">
+        <div class="blk solid" style="text-align:center;padding:18px 12px">
+          <div class="t" style="font-size:16px">INSCO</div>
+          <div class="d">الشركة الدولية للخدمات والمقاولات · Industrial Inspection &amp; Engineering Services</div>
+          <div class="d" style="margin-top:4px">NDT · PWHT · Quality Assurance · Industrial Services</div>
+        </div>
+        <div class="grid2">
+          <div class="blk" style="margin:0">
+            <div class="n">A</div>
+            <div class="t">بوابة الشركة</div>
+            <div class="d">للعملاء والمشروعات وإدارات المشتريات والجودة</div>
+            <div class="ph">صورة صناعية: محطة / لحام / وحدة PWHT</div>
+            <div class="row">
+              <span class="tag">الخدمات</span><span class="tag">الاعتمادات</span><span class="tag">المعدات</span>
+              <span class="tag">المشروعات</span><span class="tag">طلب عرض سعر</span>
+            </div>
+            <div class="row" style="margin-top:8px"><span class="btn primary">دخول بوابة الشركة</span></div>
+          </div>
+          <div class="blk" style="margin:0">
+            <div class="n">B</div>
+            <div class="t">أكاديمية إنسكو</div>
+            <div class="d">للمهندسين والمتدربين وطلاب NDT</div>
+            <div class="ph">صورة: معمل UT / كتاب / شاشة PAUT</div>
+            <div class="row">
+              <span class="tag">مسارات</span><span class="tag">مكتبة</span><span class="tag">معامل</span>
+              <span class="tag">اختبارات</span><span class="tag">تقدمي</span>
+            </div>
+            <div class="row" style="margin-top:8px"><span class="btn cyan">دخول الأكاديمية</span></div>
+          </div>
+        </div>
+        <div class="blk" style="margin:10px 0 0">
+          <div class="t">سطر الطمأنة الموحّد</div>
+          <div class="d">ISO 9001 / 14001 / 45001 · EGAC #120007 · ENRRA LS.0112 · ndt.org #54161 · تأسست 2010</div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <div class="note"><b>لماذا؟</b><p>المشكلة الأولى في التقرير هي خلط جمهورين. البوابة تحلّها دون حذف أي صفحة: كل المحتوى موجود، لكن نقطة الدخول تختلف.</p></div>
+      <div class="note ok"><b>لا فقدان محتوى</b><p>من يختار «الشركة» يستطيع فتح الأكاديمية من القائمة العليا في أي لحظة، والعكس. الاختيار تفضيل عرض لا قفل.</p></div>
+      <div class="note warn"><b>قرار مطلوب</b><p>هل تظهر البوابة لكل زيارة أم مرة واحدة فقط لكل متصفح؟ التوصية: مرة واحدة + زر صريح للتبديل في الترويسة.</p></div>
+      <div class="note"><b>قياس النجاح</b><p>نسبة من يختار «الشركة» ثم يصل إلى نموذج عرض السعر، ونسبة من يختار «الأكاديمية» ثم يبدأ مساراً خلال جلسته الأولى.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 2 · الرئيسية ============ -->
+<section class="panel" id="t2">
+  <h1>الصفحة الرئيسية للشركة: من «ماذا نفعل» إلى «اطلب عرض سعر»</h1>
+  <p class="lead">الترتيب الحالي يضع ستة عناصر تفاعلية قبل الاعتمادات وسابقة الأعمال. المقترح: 8 محطات فقط، والتفاعلية تنزل إلى صفحة عرض فني مستقلة مع رابط واضح من الخدمات.</p>
+  <div class="split">
+    <div class="wf">
+      <div class="wf-bar"><b>Corporate Home</b> · 8 محطات · RTL</div>
+      <div class="wf-body">
+        <div class="nav-demo" style="margin-bottom:10px">
+          <b>INSCO</b>
+          <div class="links"><span class="active">الرئيسية</span><span>خدماتنا</span><span>إمكانياتنا</span><span>مشروعاتنا</span><span>ملف التأهيل</span><span>الأكاديمية</span></div>
+          <span class="btn primary small">اطلب عرض سعر</span>
+        </div>
+
+        <div class="blk"><div class="n">1</div>
+          <div class="t">Hero — من نحن وماذا نقدّم</div>
+          <div class="ph">صورة صناعية حقيقية (محطة/لحام) بعرض كامل</div>
+          <div class="row">
+            <span class="btn primary">اطلب عرض سعر</span>
+            <span class="btn">ملف الشركة (PDF)</span>
+            <span class="btn ghost small">شاهد العرض الفني ←</span>
+          </div>
+          <div class="d" style="margin-top:6px">شريط الثقة: Triple ISO حتى 2028 · EGAC #120007 · ENRRA LS.0112 · ndt.org #54161 · تأسست 2010</div>
+        </div>
+
+        <div class="blk"><div class="n">2</div>
+          <div class="t">الخدمات — 4 عائلات فقط (بدل 12 بطاقة)</div>
+          <div class="grid4">
+            <div class="mini"><b>NDT Inspection</b>UT · PAUT · RT · MT · PT · VT</div>
+            <div class="mini"><b>PWHT</b>16 وحدة 65 kW</div>
+            <div class="mini"><b>Material &amp; PMI</b>PMI · صلادة · تحليل</div>
+            <div class="mini"><b>Quality &amp; Technical</b>أكواد · تفتيش · تأهيل</div>
+          </div>
+          <div class="d" style="margin-top:6px">كل عائلة: 3 أسطر + «ما نغطّيه» + زر تفاصيل ينقل إلى صفحة الخدمة.</div>
+        </div>
+
+        <div class="blk"><div class="n">3</div>
+          <div class="t">لماذا إنسكو؟</div>
+          <div class="grid3">
+            <div class="mini"><b>شهادات</b>ISO 9001/14001/45001</div>
+            <div class="mini"><b>تراخيص</b>ENRRA · EGAC</div>
+            <div class="mini"><b>كفاءات</b>ASNT II/III · IRCA</div>
+          </div>
+          <div class="d" style="margin-top:6px">+ مصفوفة الأكواد (ASME/API/AWS/ISO) مضغوطة في سطرين قابلين للتوسّع.</div>
+        </div>
+
+        <div class="blk"><div class="n">4</div>
+          <div class="t">الإمكانيات والمعدات</div>
+          <div class="row"><span class="tag ok">48+ معدة</span><span class="tag ok">16 × 65 kW</span><span class="tag ok">حالة المعايرة محسوبة من التاريخ</span></div>
+          <div class="ph">أسطول + خريطة تغطية (يُعاد استخدام المكوّنين الحاليين)</div>
+        </div>
+
+        <div class="blk"><div class="n">5</div>
+          <div class="t">سابقة الأعمال</div>
+          <div class="grid3">
+            <div class="mini"><b>18 مشروعاً</b>البرلس 4800 MW · السويدي · سيمنس</div>
+            <div class="mini"><b>قطاعات</b>طاقة · بترول · صناعة</div>
+            <div class="mini"><b>شهادات عملاء</b>5 شهادات موثّقة</div>
+          </div>
+        </div>
+
+        <div class="blk"><div class="n">6</div>
+          <div class="t">ملف تأهيل المورد</div>
+          <div class="row"><span class="btn">تحميل الملف (PDF)</span><span class="btn ghost small">قائمة وثائق التأهيل</span><span class="tag">Annex A–E</span></div>
+        </div>
+
+        <div class="blk"><div class="n">7</div>
+          <div class="t">طلب عرض سعر</div>
+          <div class="grid3">
+            <div class="mini"><b>1 · نطاق العمل</b>الخدمة · الموقع · الحجم</div>
+            <div class="mini"><b>2 · بيانات التواصل</b>الشركة · المسؤول · الهاتف</div>
+            <div class="mini"><b>3 · إرسال</b>مرجع طلب فوري عند التأكيد</div>
+          </div>
+          <div class="d" style="margin-top:6px">حاسبة التكلفة تظهر كخطوة اختيارية داخل النموذج («تقدير مبدئي») لا كقسم مستقل.</div>
+        </div>
+
+        <div class="blk" style="margin-bottom:0"><div class="n">8</div>
+          <div class="t">التذييل</div>
+          <div class="d">بيانات السجل التجاري · أرقام 24/7 · واتساب · بريد رسمي · روابط (خدمات، اعتمادات، تأهيل، أكاديمية، عرض فني)</div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <div class="note warn"><b>ما يخرج من الصفحة الرئيسية</b><p>مختبر 3D، محاكي PWHT، عارض أفلام RT، معمل UT/PAUT، حاسبة التكلفة كقسم مستقل. تنزل إلى «العرض الفني» + «داخل نموذج الطلب». لا حذف.</p></div>
+      <div class="note"><b>سبب الترتيب</b><p>المشتري يقرر على أربعة أسئلة بهذا الترتيب: ماذا تقدّم؟ هل أنت مؤهل؟ هل لديك معدات وخبرة؟ كيف أطلب؟ الترتيب الحالي يجيب على الثالث قبل الأول.</p></div>
+      <div class="note ok"><b>الهوية محفوظة</b><p>نفس الكحلي/السماوي/الكهرماني، نفس الخطوط والبطاقات. التغيير في الترتيب والتنقل، لا في الشخصية البصرية.</p></div>
+      <div class="note"><b>الروابط</b><p>سطح المكتب: 6 روابط + زر طلب. الموبايل: قائمة واحدة + شريط سفلي ثابت بزر «اطلب عرض سعر» و«تواصل».</p></div>
+      <div class="note warn"><b>التحقق</b><p>النقر على «اطلب عرض سعر» من أي مكان يوصل النموذج ويركّز على أول حقل. لا يوجد زر بلا هدف.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 3 · الموبايل ============ -->
+<section class="panel" id="t3">
+  <h1>الموبايل: قائمة واحدة واضحة + إجراء ثابت</h1>
+  <p class="lead">حالياً يوجد شريط 14 اختصاراً لاصقاً أعلى المحتوى، ويأكل مساحة الشاشة. المقترح: هامبرغر بمجموعتين، وشريط سفلي بزرّين فقط.</p>
+  <div class="split">
+    <div class="row" style="align-items:flex-start;gap:22px">
+      <div class="phone wf">
+        <div class="wf-bar"><b>الهاتف</b> · الحالة الافتراضية</div>
+        <div class="wf-body">
+          <div class="nav-demo" style="padding:6px 8px">
+            <span class="btn ghost small">☰</span>
+            <b>INSCO</b>
+            <span class="btn primary small">تسعير</span>
+          </div>
+          <div class="ph" style="height:62px">Hero + صورة</div>
+          <div class="mini" style="margin-bottom:6px"><b>الخدمات</b>4 بطاقات عمودية</div>
+          <div class="mini" style="margin-bottom:6px"><b>الاعتمادات</b>شعارات وشهادات</div>
+          <div class="mini" style="margin-bottom:6px"><b>المشروعات</b>بطاقات أفقية</div>
+          <div class="mini" style="margin-bottom:6px"><b>ملف التأهيل</b>زر تحميل</div>
+          <div class="blk solid" style="margin-bottom:6px;text-align:center"><div class="d">شريط سفلي ثابت</div>
+            <div class="row" style="justify-content:center"><span class="btn primary small">اطلب عرض سعر</span><span class="btn ghost small">واتساب</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="phone wf">
+        <div class="wf-bar"><b>الهاتف</b> · القائمة مفتوحة</div>
+        <div class="wf-body">
+          <div class="blk solid" style="margin:0">
+            <div class="t">الشركة</div>
+            <div class="d">الرئيسية · الخدمات · الاعتمادات · المعدات · المشروعات · ملف التأهيل · اطلب عرض سعر</div>
+          </div>
+          <div class="blk" style="margin:8px 0">
+            <div class="t">الأكاديمية</div>
+            <div class="d">مسارات التعلم · المكتبة · المعامل · الاختبارات · تقدمي</div>
+          </div>
+          <div class="blk solid" style="margin:0">
+            <div class="t">خيارات</div>
+            <div class="d">العربية / English · الفاتح / الداكن · بحث</div>
+          </div>
+          <div class="d" style="margin-top:8px">إغلاق بـ Esc أو النقر خارج القائمة، وتركيز محصور داخلها.</div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <div class="note warn"><b>ما يُلغى</b><p>شريط «إجراءات سريعة» ذو الـ14 اختصاراً. وظيفته يغطيها الهيدر + الأقسام نفسها.</p></div>
+      <div class="note"><b>الوصول</b><p>القائمة زر حقيقي `aria-expanded`، والروابط أزرار لا divs، وتركيز مرئي (تم بالفعل في جولة a11y).</p></div>
+      <div class="note ok"><b>التحويل</b><p>وجود «اطلب عرض سعر» ثابتاً في الشاشة الصغيرة يرفع الوصول للنموذج بلا تمرير طويل.</p></div>
+      <div class="note"><b>الأداء</b><p>حذف الشريط اللاصق يقلّل إعادة الرسم أثناء التمرير على الأجهزة الضعيفة.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 4 · صفحة الخدمات ============ -->
+<section class="panel" id="t4">
+  <h1>صفحة الخدمة: صفحة واحدة قابلة للتخصيص لكل عائلة</h1>
+  <p class="lead">بدل بطاقة تفتح نافذة، كل عائلة خدمة تحصل على عنوان ثابت (`#services/ndt` …) يمكن مشاركته في عروض ومكاتبات المشتريات.</p>
+  <div class="split">
+    <div class="wf">
+      <div class="wf-bar"><b>خدمة: NDT Inspection</b> · `#services/ndt`</div>
+      <div class="wf-body">
+        <div class="blk solid"><div class="t">عنوان + جملة قيمة</div><div class="d">ما نكشفه، وعلى أي أصول، وبأي أكواد.</div></div>
+        <div class="blk"><div class="t">الطرق المشمولة</div>
+          <div class="grid3">
+            <div class="mini"><b>UT</b>سمك · شروخ</div><div class="mini"><b>PAUT</b>مسح قطاعي</div>
+            <div class="mini"><b>RT</b>جاما/إكس</div><div class="mini"><b>MT</b>سطحي</div>
+            <div class="mini"><b>PT</b>سطحي</div><div class="mini"><b>VT</b>بصري</div>
+          </div>
+        </div>
+        <div class="blk"><div class="t">الأكواد المرجعية</div><div class="d">ASME V · ASTM E797 · AWS D1.1 · API 1104</div></div>
+        <div class="blk"><div class="t">الدليل من الميدان</div><div class="ph">صورة/مقطع من مشروع فعلي + رقم مرجعي</div></div>
+        <div class="blk" style="margin-bottom:0"><div class="t">الإجراء التالي</div>
+          <div class="row"><span class="btn primary">اطلب عرض سعر لهذه الخدمة</span><span class="btn ghost">شاهد العرض الفني</span><span class="btn ghost">الاعتمادات</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <div class="note"><b>الغرض</b><p>صفحة الخدمة تجيب على «هل تنطبق عليّ؟» قبل النموذج، وتُستخدم رابطاً في مكاتبات التأهيل.</p></div>
+      <div class="note ok"><b>إعادة استخدام</b><p>بيانات الطرق موجودة في `inscoCompanyData.ts` — الصفحة تعرض نفس البيانات، لا تنسخها.</p></div>
+      <div class="note warn"><b>شرط</b><p>أي وصف لا يملك مستنداً (منهجية/كود/مرجع) يبقى عاماً؛ لا ادعاءات غير موثّقة.</p></div>
+      <div class="note"><b>التسعير</b><p>الخدمة تُمرَّر مسبقاً إلى النموذج (`?service=ndt`)، فيقل عدد الحقول التي يملؤها العميل.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 5 · العرض الفني ============ -->
+<section class="panel" id="t5">
+  <h1>العرض الفني: مكان شرعي للمحاكيات بلا منافسة المحتوى التجاري</h1>
+  <p class="lead">الصفحة المستقلة `#demo` تحتفظ بكل الأدوات التفاعلية الحالية، لكنها تدخل إليها بقصد. لكل أداة سطر «ماذا يثبت؟» يربطها بقدرة الشركة.</p>
+  <div class="split">
+    <div class="wf">
+      <div class="wf-bar"><b>Technical Demonstrations</b> · `#demo`</div>
+      <div class="wf-body">
+        <div class="blk solid"><div class="t">مقدمة قصيرة</div><div class="d">«أدوات تعرض كيف نقرأ الإشارة ونحكم على العيب — نفس الأجهزة المستخدمة في الميدان.»</div></div>
+        <div class="grid2">
+          <div class="mini"><b>3D Hologram</b>مشهد فحص تفاعلي · يثبت فهم الهندسة والواجهة<br/><span class="tag">من AdvancedMotionVisualizer</span></div>
+          <div class="mini"><b>PWHT Cycle Simulator</b>منحنى تسخين/مكوث/تبريد · يثبت ضبط الدورة<br/><span class="tag">من PwhtCycleSimulator</span></div>
+          <div class="mini"><b>RT Film Lightbox</b>قراءة فيلم وكثافة · يثبت تفسير الصورة<br/><span class="tag">من RadiographicFilmViewer</span></div>
+          <div class="mini"><b>UT / PAUT Lab</b>بوابات A-Scan و S-Scan · يثبت المعايرة والمسح<br/><span class="tag">من CompanyUltrasonicLabSection</span></div>
+        </div>
+        <div class="blk" style="margin-top:10px"><div class="t">الربط بالأكاديمية</div><div class="d">«تريد التعمّق؟ افتح المعمل الكامل في الأكاديمية» ← `#rt_lab` / `#paut_controller`.</div></div>
+        <div class="blk" style="margin-bottom:0" ><div class="t">العودة للتحويل</div><div class="row"><span class="btn primary">اطلب عرض سعر</span><span class="btn ghost">الخدمات</span></div></div>
+      </div>
+    </div>
+    <div class="notes">
+      <div class="note"><b>لماذا صفحة منفصلة</b><p>المحاكي يخدم الإقناع التقني لا القرار التجاري. جمعه في صفحة يحمي تسلسل القرار في الرئيسية.</p></div>
+      <div class="note ok"><b>لا حذف</b><p>نفس المكوّنات تُنقل كما هي؛ لا إعادة كتابة ولا فقدان وظائف أو بيانات.</p></div>
+      <div class="note"><b>الجمهور</b><p>مهندس الجودة في العميل هو من يفتح هذه الصفحة — ثم يرسل الرابط لزميله في المشتريات.</p></div>
+      <div class="note warn"><b>الأداء</b><p>تُحمَّل ثقيلاً عند الطلب (lazy) كما هو الحال الآن؛ الصفحة الرئيسية تصبح أخف.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 6 · الأكاديمية ============ -->
+<section class="panel" id="t6">
+  <h1>الأكاديمية: ست محطات بدل ستة صناديق مختلطة</h1>
+  <p class="lead">الـ34 تبويباً الحالية لا تُحذف ولا تُخفى؛ تُعاد تجميعها حول رحلة المتعلم: اختيار ← تعلّم ← تدريب ← اختبار ← متابعة ← مساعد.</p>
+  <div class="split">
+    <div class="wf">
+      <div class="wf-bar"><b>Academy Hub</b> · `#academy`</div>
+      <div class="wf-body">
+        <div class="blk solid"><div class="t">Hero تعليمي</div><div class="d">«من أساسيات UT إلى تحليل S-Scan — مسار يبني كفاءة، لا مجموعة أدوات.»</div>
+          <div class="ph">بحث دلالي + «أكمل من حيث توقفت»</div>
+        </div>
+        <div class="blk"><div class="n">1</div><div class="t">اختر مسارك</div>
+          <div class="row"><span class="tag">المستوى</span><span class="tag">التخصص</span><span class="tag">المسار</span></div>
+          <div class="d">المسارات الثمانية · مقررات NDE-Ed · مسارات التعلم · المناهج</div>
+        </div>
+        <div class="blk"><div class="n">2</div><div class="t">تعلّم</div>
+          <div class="d">الموسوعة · الدروس · الكتب التفاعلية · مكتبة EDB · بطاقات المراجعة · جداول مرجعية</div>
+        </div>
+        <div class="blk"><div class="n">3</div><div class="t">تدرّب</div>
+          <div class="d">معامل RT/UT/PAUT · محاكي PWHT · عيوب اللحام · DAC · معايرة V1/V2 · ورش العمل</div>
+        </div>
+        <div class="blk"><div class="n">4</div><div class="t">اختبر نفسك</div>
+          <div class="d">بنك الأسئلة · محاكاة الامتحان · التقييم العملي · مركز الاعتماد</div>
+        </div>
+        <div class="blk"><div class="n">5</div><div class="t">تابع إنجازك</div>
+          <div class="d">خريطة الإنجاز · خارطة الطريق · لوحة المتصدرين · إفادة تعلّم ذاتي غير معتمدة</div>
+        </div>
+        <div class="blk" style="margin-bottom:0"><div class="n">6</div><div class="t">اسأل المدرّس الذكي</div>
+          <div class="d">مستشار يستشهد من 132 وثيقة داخل المكتبة، أو يقول صراحة «غير مهيّأ».</div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <div class="note"><b>مبدأ التجميع</b><p>كل تبويب حالي يعرف له محطة واحدة بالضبط — لا تكرار، ولا تبويب بلا مكان (الجدول الكامل في ملف الخطة).</p></div>
+      <div class="note ok"><b>روابط عميقة</b><p>كل رابط `#quiz` أو `#rt_lab` الحالي يظل يعمل ويفتح المحطة الصحيحة ومحتواها — لا كسر للروابط المنشورة.</p></div>
+      <div class="note warn"><b>الحد الأكاديمي</b><p>لغة «إفادة تعلّم ذاتي غير معتمدة» تبقى كما اعتمدتها المراجعة، ولا تُرقّى إلى «شهادة».</p></div>
+      <div class="note"><b>قياس</b><p>نسبة إكمال المسار الأول، وعدد الجلسات العائدة، ونسبة استخدام المدرّس الذكي بعد كل درس.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 7 · التنقل ============ -->
+<section class="panel" id="t7">
+  <h1>التنقل: الحالة الحالية ← المقترح</h1>
+  <p class="lead">المشكلة ليست فقدان رابط، بل ثلاث قوائم مختلفة لنفس الموقع: قائمة سطح المكتب، شريط 14 اختصاراً على الموبايل، وستة صناديق داخل الأكاديمية.</p>
+  <table>
+    <thead><tr><th style="width:22%">الموضع</th><th>الآن</th><th>المقترح</th></tr></thead>
+    <tbody>
+      <tr><td>ترويسة سطح المكتب</td><td>8 روابط: Profile · Services · Accreditations · Track Record · Testimonials · 3D Lab · Vendor Vault · Academy</td><td>6 روابط: الرئيسية · الخدمات · إمكانياتنا · مشروعاتنا · ملف التأهيل · الأكاديمية + زر «اطلب عرض سعر»</td></tr>
+      <tr><td>«العرض الفني»</td><td>غير موجود في القائمة، مدفون داخل 3D Lab</td><td>رابط ثانوي داخل صفحة الخدمات + التذييل</td></tr>
+      <tr><td>شريط الموبايل</td><td>14 اختصار تمرير أفقي لاصق</td><td>هامبرغر بمجموعتين + شريط سفلي بزرّي تحويل</td></tr>
+      <tr><td>الأكاديمية</td><td>6 صناديق/34 تبويب بلا ترتيب رحلة</td><td>6 محطات رحلة + روابط عميقة محفوظة</td></tr>
+      <tr><td>التبديل بين البوابتين</td><td>زر صغير في الترويسة</td><td>زر واضح + بوابة أول زيارة + تذكّر الاختيار</td></tr>
+      <tr><td>اللغة والثيم</td><td>أزرار في الترويسة</td><td>كما هي، داخل قائمة «خيارات» على الموبايل</td></tr>
+    </tbody>
+  </table>
+  <div class="grid2">
+    <div class="wf"><div class="wf-bar"><b>الآن</b></div><div class="wf-body" style="opacity:.8">
+      <div class="nav-demo"><b>INSCO</b><div class="links"><span>Profile</span><span>Services</span><span>Certs</span><span>Projects</span><span>Testimonials</span><span>3D</span><span>Vault</span><span class="active">Academy</span></div></div>
+      <div class="row" style="margin-top:8px"><span class="tag">14 اختصاراً على الموبايل</span><span class="tag">6 صناديق أكاديمية</span></div>
+    </div></div>
+    <div class="wf"><div class="wf-bar"><b>المقترح</b></div><div class="wf-body">
+      <div class="nav-demo"><b>INSCO</b><div class="links"><span class="active">الرئيسية</span><span>خدماتنا</span><span>إمكانياتنا</span><span>مشروعاتنا</span><span>ملف التأهيل</span><span>الأكاديمية</span></div><span class="btn primary small">اطلب عرض سعر</span></div>
+      <div class="row" style="margin-top:8px"><span class="tag ok">قائمة واحدة للموبايل</span><span class="tag ok">زر تحويل دائم</span></div>
+    </div></div>
+  </div>
+</section>
+
+<!-- ============ 8 · نظام التصميم ============ -->
+<section class="panel" id="t8">
+  <h1>نظام التصميم: توحيد بلا تغيير الهوية</h1>
+  <p class="lead">الألوان الحالية أساس جيد. المطلوب قواعد استخدام لا لوحة جديدة: متى الكهرماني؟ متى السماوي؟ ما أحجام العناوين؟ ما شكل البطاقة والزر؟</p>
+  <h2>الألوان (كما هي)</h2>
+  <div class="swatches">
+    <div class="sw"><i style="background:#0b1026"></i><span>#0B1026 · خلفية</span></div>
+    <div class="sw"><i style="background:#111736"></i><span>#111736 · سطح</span></div>
+    <div class="sw"><i style="background:#22d3ee"></i><span>#22D3EE · معلومة/رابط</span></div>
+    <div class="sw"><i style="background:#fbbf24"></i><span>#FBBF24 · إجراء رئيسي</span></div>
+    <div class="sw"><i style="background:#34d399"></i><span>#34D399 · ساري/مكتمل</span></div>
+    <div class="sw"><i style="background:#f43f5e"></i><span>#F43F5E · منتهٍ/خطر</span></div>
+  </div>
+  <table>
+    <thead><tr><th>القاعدة</th><th>الاستخدام</th><th>الممنوع</th></tr></thead>
+    <tbody>
+      <tr><td>الكهرماني</td><td>زر أساسي واحد لكل شاشة (اطلب عرض سعر / ابدأ)</td><td>زرّان كهرمانيان متجاوران</td></tr>
+      <tr><td>السماوي</td><td>روابط، معلومات، حالات نشطة</td><td>استخدامه كخلفية لزر تحويل</td></tr>
+      <tr><td>الأخضر/الأحمر</td><td>حالة معايرة أو اعتماد فقط، مشتقة من التاريخ</td><td>استخدامهما للزينة</td></tr>
+      <tr><td>العناوين</td><td>H1 مرة واحدة، H2 لكل قسم، H3 داخل البطاقة</td><td>قفز المستويات للتصغير البصري</td></tr>
+      <tr><td>البطاقة</td><td>حد واحد + خلفية سطح + عنوان + سطران + إجراء</td><td>ظلال متعددة وتدرجات لونية</td></tr>
+      <tr><td>الحركة</td><td>≤200ms للتفاعل، احترام prefers-reduced-motion</td><td>حركة مستمرة في المحتوى التجاري</td></tr>
+      <tr><td>الاتجاه</td><td>كل الخصائص منطقية (start/end) لا يمين/يسار</td><td>قيم فيزيائية تكسر RTL</td></tr>
+    </tbody>
+  </table>
+  <div class="notes">
+    <div class="note ok"><b>معايير القبول</b><p>لا يوجد لون خارج هذه القائمة في الصفحات التجارية؛ كل زر له حالة تركيز مرئية؛ كل بطاقة تتبع نفس الهيكل.</p></div>
+    <div class="note"><b>الخطوط</b><p>الخط الحالي يبقى. يُضاف سلّم أحجام ثابت: 40/32/24/18/16/14/12px مع ارتفاع سطر 1.6–1.75.</p></div>
+  </div>
+</section>
+
+<footer class="foot">
+  هذه لوحات تصميم منخفضة الدقة (low fidelity) لمراجعة الترتيب والتنقل فقط — لا ألوان نهائية ولا حركة.
+  المرجع النصي الكامل: <code>documentation/ux/UX_BLUEPRINT_AR.md</code>. لا تغيير في كود الموقع قبل اعتماد هذه اللوحات.
+</footer>
+</main>
+
+<script>
+  const tabs = Array.from(document.querySelectorAll('nav.tabs button'));
+  const panels = Array.from(document.querySelectorAll('section.panel'));
+  function select(id, push) {
+    tabs.forEach(b => b.setAttribute('aria-selected', String(b.dataset.t === id)));
+    panels.forEach(p => p.classList.toggle('on', p.id === id));
+    if (push) history.replaceState(null, '', '#' + id);
+    window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
+  }
+  tabs.forEach(b => b.addEventListener('click', () => select(b.dataset.t, true)));
+  const initial = location.hash.replace('#', '');
+  if (initial && document.getElementById(initial)) select(initial, false);
+</script>
+</body>
+</html>

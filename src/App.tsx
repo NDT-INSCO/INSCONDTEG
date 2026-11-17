@@ -1,5 +1,6 @@
 import React, { Suspense, useEffect, useState } from 'react';
 import { CompanyPortal } from './components/company/CompanyPortal';
+import { CompanyServicePage } from './components/company/CompanyServicePage';
 import { PortalChooser } from './components/PortalChooser';
 import { MobileNavDrawer } from './components/MobileNavDrawer';
 import { GlobalHeaderSearch } from './components/GlobalHeaderSearch';
@@ -8,6 +9,13 @@ import { Language } from './types';
 import { AcademyTab, readAcademyTab } from './academyTabs';
 import { INSCO_COMPANY_DATA } from './data/inscoCompanyData';
 import { downloadTrainingSyllabus } from './utils/trainingSyllabusGenerator';
+import {
+  readServiceFamilyHash,
+  serviceFamilyById,
+  serviceFamilyHash,
+  type ServiceFamilyId,
+} from './utils/serviceFamilies';
+import { RFQ_QUICK_ACTION_EVENT } from './components/company/CompanyQuickActionsSection';
 import { useTheme } from './utils/themeStore';
 import {
   readPortalChoice,
@@ -67,7 +75,7 @@ function isDemoHash(hash: string): boolean {
   return hash.replace(/^#/, '').trim().toLowerCase() === 'demo';
 }
 
-type AppView = 'company' | 'academy' | 'demo';
+type AppView = 'company' | 'academy' | 'demo' | 'service';
 
 function readLanguage(): Language {
   try {
@@ -87,8 +95,12 @@ export const App: React.FC = () => {
     const hash = window.location.hash;
     if (readAcademyTab(hash)) return 'academy';
     if (isDemoHash(hash)) return 'demo';
+    if (readServiceFamilyHash(hash)) return 'service';
     return 'company';
   });
+  const [serviceFamilyId, setServiceFamilyId] = useState<ServiceFamilyId>(
+    () => readServiceFamilyHash(window.location.hash) ?? 'ndt'
+  );
   const [academySubTab, setAcademySubTab] = useState<AcademyTab | undefined>(() =>
     readAcademyTab(window.location.hash)
   );
@@ -97,8 +109,14 @@ export const App: React.FC = () => {
     shouldOfferPortalChooser({
       choice: readPortalChoice(),
       hasAcademyHash: Boolean(readAcademyTab(initialHash)),
-      hasDemoHash: isDemoHash(initialHash),
-      view: readAcademyTab(initialHash) ? 'academy' : isDemoHash(initialHash) ? 'demo' : 'company',
+      hasDemoHash: isDemoHash(initialHash) || Boolean(readServiceFamilyHash(initialHash)),
+      view: readAcademyTab(initialHash)
+        ? 'academy'
+        : isDemoHash(initialHash)
+          ? 'demo'
+          : readServiceFamilyHash(initialHash)
+            ? 'service'
+            : 'company',
     })
   );
   const [menuOpen, setMenuOpen] = useState(false);
@@ -115,6 +133,20 @@ export const App: React.FC = () => {
       /* private mode: language simply resets on reload */
     }
   }, [language, isAr]);
+
+  // Route-specific titles: a shared `#services/pwht` link must not open with the
+  // generic home title, and browser tabs / search previews stay meaningful.
+  useEffect(() => {
+    const companyName = isAr ? 'إنسكو' : 'INSCO';
+    const family = serviceFamilyById(serviceFamilyId);
+    const routeTitle = (() => {
+      if (currentView === 'academy') return isAr ? 'أكاديمية إنسكو الهندسية' : 'INSCO Engineering Academy';
+      if (currentView === 'demo') return isAr ? 'العرض الفني التفاعلي' : 'Technical Demonstrations';
+      if (currentView === 'service' && family) return family.title[language];
+      return isAr ? 'خدمات الفحص غير الإتلافي والمعالجة الحرارية' : 'NDT Inspection & PWHT Services';
+    })();
+    document.title = `${routeTitle} | ${companyName}`;
+  }, [currentView, serviceFamilyId, language, isAr]);
 
   const handleNavigateToAcademy = (initialSubTab?: AcademyTab) => {
     if (initialSubTab) {
@@ -136,6 +168,12 @@ export const App: React.FC = () => {
       }
       if (isDemoHash(hash)) {
         setCurrentView('demo');
+        return;
+      }
+      const family = readServiceFamilyHash(hash);
+      if (family) {
+        setServiceFamilyId(family);
+        setCurrentView('service');
       }
     };
     window.addEventListener('hashchange', onHashChange);
@@ -162,14 +200,46 @@ export const App: React.FC = () => {
   };
 
   // Page-level destinations live in the hash so they can be shared/bookmarked.
-  const handleOpenDemo = () => {
+  const handleOpenDemo = (anchorId?: string) => {
     setCurrentView('demo');
     window.history.replaceState(
       null,
       '',
       `${window.location.pathname}${window.location.search}#demo`
     );
+    if (anchorId) {
+      // Wait for the code-split demonstrations page to mount.
+      setTimeout(() => {
+        document.getElementById(anchorId)?.scrollIntoView({ behavior: 'smooth' });
+      }, 120);
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleOpenService = (id: ServiceFamilyId) => {
+    setServiceFamilyId(id);
+    setCurrentView('service');
+    window.history.replaceState(
+      null,
+      '',
+      `${window.location.pathname}${window.location.search}${serviceFamilyHash(id)}`
+    );
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  /**
+   * "Request a quote for this service": open the RFQ with the service chosen.
+   * The form listens for this event, so the choice survives the page switch.
+   */
+  const handleRequestQuoteFor = (serviceType: string) => {
+    handleNavigateToCompany();
+    setTimeout(() => {
+      if (typeof CustomEvent !== 'undefined') {
+        window.dispatchEvent(new CustomEvent(RFQ_QUICK_ACTION_EVENT, { detail: { serviceType } }));
+      }
+      document.getElementById('rfq')?.scrollIntoView({ behavior: 'smooth' });
+    }, 120);
   };
 
   const handleChoosePortal = (choice: PortalChoice) => {
@@ -351,7 +421,20 @@ export const App: React.FC = () => {
           <CompanyPortal
             language={language}
             onNavigateToAcademy={handleNavigateToAcademy}
-            onOpenDemo={handleOpenDemo}
+            onOpenDemo={() => handleOpenDemo()}
+            onOpenService={handleOpenService}
+          />
+        )}
+
+        {currentView === 'service' && (
+          <CompanyServicePage
+            language={language}
+            family={serviceFamilyById(serviceFamilyId) ?? serviceFamilyById('ndt')!}
+            onBack={() => handleNavigateToCompany('services')}
+            onOpenFamily={handleOpenService}
+            onRequestQuote={handleRequestQuoteFor}
+            onOpenDemo={anchorId => handleOpenDemo(anchorId)}
+            onOpenAcademy={tab => handleNavigateToAcademy(tab as AcademyTab | undefined)}
           />
         )}
 
@@ -494,7 +577,7 @@ export const App: React.FC = () => {
                 <li>
                   <button
                     type="button"
-                    onClick={handleOpenDemo}
+                    onClick={() => handleOpenDemo()}
                     className="text-cyan-400 hover:text-cyan-300 underline underline-offset-4 transition cursor-pointer"
                   >
                     {isAr ? 'العرض الفني التفاعلي (محاكيات ومعامل)' : 'Technical demonstrations (simulators & labs)'}

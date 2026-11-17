@@ -31,6 +31,7 @@ dom.window.HTMLElement.prototype.scrollIntoView = () => {};
 const { App } = await import('../src/App');
 const { CompanyPortal } = await import('../src/components/company/CompanyPortal');
 const { shouldOfferPortalChooser, PORTAL_CHOICE_KEY } = await import('../src/utils/portalChoice');
+const serviceFamiliesModule = await import('../src/utils/serviceFamilies');
 const { render, fireEvent, cleanup, within, waitFor } = await import('@testing-library/react');
 
 beforeEach(() => {
@@ -160,4 +161,67 @@ test('one menu replaces the chip strip and closes with Escape', () => {
 
   fireEvent.keyDown(document, { key: 'Escape' });
   assert.equal(ui.queryByRole('dialog'), null, 'Escape must close the drawer');
+});
+
+/* ------------------------------ service pages ----------------------------- */
+
+test('every service family is a shareable page, and none of them shows the chooser', () => {
+  const { SERVICE_FAMILIES, readServiceFamilyHash, serviceFamilyHash } = serviceFamiliesModule;
+
+  for (const family of SERVICE_FAMILIES) {
+    const hash = serviceFamilyHash(family.id);
+    assert.equal(readServiceFamilyHash(hash), family.id);
+  }
+  assert.equal(readServiceFamilyHash('#services/unknown'), undefined);
+  assert.equal(readServiceFamilyHash('#services'), undefined);
+});
+
+test('#services/pwht renders the PWHT page directly and switches family in place', () => {
+  dom.window.history.replaceState(null, '', '/-Project-/#services/pwht');
+  const ui = render(<App />);
+
+  assert.equal(ui.queryByRole('dialog'), null, 'a service link must open directly');
+  assert.match(ui.container.textContent || '', /المعالجة الحرارية بعد اللحام/);
+  assert.equal(ui.container.querySelector('#services'), null, 'the landing page must not render');
+
+  fireEvent.click(ui.getByRole('button', { name: /تحليل المواد والصلادة/ }));
+  assert.equal(dom.window.location.hash, '#services/materials');
+});
+
+test('requesting a quote from a service page pre-selects that service in the RFQ form', async () => {
+  dom.window.history.replaceState(null, '', '/-Project-/#services/materials');
+  const ui = render(<App />);
+
+  fireEvent.click(ui.getByRole('button', { name: /اطلب عرض سعر لهذه الخدمة/ }));
+
+  await waitFor(() => {
+    const select = ui.container.querySelector('#rfq select') as HTMLSelectElement | null;
+    assert.ok(select, 'the RFQ form must be on screen after the request');
+    assert.equal(select!.value, 'pmi_hardness');
+  });
+  assert.equal(dom.window.location.hash, '', 'the address bar must not claim a service page');
+});
+
+test('the services section links each family to its own page', () => {
+  const opened: string[] = [];
+  const ui = render(
+    <CompanyPortal language="ar" onNavigateToAcademy={() => {}} onOpenService={id => opened.push(id)} />
+  );
+
+  fireEvent.click(ui.getByRole('button', { name: /الفحص غير الإتلافي \(NDT Inspection\)/ }));
+  fireEvent.click(ui.getByRole('button', { name: /خدمات الجودة والضغط والتأهيل/ }));
+
+  assert.deepEqual(opened, ['ndt', 'quality']);
+});
+
+test('each route sets its own document title', () => {
+  dom.window.history.replaceState(null, '', '/-Project-/#services/pwht');
+  const ui = render(<App />);
+  assert.match(document.title, /المعالجة الحرارية بعد اللحام/);
+
+  fireEvent.click(ui.getByRole('button', { name: /تحليل المواد والصلادة/ }));
+  assert.match(document.title, /تحليل المواد والصلادة/);
+
+  fireEvent.click(ui.getAllByRole('button', { name: /أكاديمية إنسكو/ })[0]);
+  assert.match(document.title, /أكاديمية/);
 });

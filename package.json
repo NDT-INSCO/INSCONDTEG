@@ -19,7 +19,7 @@
     "test:rfq": "tsx --test tests/rfqSubmit.test.ts && tsx --test tests/rfqGateway.test.ts",
     "test:fleet": "tsx --test tests/fleetCalibration.test.tsx",
     "test:a11y": "tsx --test tests/a11yClickables.test.tsx",
-    "test:ux": "tsx --test tests/uxNavigation.test.tsx",
+    "test:ux": "tsx --test tests/uxNavigation.test.tsx && tsx --test tests/academyStations.test.tsx",
     "test:edb": "tsx --test tests/edb.test.tsx",
     "test:epub": "tsx --test tests/epub.test.tsx",
     "test:ai": "tsx --test tests/aiContract.test.tsx && tsx --test tests/aiTransport.test.ts && tsx --test tests/aiSearch.test.tsx && tsx --test tests/aiUi.test.tsx",

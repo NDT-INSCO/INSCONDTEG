@@ -42,7 +42,7 @@ interface ChooserConditions {
   /** True when the URL already asks for the demonstrations page (`#demo`). */
   hasDemoHash?: boolean;
   /** Current view, so a deep link never gets covered by a modal. */
-  view: 'company' | 'academy' | 'demo';
+  view: 'company' | 'academy' | 'demo' | 'service';
 }
 
 /**

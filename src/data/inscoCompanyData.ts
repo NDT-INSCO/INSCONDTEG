@@ -1,3 +1,5 @@
+import { publicUrl } from '../utils/publicUrl';
+
 export interface CompanyProfile {
   name: { ar: string; en: string };
   shortName: string;
@@ -129,7 +131,7 @@ export const INSCO_COMPANY_DATA: CompanyProfile = {
   commercialRegistrationNo: '209632',
   egacCabNo: '#120007',
   ndtOrgId: '54161',
-  pdfBrochureUrl: '/assets/aistudio/__________________d082de13.pdf',
+  pdfBrochureUrl: publicUrl('assets/aistudio/__________________d082de13.pdf'),
 
   quote: {
     text: {

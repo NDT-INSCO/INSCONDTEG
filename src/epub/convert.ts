@@ -97,7 +97,9 @@ export interface EpubBuild {
   entry: EpubIndexEntry;
 }
 
-const DEFAULT_WEB_APP = 'https://ndt-insco.github.io/-Project-/';
+const DEFAULT_WEB_APP = 'https://ndt-insco.github.io/INSCONDTEG/';
+/** `ndt-insco.github.io/INSCONDTEG` — the same address without the scheme, for the cover. */
+const DEFAULT_WEB_APP_LABEL = DEFAULT_WEB_APP.replace(/^https?:\/\//, '').replace(/\/$/, '');
 const DEFAULT_MODIFIED = '2026-10-21T00:00:00Z';
 
 /* ------------------------------------------------------------------ */
@@ -549,7 +551,7 @@ ${titleEn}
 ${subtitleEn}
 <g font-family="Helvetica, Arial, sans-serif">
 <text x="150" y="2130" font-size="24" fill="#8b97ad">${esc(standards || 'ASNT · ISO · ASME · API')}</text>
-<text x="150" y="2178" font-size="22" fill="#5d6a80">ndt-insco.github.io/-Project-</text>
+<text x="150" y="2178" font-size="22" fill="#5d6a80">${esc(DEFAULT_WEB_APP_LABEL)}</text>
 <text x="1450" y="2178" text-anchor="end" font-size="22" fill="#5d6a80">${esc(document.metadata.edition)}</text>
 </g>
 <text x="1450" y="2300" text-anchor="end" font-family="Helvetica, Arial, sans-serif" font-size="300" font-weight="700" fill="${accent}" opacity="0.07">${esc((document.metadata.relatedDiscipline || 'NDT').slice(0, 3))}</text>

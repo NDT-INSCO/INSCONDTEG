@@ -22,8 +22,8 @@
         "ar",
         "en"
       ],
-      "bytes": 33961,
-      "checksum": "63c396b09cb6c2b51c3323126dc2997a29de01e6c1f57cd7a5ecda20961f67a3",
+      "bytes": 33963,
+      "checksum": "2d96bb91eb38cbf3a0b20d7022d021de0e159fa9ac096aefe6ddf5f73d3bc607",
       "untranslated": 3,
       "modified": "2026-10-21T00:00:00Z"
     },
@@ -45,8 +45,8 @@
         "ar",
         "en"
       ],
-      "bytes": 28957,
-      "checksum": "b630c1ff2be35297237dcee43c57d43ef21671faa29d2f69c4b4b49752ffd48b",
+      "bytes": 28956,
+      "checksum": "915f37dabad7bd1e8a10efd6ed0ee0430260ff70ca7dec05c42d3aef9c4f2cbb",
       "untranslated": 5,
       "modified": "2026-10-21T00:00:00Z"
     },
@@ -69,7 +69,7 @@
         "en"
       ],
       "bytes": 29214,
-      "checksum": "c4be19a8bada2278c727eb4fd8205fd45f04af019292e355540edfb14543d408",
+      "checksum": "d29b53c4f13fd5a13767c96487c61e5219a6abfcaa07426295c685694ed83121",
       "untranslated": 8,
       "modified": "2026-10-21T00:00:00Z"
     },
@@ -92,7 +92,7 @@
         "en"
       ],
       "bytes": 30509,
-      "checksum": "efb740bf5cb8a862954a551a839aac61ca53fdd5e97a00acc40dab23be566f5a",
+      "checksum": "6f7bd83b6df9850783d8ff596dd22420a5876d4943f7459ae267edb6eb28ce87",
       "untranslated": 47,
       "modified": "2026-10-21T00:00:00Z"
     },
@@ -114,8 +114,8 @@
         "ar",
         "en"
       ],
-      "bytes": 29726,
-      "checksum": "f513c93ef44ee292fa95079e44e25023fb3e039b9a76eb8b4082229341a1fa49",
+      "bytes": 29728,
+      "checksum": "235c1754dc445ccb34ca95ad3288cf2861dd6e1fb81efca948cf1f9380f42f75",
       "untranslated": 27,
       "modified": "2026-10-21T00:00:00Z"
     },
@@ -138,7 +138,7 @@
         "en"
       ],
       "bytes": 29087,
-      "checksum": "35983f0b0f07165e396b640bad18bc8728c75d9bd5d330f56164b86a51fef8ae",
+      "checksum": "89b26ed3bb5c9109bfd8e0bd0616596d9d93e8a32131fca0f07790c567eed3c7",
       "untranslated": 42,
       "modified": "2026-10-21T00:00:00Z"
     },
@@ -160,8 +160,8 @@
         "ar",
         "en"
       ],
-      "bytes": 30278,
-      "checksum": "898cf6e60643bc0d7dc0ea0ac65a5da7c4ddf05bb2430429c7cb0c66cdca9f7e",
+      "bytes": 30280,
+      "checksum": "8065b57691aa750575d595c848f2dee49c6b7f01f417cbd75ba7552ab6e9a3c7",
       "untranslated": 26,
       "modified": "2026-10-21T00:00:00Z"
     },
@@ -184,7 +184,7 @@
         "en"
       ],
       "bytes": 31311,
-      "checksum": "4e4a9bf097bff5baa3c4de9b423681e82eb8bdbdd5f940a984cbe388441a8192",
+      "checksum": "d0a03c919bc673b354595093937160ab8b74997479f8455841f0c5222eebb82c",
       "untranslated": 35,
       "modified": "2026-10-21T00:00:00Z"
     },
@@ -206,8 +206,8 @@
         "ar",
         "en"
       ],
-      "bytes": 32109,
-      "checksum": "8426387df9305cfd21d361c3ba156b621c3d57f49253e841d88f7de9a879f953",
+      "bytes": 32110,
+      "checksum": "1b18e7b3cd95d04c37c772c057481600e6e7ab301f9276b43373feb561f6173c",
       "untranslated": 8,
       "modified": "2026-10-21T00:00:00Z"
     },
@@ -229,8 +229,8 @@
         "ar",
         "en"
       ],
-      "bytes": 32164,
-      "checksum": "3b2891d93df78575fbc938e17c3b46b981ffe1ea1d23222766b301695daf03cf",
+      "bytes": 32165,
+      "checksum": "8afe2e5da4d26091ad869757e1caf802cff98748a8cdfcf5c3c3c3073838e612",
       "untranslated": 1,
       "modified": "2026-10-21T00:00:00Z"
     },
@@ -252,8 +252,8 @@
         "ar",
         "en"
       ],
-      "bytes": 33706,
-      "checksum": "b33f5186bd0538c0b4ad75cca3a4dbc37bf11549571102ca2f418a8d3d2d68ee",
+      "bytes": 33705,
+      "checksum": "bc8493881f991bdfce0c798418040a5361bebf1f362d0540868ab729632b68ef",
       "untranslated": 7,
       "modified": "2026-10-21T00:00:00Z"
     },
@@ -275,8 +275,8 @@
         "ar",
         "en"
       ],
-      "bytes": 32115,
-      "checksum": "3f427dc022bf4cf6bc7bd7e3961792db54797af907c95270d6f57ee4a468fa39",
+      "bytes": 32122,
+      "checksum": "a1ad757a544221ef3cbc034a03a3a974a04f898154e58c6b3a9df5721032c85d",
       "untranslated": 0,
       "modified": "2026-10-21T00:00:00Z"
     },
@@ -298,8 +298,8 @@
         "ar",
         "en"
       ],
-      "bytes": 28702,
-      "checksum": "33b0d4fc2c3124576652e0d1c140e13bc9bec5aa4d83f3e08d2aaeecea55ca44",
+      "bytes": 28699,
+      "checksum": "ceeaf3deb3f2f86c4b7ceaaf5d46bf76f24b4898c16fc888a7d82f6000395462",
       "untranslated": 0,
       "modified": "2026-10-21T00:00:00Z"
     },
@@ -321,8 +321,8 @@
         "ar",
         "en"
       ],
-      "bytes": 32213,
-      "checksum": "c84c181e89f5ff81257be59d4c4c9dae6f9804924e627fd81f3afeea4c834765",
+      "bytes": 32212,
+      "checksum": "621440f649589bec2be1a70ca220a9097055af9894b2f57f7b9ad1823b6f273b",
       "untranslated": 0,
       "modified": "2026-10-21T00:00:00Z"
     },
@@ -345,7 +345,7 @@
         "en"
       ],
       "bytes": 31532,
-      "checksum": "af5a293c3cb561bf85cb4f006bcd2e0deff9141dedfa98e73eab24f4d5c4feab",
+      "checksum": "54b5c6cfef6a996f51abeb00f533c29bc8f187184175cd2132e7c7ffc2324e28",
       "untranslated": 0,
       "modified": "2026-10-21T00:00:00Z"
     },
@@ -367,8 +367,8 @@
         "ar",
         "en"
       ],
-      "bytes": 34879,
-      "checksum": "ca912f28b1af2800c99afaa268c9955aa5b9af5b523ee26a2fcf5e9431444177",
+      "bytes": 34882,
+      "checksum": "518953d95c981332f371e769faff4d311ef298e778020cfdc5633a4f98ef2fb4",
       "untranslated": 0,
       "modified": "2026-10-21T00:00:00Z"
     },
@@ -390,8 +390,8 @@
         "ar",
         "en"
       ],
-      "bytes": 31529,
-      "checksum": "1c29c333719ed4c70619735b4a8eaba9eef5a2e94d0a92c083ca403fca2660a1",
+      "bytes": 31534,
+      "checksum": "411ea4f9792e294848c273b70ebefcd91872894642032b4f10acf31e68d2f352",
       "untranslated": 0,
       "modified": "2026-10-21T00:00:00Z"
     },
@@ -413,8 +413,8 @@
         "ar",
         "en"
       ],
-      "bytes": 33509,
-      "checksum": "f94521a0c1a244a68e581f68f739f8b901753375397751a9c6d3369b25fc5187",
+      "bytes": 33508,
+      "checksum": "324a894721f7dd1088a0c62b840c6083cad106b2b561a55b09284d5c976977c4",
       "untranslated": 0,
       "modified": "2026-10-21T00:00:00Z"
     }

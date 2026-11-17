@@ -17,11 +17,14 @@ import {
 interface CompanyServicesSectionProps {
   language: Language;
   onNavigateToAcademyModule?: (subTab: string) => void;
+  /** Opens the dedicated technical-demonstrations page (`#demo`). */
+  onOpenDemo?: () => void;
 }
 
 export const CompanyServicesSection: React.FC<CompanyServicesSectionProps> = ({
   language,
   onNavigateToAcademyModule,
+  onOpenDemo,
 }) => {
   const isAr = language === 'ar';
   const ArrowIcon = isAr ? ChevronLeft : ChevronRight;
@@ -388,6 +391,32 @@ export const CompanyServicesSection: React.FC<CompanyServicesSectionProps> = ({
             </div>
           ))}
         </div>
+
+        {/* Bridge to the demonstrations page: the labs used to sit here and
+            pushed the accreditations ten screens down. */}
+        {onOpenDemo && (
+          <div className="mt-10 rounded-2xl border border-slate-800 bg-slate-900/40 p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <div className="text-sm font-bold text-white">
+                {isAr ? 'شاهد كيف نقرأ الإشارة قبل أن نحكم' : 'See how we read the signal before judging'}
+              </div>
+              <p className="mt-1 text-xs text-slate-400 max-w-xl leading-relaxed">
+                {isAr
+                  ? 'محاكي دورة PWHT، عارض أفلام إشعاعية، ومعمل UT/PAUT — كلها في صفحة عرض فني واحدة، بلا مزاحمة للمحتوى التجاري.'
+                  : 'PWHT cycle simulator, radiographic film lightbox and the UT/PAUT lab — together on one demonstrations page, without crowding the commercial content.'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onOpenDemo}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-cyan-500/40 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20 text-xs font-bold transition whitespace-nowrap cursor-pointer"
+            >
+              <Layers className="w-4 h-4" />
+              {isAr ? 'افتح العرض الفني' : 'Open demonstrations'}
+              <ArrowIcon className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
       </div>
     </section>
   );

@@ -27,12 +27,19 @@ export interface CompanyQuickActionsSectionProps {
   language: Language;
   onRequestQuote?: (serviceType?: string) => void;
   onOpenCurriculum?: () => void;
+  /**
+   * The two cards used to sit together on the landing page, mixing a commercial
+   * action with a training asset. The audit asked to separate the two paths, so
+   * the RFQ section renders `quote` and the academy renders `syllabus`.
+   */
+  mode?: 'both' | 'quote' | 'syllabus';
 }
 
 export const CompanyQuickActionsSection: React.FC<CompanyQuickActionsSectionProps> = ({
   language,
   onRequestQuote,
   onOpenCurriculum,
+  mode = 'both',
 }) => {
   const isAr = language === 'ar';
   const ArrowIcon = isAr ? ArrowLeft : ArrowRight;
@@ -93,15 +100,27 @@ export const CompanyQuickActionsSection: React.FC<CompanyQuickActionsSectionProp
           <div>
             <div className="text-xs font-mono uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
               <Zap className="w-3.5 h-3.5" aria-hidden="true" />
-              <span>{isAr ? 'الإجراءات السريعة (Quick Actions)' : 'Quick Actions'}</span>
+              <span>
+                {mode === 'syllabus'
+                  ? isAr ? 'الأكاديمية · المنهج التدريبي' : 'Academy · Training syllabus'
+                  : isAr ? 'التسعير السريع' : 'Express quotation'}
+              </span>
             </div>
             <h2
               id="quick-actions-heading"
               className="text-xl sm:text-2xl font-black text-white tracking-tight mt-1"
             >
-              {isAr
-                ? 'الوصول المباشر بنقرة واحدة للتسعير التجاري والمنهج التدريبي'
-                : 'One-Click Project Quotation & Accredited Training Syllabus'}
+              {mode === 'syllabus'
+                ? isAr
+                  ? 'المنهج التدريبي المعتمد بنقرة واحدة'
+                  : 'Accredited training syllabus in one click'
+                : mode === 'quote'
+                  ? isAr
+                    ? 'طلب عرض سعر فوري بخطوة واحدة'
+                    : 'One-step express quotation'
+                  : isAr
+                    ? 'الوصول المباشر بنقرة واحدة للتسعير التجاري والمنهج التدريبي'
+                    : 'One-Click Project Quotation & Accredited Training Syllabus'}
             </h2>
           </div>
 
@@ -115,8 +134,9 @@ export const CompanyQuickActionsSection: React.FC<CompanyQuickActionsSectionProp
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div className={`grid grid-cols-1 gap-5 ${mode === 'both' ? 'lg:grid-cols-2' : 'max-w-3xl'}`}>
           {/* Action Card 1: One-Click Request Quote */}
+          {mode !== 'syllabus' && (
           <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6 flex flex-col justify-between gap-5">
             <div className="space-y-3">
               <div className="text-xs font-mono text-cyan-400 tabular-nums">
@@ -182,7 +202,10 @@ export const CompanyQuickActionsSection: React.FC<CompanyQuickActionsSectionProp
             </div>
           </div>
 
+          )}
+
           {/* Action Card 2: One-Click Download Training Syllabus */}
+          {mode !== 'quote' && (
           <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6 flex flex-col justify-between gap-5">
             <div className="space-y-3">
               <div className="text-xs font-mono text-amber-400 tabular-nums">
@@ -248,6 +271,7 @@ export const CompanyQuickActionsSection: React.FC<CompanyQuickActionsSectionProp
               )}
             </div>
           </div>
+          )}
         </div>
       </div>
     </section>

@@ -12,12 +12,15 @@ import { CompanyAcademyHighlight } from './CompanyAcademyHighlight';
 import { CompanyVendorVaultSection } from './CompanyVendorVaultSection';
 import { CompanyContactSection } from './CompanyContactSection';
 import { CompanyQuickActionsSection } from './CompanyQuickActionsSection';
+import type { ServiceFamilyId } from '../../utils/serviceFamilies';
 
 interface CompanyPortalProps {
   language: Language;
   onNavigateToAcademy: (initialSubTab?: any) => void;
   /** Opens the technical demonstrations page (`#demo`). */
   onOpenDemo?: () => void;
+  /** Opens a shareable service-family page (`#services/ndt` …). */
+  onOpenService?: (id: ServiceFamilyId) => void;
 }
 
 /**
@@ -37,6 +40,7 @@ export const CompanyPortal: React.FC<CompanyPortalProps> = ({
   language,
   onNavigateToAcademy,
   onOpenDemo,
+  onOpenService,
 }) => {
   const scrollToSection = (sectionId: string) => {
     const el = document.getElementById(sectionId);
@@ -62,6 +66,7 @@ export const CompanyPortal: React.FC<CompanyPortalProps> = ({
         language={language}
         onNavigateToAcademyModule={(subTab) => onNavigateToAcademy(subTab)}
         onOpenDemo={onOpenDemo}
+        onOpenService={onOpenService}
       />
 
       {/* 3. Are we qualified? Accreditations first, then the code matrix. */}

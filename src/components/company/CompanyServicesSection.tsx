@@ -3,6 +3,7 @@ import { Language } from '../../types';
 import { INSCO_COMPANY_DATA } from '../../data/inscoCompanyData';
 import { COMPANY_MEDIA } from '../../data/companyMedia';
 import { CompanyRegionalFleetMap } from './CompanyRegionalFleetMap';
+import { SERVICE_FAMILIES, type ServiceFamilyId } from '../../utils/serviceFamilies';
 import { 
   Flame, 
   Wrench, 
@@ -19,12 +20,15 @@ interface CompanyServicesSectionProps {
   onNavigateToAcademyModule?: (subTab: string) => void;
   /** Opens the dedicated technical-demonstrations page (`#demo`). */
   onOpenDemo?: () => void;
+  /** Opens a shareable page per service family (`#services/ndt` …). */
+  onOpenService?: (id: ServiceFamilyId) => void;
 }
 
 export const CompanyServicesSection: React.FC<CompanyServicesSectionProps> = ({
   language,
   onNavigateToAcademyModule,
   onOpenDemo,
+  onOpenService,
 }) => {
   const isAr = language === 'ar';
   const ArrowIcon = isAr ? ChevronLeft : ChevronRight;
@@ -82,6 +86,29 @@ export const CompanyServicesSection: React.FC<CompanyServicesSectionProps> = ({
               : 'INSCO covers exhaustive industrial quality mandates under ASME, AWS, API, and ISO codes with certified ASNT Level II/III inspectors and traceable calibrated equipment.'}
           </p>
         </div>
+
+        {/* Four service families, each with its own shareable page. */}
+        {onOpenService && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-14">
+            {SERVICE_FAMILIES.map(family => (
+              <button
+                key={family.id}
+                type="button"
+                onClick={() => onOpenService(family.id)}
+                className="group text-start rounded-xl border border-slate-800 bg-slate-900/50 hover:border-cyan-500/50 p-4 transition cursor-pointer"
+              >
+                <div className="text-sm font-bold text-white group-hover:text-cyan-200 transition">
+                  {family.title[language]}
+                </div>
+                <div className="mt-1 text-xs text-slate-400">{family.short[language]}</div>
+                <div className="mt-3 inline-flex items-center gap-1.5 text-[11px] font-bold text-cyan-400">
+                  {isAr ? 'تفاصيل الخدمة' : 'Service details'}
+                  <ArrowIcon className="w-3 h-3" />
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* PWHT Fleet Feature Spotlight Card with Authentic Photography & Thermal HUD */}
         <div className="mb-14 rounded-2xl border border-slate-800 bg-linear-to-br from-slate-900/90 to-cyan-950/20 p-6 sm:p-8 overflow-hidden shadow-2xl">

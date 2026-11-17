@@ -146,9 +146,15 @@ export const INSCO_COMPANY_DATA: CompanyProfile = {
 
   metrics: [
     {
+      // Company incorporated 2010; this figure is the management team's
+      // cumulative QA/QC experience, not years since incorporation. Saying so
+      // avoids the "20 years" vs "founded 2010" contradiction buyers notice.
       value: '20+',
-      label: { ar: 'عاماً من إدارة ضبط وتوكيد الجودة', en: 'Years QA/QC Management' },
-      subLabel: { ar: 'مشروعات قومية ودولية كبرى', en: 'National & international mega projects' }
+      label: { ar: 'عاماً خبرة تراكمية لفريق الإدارة في QA/QC', en: 'Cumulative team experience in QA/QC' },
+      subLabel: {
+        ar: 'الشركة تأسست 2010 — الرقم يخص خبرة الفريق قبل التأسيس وبعده',
+        en: 'Company incorporated 2010 — figure covers the team before and since'
+      }
     },
     {
       value: '16',

@@ -1,17 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { Language } from '../../types';
 import { INSCO_COMPANY_DATA } from '../../data/inscoCompanyData';
-import { Phone, Mail, MapPin, Send, CheckCircle2, MessageSquare, Clock } from 'lucide-react';
+import { Phone, Mail, MapPin, Send, CheckCircle2, MessageSquare, Clock, AlertTriangle, Loader2, RotateCcw } from 'lucide-react';
 import { RFQ_QUICK_ACTION_EVENT, RfqQuickActionDetail } from './CompanyQuickActionsSection';
+import {
+  buildRfqMailto,
+  buildRfqPayload,
+  buildRfqWhatsApp,
+  submitRfq,
+  type RfqFailureReason,
+} from '../../rfq/submit';
 
 interface CompanyContactSectionProps {
   language: Language;
+  /** Testing seam: lets a test drive the network outcome without a server. */
+  submitRequest?: typeof submitRfq;
 }
 
 export const CompanyContactSection: React.FC<CompanyContactSectionProps> = ({
   language,
+  submitRequest,
 }) => {
   const isAr = language === 'ar';
+  const sendToServer = submitRequest ?? submitRfq;
 
   const [formData, setFormData] = useState({
     companyName: '',
@@ -26,6 +37,8 @@ export const CompanyContactSection: React.FC<CompanyContactSectionProps> = ({
   const [submittedRef, setSubmittedRef] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [quickQuoteActive, setQuickQuoteActive] = useState<boolean>(false);
+  const [sending, setSending] = useState<boolean>(false);
+  const [failure, setFailure] = useState<{ reason: RfqFailureReason; detail?: string } | null>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -36,6 +49,7 @@ export const CompanyContactSection: React.FC<CompanyContactSectionProps> = ({
       const requestedDescription = custom.detail?.description;
       setSubmittedRef(null);
       setErrorMessage(null);
+      setFailure(null);
       setQuickQuoteActive(true);
       setFormData((prev) => ({
         ...prev,
@@ -48,8 +62,8 @@ export const CompanyContactSection: React.FC<CompanyContactSectionProps> = ({
     return () => window.removeEventListener(RFQ_QUICK_ACTION_EVENT, handleQuickAction);
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const sendRequest = async () => {
+    if (sending) return;
     if (!formData.companyName.trim() || !formData.phone.trim() || !formData.email.trim()) {
       setErrorMessage(
         isAr
@@ -60,9 +74,56 @@ export const CompanyContactSection: React.FC<CompanyContactSectionProps> = ({
     }
 
     setErrorMessage(null);
-    const refCode = `INSCO-RFQ-${Date.now().toString().slice(-6)}`;
-    setSubmittedRef(refCode);
+    setFailure(null);
+    setSending(true);
+    const payload = buildRfqPayload(formData, language, {
+      pageUrl: typeof window !== 'undefined' ? window.location.href : undefined,
+    });
+    const outcome = await sendToServer(payload);
+    setSending(false);
+
+    if (outcome.status === 'sent') {
+      // Reference comes from the server that stored the request.
+      setSubmittedRef(outcome.reference);
+      return;
+    }
+    // Nothing is claimed as received: keep the form, explain, and offer a
+    // channel that a human actually reads.
+    setFailure({ reason: outcome.reason, detail: outcome.detail });
   };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    void sendRequest();
+  };
+
+  const failureMessage = (reason: RfqFailureReason, detail?: string): string => {
+    if (isAr) {
+      if (reason === 'not_configured') {
+        return 'الإرسال المباشر من الموقع غير مُهيّأ بعد، ولم يُسجَّل طلبك في أي مكان. استخدم الأزرار أدناه ليصل طلبك إلى فريق التسعير الآن (نفس البيانات مكتوبة مسبقًا).';
+      }
+      if (reason === 'network') {
+        return 'تعذّر الوصول إلى خادم الطلبات (شبكة أو مهلة اتصال). لم يُسجَّل الطلب بعد، ويمكنك إعادة المحاولة.';
+      }
+      if (reason === 'validation') {
+        return 'بيانات الطلب غير مكتملة أو غير صحيحة، ولم يُسجَّل. راجع الحقول وأعد المحاولة.';
+      }
+      return 'تعذّر تسجيل الطلب على الخادم، ولم يُسجَّل بعد. أعد المحاولة أو استخدم البريد/واتساب.';
+    }
+    if (reason === 'not_configured') {
+      return 'Online submission is not configured on this deployment, so your request was not registered. Use the buttons below to reach the tender team now — your details are pre-filled.';
+    }
+    if (reason === 'network') {
+      return 'The request server could not be reached (network or timeout). Nothing was registered — please retry.';
+    }
+    if (reason === 'validation') {
+      return 'The request was rejected as incomplete, and nothing was registered. Check the fields and retry.';
+    }
+    return 'The server could not register the request. Retry, or use email/WhatsApp.';
+  };
+
+  const mailtoHref = buildRfqMailto(formData, INSCO_COMPANY_DATA.contacts.email, language);
+  const whatsappHref = buildRfqWhatsApp(formData, INSCO_COMPANY_DATA.contacts.whatsapp, language);
 
   return (
     <section id="contact" className="py-16 bg-slate-900/40">
@@ -224,8 +285,8 @@ export const CompanyContactSection: React.FC<CompanyContactSectionProps> = ({
                   </h4>
                   <p className="text-xs text-slate-300 max-w-md mx-auto">
                     {isAr
-                      ? `تم تسجيل طلبكم تحت الكود المرجعي (${submittedRef}). سيتواصل معكم مهندس العمليات خلال ساعات.`
-                      : `Your request has been registered under reference (${submittedRef}). Our lead project engineer will contact you shortly.`}
+                      ? `تم تسجيل طلبكم لدى فريق التسعير تحت الكود المرجعي (${submittedRef}) وإرسال إشعار بريدي. سيتواصل معكم مهندس العمليات خلال ساعات.`
+                      : `Your request was registered with the tender desk under reference (${submittedRef}) and a notification was emailed. Our lead project engineer will contact you shortly.`}
                   </p>
                   <button
                     type="button"
@@ -248,9 +309,47 @@ export const CompanyContactSection: React.FC<CompanyContactSectionProps> = ({
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  {errorMessage && (
-                    <div className="p-3 rounded-lg bg-red-950/30 border border-red-800 text-xs text-red-300">
-                      {errorMessage}
+                  {(errorMessage || failure) && (
+                    <div
+                      role="alert"
+                      className={`p-4 rounded-lg border text-xs space-y-3 ${
+                        failure?.reason === 'not_configured'
+                          ? 'bg-amber-950/30 border-amber-700 text-amber-100'
+                          : 'bg-red-950/30 border-red-800 text-red-200'
+                      }`}
+                    >
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
+                        <span>{errorMessage ?? (failure ? failureMessage(failure.reason, failure.detail) : '')}</span>
+                      </div>
+                      {failure && (
+                        <div className="flex flex-wrap items-center gap-2">
+                          <a
+                            href={mailtoHref}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 font-semibold hover:border-cyan-500 transition"
+                          >
+                            <Mail className="w-3.5 h-3.5" aria-hidden="true" />
+                            <span>{isAr ? 'إرسال بالبريد الإلكتروني' : 'Send by email'}</span>
+                          </a>
+                          <a
+                            href={whatsappHref}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 font-semibold hover:border-emerald-500 transition"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5" aria-hidden="true" />
+                            <span>{isAr ? 'إرسال واتساب' : 'Send on WhatsApp'}</span>
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => { setFailure(null); void sendRequest(); }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 font-semibold hover:border-cyan-500 transition cursor-pointer"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
+                            <span>{isAr ? 'إعادة المحاولة' : 'Retry'}</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -365,10 +464,20 @@ export const CompanyContactSection: React.FC<CompanyContactSectionProps> = ({
                   <div className="pt-2">
                     <button
                       type="submit"
-                      className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-sm transition shadow-sm cursor-pointer"
+                      disabled={sending}
+                      aria-busy={sending}
+                      className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold text-sm transition shadow-sm cursor-pointer"
                     >
-                      <Send className="w-4 h-4 shrink-0" />
-                      <span>{isAr ? 'إرسال طلب التسعير المعتمد' : 'Submit Request to Technical Team'}</span>
+                      {sending ? (
+                        <Loader2 className="w-4 h-4 shrink-0 animate-spin" aria-hidden="true" />
+                      ) : (
+                        <Send className="w-4 h-4 shrink-0" aria-hidden="true" />
+                      )}
+                      <span>
+                        {sending
+                          ? (isAr ? 'جارٍ إرسال الطلب…' : 'Sending your request…')
+                          : (isAr ? 'إرسال طلب التسعير المعتمد' : 'Submit Request to Technical Team')}
+                      </span>
                     </button>
                   </div>
                 </form>

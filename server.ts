@@ -32,6 +32,7 @@ import {
 import type { CorpusDocument, CorpusStats } from './src/ai/corpus';
 import type { SearchHit } from './src/ai/search';
 import { streamTutorText, TutorAiClient, TutorTransportMode } from './src/ai/transport';
+import { createRateLimiter, deliveryFromEnv, handleRfqRequest } from './src/rfq/gateway';
 
 dotenv.config();
 
@@ -258,6 +259,28 @@ function streamFromModel(
 
 app.disable('x-powered-by');
 app.use(express.json({ limit: '96kb' }));
+
+/**
+ * RFQ intake.
+ *
+ * A quote request is a commercial commitment, so this endpoint answers 200 + a
+ * reference only after the record was handed to a real channel (webhook or
+ * mail). Without configuration it returns 503 and the browser offers mail and
+ * WhatsApp instead of a fake confirmation.
+ */
+const RFQ_ENDPOINT = '/api/rfq';
+const allowRfqAttempt = createRateLimiter({ windowMs: 60 * 60 * 1000, max: 6 });
+const rfqDelivery = deliveryFromEnv(process.env);
+
+app.post(RFQ_ENDPOINT, async (req: Request, res: Response) => {
+  const address = req.ip || req.socket.remoteAddress || 'unknown';
+  if (!allowRfqAttempt(address)) {
+    res.status(429).json({ ok: false, error: 'rfq_rate_limited', detail: 'Too many requests from this address.' });
+    return;
+  }
+  const result = await handleRfqRequest(req.body, { deliver: rfqDelivery }, address);
+  res.status(result.status).json(result.body);
+});
 
 app.get(TUTOR_ENDPOINTS.status, async (_req: Request, res: Response) => {
   const { getCorpus } = await loadAiLibrary();
@@ -493,6 +516,7 @@ async function startServer(): Promise<void> {
     console.log(`Server listening on http://0.0.0.0:${PORT} (${isProduction ? 'production' : 'development'})`);
     console.log(`[ai] tutor: ${ai ? `enabled, model ${MODEL_CHAIN[0]}` : 'disabled (no GEMINI_API_KEY)'}`);
     console.log(`[ai] transport: ${API_MODE}${ai ? '' : ' (no key, calls will be refused)'}`);
+    console.log(`[rfq] delivery: ${rfqDelivery ? 'configured' : 'not configured (POST /api/rfq will answer 503)'}`);
   });
 }
 

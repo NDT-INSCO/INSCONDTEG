@@ -69,7 +69,7 @@ dom.window.HTMLCanvasElement.prototype.getContext = () => ({
 dom.window.HTMLCanvasElement.prototype.toDataURL = () =>
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
 
-const { render, fireEvent, cleanup } = await import('@testing-library/react');
+const { render, fireEvent, cleanup, waitFor } = await import('@testing-library/react');
 
 afterEach(() => {
   cleanup();
@@ -165,23 +165,46 @@ test('CompanyVendorVaultSection lists all 5 Annexes and provides verified PDF do
   assert.equal(dlLink.getAttribute('href'), '/assets/aistudio/__________________d082de13.pdf');
 });
 
-test('CompanyContactSection handles interactive RFQ submission and generates quotation code', () => {
-  const ui = render(<CompanyContactSection language="ar" />);
+const fillRfq = (ui: { getByPlaceholderText: (pattern: RegExp) => HTMLElement }) => {
+  fireEvent.change(ui.getByPlaceholderText(/مثال: شركة بترول خليج السويس/i), { target: { value: 'Orascom Construction' } });
+  fireEvent.change(ui.getByPlaceholderText(/\+20 100/i), { target: { value: '+20 109 077 7202' } });
+  fireEvent.change(ui.getByPlaceholderText(/contracts@company\.com/i), { target: { value: 'qc@orascom.com' } });
+};
 
-  const companyInput = ui.getByPlaceholderText(/مثال: شركة بترول خليج السويس/i);
-  const phoneInput = ui.getByPlaceholderText(/\+20 100/i);
-  const emailInput = ui.getByPlaceholderText(/contracts@company\.com/i);
+test('RFQ never claims success when the request could not be sent', async () => {
+  const ui = render(
+    <CompanyContactSection
+      language="ar"
+      submitRequest={async () => ({ status: 'failed', reason: 'not_configured' })}
+    />,
+  );
+  fillRfq(ui);
+  fireEvent.click(ui.getByRole('button', { name: /إرسال طلب التسعير المعتمد/i }));
 
-  fireEvent.change(companyInput, { target: { value: 'Orascom Construction' } });
-  fireEvent.change(phoneInput, { target: { value: '+20 109 077 7202' } });
-  fireEvent.change(emailInput, { target: { value: 'qc@orascom.com' } });
+  await waitFor(() => assert.ok(ui.getByRole('alert')));
+  assert.equal(ui.queryAllByText(/تم استلام طلبكم بنجاح/i).length, 0, 'no success screen without a server');
+  assert.equal(ui.queryAllByText(/INSCO-RFQ-/i).length, 0, 'no reference is invented in the browser');
+  assert.ok(ui.getByRole('alert').textContent?.includes('لم يُسجَّل'));
+  // The customer still gets a channel that reaches a human.
+  const mail = ui.getByRole('link', { name: /إرسال بالبريد الإلكتروني/i });
+  assert.ok(mail.getAttribute('href')?.startsWith('mailto:'));
+  assert.ok(decodeURIComponent(mail.getAttribute('href')!).includes('Orascom Construction'));
+  assert.ok(ui.getByRole('link', { name: /إرسال واتساب/i }));
+});
 
-  const submitBtn = ui.getByRole('button', { name: /إرسال طلب التسعير المعتمد/i });
-  fireEvent.click(submitBtn);
+test('RFQ shows the reference issued by the server, and only that', async () => {
+  const ui = render(
+    <CompanyContactSection
+      language="ar"
+      submitRequest={async () => ({ status: 'sent', reference: 'INSCO-RFQ-20261117-7K2Q9P' })}
+    />,
+  );
+  fillRfq(ui);
+  fireEvent.click(ui.getByRole('button', { name: /إرسال طلب التسعير المعتمد/i }));
 
-  // Success message should appear with INSCO-RFQ reference
-  assert.ok(ui.getAllByText(/تم استلام طلبكم بنجاح/i).length > 0);
-  assert.ok(ui.getAllByText(/INSCO-RFQ-/i).length > 0);
+  await waitFor(() => assert.ok(ui.getAllByText(/تم استلام طلبكم بنجاح/i).length > 0));
+  assert.ok(ui.getAllByText(/INSCO-RFQ-20261117-7K2Q9P/).length > 0);
+  assert.equal(ui.queryAllByRole('alert').length || 0, 0);
 });
 
 test('CompanyTestimonialsSection displays sliding cards with client feedback and controls', () => {

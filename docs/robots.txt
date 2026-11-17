@@ -1,0 +1,6 @@
+# INSCO — https://ndt-insco.github.io/INSCONDTEG/
+User-agent: *
+Allow: /
+Disallow: /api/
+
+Sitemap: https://ndt-insco.github.io/INSCONDTEG/sitemap.xml

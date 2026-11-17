@@ -21,13 +21,29 @@ npm run verify   # فحص الأنواع + الاختبارات + المكتبة
 
 ## النشر
 
-الموقع يُنشر على GitHub Pages عبر سير العمل `.github/workflows/deploy.yml`، ويُبنى
-من المصدر في كل دفع إلى `main`:
+**المصدر الفعلي للموقع هو مجلد `docs/` في الفرع `main`** (إعداد Pages:
+*Deploy from a branch → main / docs*). أي تغيير في `src/` أو `public/` يجب أن
+يُرفق بإعادة بناء المجلد:
+
+```bash
+npm run build && npm run site:check
+```
+
+سير العمل `.github/workflows/deploy.yml` يبني ويتحقق من نفس الشيء، لكنه لا يغذّي
+الموقع ما دام مصدر Pages هو الفرع؛ تحويله إلى **GitHub Actions** خطوة يدوية في
+إعدادات المستودع. سير `verify` يفشل إن دُفع تغيير مصدر دون تحديث `docs/`.
 
 **https://ndt-insco.github.io/INSCONDTEG/**
 
 الخطوات الكاملة (تفعيل Pages مرة واحدة، المسار، المستشار الذكي، حل المشكلات) في
 [`documentation/DEPLOY_GITHUB_PAGES_AR.md`](documentation/DEPLOY_GITHUB_PAGES_AR.md).
+
+## طلبات عروض الأسعار (RFQ)
+
+النموذج لا يعرض «تم الاستلام» إلا بعد ردّ خادم برقم مرجعي بعد تسليم الطلب فعليًا.
+بدون قناة مهيّأة يقول ذلك صراحة ويعطي العميل بريدًا وواتساب بنفس بياناته.
+الإعداد الكامل (Apps Script مجاني أو بوابة `server.ts`) في
+[`documentation/RFQ_AR.md`](documentation/RFQ_AR.md).
 
 ## المستشار الذكي
 
@@ -40,6 +56,7 @@ npm run verify   # فحص الأنواع + الاختبارات + المكتبة
 | الملف | المحتوى |
 | --- | --- |
 | `documentation/DEPLOY_GITHUB_PAGES_AR.md` | النشر على GitHub Pages خطوة بخطوة |
+| `documentation/RFQ_AR.md` | تشغيل نموذج طلب عرض السعر فعليًا |
 | `documentation/STATUS_AR.md` | ما نُفِّذ وما بقي وأرقام المشروع |
 | `documentation/AI_STUDIO_AR.md` | المستشار الذكي والتكلفة والنشر |
 | `documentation/EDB_FORMAT_AR.md` | صيغة مكتبة EDB |

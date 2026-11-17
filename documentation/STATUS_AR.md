@@ -17,10 +17,14 @@ npm run epub:build # بناء نسخة EPUB (Kindle/Kobo/Apple Books)
 `npm run verify` هو بوابة الدمج. لا تعتمد على `npm run build` وحده:
 البناء الناجح لا يعني أن `docs/` المنشور سليم — لذلك `site:check` في نهاية السلسلة.
 
-نشر الموقع: كل دفع إلى `main` يبني الموقع من المصدر وينشره على
-`https://ndt-insco.github.io/INSCONDTEG/` عبر `.github/workflows/deploy.yml`.
-العمل على فرع لا يظهر على الرابط حتى يُدمج. الخطوات الكاملة في
-`DEPLOY_GITHUB_PAGES_AR.md`.
+نشر الموقع: المصدر الفعلي هو `main` / `docs` — كل تغيير في `src/` أو `public/`
+يجب أن يُرفق بـ `npm run build`، وسير `verify` يفشل إن كان `docs/` قديماً.
+الرابط: `https://ndt-insco.github.io/INSCONDTEG/`. العمل على فرع لا يظهر على
+الرابط حتى يُدمج. الخطوات الكاملة في `DEPLOY_GITHUB_PAGES_AR.md`.
+
+نموذج طلب عرض السعر يرسل فعلياً فقط عند تهيئة قناة (Apps Script أو بوابة
+`server.ts`)؛ راجع `RFQ_AR.md`. حالة المعايرة في سجل المعدات محسوبة من التاريخ،
+ولا تظهر أي معدة سارية بعد انتهاء صلاحيتها.
 
 ---
 

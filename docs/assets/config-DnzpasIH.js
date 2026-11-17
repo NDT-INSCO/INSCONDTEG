@@ -1,0 +1,1 @@
+export{n as app,r as auth,i as db,a as isFirebaseConfigured}from"./EducationalAcademy--Ski6T0k.js";

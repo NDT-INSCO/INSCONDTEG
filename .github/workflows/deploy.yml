@@ -40,6 +40,11 @@ jobs:
       # Leave the repository variable unset to keep the assistant's honest
       # "not configured" message on the static site. See .env.example.
       VITE_AI_BASE_URL: ${{ vars.VITE_AI_BASE_URL }}
+      # Where the RFQ form posts. Either the gateway base (…/), which gets
+      # `/api/rfq` appended, or a full endpoint such as a Google Apps Script
+      # `/exec` URL. Unset ⇒ the form says honestly that online submission is
+      # not configured and offers email/WhatsApp instead of a fake receipt.
+      VITE_RFQ_ENDPOINT: ${{ vars.VITE_RFQ_ENDPOINT }}
     steps:
       - uses: actions/checkout@v4
 

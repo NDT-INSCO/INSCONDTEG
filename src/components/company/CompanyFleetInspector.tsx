@@ -1,5 +1,12 @@
 import React, { useState } from 'react';
 import { Language } from '../../types';
+import {
+  CalibrationState,
+  calibrationLabel,
+  calibrationState,
+  calibrationTone,
+  formatValidity,
+} from '../../utils/calibration';
 import { 
   Flame, 
   ShieldCheck, 
@@ -12,8 +19,18 @@ import {
   Radio,
   FileCheck2,
   ChevronRight,
-  ChevronLeft
+  ChevronLeft,
+  AlertTriangle,
+  MinusCircle
 } from 'lucide-react';
+
+/** Icon that matches the derived calibration state — never a fixed green tick. */
+function StateIcon({ state, className }: { state: CalibrationState; className: string }) {
+  if (state === 'valid') return <CheckCircle2 className={className} aria-hidden="true" />;
+  if (state === 'expiring') return <AlertTriangle className={className} aria-hidden="true" />;
+  if (state === 'expired') return <MinusCircle className={className} aria-hidden="true" />;
+  return <FileCheck2 className={className} aria-hidden="true" />;
+}
 
 interface FleetEquipment {
   id: string;
@@ -25,7 +42,8 @@ interface FleetEquipment {
   serialRange: string;
   calibrationBody: string;
   calibrationStatus: { ar: string; en: string };
-  validity: string;
+  /** YYYY-MM (last day of month) or YYYY-MM-DD; null = not published. */
+  validUntil: string | null;
   applications: { ar: string; en: string }[];
   keySpecs: { label: { ar: string; en: string }; value: string }[];
   deployedProjects: string[];
@@ -40,18 +58,22 @@ const FLEET_REGISTRY: FleetEquipment[] = [
     },
     category: 'pwht',
     ownedQty: 16,
-    model: '65 kVA 6-Channel Auto Programmer',
+    model: '65 kW / 65 kVA 6-Channel Auto Programmer',
     manufacturer: 'Cooperheat / Stork Engineering',
     serialRange: 'INS-PWHT-01 to INS-PWHT-16',
     calibrationBody: 'National Institute for Standards (NIS) / Traceable NIST',
     calibrationStatus: { ar: 'معايرة معتمدة وسارية', en: 'Verified & Calibrated' },
-    validity: 'Valid to Dec 2026',
+    validUntil: '2026-12',
     applications: [
       { ar: 'تسخين مبدئي ومعالجة حرارية بعد اللحام للمواسير والأوعية', en: 'Pre-heating & Post-Weld Heat Treatment for Piping' },
       { ar: 'معالجة سبائك P91, P22, P11, P5 في محطات الطاقة', en: 'Alloy heat treatment P91, P22, P11 in CCPP power plants' }
     ],
     keySpecs: [
-      { label: { ar: 'القدرة الكهربية', en: 'Power Rating' }, value: '65 kVA / 400V 3-Phase' },
+      // Two different quantities, previously published interchangeably:
+      // 65 kW is the heating output the unit delivers to the weld, 65 kVA is
+      // the apparent power it draws from the site supply (≈65 kW at PF 1.0).
+      { label: { ar: 'القدرة الحرارية الخارجة', en: 'Heating Output' }, value: '65 kW' },
+      { label: { ar: 'القدرة الكهربية المسحوبة', en: 'Apparent Power Draw' }, value: '65 kVA / 400V 3-Phase' },
       { label: { ar: 'قنوات التحكم', en: 'Control Channels' }, value: '6 Independent PID Zones' },
       { label: { ar: 'مسجل درجات الحرارة', en: 'Recorder' }, value: 'Chino / Eurotherm 6-Pt Strip Chart' },
       { label: { ar: 'أقصى درجة حرارة', en: 'Max Temperature' }, value: '1,200 °C' }
@@ -71,7 +93,7 @@ const FLEET_REGISTRY: FleetEquipment[] = [
     serialRange: 'INS-UT-PA01 to PA04',
     calibrationBody: 'Evident Certified Calibration Lab (ISO 17025)',
     calibrationStatus: { ar: 'معايرة إلكترونية سنوية معتمدة', en: 'Factory Calibrated' },
-    validity: 'Valid to Nov 2026',
+    validUntil: '2026-11',
     applications: [
       { ar: 'فحص رقمي مشفر لوصلات اللحام المحيطية واستبدال الأشعة RT', en: 'Encoded sectorial weld inspection replacing conventional RT' },
       { ar: 'كشف شروخ الجذور ونقص الانصهار بمسح قطاعي S-Scan و L-Scan', en: 'Root cracks, LOF, and porosity volumetric sizing' }
@@ -96,7 +118,7 @@ const FLEET_REGISTRY: FleetEquipment[] = [
     serialRange: 'INS-UT-01 to INS-UT-08',
     calibrationBody: 'National Standards Lab (NIS Egypt)',
     calibrationStatus: { ar: 'معايرة نصف سنوية دورية', en: 'Calibrated with IIW Blocks' },
-    validity: 'Valid to Oct 2026',
+    validUntil: '2026-10',
     applications: [
       { ar: 'فحص يدوي شامل للحامات الأنابيب والصفائح المعدنية', en: 'Manual UT of pipe welds and structural plates' },
       { ar: 'قياس دقيق لسماكة الجدران المتبقية وكشف التآكل الداخلي', en: 'Precision wall thickness and internal corrosion surveys' }
@@ -121,7 +143,7 @@ const FLEET_REGISTRY: FleetEquipment[] = [
     serialRange: 'INS-RT-01 to INS-RT-06',
     calibrationBody: 'Egyptian Nuclear & Radiological Regulatory Authority (ENRRA)',
     calibrationStatus: { ar: 'مرخص ومحصن من هيئة الرقابة النووية', en: 'ENRRA Practice Licensed' },
-    validity: 'License LS.0112 Valid',
+    validUntil: null,
     applications: [
       { ar: 'تصوير إشعاعي صناعي لأنابيب الغاز والنفط والأوعية المضغوطة', en: 'Volumetric radiography for cross-country pipelines & vessels' },
       { ar: 'توثيق أرشيفي دائم على أفلام صناعية وكواشف رقمية', en: 'Permanent radiographic film archival & digital CR' }
@@ -146,7 +168,7 @@ const FLEET_REGISTRY: FleetEquipment[] = [
     serialRange: 'INS-PMI-01 & 02',
     calibrationBody: 'Thermo Fisher Certified Factory Calibration',
     calibrationStatus: { ar: 'معايرة بمعايير معتمدة NIST Standard', en: 'NIST Standards Verified' },
-    validity: 'Valid to Dec 2026',
+    validUntil: '2026-12',
     applications: [
       { ar: 'تحليل فوري لتركيب سبائك الصلب المقاوم للصدأ والكروم موليبدينوم', en: 'Instant chemical verification for Cr-Mo & Stainless Steel' },
       { ar: 'منع خلط المواد بمستودعات البترول ومواقع التركيبات', en: 'Material mix-up prevention on refineries & piping spools' }
@@ -171,7 +193,7 @@ const FLEET_REGISTRY: FleetEquipment[] = [
     serialRange: 'INS-MT-01 to INS-MT-12',
     calibrationBody: 'National Standards Lab (Deadweight 10 lbs / 40 lbs test)',
     calibrationStatus: { ar: 'معايرة قوة الرفع الدورية مجددة', en: 'Lift Capacity Verified' },
-    validity: 'Valid to Nov 2026',
+    validUntil: '2026-11',
     applications: [
       { ar: 'كشف شقوق السطح وتحت السطح باللحامات الإنشائية والأنابيب', en: 'Surface and sub-surface flaw detection in ferromagnetic welds' },
       { ar: 'فحوصات جسيمات رطبة وجافة وفلورية تحت الأشعة فوق البنفسجية', en: 'Dry powder, wet visible, and fluorescent UV inspections' }
@@ -196,7 +218,7 @@ const FLEET_REGISTRY: FleetEquipment[] = [
     serialRange: 'INS-HYD-01 to 04',
     calibrationBody: 'Egyptian Organization for Standardization (EOS)',
     calibrationStatus: { ar: 'مانومترات ومسجلات معايرة معتمدة', en: 'Deadweight Calibrated' },
-    validity: 'Valid to Jan 2027',
+    validUntil: '2027-01',
     applications: [
       { ar: 'اختبارات الضغط الهيدروستاتيكي للأنابيب والأوعية البترولية', en: 'Proof pressure testing for high-pressure process piping' },
       { ar: 'تسجيل بياني للضغط والحرارة على مسجلات دائرية معتمدة', en: 'Barton 2-Pen circular chart recording (Pressure & Temp)' }
@@ -212,10 +234,13 @@ const FLEET_REGISTRY: FleetEquipment[] = [
 
 interface CompanyFleetInspectorProps {
   language: Language;
+  /** Injectable clock so the register can be tested on a fixed date. */
+  now?: Date;
 }
 
-export const CompanyFleetInspector: React.FC<CompanyFleetInspectorProps> = ({ language }) => {
+export const CompanyFleetInspector: React.FC<CompanyFleetInspectorProps> = ({ language, now }) => {
   const isAr = language === 'ar';
+  const today = now ?? new Date();
   const ArrowIcon = isAr ? ChevronLeft : ChevronRight;
 
   const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -237,6 +262,10 @@ export const CompanyFleetInspector: React.FC<CompanyFleetInspectorProps> = ({ la
   });
 
   const selectedItem = FLEET_REGISTRY.find(i => i.id === selectedEquipmentId) || FLEET_REGISTRY[0];
+  const selectedState = calibrationState(selectedItem.validUntil, today);
+  const selectedTone = calibrationTone(selectedState);
+  const expiredCount = FLEET_REGISTRY.filter(item => calibrationState(item.validUntil, today) === 'expired').length;
+  const expiringCount = FLEET_REGISTRY.filter(item => calibrationState(item.validUntil, today) === 'expiring').length;
 
   return (
     <section id="fleet-inspector" className="py-16 border-b border-slate-800 bg-slate-950">
@@ -258,11 +287,27 @@ export const CompanyFleetInspector: React.FC<CompanyFleetInspectorProps> = ({ la
                 ? 'تمتلك إنسكو أسطولاً متكاملاً من أرقى الشركات العالمية (Olympus, Cooperheat, Krautkramer, Sentinel) مخزناً بالورش المركزية بالقاهرة مع شهادات معايرة دورية معتمدة قابلة للتتبع طبقاً لـ NIST.'
                 : 'INSCO operates a fully-owned, audited instrument fleet stored at our central Cairo workshops with certified calibration records traceable to national and international measurement institutes.'}
             </p>
+            <p className="mt-2 text-[11px] text-slate-500 leading-relaxed">
+              {isAr
+                ? 'حالة المعايرة محسوبة من تاريخ الصلاحية المسجل، بدقة الشهر (آخر يوم في الشهر). تُحدَّث التواريخ بدقة اليوم فور استلام شهادات المعايرة الموقعة.'
+                : 'Calibration state is computed from the recorded expiry date at month precision (last day of the month). Dates tighten to the exact day once signed certificates are filed.'}
+            </p>
           </div>
 
-          <div className="px-4 py-3 rounded-xl bg-slate-900 border border-slate-800 text-end shrink-0">
+          <div className="px-4 py-3 rounded-xl bg-slate-900 border border-slate-800 text-end shrink-0 space-y-1">
             <div className="text-2xl font-black text-cyan-400 font-mono tabular-nums">48+</div>
-            <div className="text-xs text-slate-400">{isAr ? 'أجهزة رئيسية مملوكة' : 'Primary Calibrated Assets'}</div>
+            <div className="text-xs text-slate-400">{isAr ? 'أجهزة رئيسية مملوكة' : 'Company-owned assets'}</div>
+            {expiredCount > 0 && (
+              <div className="text-[11px] font-mono text-red-300 flex items-center justify-end gap-1">
+                <AlertTriangle className="w-3 h-3" aria-hidden="true" />
+                <span>{isAr ? `${expiredCount} سجل معايرة منتهٍ` : `${expiredCount} expired record(s)`}</span>
+              </div>
+            )}
+            {expiringCount > 0 && (
+              <div className="text-[11px] font-mono text-amber-300">
+                {isAr ? `${expiringCount} تنتهي خلال 60 يومًا` : `${expiringCount} expiring within 60 days`}
+              </div>
+            )}
           </div>
         </div>
 
@@ -290,11 +335,15 @@ export const CompanyFleetInspector: React.FC<CompanyFleetInspectorProps> = ({ la
           <div className="lg:col-span-5 space-y-3">
             {filteredFleet.map(equip => {
               const isSelected = equip.id === selectedItem.id;
+              const state = calibrationState(equip.validUntil, today);
+              const tone = calibrationTone(state);
               return (
-                <div
+                <button
                   key={equip.id}
+                  type="button"
+                  aria-pressed={isSelected}
                   onClick={() => setSelectedEquipmentId(equip.id)}
-                  className={`p-4 rounded-xl border transition cursor-pointer flex flex-col justify-between space-y-3 ${
+                  className={`w-full text-start p-4 rounded-xl border transition cursor-pointer flex flex-col justify-between space-y-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 ${
                     isSelected
                       ? 'border-cyan-500 bg-cyan-950/20 text-white'
                       : 'border-slate-800 bg-slate-900/40 text-slate-300 hover:border-slate-700 hover:bg-slate-900/70'
@@ -317,14 +366,18 @@ export const CompanyFleetInspector: React.FC<CompanyFleetInspectorProps> = ({ la
                     <ArrowIcon className={`w-4 h-4 shrink-0 transition mt-1 ${isSelected ? 'text-cyan-400' : 'text-slate-600'}`} />
                   </div>
 
-                  <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 pt-2 border-t border-slate-800/80">
-                    <span className="text-emerald-400 flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" />
-                      <span>{equip.calibrationStatus[language]}</span>
+                  <div className="flex items-center justify-between gap-2 text-[11px] font-mono pt-2 border-t border-slate-800/80">
+                    <span className={`flex items-center gap-1 ${tone.icon}`}>
+                      <StateIcon state={state} className="w-3 h-3" />
+                      <span>{calibrationLabel(state, language)}</span>
                     </span>
-                    <span>{equip.validity}</span>
+                    <span className="text-slate-400">
+                      {state === 'unknown'
+                        ? (isAr ? 'غير منشورة' : 'Not published')
+                        : (isAr ? `حتى ${formatValidity(equip.validUntil, language)}` : `to ${formatValidity(equip.validUntil, language)}`)}
+                    </span>
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>
@@ -341,9 +394,18 @@ export const CompanyFleetInspector: React.FC<CompanyFleetInspectorProps> = ({ la
                 </h3>
               </div>
 
-              <div className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono font-bold flex items-center gap-1.5 shrink-0">
-                <CheckCircle2 className="w-4 h-4" />
-                <span>{selectedItem.calibrationStatus[language]}</span>
+              <div className={`px-3 py-1.5 rounded-lg border text-xs font-mono font-bold flex flex-col gap-1 shrink-0 ${selectedTone.badge}`}>
+                <span className="flex items-center gap-1.5">
+                  <StateIcon state={selectedState} className="w-4 h-4" />
+                  <span>{calibrationLabel(selectedState, language)}</span>
+                </span>
+                <span className="font-normal opacity-80">
+                  {selectedState === 'unknown'
+                    ? (isAr ? 'تاريخ الصلاحية غير منشور' : 'Validity date not published')
+                    : (isAr
+                        ? `حتى ${formatValidity(selectedItem.validUntil, language)}`
+                        : `Valid to ${formatValidity(selectedItem.validUntil, language)}`)}
+                </span>
               </div>
             </div>
 
@@ -356,6 +418,10 @@ export const CompanyFleetInspector: React.FC<CompanyFleetInspectorProps> = ({ la
               <div className="p-3 rounded-lg bg-slate-950/70 border border-slate-800">
                 <div className="text-slate-500 text-[11px]">{isAr ? 'جهة ومعهد المعايرة:' : 'Calibration Laboratory:'}</div>
                 <div className="text-cyan-300 font-bold mt-0.5">{selectedItem.calibrationBody}</div>
+              </div>
+              <div className="p-3 rounded-lg bg-slate-950/70 border border-slate-800 sm:col-span-2">
+                <div className="text-slate-500 text-[11px]">{isAr ? 'نوع سجل المعايرة:' : 'Register entry:'}</div>
+                <div className="text-slate-200 font-bold mt-0.5">{selectedItem.calibrationStatus[language]}</div>
               </div>
             </div>
 

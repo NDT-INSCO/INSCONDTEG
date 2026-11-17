@@ -62,7 +62,8 @@ const FLEET_REGISTRY: FleetEquipment[] = [
     manufacturer: 'Cooperheat / Stork Engineering',
     serialRange: 'INS-PWHT-01 to INS-PWHT-16',
     calibrationBody: 'National Institute for Standards (NIS) / Traceable NIST',
-    calibrationStatus: { ar: 'معايرة معتمدة وسارية', en: 'Verified & Calibrated' },
+    // Describes the calibration *scheme*, never its validity — validity is computed.
+    calibrationStatus: { ar: 'معايرة NIS متتبعة (NIST)', en: 'NIS-traceable calibration' },
     validUntil: '2026-12',
     applications: [
       { ar: 'تسخين مبدئي ومعالجة حرارية بعد اللحام للمواسير والأوعية', en: 'Pre-heating & Post-Weld Heat Treatment for Piping' },

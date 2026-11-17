@@ -31,8 +31,8 @@ jobs:
     env:
       # A GitHub Pages *project* site is served from /<repo-name>/, so the asset
       # base has to match the repository this workflow runs in.
-      # In NDT-INSCO/INSCONDT the site is published at
-      # https://ndt-insco.github.io/INSCONDT/
+      # In NDT-INSCO/INSCONDTEG the site is published at
+      # https://ndt-insco.github.io/INSCONDTEG/
       # Override it with a repository variable named SITE_BASE — for example `/`
       # when the site is served from a custom domain's root.
       SITE_BASE: ${{ vars.SITE_BASE || format('/{0}/', github.event.repository.name) }}

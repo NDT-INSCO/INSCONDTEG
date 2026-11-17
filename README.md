@@ -24,7 +24,7 @@ npm run verify   # فحص الأنواع + الاختبارات + المكتبة
 الموقع يُنشر على GitHub Pages عبر سير العمل `.github/workflows/deploy.yml`، ويُبنى
 من المصدر في كل دفع إلى `main`:
 
-**https://ndt-insco.github.io/INSCONDT/**
+**https://ndt-insco.github.io/INSCONDTEG/**
 
 الخطوات الكاملة (تفعيل Pages مرة واحدة، المسار، المستشار الذكي، حل المشكلات) في
 [`documentation/DEPLOY_GITHUB_PAGES_AR.md`](documentation/DEPLOY_GITHUB_PAGES_AR.md).

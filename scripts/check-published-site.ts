@@ -4,31 +4,34 @@
  *   npm run site:check
  *
  * GitHub Pages serves the repository `docs/` folder from
- * https://ndt-insco.github.io/INSCONDT/ . A build can be perfectly valid in
+ * https://ndt-insco.github.io/INSCONDTEG/ . A build can be perfectly valid in
  * `public/` and still ship broken if the published folder is stale, incomplete,
  * or references the wrong base. These checks run offline.
  */
+import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { validateEpub } from '../src/epub/validate';
 
 /**
- * Same base the build used (`SITE_BASE`), so this check validates the folder
- * that is actually about to be published, whether that is
- * `https://ndt-insco.github.io/-Project-/` or a new repository's own path.
+ * Same base the build used (`SITE_BASE`, else `GITHUB_REPOSITORY`, else this
+ * repository's own Pages path), so this check validates the folder that is
+ * actually about to be published.
  */
 function siteBase(): string {
   const raw = (process.env.SITE_BASE ?? '').trim();
-  if (!raw) return '/INSCONDT/';
-  const trimmed = raw.replace(/^\/+|\/+$/g, '');
-  return trimmed ? `/${trimmed}/` : '/';
+  if (raw) {
+    const trimmed = raw.replace(/^\/+|\/+$/g, '');
+    return trimmed ? `/${trimmed}/` : '/';
+  }
+  const fromActions = (process.env.GITHUB_REPOSITORY ?? '').split('/')[1]?.trim();
+  return fromActions ? `/${fromActions}/` : '/INSCONDTEG/';
 }
 
 const BASE = siteBase();
 const docs = path.resolve(process.cwd(), 'docs');
 const problems: string[] = [];
 const notices: string[] = [];
-
 function fail(message: string) {
   problems.push(message);
 }
@@ -36,6 +39,35 @@ function fail(message: string) {
 function note(message: string) {
   notices.push(message);
 }
+
+/**
+ * The base this repository is really served from.
+ *
+ * `docs/index.html` can be perfectly self-consistent and still be wrong: a
+ * folder built for `/INSCONDT/` passes every asset check here, then returns 404
+ * for every script on `https://ndt-insco.github.io/INSCONDTEG/` — a blank page
+ * with no data. So we compare the base baked into the folder with the path the
+ * hosting repository actually uses.
+ */
+function servedBase(): string | null {
+  const explicit = (process.env.SITE_BASE ?? '').trim();
+  if (explicit) {
+    const trimmed = explicit.replace(/^\/+|\/+$/g, '');
+    return trimmed ? `/${trimmed}/` : '/';
+  }
+  let repo = (process.env.GITHUB_REPOSITORY ?? '').split('/')[1]?.trim();
+  if (!repo) {
+    try {
+      const remote = execFileSync('git', ['config', '--get', 'remote.origin.url'], { encoding: 'utf8' }).trim();
+      repo = remote.replace(/\.git$/, '').split(/[/:]/).pop()?.trim();
+    } catch {
+      // Exported tarball without a git remote: nothing to compare against.
+    }
+  }
+  return repo ? `/${repo}/` : null;
+}
+
+const EXPECTED_BASE = servedBase();
 
 if (!existsSync(docs)) {
   console.error('✗ docs/ does not exist. Run `npm run build` first.');
@@ -63,7 +95,17 @@ if (!existsSync(indexPath)) {
 
   if (!local.some(ref => ref.endsWith('.js'))) fail('index.html does not reference any JavaScript bundle');
   if (!local.some(ref => ref.endsWith('.css'))) fail('index.html does not reference any stylesheet');
-  note(`index.html: ${local.length} local asset references`);
+
+  // The base baked into the build, taken from the first asset it loads.
+  const baked = local.find(ref => /^\/[^/]+\/assets\//.test(ref))?.match(/^(\/[^/]+\/)/)?.[1] ?? null;
+  if (EXPECTED_BASE && baked && baked !== EXPECTED_BASE) {
+    fail(
+      `docs/index.html is built for ${baked} but this repository is served from ${EXPECTED_BASE}: ` +
+        `every asset would 404 and the page would stay blank. ` +
+        `Rebuild with SITE_BASE=${EXPECTED_BASE} (or leave SITE_BASE unset).`,
+    );
+  }
+  note(`index.html: ${local.length} local asset references${baked ? `, built for ${baked}` : ''}`);
 }
 
 // 2) Jekyll must not process the folder
@@ -142,7 +184,7 @@ if (existsSync(assetsDir)) {
   }
 }
 
-console.log(`Published site check (${BASE})`);
+console.log(`Published site check (base ${BASE}${EXPECTED_BASE && EXPECTED_BASE !== BASE ? `, served from ${EXPECTED_BASE}` : ''})`);
 for (const notice of notices) console.log(`  · ${notice}`);
 if (problems.length === 0) {
   console.log('✓ docs/ is deployable');

@@ -127,7 +127,7 @@ const RecordDetail: React.FC<{ record: PPARecord; language: Language; onBack: ()
         </dl>
       </header>
 
-      <section className="overflow-hidden rounded-2xl border border-[#29315b]">
+      <section className="overflow-x-auto rounded-2xl border border-[#29315b]">
         <table className="w-full text-xs">
           <thead className="bg-[#151a38] text-slate-300">
             <tr>

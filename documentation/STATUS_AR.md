@@ -18,7 +18,7 @@ npm run epub:build # بناء نسخة EPUB (Kindle/Kobo/Apple Books)
 البناء الناجح لا يعني أن `docs/` المنشور سليم — لذلك `site:check` في نهاية السلسلة.
 
 نشر الموقع: كل دفع إلى `main` يبني الموقع من المصدر وينشره على
-`https://ndt-insco.github.io/INSCONDT/` عبر `.github/workflows/deploy.yml`.
+`https://ndt-insco.github.io/INSCONDTEG/` عبر `.github/workflows/deploy.yml`.
 العمل على فرع لا يظهر على الرابط حتى يُدمج. الخطوات الكاملة في
 `DEPLOY_GITHUB_PAGES_AR.md`.
 

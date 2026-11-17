@@ -24,7 +24,7 @@ src/ + public/  ──[npm run build]──►  docs/  ──[رفع]──►  
 | `SITE_BASE` (متغيّر بيئة) | مسار النشر؛ افتراضيه `/-Project-/`، وسير العمل يضبطه على `/اسم-المستودع/` |
 | `npm run site:check` | يفحص مجلد `docs/` قبل النشر: أصول ناقصة، قاعدة خطأ، EDB، EPUB |
 
-**الرابط بعد النشر:** `https://ndt-insco.github.io/INSCONDT/`
+**الرابط بعد النشر:** `https://ndt-insco.github.io/INSCONDTEG/`
 
 ---
 
@@ -33,12 +33,29 @@ src/ + public/  ──[npm run build]──►  docs/  ──[رفع]──►  
 لا يمكن تفعيل Pages من سطر الأوامر بحساب الروبوت (يرجع `403`)، لذلك تُعمل يدوياً
 مرة واحدة من المتصفح:
 
-1. افتح `https://github.com/NDT-INSCO/INSCONDT/settings/pages`
+1. افتح `https://github.com/NDT-INSCO/INSCONDTEG/settings/pages`
 2. في **Build and deployment → Source** اختر **GitHub Actions** (وليس
    *Deploy from a branch*).
 3. لا تضبط Branch ولا Folder — سير العمل هو الذي يرفع النسخة النهائية.
 
 انتهى. لن تحتاج لتكرار هذه الخطوة.
+
+### إذا كان المصدر مضبوطاً على *Deploy from a branch* → `main` / `/docs`
+
+هذا هو الوضع الذي كان عليه المستودع، وهو **يعمل** بشرط أن يكون `docs/` حديثاً:
+Pages يقدّم ما في المجلد كما هو، ولا يبني شيئاً. لذلك:
+
+```bash
+npm run build        # يكتب docs/ بالقاعدة الصحيحة (/INSCONDTEG/)
+npm run site:check   # يفشل إن كانت القاعدة لا تطابق مسار المستودع
+git add docs && git commit -m "build: refresh published site"
+```
+
+وفي هذه الحالة **لا يحتاج** `deploy.yml` للتشغيل، لأن النشر يحدث من الدفع نفسه.
+المشكلة الوحيدة في هذا الوضع أن `docs/` قد يتقادم: نسخة قديمة تشير إلى أسماء
+حزم لم تعد موجودة تعني صفحة بيضاء بلا بيانات — وهذا بالضبط ما حدث. لذلك
+`site:check` صار يقارن القاعدة المكتوبة داخل `docs/index.html` بمسار المستودع
+الفعلي، ويفشل إن اختلفا.
 
 ---
 
@@ -62,14 +79,14 @@ Actions → deploy → build → deploy → ✅
 ### ج. ماذا يفعل السير العمل بالتفصيل
 
 1. `npm ci` بلا مفاتيح ولا أسرار.
-2. `npm run build` مع `SITE_BASE=/INSCONDT/`، فيصبح كل أصل داخل
-   `docs/index.html` على الشكل `/INSCONDT/assets/...`.
+2. `npm run build` مع `SITE_BASE=/INSCONDTEG/`، فيصبح كل أصل داخل
+   `docs/index.html` على الشكل `/INSCONDTEG/assets/...`.
 3. `npm run site:check` — يفشل السير العمل إن كان أي أصل مذكوراً وغير موجود.
 4. رفع `docs/` كأثر (artifact) ونشره على Pages.
 
 ---
 
-## 4. لماذا `/-Project-/` قديماً و`/INSCONDT/` الآن؟
+## 4. لماذا `/-Project-/` قديماً و`/INSCONDTEG/` الآن؟
 
 GitHub Pages يعطي كل مستودع مساره الخاص:
 
@@ -80,8 +97,8 @@ https://ndt-insco.github.io/<اسم-المستودع>/
 - المستودع القديم `NDT-INSCO/-Project-` ما زال ينشر نسخته من `docs/` في فرعه
   `main` على `https://ndt-insco.github.io/-Project-/`. **لن يتغيّر تلقائياً**
   عند نشر المستودع الجديد، لأن Pages خاص بكل مستودع على حدة.
-- المستودع الجديد `NDT-INSCO/INSCONDT` ينشر على
-  `https://ndt-insco.github.io/INSCONDT/`.
+- المستودع الجديد `NDT-INSCO/INSCONDTEG` ينشر على
+  `https://ndt-insco.github.io/INSCONDTEG/`.
 
 إن أردت إبقاء العنوان القديم، فأمامك ثلاثة خيارات:
 
@@ -120,8 +137,9 @@ GitHub Pages يقدّم **ملفات ثابتة فقط**؛ لا يوجد خاد�
 
 | ما تراه | السبب | الحل |
 | --- | --- | --- |
-| صفحة 404 على `…/INSCONDT/` | Pages غير مفعّل، أو لم يُشغَّل `deploy` بعد | نفّذ القسم 2 ثم أعد تشغيل سير العمل |
-| صفحة بيضاء وشبكة الفحص مليئة بـ `404` على `/assets/...` | القاعدة (`base`) لا تطابق مسار النشر | تأكد أن `SITE_BASE` = `/اسم-المستودع/` في السير العمل |
+| صفحة 404 على `…/INSCONDTEG/` | Pages غير مفعّل، أو لم يُشغَّل `deploy` بعد | نفّذ القسم 2 ثم أعد تشغيل سير العمل |
+| صفحة بيضاء وشبكة الفحص مليئة بـ `404` على `/assets/...` | القاعدة (`base`) لا تطابق مسار النشر | تأكد أن `SITE_BASE` = `/اسم-المستودع/`، ثم `npm run build && npm run site:check` |
+| الموقع يفتح لكن لا تظهر أي بيانات (هيكل فقط / صفحة فارغة) | `docs/` المنشور قديم أو مبني لقاعدة أخرى | أعد البناء والدفع: `npm run build && npm run site:check && git add docs` — و`site:check` سيسمّي القاعدة الخطأ |
 | الأصول تعمل لكن الخطوط/الصور لا | نشر نسخة قديمة من `docs/` | `deploy` يبني من المصدر؛ لا تعدّل `docs/` يدوياً |
 | الموقع يظهر ناقصاً بعد دمج | ذاكرة المتصفح | تحديث قسري `Ctrl/Cmd + Shift + R` |
 | سير `verify` أحمر عند `npm ci` | كان `package-lock.json` غائباً | أُضيف في هذا الفرع؛ لا تحذفه |
@@ -139,7 +157,7 @@ npm run build                    # بناء إلى docs/
 npm run site:check               # فحص ما سيُنشر
 
 # محاكاة ما يفعله سير العمل تماماً:
-SITE_BASE=/INSCONDT/ npm run build && SITE_BASE=/INSCONDT/ npm run site:check
+SITE_BASE=/INSCONDTEG/ npm run build && SITE_BASE=/INSCONDTEG/ npm run site:check
 ```
 
 ---

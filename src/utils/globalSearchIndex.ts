@@ -81,6 +81,34 @@ function buildGlobalSearchIndex(): GlobalSearchItem[] {
 
   items.push(
     {
+      id: 'service-regional-fleet-map',
+      category: 'services',
+      code: '16 PWHT MAP',
+      title: {
+        ar: 'خريطة الانتشار الإقليمي لأسطول PWHT ومواقع المشروعات',
+        en: 'Interactive Regional Map — PWHT Fleet & Project Sites',
+      },
+      subtitle: {
+        ar: 'توزيع 16 وحدة معالجة حرارية 65 kW من الجيزة إلى محطات البرلس، السويس، اليمن وأفغانستان',
+        en: 'Geographic distribution of 16 × 65 kW PWHT units across Egypt, Yemen & Afghanistan',
+      },
+      keywords: [
+        'map',
+        'regional map',
+        'geographic',
+        'pwht fleet',
+        'خريطة',
+        'انتشار',
+        'مواقع المشروعات',
+        'البرلس',
+        'الجيزة',
+        'اليمن',
+        'أفغانستان',
+      ],
+      featured: true,
+      destination: { type: 'company', sectionId: 'services-regional-map' },
+    },
+    {
       id: 'service-fleet-inspector',
       category: 'services',
       code: '48+ UNITS',

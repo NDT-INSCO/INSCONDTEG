@@ -158,9 +158,13 @@ const FILM_DATABASE: RadiographFilm[] = [
 
 interface RadiographicFilmViewerProps {
   language: Language;
+  onOpenFullRtLab?: () => void;
 }
 
-export const RadiographicFilmViewer: React.FC<RadiographicFilmViewerProps> = ({ language }) => {
+export const RadiographicFilmViewer: React.FC<RadiographicFilmViewerProps> = ({
+  language,
+  onOpenFullRtLab,
+}) => {
   const isAr = language === 'ar';
 
   const [activeFilmId, setActiveFilmId] = useState<string>('film-crack-01');
@@ -190,7 +194,18 @@ export const RadiographicFilmViewer: React.FC<RadiographicFilmViewerProps> = ({ 
             </p>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            {onOpenFullRtLab && (
+              <button
+                type="button"
+                onClick={onOpenFullRtLab}
+                className="px-3.5 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black transition cursor-pointer"
+              >
+                {isAr
+                  ? 'فتح معمل محاكاة الجاما والإكس راي الكامل بالأكاديمية'
+                  : 'Launch Full Gamma & X-Ray RT Simulator'}
+              </button>
+            )}
             <span className="px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs font-mono text-cyan-300">
               {isAr ? 'ترخيص الرقابة النووية ENRRA' : 'ENRRA Licensed'}
             </span>

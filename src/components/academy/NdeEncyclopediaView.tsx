@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { 
   BookOpen, 
   Search, 
@@ -41,9 +41,10 @@ import {
 import { ARTICLE_QUIZZES, ArticleQuizQuestion } from '../../data/ndeCurriculumQuizzes';
 import { NdtTextbookReader } from './NdtTextbookReader';
 import { BookViewer } from '../BookViewer';
-import { NDT_TEXTBOOKS } from '../../data/ndeTextbooksData';
+import { NDT_TEXTBOOKS, NdtTextbook } from '../../data/ndeTextbooksData';
 import { NdeReferenceTablesView } from './NdeReferenceTablesView';
 import { VirtualLab } from './VirtualLab';
+import { QuickKnowledgeCheckQuiz } from './QuickKnowledgeCheckQuiz';
 
 interface NdeEncyclopediaViewProps {
   language: Language;
@@ -63,8 +64,75 @@ export const NdeEncyclopediaView: React.FC<NdeEncyclopediaViewProps> = ({
   const isAr = language === 'ar';
 
   // Navigation modes
-  type MainTab = 'textbooks' | 'virtual_lab' | 'syllabus' | 'calculators' | 'defect_atlas' | 'tables';
+  type MainTab = 'textbooks' | 'quick_check' | 'virtual_lab' | 'syllabus' | 'calculators' | 'defect_atlas' | 'tables';
   const [activeTab, setActiveTab] = useState<MainTab>('textbooks');
+
+  // Synchronized Loaded Textbook & Active Page state for Quick Knowledge Check
+  const [loadedBookId, setLoadedBookId] = useState<string>(initialBookId || NDT_TEXTBOOKS[0].id);
+  const [loadedPageNumber, setLoadedPageNumber] = useState<number>(initialPageNumber || 1);
+  const [readerJumpTarget, setReaderJumpTarget] = useState<{
+    bookId: string;
+    pageNumber: number;
+    nonce: number;
+  } | null>(
+    initialBookId
+      ? { bookId: initialBookId, pageNumber: initialPageNumber || 1, nonce: 1 }
+      : null
+  );
+  const quickCheckSectionRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!initialBookId) return;
+    setLoadedBookId(initialBookId);
+    setLoadedPageNumber(initialPageNumber || 1);
+    setReaderJumpTarget(prev => ({
+      bookId: initialBookId,
+      pageNumber: initialPageNumber || 1,
+      nonce: (prev?.nonce || 0) + 1,
+    }));
+  }, [initialBookId, initialPageNumber]);
+
+  const loadedTextbook: NdtTextbook = useMemo(() => {
+    return NDT_TEXTBOOKS.find(b => b.id === loadedBookId) || NDT_TEXTBOOKS[0];
+  }, [loadedBookId]);
+
+  const handleBookStateChange = useCallback((book: NdtTextbook, pageNum: number) => {
+    setLoadedBookId(book.id);
+    setLoadedPageNumber(pageNum);
+  }, []);
+
+  const handleSelectLoadedBook = useCallback((bookId: string) => {
+    setLoadedBookId(bookId);
+    setLoadedPageNumber(1);
+    setReaderJumpTarget(prev => ({
+      bookId,
+      pageNumber: 1,
+      nonce: (prev?.nonce || 0) + 1,
+    }));
+  }, []);
+
+  const handleJumpReaderToPage = useCallback(
+    (pageNum: number) => {
+      setLoadedPageNumber(pageNum);
+      setReaderJumpTarget(prev => ({
+        bookId: loadedBookId,
+        pageNumber: pageNum,
+        nonce: (prev?.nonce || 0) + 1,
+      }));
+      if (activeTab !== 'textbooks') {
+        setActiveTab('textbooks');
+      }
+    },
+    [loadedBookId, activeTab]
+  );
+
+  const handleScrollToQuickCheck = useCallback(() => {
+    if (quickCheckSectionRef.current) {
+      quickCheckSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      setActiveTab('quick_check');
+    }
+  }, []);
 
   // Currently selected article (defaults to the first lesson for immediate structured reading)
   const [selectedArticleId, setSelectedArticleId] = useState<string>(ENCYCLOPEDIA_ARTICLES[0].id);
@@ -286,6 +354,21 @@ export const NdeEncyclopediaView: React.FC<NdeEncyclopediaViewProps> = ({
             <span>{isAr ? `الكتب الدراسية والتجارب (${NDT_TEXTBOOKS.length} مراجع)` : `Textbooks & 3D Reader (${NDT_TEXTBOOKS.length})`}</span>
           </button>
 
+          {/* Tab 0B: Quick Knowledge Check for Loaded Textbook */}
+          <button
+            type="button"
+            data-testid="academy-quick-check-tab"
+            onClick={() => setActiveTab('quick_check')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              activeTab === 'quick_check'
+                ? 'bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/25'
+                : 'text-slate-300 hover:text-white hover:bg-[#161a3f]'
+            }`}
+          >
+            <HelpCircle className="w-4 h-4 text-emerald-400" />
+            <span>{isAr ? 'اختبار المعرفة السريع' : 'Quick Knowledge Check'}</span>
+          </button>
+
           {/* Tab 1: 3D Virtual NDT Lab */}
           <button
             onClick={() => setActiveTab('virtual_lab')}
@@ -373,14 +456,46 @@ export const NdeEncyclopediaView: React.FC<NdeEncyclopediaViewProps> = ({
       </div>
 
       {/* ========================================================================= */}
-      {/* 0. TAB 0: INTERACTIVE 3D FLIPPABLE TEXTBOOKS & VIRTUAL LABS */}
+      {/* 0. TAB 0: INTERACTIVE 3D FLIPPABLE TEXTBOOKS & QUICK KNOWLEDGE CHECK */}
       {/* ========================================================================= */}
       {activeTab === 'textbooks' && (
-        <BookViewer
+        <div className="space-y-8">
+          <BookViewer
+            language={language}
+            initialBookId={readerJumpTarget?.bookId ?? initialBookId}
+            initialPageNumber={readerJumpTarget?.pageNumber ?? initialPageNumber}
+            navigationNonce={readerJumpTarget?.nonce}
+            onOpenQuiz={onOpenQuiz}
+            onBookStateChange={handleBookStateChange}
+            onOpenQuickCheck={handleScrollToQuickCheck}
+          />
+
+          <div ref={quickCheckSectionRef}>
+            <QuickKnowledgeCheckQuiz
+              language={language}
+              textbook={loadedTextbook}
+              activePageNumber={loadedPageNumber}
+              availableTextbooks={NDT_TEXTBOOKS}
+              onSelectTextbook={handleSelectLoadedBook}
+              onJumpToPage={handleJumpReaderToPage}
+              maxQuestions={8}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 0B. TAB 0B: FOCUSED QUICK KNOWLEDGE CHECK FOR LOADED TEXTBOOK */}
+      {/* ========================================================================= */}
+      {activeTab === 'quick_check' && (
+        <QuickKnowledgeCheckQuiz
           language={language}
-          initialBookId={initialBookId}
-          initialPageNumber={initialPageNumber}
-          onOpenQuiz={onOpenQuiz}
+          textbook={loadedTextbook}
+          activePageNumber={loadedPageNumber}
+          availableTextbooks={NDT_TEXTBOOKS}
+          onSelectTextbook={handleSelectLoadedBook}
+          onJumpToPage={handleJumpReaderToPage}
+          maxQuestions={10}
         />
       )}
 

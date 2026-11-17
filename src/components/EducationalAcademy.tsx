@@ -4,9 +4,11 @@ import {
   Award,
   BookOpen,
   BrainCircuit,
+  Camera,
   CheckCircle2,
   ClipboardCheck,
   CircleStop,
+  Clock,
   Compass,
   FileText,
   Film,
@@ -18,6 +20,7 @@ import {
   Layers,
   Library,
   Map,
+  Radio,
   RefreshCw,
   Route,
   Ruler,
@@ -58,6 +61,7 @@ import { KnowledgeLeaderboard } from './academy/KnowledgeLeaderboard';
 import { AcademyCompletionMap } from './academy/AcademyCompletionMap';
 import { AcademyRoadmap } from './academy/AcademyRoadmap';
 import { CertificationCenter } from './academy/CertificationCenter';
+import { CertificationExamSimulation } from './academy/CertificationExamSimulation';
 import { AcademyKnowledgeLibrary } from './academy/AcademyKnowledgeLibrary';
 import { QuickReviewFlashcards } from './academy/QuickReviewFlashcards';
 import { NdeEncyclopediaView } from './academy/NdeEncyclopediaView';
@@ -71,6 +75,8 @@ import { PautInspectorController } from './academy/PautInspectorController';
 import { ComprehensiveWeldUtSimulator } from './academy/virtuallab/ComprehensiveWeldUtSimulator';
 import { DacCalibrationBuilder } from './academy/virtuallab/DacCalibrationBuilder';
 import { V1V2CalibrationLab } from './academy/virtuallab/V1V2CalibrationLab';
+import { RadiographicTestingLab } from './academy/virtuallab/RadiographicTestingLab';
+import { RtShootingTechniquesSimulator } from './academy/virtuallab/RtShootingTechniquesSimulator';
 import { WorkshopTrainingResultsPanel } from './academy/virtuallab/WorkshopTrainingResultsPanel';
 import {
   DefectToleranceModal,
@@ -427,31 +433,56 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({ language
             {/* Hub 2: Certification & Digital Badges */}
             <button
               onClick={() => {
-                if (activeSubTab !== 'certificates' && activeSubTab !== 'certification_center' && activeSubTab !== 'practical') {
+                if (activeSubTab !== 'certificates' && activeSubTab !== 'certification_center' && activeSubTab !== 'practical' && activeSubTab !== 'exam_simulation') {
                   setActiveSubTab('certification_center');
                 }
               }}
               className={`flex items-center justify-center gap-2 px-3 py-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-                activeSubTab === 'certificates' || activeSubTab === 'certification_center' || activeSubTab === 'practical'
+                activeSubTab === 'certificates' || activeSubTab === 'certification_center' || activeSubTab === 'practical' || activeSubTab === 'exam_simulation'
                   ? 'bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/25 scale-[1.01]'
                   : 'text-slate-300 hover:text-white hover:bg-[#161a3f]'
               }`}
             >
-              <Award className={`w-4 h-4 ${activeSubTab === 'certificates' || activeSubTab === 'certification_center' || activeSubTab === 'practical' ? 'text-slate-950' : 'text-amber-400'}`} />
+              <Award className={`w-4 h-4 ${activeSubTab === 'certificates' || activeSubTab === 'certification_center' || activeSubTab === 'practical' || activeSubTab === 'exam_simulation' ? 'text-slate-950' : 'text-amber-400'}`} />
               <span className="truncate">{isAr ? 'اختبارات NDT وإفادة التعلم' : 'NDT Exams & Learning Statement'}</span>
             </button>
 
-            {/* Hub 3: Hands-on Interactive Workbenches */}
+            {/* Hub 3: Simulation Labs ('معامل المحاكاة') */}
             <button
-              onClick={() => setActiveSubTab('workshops')}
+              type="button"
+              data-testid="academy-simulation-labs-hub"
+              onClick={() => {
+                if (
+                  activeSubTab !== 'workshops' &&
+                  activeSubTab !== 'sim_labs_rt' &&
+                  activeSubTab !== 'sim_labs_ar' &&
+                  activeSubTab !== 'ar_rt_codes'
+                ) {
+                  setActiveSubTab('sim_labs_rt');
+                }
+              }}
               className={`flex items-center justify-center gap-2 px-3 py-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-                activeSubTab === 'workshops'
+                activeSubTab === 'workshops' ||
+                activeSubTab === 'sim_labs_rt' ||
+                activeSubTab === 'sim_labs_ar' ||
+                activeSubTab === 'ar_rt_codes' ||
+                activeSubTab === 'ge_exposure_time'
                   ? 'bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/25 scale-[1.01]'
                   : 'text-slate-300 hover:text-white hover:bg-[#161a3f]'
               }`}
             >
-              <Wrench className={`w-4 h-4 ${activeSubTab === 'workshops' ? 'text-slate-950' : 'text-emerald-400'}`} />
-              <span className="truncate">{isAr ? 'معامل الورش الحية' : 'Interactive Labs (6)'}</span>
+              <Wrench
+                className={`w-4 h-4 ${
+                  activeSubTab === 'workshops' ||
+                  activeSubTab === 'sim_labs_rt' ||
+                  activeSubTab === 'sim_labs_ar' ||
+                  activeSubTab === 'ar_rt_codes' ||
+                  activeSubTab === 'ge_exposure_time'
+                    ? 'text-slate-950'
+                    : 'text-emerald-400'
+                }`}
+              />
+              <span className="truncate">{isAr ? 'معامل المحاكاة' : 'Simulation Labs'}</span>
             </button>
 
             {/* Hub 4: Thermal & Defect Simulators + Simulation History */}
@@ -464,6 +495,9 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({ language
                     'paut_controller',
                     'weld_simulator',
                     'dac_builder',
+                    'v1_v2_calibration',
+                    'rt_lab',
+                    'rt_techniques',
                     'simulation_history',
                   ].includes(activeSubTab)
                 ) {
@@ -477,6 +511,9 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({ language
                   'paut_controller',
                   'weld_simulator',
                   'dac_builder',
+                  'v1_v2_calibration',
+                  'rt_lab',
+                  'rt_techniques',
                   'simulation_history',
                 ].includes(activeSubTab)
                   ? 'bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/25 scale-[1.01]'
@@ -491,6 +528,9 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({ language
                     'paut_controller',
                     'weld_simulator',
                     'dac_builder',
+                    'v1_v2_calibration',
+                    'rt_lab',
+                    'rt_techniques',
                     'simulation_history',
                   ].includes(activeSubTab)
                     ? 'text-slate-950'
@@ -611,9 +651,10 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({ language
           )}
 
           {/* Child Sub-Segment Pills for Hub 2: Certification Center & Attestations */}
-          {(activeSubTab === 'certificates' || activeSubTab === 'certification_center' || activeSubTab === 'practical') && (
+          {(activeSubTab === 'certificates' || activeSubTab === 'certification_center' || activeSubTab === 'practical' || activeSubTab === 'exam_simulation') && (
             <div className="flex flex-wrap items-center justify-center gap-2 animate-fadeIn">
               <button
+                data-testid="academy-subtab-certification-center"
                 onClick={() => setActiveSubTab('certification_center')}
                 className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
                   activeSubTab === 'certification_center'
@@ -623,6 +664,18 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({ language
               >
                 <Award className="w-3.5 h-3.5 text-amber-400" />
                 <span>{isAr ? 'مركز تسجيل الاختبارات الرسمية والمحاكي التجريبي' : 'Official Exam Center & Mock Tests'}</span>
+              </button>
+              <button
+                data-testid="academy-subtab-exam-simulation"
+                onClick={() => setActiveSubTab('exam_simulation')}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  activeSubTab === 'exam_simulation'
+                    ? 'bg-[#1e2554] text-amber-300 border border-amber-400/50 shadow-md'
+                    : 'bg-[#10132b] text-slate-400 hover:text-slate-200 border border-transparent'
+                }`}
+              >
+                <GraduationCap className="w-3.5 h-3.5 text-amber-400" />
+                <span>{isAr ? 'محاكي امتحانات التأهيل (Level 1 & 2)' : 'Certification Exam Simulation'}</span>
               </button>
               <button
                 onClick={() => setActiveSubTab('certificates')}
@@ -649,6 +702,99 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({ language
             </div>
           )}
 
+          {/* Child Sub-Segment Tabs for Hub 3: 'معامل المحاكاة' (Simulation Labs) */}
+          {(activeSubTab === 'workshops' ||
+            activeSubTab === 'sim_labs_rt' ||
+            activeSubTab === 'sim_labs_ar' ||
+            activeSubTab === 'ar_rt_codes' ||
+            activeSubTab === 'ge_exposure_time') && (
+            <div className="flex flex-wrap items-center justify-center gap-2 animate-fadeIn">
+              <button
+                type="button"
+                data-testid="academy-subtab-ge-exposure-time"
+                onClick={() => setActiveSubTab('ge_exposure_time')}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  activeSubTab === 'ge_exposure_time'
+                    ? 'bg-amber-500 text-slate-950 font-black shadow-md'
+                    : 'bg-[#10132b] text-amber-300 hover:text-amber-100 border border-amber-500/40'
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5" />
+                <span>
+                  {isAr
+                    ? 'حاسبة وقت التعريض GE Exposure Time App'
+                    : 'GE Radiographic Exposure Time App'}
+                </span>
+              </button>
+              <button
+                type="button"
+                data-testid="academy-subtab-ar-rt-codes"
+                onClick={() => setActiveSubTab('ar_rt_codes')}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  activeSubTab === 'ar_rt_codes'
+                    ? 'bg-teal-400 text-slate-950 font-black shadow-md'
+                    : 'bg-[#10132b] text-teal-300 hover:text-teal-100 border border-teal-500/40'
+                }`}
+              >
+                <Film className="w-3.5 h-3.5" />
+                <span>
+                  {isAr
+                    ? 'الواقع المعزز الشامل لتكنيكات وعيوب وأكواد RT'
+                    : 'Complete AR RT Techniques, Defects & All Codes'}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveSubTab('sim_labs_rt')}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  activeSubTab === 'sim_labs_rt'
+                    ? 'bg-emerald-500 text-slate-950 font-black shadow-md'
+                    : 'bg-[#10132b] text-emerald-300 hover:text-emerald-100 border border-emerald-500/40'
+                }`}
+              >
+                <Radio className="w-3.5 h-3.5" />
+                <span>
+                  {isAr
+                    ? 'محاكاة (Panorama · Ellipse · Street) والمتغيرات التقنية'
+                    : 'Panorama · Ellipse · Street Dynamic Simulator'}
+                </span>
+              </button>
+              <button
+                type="button"
+                data-testid="academy-subtab-sim-labs-ar"
+                onClick={() => setActiveSubTab('sim_labs_ar')}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  activeSubTab === 'sim_labs_ar'
+                    ? 'bg-cyan-500 text-slate-950 font-black shadow-md'
+                    : 'bg-[#10132b] text-cyan-300 hover:text-cyan-100 border border-cyan-500/40'
+                }`}
+              >
+                <Camera className="w-3.5 h-3.5" />
+                <span>
+                  {isAr
+                    ? 'الكاميرا وتراكب عناصر NDT الحية (Media API)'
+                    : 'Live Camera NDT Overlay (Media API)'}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveSubTab('workshops')}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  activeSubTab === 'workshops'
+                    ? 'bg-amber-500 text-slate-950 font-black shadow-md'
+                    : 'bg-[#10132b] text-amber-300 hover:text-amber-100 border border-amber-500/40'
+                }`}
+              >
+                <Wrench className="w-3.5 h-3.5" />
+                <span>
+                  {isAr
+                    ? 'معامل الورش الشاملة وأجهزة (UT · PAUT · RT · 3D)'
+                    : 'Master NDT Workbenches (UT · PAUT · RT · 3D)'}
+                </span>
+              </button>
+            </div>
+          )}
+
           {/* Direct Quick Sub-Tab Access to Simulation History when outside Simulators Hub */}
           {![
             'defects',
@@ -657,9 +803,51 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({ language
             'weld_simulator',
             'dac_builder',
             'v1_v2_calibration',
+            'rt_lab',
+            'rt_techniques',
+            'sim_labs_rt',
+            'sim_labs_ar',
+            'ar_rt_codes',
+            'workshops',
             'simulation_history',
           ].includes(activeSubTab) && (
-            <div className="flex items-center justify-center">
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => setActiveSubTab('ar_rt_codes')}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[#10132b] text-teal-300 hover:text-white border border-teal-500/40 transition cursor-pointer"
+              >
+                <Film className="w-3.5 h-3.5 text-teal-400" />
+                <span>
+                  {isAr
+                    ? 'الواقع المعزز الشامل لتكنيكات وعيوب وأكواد RT'
+                    : 'Complete AR RT Techniques, Defects & All Codes'}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveSubTab('rt_techniques')}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[#10132b] text-emerald-300 hover:text-white border border-emerald-500/35 transition cursor-pointer"
+              >
+                <Sliders className="w-3.5 h-3.5 text-emerald-400" />
+                <span>
+                  {isAr
+                    ? 'محاكي البانوراما والإليبس والستريت تكنيك RT'
+                    : 'Panoramic, Elliptical & Straight RT'}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveSubTab('rt_lab')}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[#10132b] text-amber-300 hover:text-white border border-amber-500/35 transition cursor-pointer"
+              >
+                <Radio className="w-3.5 h-3.5 text-amber-400" />
+                <span>
+                  {isAr
+                    ? 'معمل التصوير الإشعاعي RT (جاما وإكس راي)'
+                    : 'Gamma & X-Ray RT Lab'}
+                </span>
+              </button>
               <button
                 type="button"
                 onClick={() => setActiveSubTab('simulation_history')}
@@ -684,9 +872,61 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({ language
             'weld_simulator',
             'dac_builder',
             'v1_v2_calibration',
+            'rt_lab',
+            'rt_techniques',
+            'ge_exposure_time',
             'simulation_history',
           ].includes(activeSubTab) && (
             <div className="flex flex-wrap items-center justify-center gap-2 animate-fadeIn">
+              <button
+                type="button"
+                data-testid="subtab-ge-exposure-time"
+                onClick={() => setActiveSubTab('ge_exposure_time')}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  activeSubTab === 'ge_exposure_time'
+                    ? 'bg-amber-500 text-slate-950 font-black shadow-md'
+                    : 'bg-[#10132b] text-amber-300 hover:text-amber-100 border border-amber-500/40'
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5" />
+                <span>
+                  {isAr
+                    ? 'حاسبة وقت التعريض GE Exposure Time'
+                    : 'GE Radiographic Exposure Time App'}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveSubTab('rt_techniques')}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  activeSubTab === 'rt_techniques'
+                    ? 'bg-emerald-500 text-slate-950 font-black shadow-md'
+                    : 'bg-[#10132b] text-emerald-300 hover:text-emerald-100 border border-emerald-500/40'
+                }`}
+              >
+                <Sliders className="w-3.5 h-3.5" />
+                <span>
+                  {isAr
+                    ? 'البانوراما والإليبس والستريت تكنيك (RT Techniques)'
+                    : 'Panoramic · Elliptical · Straight RT'}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveSubTab('rt_lab')}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  activeSubTab === 'rt_lab'
+                    ? 'bg-amber-500 text-slate-950 font-black shadow-md'
+                    : 'bg-[#10132b] text-amber-300 hover:text-amber-100 border border-amber-500/40'
+                }`}
+              >
+                <Radio className="w-3.5 h-3.5" />
+                <span>
+                  {isAr
+                    ? 'معمل التصوير الإشعاعي RT (جاما وإكس راي + قراءة الأفلام)'
+                    : 'Gamma & X-Ray RT Lab (Setup → Film Reading)'}
+                </span>
+              </button>
               <button
                 type="button"
                 onClick={() => setActiveSubTab('weld_simulator')}
@@ -1039,6 +1279,19 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({ language
           />
         )}
 
+        {/* Sub-Tab 0B-Sim: Dynamic NDT Level 1 & 2 Certification Exam Simulation */}
+        {activeSubTab === 'exam_simulation' && (
+          <CertificationExamSimulation
+            language={language}
+            onNavigateToCurriculumModule={(disciplineId, levelIdx, moduleId) => {
+              handleNavigateToCurriculumModule(disciplineId, levelIdx, moduleId);
+            }}
+            onClose={() => {
+              setActiveSubTab('certification_center');
+            }}
+          />
+        )}
+
         {/* Sub-Tab 0B: Visual Certification & Digital Badges Section */}
         {activeSubTab === 'certificates' && (
           <CurriculumCertificatesView
@@ -1052,9 +1305,46 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({ language
           <PracticalAssessmentView language={language} />
         )}
 
-        {/* Sub-Tab 0B: Interactive Hands-on Visual Workbenches */}
+        {/* Sub-Tab 0B: Simulation Labs ('معامل المحاكاة') — Panorama, Ellipse, Street, AR Camera & Master Workbenches */}
+        {activeSubTab === 'sim_labs_rt' && (
+          <InteractiveWorkshops
+            language={language}
+            initialLabSection="rt_panorama_ellipse_street"
+            onOpenFullRtLab={() => setActiveSubTab('rt_lab')}
+          />
+        )}
+
+        {activeSubTab === 'ar_rt_codes' && (
+          <InteractiveWorkshops
+            language={language}
+            initialLabSection="ar_rt_all_codes"
+            onOpenFullRtLab={() => setActiveSubTab('rt_lab')}
+          />
+        )}
+
+        {/* Sub-Tab: GE / Waygate Radiographic Exposure Time App */}
+        {activeSubTab === 'ge_exposure_time' && (
+          <InteractiveWorkshops
+            language={language}
+            initialLabSection="ge_exposure_time"
+            onOpenFullRtLab={() => setActiveSubTab('rt_lab')}
+          />
+        )}
+
+        {activeSubTab === 'sim_labs_ar' && (
+          <InteractiveWorkshops
+            language={language}
+            initialLabSection="ar_camera_overlay"
+            onOpenFullRtLab={() => setActiveSubTab('rt_lab')}
+          />
+        )}
+
         {activeSubTab === 'workshops' && (
-          <InteractiveWorkshops language={language} />
+          <InteractiveWorkshops
+            language={language}
+            initialLabSection="ndt_workbench"
+            onOpenFullRtLab={() => setActiveSubTab('rt_lab')}
+          />
         )}
 
         {/* Sub-Tab 0C: PAUT Inspector Controller Device */}
@@ -1081,6 +1371,25 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({ language
             language={language}
             onCompleteAndProceedToWeld={() => setActiveSubTab('weld_simulator')}
           />
+        )}
+
+        {/* Sub-Tab 0E3: Complete Gamma & X-Ray Radiographic Testing Lab (Setup → Shoot → Darkroom → Film Reading) */}
+        {activeSubTab === 'rt_lab' && (
+          <div className="space-y-8">
+            <RadiographicTestingLab language={language} />
+            <WorkshopTrainingResultsPanel language={language} />
+          </div>
+        )}
+
+        {/* Sub-Tab 0E4: Detailed Panoramic, Elliptical & Straight RT Exposure Techniques Simulator */}
+        {activeSubTab === 'rt_techniques' && (
+          <div className="space-y-8">
+            <RtShootingTechniquesSimulator
+              language={language}
+              onOpenFullRtLab={() => setActiveSubTab('rt_lab')}
+            />
+            <WorkshopTrainingResultsPanel language={language} />
+          </div>
         )}
 
         {/* Sub-Tab 0F: Persistent Local Simulation History */}

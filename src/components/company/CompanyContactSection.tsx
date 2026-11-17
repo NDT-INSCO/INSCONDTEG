@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Language } from '../../types';
 import { INSCO_COMPANY_DATA } from '../../data/inscoCompanyData';
 import { Phone, Mail, MapPin, Send, CheckCircle2, MessageSquare, Clock } from 'lucide-react';
+import { RFQ_QUICK_ACTION_EVENT, RfqQuickActionDetail } from './CompanyQuickActionsSection';
 
 interface CompanyContactSectionProps {
   language: Language;
@@ -24,6 +25,28 @@ export const CompanyContactSection: React.FC<CompanyContactSectionProps> = ({
 
   const [submittedRef, setSubmittedRef] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [quickQuoteActive, setQuickQuoteActive] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleQuickAction = (event: Event) => {
+      const custom = event as CustomEvent<RfqQuickActionDetail>;
+      const requestedService = custom.detail?.serviceType;
+      const requestedLocation = custom.detail?.projectLocation;
+      const requestedDescription = custom.detail?.description;
+      setSubmittedRef(null);
+      setErrorMessage(null);
+      setQuickQuoteActive(true);
+      setFormData((prev) => ({
+        ...prev,
+        ...(requestedService ? { serviceType: requestedService } : {}),
+        ...(requestedLocation ? { projectLocation: requestedLocation } : {}),
+        ...(requestedDescription ? { description: requestedDescription } : {}),
+      }));
+    };
+    window.addEventListener(RFQ_QUICK_ACTION_EVENT, handleQuickAction);
+    return () => window.removeEventListener(RFQ_QUICK_ACTION_EVENT, handleQuickAction);
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -168,16 +191,27 @@ export const CompanyContactSection: React.FC<CompanyContactSectionProps> = ({
 
           {/* Right Column: Interactive RFQ Form */}
           <div id="rfq" className="lg:col-span-7">
-            <div className="rounded-xl border border-slate-800 bg-slate-950 p-6 sm:p-8 space-y-6">
-              <div>
-                <h3 className="text-lg font-bold text-white">
-                  {isAr ? 'طلب عرض سعر / اعتماد في سجل الموردين' : 'Formal RFQ & Vendor Prequalification Form'}
-                </h3>
-                <p className="text-xs text-slate-400 mt-1">
-                  {isAr
-                    ? 'سيتم مراجعة الطلب بواسطة رئيس قطاع العمليات الفنية والرد بملف التسعير ومستندات التأهيل.'
-                    : 'Your request will be assigned directly to our Technical Operations Director for commercial quotation.'}
-                </p>
+            <div
+              className={`rounded-xl border bg-slate-950 p-6 sm:p-8 space-y-6 transition ${
+                quickQuoteActive ? 'border-cyan-500/70' : 'border-slate-800'
+              }`}
+            >
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <h3 className="text-lg font-bold text-white">
+                    {isAr ? 'طلب عرض سعر / اعتماد في سجل الموردين' : 'Formal RFQ & Vendor Prequalification Form'}
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-1">
+                    {isAr
+                      ? 'سيتم مراجعة الطلب بواسطة رئيس قطاع العمليات الفنية والرد بملف التسعير ومستندات التأهيل.'
+                      : 'Your request will be assigned directly to our Technical Operations Director for commercial quotation.'}
+                  </p>
+                </div>
+                {quickQuoteActive && (
+                  <span className="text-[11px] font-mono text-cyan-400">
+                    {isAr ? 'وضع التسعير السريع مفعل' : 'Express Quote Ready'}
+                  </span>
+                )}
               </div>
 
               {submittedRef ? (
@@ -222,10 +256,11 @@ export const CompanyContactSection: React.FC<CompanyContactSectionProps> = ({
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-medium text-slate-300 mb-1">
+                      <label htmlFor="rfq-company-input" className="block text-xs font-medium text-slate-300 mb-1">
                         {isAr ? 'اسم الشركة / المقاول *' : 'Company / Contractor Name *'}
                       </label>
                       <input
+                        id="rfq-company-input"
                         type="text"
                         required
                         value={formData.companyName}

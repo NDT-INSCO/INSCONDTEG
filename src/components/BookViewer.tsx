@@ -35,7 +35,10 @@ export interface BookViewerProps {
   language?: Language;
   initialBookId?: string;
   initialPageNumber?: number;
+  navigationNonce?: number;
   onOpenQuiz?: (disciplineId: string) => void;
+  onBookStateChange?: (book: NdtTextbook, pageNumber: number) => void;
+  onOpenQuickCheck?: () => void;
   className?: string;
 }
 
@@ -81,7 +84,10 @@ export const BookViewer: React.FC<BookViewerProps> = ({
   language = 'ar',
   initialBookId,
   initialPageNumber,
+  navigationNonce,
   onOpenQuiz,
+  onBookStateChange,
+  onOpenQuickCheck,
   className = ''
 }) => {
   const isAr = language === 'ar';
@@ -95,7 +101,7 @@ export const BookViewer: React.FC<BookViewerProps> = ({
   // Current page index (0 to activeBook.pages.length - 1)
   const [currentPageIndex, setCurrentPageIndex] = useState<number>(0);
 
-  // Deep-link support from the NDE-Ed courses (textbook page shortcut).
+  // Deep-link support from the NDE-Ed courses and Quick Knowledge Check citations.
   useEffect(() => {
     if (!initialBookId) return;
     const target = NDT_TEXTBOOKS.find(book => book.id === initialBookId);
@@ -103,7 +109,7 @@ export const BookViewer: React.FC<BookViewerProps> = ({
     setSelectedBookId(target.id);
     const index = Math.min(Math.max((initialPageNumber || 1) - 1, 0), target.pages.length - 1);
     setCurrentPageIndex(index);
-  }, [initialBookId, initialPageNumber]);
+  }, [initialBookId, initialPageNumber, navigationNonce]);
 
   // 3D Flip animation state
   const [isFlipping, setIsFlipping] = useState<boolean>(false);
@@ -164,6 +170,10 @@ export const BookViewer: React.FC<BookViewerProps> = ({
 
   const currentPage = activeBook.pages[currentPageIndex] || activeBook.pages[0];
   const totalPages = activeBook.pages.length;
+
+  useEffect(() => {
+    onBookStateChange?.(activeBook, currentPage.pageNumber);
+  }, [activeBook, currentPage.pageNumber, onBookStateChange]);
 
   // Generate Knowledge Check questions dynamically for current page
   const pageQuestions: KnowledgeCheckQuestion[] = useMemo(() => {
@@ -440,6 +450,21 @@ export const BookViewer: React.FC<BookViewerProps> = ({
               Classic
             </button>
           </div>
+
+          {onOpenQuickCheck && (
+            <button
+              type="button"
+              data-testid="bookviewer-open-quick-check"
+              onClick={onOpenQuickCheck}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-xs font-bold text-amber-300 transition cursor-pointer"
+              title={isAr ? 'اختبار المعرفة السريع للكتاب المحمّل' : 'Quick Knowledge Check for loaded textbook'}
+            >
+              <HelpCircle className="w-4 h-4 text-amber-400" />
+              <span className="hidden lg:inline">
+                {isAr ? 'اختبار المعرفة السريع' : 'Quick Knowledge Check'}
+              </span>
+            </button>
+          )}
 
           {/* Table of Contents Button */}
           <button

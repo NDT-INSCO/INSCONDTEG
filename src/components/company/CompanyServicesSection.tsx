@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Language } from '../../types';
 import { INSCO_COMPANY_DATA } from '../../data/inscoCompanyData';
+import { CompanyRegionalFleetMap } from './CompanyRegionalFleetMap';
 import { 
   Flame, 
   Wrench, 
@@ -9,10 +10,7 @@ import {
   SlidersHorizontal,
   ChevronRight,
   ChevronLeft,
-  Sparkles,
-  Thermometer,
-  Eye,
-  Activity
+  Thermometer
 } from 'lucide-react';
 
 interface CompanyServicesSectionProps {
@@ -51,6 +49,15 @@ export const CompanyServicesSection: React.FC<CompanyServicesSectionProps> = ({
   });
 
   const selectedMethod = INSCO_COMPANY_DATA.ndtMethods.find(m => m.code === selectedMethodId) || INSCO_COMPANY_DATA.ndtMethods[0];
+
+  const handleSelectMethodFromMap = (methodCode: string) => {
+    setActiveCategory('all');
+    setSelectedMethodId(methodCode);
+    const catalogEl = document.getElementById('ndt-methods-catalog');
+    if (catalogEl) {
+      catalogEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
 
   return (
     <section id="services" className="py-16 border-b border-slate-800 bg-slate-950">
@@ -133,7 +140,10 @@ export const CompanyServicesSection: React.FC<CompanyServicesSectionProps> = ({
             </div>
 
             {/* Right Column: High-Res Real Thermal PWHT Photograph with Telemetry Overlay */}
-            <div className="lg:col-span-5 relative rounded-xl overflow-hidden border border-slate-700/80 bg-slate-950 group">
+            <div
+              data-preserve-dark="true"
+              className="lg:col-span-5 relative rounded-xl overflow-hidden border border-slate-700/80 bg-slate-950 group"
+            >
               <img
                 src={pwhtImagePath}
                 alt={isAr ? 'عملية المعالجة الحرارية بعد اللحام PWHT' : 'PWHT post weld heat treatment operation'}
@@ -173,8 +183,15 @@ export const CompanyServicesSection: React.FC<CompanyServicesSectionProps> = ({
           </div>
         </div>
 
+        {/* Interactive Regional Map of PWHT 16-Unit Fleet & Project Sites */}
+        <CompanyRegionalFleetMap
+          language={language}
+          onSelectNdtMethod={handleSelectMethodFromMap}
+          onNavigateToAcademyModule={onNavigateToAcademyModule}
+        />
+
         {/* 12 NDT Methods Matrix Header & Segmented Filter */}
-        <div className="space-y-6">
+        <div id="ndt-methods-catalog" className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h3 className="text-lg font-bold text-white">
@@ -323,7 +340,11 @@ export const CompanyServicesSection: React.FC<CompanyServicesSectionProps> = ({
                   </span>
                   <button
                     type="button"
-                    onClick={() => onNavigateToAcademyModule('workshops')}
+                    onClick={() =>
+                      onNavigateToAcademyModule(
+                        selectedMethod.code === 'RT' ? 'rt_lab' : 'workshops'
+                      )
+                    }
                     className="text-cyan-400 hover:text-cyan-300 font-semibold inline-flex items-center gap-1 cursor-pointer"
                   >
                     <span>{isAr ? 'فتح المحاكاة التفاعلية' : 'Launch 3D Lab'}</span>

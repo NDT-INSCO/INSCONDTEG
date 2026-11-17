@@ -6,17 +6,24 @@ import { ComprehensiveWeldUtSimulator } from './ComprehensiveWeldUtSimulator';
 import { DacCalibrationBuilder } from './DacCalibrationBuilder';
 import { V1V2CalibrationLab } from './V1V2CalibrationLab';
 import { BeamConeAndDefectExplorer } from './BeamConeAndDefectExplorer';
+import { RadiographicTestingLab } from './RadiographicTestingLab';
+import { RtShootingTechniquesSimulator } from './RtShootingTechniquesSimulator';
+import { NdtCameraArOverlayLab } from './NdtCameraArOverlayLab';
+import { GeRadiographicExposureTimeApp } from './GeRadiographicExposureTimeApp';
 import { WorkshopTrainingResultsPanel } from './WorkshopTrainingResultsPanel';
 import { VirtualLab } from '../VirtualLab';
 import {
   Activity,
   Atom,
+  Camera,
   Cpu,
   BookOpen,
   Award,
   CheckCircle2,
+  Clock,
   Compass,
   Eye,
+  Radio,
   Ruler,
   TrendingDown,
 } from 'lucide-react';
@@ -30,12 +37,16 @@ export const NdtVirtualLabWorkbench: React.FC<NdtVirtualLabWorkbenchProps> = ({ 
 
   const [activeLabMode, setActiveLabMode] = useState<
     | 'weld_ray_tracing'
+    | 'rt_gamma_xray_lab'
+    | 'rt_techniques_sim'
     | 'v1_v2_calibration'
     | 'virtual_3d_lab'
     | 'dac_builder'
     | 'ut_conventional'
     | 'paut_phased_array'
     | 'beam_cone_defects'
+    | 'ar_camera_ndt'
+    | 'ge_exposure_calc'
   >('weld_ray_tracing');
   const [activeTheoryTab, setActiveTheoryTab] = useState<'acoustics' | 'calibration' | 'acceptance'>('acoustics');
   const [completedMissions, setCompletedMissions] = useState<string[]>([]);
@@ -100,6 +111,75 @@ export const NdtVirtualLabWorkbench: React.FC<NdtVirtualLabWorkbenchProps> = ({ 
             >
               <Compass className="w-4 h-4" />
               <span>{isAr ? 'الورشة الشاملة (فلات وكيرف + كالبريشن + كود)' : 'Master Weld UT/PAUT Workshop'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveLabMode('rt_gamma_xray_lab')}
+              className={`px-3.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition cursor-pointer flex items-center gap-2 border whitespace-nowrap ${
+                activeLabMode === 'rt_gamma_xray_lab'
+                  ? 'bg-amber-500 text-slate-950 font-black border-amber-400 shadow-lg shadow-amber-950/50'
+                  : 'bg-slate-950 text-amber-300 border-amber-500/40 hover:text-white hover:border-amber-400'
+              }`}
+            >
+              <Radio className="w-4 h-4" />
+              <span>
+                {isAr
+                  ? 'معمل التصوير الإشعاعي RT (جاما وإكس راي + قراءة الأفلام)'
+                  : 'Gamma & X-Ray RT Lab + Film Reading'}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveLabMode('rt_techniques_sim')}
+              className={`px-3.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition cursor-pointer flex items-center gap-2 border whitespace-nowrap ${
+                activeLabMode === 'rt_techniques_sim'
+                  ? 'bg-emerald-500 text-slate-950 font-black border-emerald-400 shadow-lg shadow-emerald-950/50'
+                  : 'bg-slate-950 text-emerald-300 border-emerald-500/40 hover:text-white hover:border-emerald-400'
+              }`}
+            >
+              <Radio className="w-4 h-4" />
+              <span>
+                {isAr
+                  ? 'محاكي البانوراما والإليبس والستريت تكنيك RT'
+                  : 'Panoramic · Elliptical · Straight RT'}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              data-testid="lab-mode-ge-exposure-calc"
+              onClick={() => setActiveLabMode('ge_exposure_calc')}
+              className={`px-3.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition cursor-pointer flex items-center gap-2 border whitespace-nowrap ${
+                activeLabMode === 'ge_exposure_calc'
+                  ? 'bg-amber-500 text-slate-950 font-black border-amber-400 shadow-lg shadow-amber-950/50'
+                  : 'bg-slate-950 text-amber-300 border-amber-500/40 hover:text-white hover:border-amber-400'
+              }`}
+            >
+              <Clock className="w-4 h-4" />
+              <span>
+                {isAr
+                  ? 'حاسبة وقت التعريض GE Exposure Time App'
+                  : 'GE Exposure Time Calculator'}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveLabMode('ar_camera_ndt')}
+              className={`px-3.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition cursor-pointer flex items-center gap-2 border whitespace-nowrap ${
+                activeLabMode === 'ar_camera_ndt'
+                  ? 'bg-cyan-500 text-slate-950 font-black border-cyan-400 shadow-lg shadow-cyan-950/50'
+                  : 'bg-slate-950 text-cyan-300 border-cyan-500/40 hover:text-white hover:border-cyan-400'
+              }`}
+            >
+              <Camera className="w-4 h-4" />
+              <span>
+                {isAr
+                  ? 'استخدام الكاميرا وتراكب NDT الحي (AR)'
+                  : 'Live Camera NDT Overlay (AR)'}
+              </span>
             </button>
 
             <button
@@ -226,6 +306,18 @@ export const NdtVirtualLabWorkbench: React.FC<NdtVirtualLabWorkbenchProps> = ({ 
       {/* Active Simulator Viewport */}
       {activeLabMode === 'weld_ray_tracing' ? (
         <ComprehensiveWeldUtSimulator language={language} />
+      ) : activeLabMode === 'rt_gamma_xray_lab' ? (
+        <RadiographicTestingLab language={language} />
+      ) : activeLabMode === 'rt_techniques_sim' ? (
+        <RtShootingTechniquesSimulator
+          language={language}
+          onOpenFullRtLab={() => setActiveLabMode('rt_gamma_xray_lab')}
+        />
+      ) : activeLabMode === 'ge_exposure_calc' ? (
+        <GeRadiographicExposureTimeApp
+          language={language}
+          onApplyTimeToLab={() => setActiveLabMode('rt_gamma_xray_lab')}
+        />
       ) : activeLabMode === 'v1_v2_calibration' ? (
         <V1V2CalibrationLab
           language={language}
@@ -239,6 +331,11 @@ export const NdtVirtualLabWorkbench: React.FC<NdtVirtualLabWorkbenchProps> = ({ 
         <UtFlawDetectorDevice language={language} />
       ) : activeLabMode === 'paut_phased_array' ? (
         <PautOmniScanDevice language={language} />
+      ) : activeLabMode === 'ar_camera_ndt' ? (
+        <NdtCameraArOverlayLab
+          language={language}
+          initialOverlayDiscipline="ut_skip_beam"
+        />
       ) : (
         <BeamConeAndDefectExplorer
           language={language}

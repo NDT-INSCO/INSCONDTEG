@@ -6,8 +6,21 @@
     <title>INSCO - Non-Destructive Testing & PWHT | الشركة الدولية للخدمات والمقاولات (إنسكو)</title>
     <meta name="description" content="الواجهة الرسمية لشركة إنسكو الدولية للخدمات والمقاولات: الفحوصات غير الإتلافية (NDT)، أسطول المعالجة الحرارية (16 وحدة PWHT)، شهادات الأيزو الثلاثية، سابقة الأعمال مع سيمنز وأوراسكوم، وأكاديمية إنسكو الهندسية." />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏢</text></svg>" />
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem('insco_theme_v1');
+          var theme = saved && saved.toLowerCase() === 'light' ? 'light' : 'dark';
+          document.documentElement.dataset.theme = theme;
+          document.documentElement.classList.add(theme);
+        } catch (e) {
+          document.documentElement.dataset.theme = 'dark';
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
   </head>
-  <body class="bg-slate-950 text-white">
+  <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

@@ -47,12 +47,13 @@ import {
   getMockExamQuestions,
   EXAM_CENTERS
 } from '../../utils/certificationExamService';
+import { CertificationExamSimulation } from './CertificationExamSimulation';
 
 interface CertificationCenterProps {
   language: Language;
   onNavigateToModule?: (disciplineId: string, levelIdx: number, moduleId?: string) => void;
   onOpenRoadmap?: () => void;
-  initialTab?: 'catalog' | 'registrations' | 'mock_test' | 'calculator';
+  initialTab?: 'catalog' | 'registrations' | 'mock_test' | 'calculator' | 'exam_simulation';
 }
 
 export const CertificationCenter: React.FC<CertificationCenterProps> = ({
@@ -63,7 +64,7 @@ export const CertificationCenter: React.FC<CertificationCenterProps> = ({
 }) => {
   const isAr = language === 'ar';
 
-  const [activeTab, setActiveTab] = useState<'catalog' | 'registrations' | 'mock_test' | 'calculator'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'catalog' | 'registrations' | 'mock_test' | 'calculator' | 'exam_simulation'>(initialTab);
   const [exams, setExams] = useState<OfficialExam[]>([]);
   const [registrations, setRegistrations] = useState<ExamRegistration[]>([]);
   
@@ -387,6 +388,19 @@ export const CertificationCenter: React.FC<CertificationCenterProps> = ({
           >
             <Sparkles className="w-4 h-4" />
             <span>{isAr ? 'محاكي الاختبارات التجريبية' : 'Pre-Exam Mock Simulator'}</span>
+          </button>
+
+          <button
+            data-testid="tab-exam-simulation"
+            onClick={() => setActiveTab('exam_simulation')}
+            className={`px-4 py-2.5 rounded-xl font-black text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer ${
+              activeTab === 'exam_simulation'
+                ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/25'
+                : 'bg-[#10142e] text-slate-300 hover:text-white border border-slate-800'
+            }`}
+          >
+            <GraduationCap className="w-4 h-4" />
+            <span>{isAr ? 'محاكي امتحانات التأهيل (Level 1 & 2)' : 'Certification Exam Simulation'}</span>
           </button>
 
           <button
@@ -1208,6 +1222,18 @@ export const CertificationCenter: React.FC<CertificationCenterProps> = ({
               );
             })()}
           </div>
+        </section>
+      )}
+
+      {/* =========================================================================
+          TAB 5: DYNAMIC NDT LEVEL 1 & 2 CERTIFICATION EXAM SIMULATION
+         ========================================================================= */}
+      {activeTab === 'exam_simulation' && (
+        <section aria-label={isAr ? 'محاكي امتحانات التأهيل' : 'Certification Exam Simulation'} className="space-y-6">
+          <CertificationExamSimulation
+            language={language}
+            onNavigateToCurriculumModule={onNavigateToModule}
+          />
         </section>
       )}
 

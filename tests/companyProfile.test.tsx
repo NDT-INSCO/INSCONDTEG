@@ -418,3 +418,107 @@ test('GlobalHeaderSearch filters services, educational modules, and company info
   // Restored to Company Portal view
   assert.ok(ui.getAllByText(/بروشور PDF/i).length > 0);
 });
+
+test('CompanyQuickActionsSection renders on CompanyPortal and executes one-click Request Quote and Download Training Syllabus', async () => {
+  const { CompanyPortal } = await import('../src/components/company/CompanyPortal');
+  const { buildTrainingSyllabusDocument } = await import('../src/utils/trainingSyllabusGenerator');
+
+  // 1. Verify generated syllabus document contains all 8 disciplines and ASNT/ISO metadata
+  const syllabusEn = buildTrainingSyllabusDocument('en');
+  assert.equal(syllabusEn.filename, 'INSCO_NDT_Training_Syllabus_2026.html');
+  assert.equal(syllabusEn.stats.disciplineCount, 8);
+  assert.ok(syllabusEn.stats.moduleCount > 10);
+  assert.match(syllabusEn.content, /ASNT SNT-TC-1A/i);
+
+  // Track programmatic anchor download click
+  let clickedDownloadFilename: string | null = null;
+  const origClick = dom.window.HTMLAnchorElement.prototype.click;
+  dom.window.HTMLAnchorElement.prototype.click = function () {
+    clickedDownloadFilename = this.getAttribute('download');
+  };
+
+  try {
+    const ui = render(<CompanyPortal language="en" onNavigateToAcademy={() => {}} />);
+
+    // Quick Actions section is rendered with both primary buttons
+    assert.ok(ui.getAllByText(/Quick Actions/i).length > 0);
+    const quoteBtn = ui.getByRole('button', { name: /^Request Quote$/i });
+    const syllabusBtn = ui.getByRole('button', { name: /^Download Training Syllabus$/i });
+    assert.ok(quoteBtn);
+    assert.ok(syllabusBtn);
+
+    // One-click Request Quote activates Express Quote state and focuses #rfq-company-input
+    fireEvent.click(quoteBtn);
+    assert.ok(ui.getByText(/RFQ form activated and focused/i));
+    assert.ok(ui.getByText(/Express Quote Ready/i));
+    const companyInput = ui.container.querySelector('#rfq-company-input');
+    assert.equal(document.activeElement, companyInput);
+
+    // Clicking a 1-click preset updates the RFQ service select value
+    fireEvent.click(ui.getByRole('button', { name: /^Gamma & X-Ray RT$/i }));
+    const rfqSelect = ui.container.querySelector('#rfq select') as HTMLSelectElement;
+    assert.equal(rfqSelect.value, 'rt_gamma');
+
+    // One-click Download Training Syllabus triggers browser file download and displays status
+    fireEvent.click(syllabusBtn);
+    assert.equal(clickedDownloadFilename, 'INSCO_NDT_Training_Syllabus_2026.html');
+    assert.ok(ui.getByText(/Syllabus downloaded: INSCO_NDT_Training_Syllabus_2026\.html/i));
+  } finally {
+    dom.window.HTMLAnchorElement.prototype.click = origClick;
+  }
+});
+
+test('CompanyProjectCostEstimator computes service budgets & site requirements and transfers scope to RFQ', async () => {
+  const { CompanyPortal } = await import('../src/components/company/CompanyPortal');
+  const { calculateProjectEstimate } = await import('../src/utils/projectCostEstimator');
+
+  // 1. Verify pure estimator engine across shifts, thickness, and RT RSO allocation
+  const dayEst = calculateProjectEstimate({
+    selectedServices: ['pwht', 'ut'],
+    jointCount: 60,
+    thicknessTier: 'medium_std',
+    mobilizationZone: 'cairo_suez',
+    shiftSchedule: 'day_standard',
+  });
+  assert.ok(dayEst.totalMidpointUsd > 0);
+  assert.ok(dayEst.pwhtUnitsAllocated >= 2);
+  assert.equal(dayEst.includesRsoOfficer, false);
+
+  const turnaroundRtEst = calculateProjectEstimate({
+    selectedServices: ['pwht', 'ut', 'rt'],
+    jointCount: 60,
+    thicknessTier: 'heavy_thick',
+    mobilizationZone: 'red_sea_upper',
+    shiftSchedule: 'shutdown_24_7',
+  });
+  assert.equal(turnaroundRtEst.includesRsoOfficer, true);
+  assert.ok(turnaroundRtEst.estimatedRtFilms > 0);
+  assert.ok(turnaroundRtEst.totalCertifiedPersonnel > dayEst.totalCertifiedPersonnel);
+
+  // 2. Render CompanyPortal and interact with the Project Cost Estimator UI
+  const ui = render(<CompanyPortal language="en" onNavigateToAcademy={() => {}} />);
+
+  assert.ok(
+    ui.getByText(/Interactive Project Cost & Mobilization Requirements Estimator/i)
+  );
+
+  // Add RT service (now 3 services: PWHT + UT + RT -> 5% bundle applied)
+  fireEvent.click(ui.getByTestId('estimator-service-rt'));
+  assert.ok(ui.getByText(/5% Bundle Applied/i));
+  assert.ok(ui.getByText(/Includes dedicated ENRRA Radiation Safety Officer/i));
+
+  // Update joint count to 80 and switch currency to EGP
+  const jointInput = ui.getByLabelText(/Estimated Weld Joints \/ Test Points/i) as HTMLInputElement;
+  fireEvent.change(jointInput, { target: { value: '80' } });
+
+  fireEvent.click(ui.getByRole('button', { name: /EGP/i }));
+  assert.match(ui.getByTestId('estimator-budget-range').textContent || '', /EGP/);
+
+  // Transfer estimate to #rfq and verify scope textarea is populated
+  fireEvent.click(ui.getByTestId('estimator-transfer-rfq-btn'));
+  const rfqTextarea = ui.container.querySelector('#rfq textarea') as HTMLTextAreaElement;
+  assert.match(rfqTextarea.value, /80 weld joints/i);
+  assert.match(rfqTextarea.value, /PWHT \+ UT \/ PAUT \+ RT/i);
+});
+
+

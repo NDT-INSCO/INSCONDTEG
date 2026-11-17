@@ -23,10 +23,16 @@ export interface UtThreeSceneProps {
   xraySpecimenMode?: boolean;
   onToggleDefectWireframes?: () => void;
   onToggleXraySpecimen?: () => void;
+  // Technical Variables from Digital Lab Side Settings Panel
+  transducerFreqMHz?: number; // 1.0 to 10.0 MHz
+  crystalDiameterMm?: number; // 6 to 24 mm
   // MT parameters
   isYokeEnergized?: boolean;
   areParticlesApplied?: boolean;
   crackAngleDeg?: number; // 90 = perpendicular, 0 = parallel
+  magneticFieldKaM?: number; // 0.0 to 6.5 kA/m (ASME T-764: 2.4 - 4.8 kA/m)
+  yokePoleSpacingMm?: number; // 75 to 200 mm
+  mtCurrentMode?: 'AC' | 'HWDC';
 }
 
 function getSeverityHex(severity: Defect3DWireframeSpec['severity'], isLiveActive?: boolean): number {
@@ -144,9 +150,14 @@ export const UtThreeScene: React.FC<UtThreeSceneProps> = ({
   xraySpecimenMode = false,
   onToggleDefectWireframes,
   onToggleXraySpecimen,
+  transducerFreqMHz = 4.0,
+  crystalDiameterMm = 12.7,
   isYokeEnergized = false,
   areParticlesApplied = false,
   crackAngleDeg = 90,
+  magneticFieldKaM = 3.6,
+  yokePoleSpacingMm = 120,
+  mtCurrentMode = 'AC',
 }) => {
   const isAr = language === 'ar';
   const mountRef = useRef<HTMLDivElement>(null);
@@ -181,6 +192,10 @@ export const UtThreeScene: React.FC<UtThreeSceneProps> = ({
   const defectMeshRef = useRef<THREE.Mesh | null>(null);
   const energizedRef = useRef<boolean>(isYokeEnergized);
   energizedRef.current = isYokeEnergized;
+  const freqRef = useRef<number>(transducerFreqMHz);
+  freqRef.current = transducerFreqMHz;
+  const magFieldRef = useRef<number>(magneticFieldKaM);
+  magFieldRef.current = magneticFieldKaM;
 
   // Camera Orbit controls state
   const isDraggingRef = useRef(false);
@@ -321,18 +336,24 @@ export const UtThreeScene: React.FC<UtThreeSceneProps> = ({
       const elapsedTime = clock.getElapsedTime();
 
       if (soundBeamRef.current) {
+        const pulseRate = 3.5 + freqRef.current * 1.15;
         soundBeamRef.current.children.forEach((child, idx) => {
           if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshStandardMaterial) {
-            const baseOpacity = child.userData.baseOpacity || 0.6;
-            child.material.opacity = baseOpacity + Math.sin(elapsedTime * 6 + idx) * 0.14;
+            const baseOpacity = child.userData.baseOpacity || 0.55;
+            child.material.opacity = baseOpacity + Math.sin(elapsedTime * pulseRate + idx) * 0.14;
           }
         });
       }
 
       if (fluxLinesGroupRef.current && energizedRef.current) {
+        const fluxPulseSpeed = 6 + magFieldRef.current * 2.4;
         fluxLinesGroupRef.current.children.forEach((line, idx) => {
           if (line instanceof THREE.Line && line.material instanceof THREE.LineBasicMaterial) {
-            line.material.opacity = 0.5 + Math.sin(elapsedTime * 12 + idx) * 0.38;
+            const baseOp = line.userData.baseOpacity ?? 0.5;
+            line.material.opacity = Math.min(
+              1,
+              Math.max(0.12, baseOp + Math.sin(elapsedTime * fluxPulseSpeed + idx) * 0.28)
+            );
           }
         });
       }
@@ -437,6 +458,17 @@ export const UtThreeScene: React.FC<UtThreeSceneProps> = ({
 
     const maxAnisotropy = rendererRef.current?.capabilities.getMaxAnisotropy?.() ?? 1;
     const extraDisposables: Array<{ dispose: () => void }> = [];
+
+    // Real-time Ultrasonic Wave Physics from Frequency (MHz) & Crystal Diameter (mm)
+    const clampedFreq = THREE.MathUtils.clamp(transducerFreqMHz, 0.5, 15.0);
+    const clampedCrystalMm = THREE.MathUtils.clamp(crystalDiameterMm, 5, 28);
+    const waveVelMs =
+      blockType === 'angle_weld' || (blockType === 'iiw_v1' && probePreset === 'C') ? 3240 : 5920;
+    const wavelengthMm = waveVelMs / (clampedFreq * 1000);
+    const nearFieldMm = (clampedCrystalMm * clampedCrystalMm * clampedFreq) / (4 * (waveVelMs / 1000));
+    const sinHalfSpread = Math.min(0.62, (0.514 * wavelengthMm) / clampedCrystalMm);
+    const halfSpreadRad = Math.asin(sinHalfSpread);
+    const probeScaleRatio = THREE.MathUtils.clamp(clampedCrystalMm / 12.7, 0.65, 1.65);
 
     const steelMaterial = new THREE.MeshStandardMaterial({
       color: 0x94a3b8,
@@ -565,11 +597,12 @@ export const UtThreeScene: React.FC<UtThreeSceneProps> = ({
       root.add(iiwGroup);
 
       const probeGroup = new THREE.Group();
-      const probeCasingGeo = new THREE.CylinderGeometry(0.7, 0.7, 1.4, 24);
+      const probeRadius = 0.7 * probeScaleRatio;
+      const probeCasingGeo = new THREE.CylinderGeometry(probeRadius, probeRadius, 1.4, 24);
       const probeCasingMesh = new THREE.Mesh(probeCasingGeo, probeBodyMaterial);
       probeGroup.add(probeCasingMesh);
 
-      const wearPlateGeo = new THREE.CylinderGeometry(0.68, 0.68, 0.15, 24);
+      const wearPlateGeo = new THREE.CylinderGeometry(probeRadius * 0.97, probeRadius * 0.97, 0.15, 24);
       const wearPlateMesh = new THREE.Mesh(wearPlateGeo, probeWearPlateMaterial);
       wearPlateMesh.position.y = -0.7;
       probeGroup.add(wearPlateMesh);
@@ -589,7 +622,7 @@ export const UtThreeScene: React.FC<UtThreeSceneProps> = ({
       const cableMesh = new THREE.Mesh(cableGeo, cableMat);
       probeGroup.add(cableMesh);
 
-      const couplantGeo = new THREE.RingGeometry(0.1, 0.8, 24);
+      const couplantGeo = new THREE.RingGeometry(0.1, probeRadius * 1.15, 24);
       couplantGeo.rotateX(-Math.PI / 2);
       const couplantMat = new THREE.MeshStandardMaterial({
         color: 0x38bdf8,
@@ -605,9 +638,15 @@ export const UtThreeScene: React.FC<UtThreeSceneProps> = ({
       probeGroupRef.current = probeGroup;
 
       const beamGroup = new THREE.Group();
-      const beamGeo = new THREE.ConeGeometry(0.9, 4.4, 24, 1, true);
-      beamGeo.rotateX(Math.PI);
-      beamGeo.translate(0, -2.2, 0);
+      const beamLen = 4.4;
+      const nearStartR = Math.max(0.14, probeRadius * 0.48);
+      const farEndR = THREE.MathUtils.clamp(
+        nearStartR + Math.tan(halfSpreadRad) * beamLen * 2.2,
+        nearStartR + 0.08,
+        2.15
+      );
+      const beamGeo = new THREE.CylinderGeometry(nearStartR, farEndR, beamLen, 24, 1, true);
+      beamGeo.translate(0, -beamLen / 2, 0);
 
       const beamMat = new THREE.MeshStandardMaterial({
         color: 0x38bdf8,
@@ -621,21 +660,61 @@ export const UtThreeScene: React.FC<UtThreeSceneProps> = ({
       beamMesh.userData = { baseOpacity: 0.45 };
       beamGroup.add(beamMesh);
 
-      const rayGeo = new THREE.CylinderGeometry(0.04, 0.04, 4.4, 8);
-      rayGeo.translate(0, -2.2, 0);
+      // 3D Fresnel Near-Field Zone (N = D^2 * f / 4v)
+      const nfSceneLen = THREE.MathUtils.clamp((nearFieldMm / 100) * beamLen, 0.35, beamLen * 0.85);
+      const nfGeo = new THREE.CylinderGeometry(nearStartR * 0.88, nearStartR * 0.95, nfSceneLen, 20, 1, true);
+      nfGeo.translate(0, -nfSceneLen / 2, 0);
+      const nfMat = new THREE.MeshStandardMaterial({
+        color: 0xa855f7,
+        emissive: 0x7e22ce,
+        emissiveIntensity: 0.9,
+        transparent: true,
+        opacity: 0.52,
+        side: THREE.DoubleSide,
+      });
+      const nfMesh = new THREE.Mesh(nfGeo, nfMat);
+      nfMesh.userData = { baseOpacity: 0.52 };
+      beamGroup.add(nfMesh);
+
+      // Frequency-dependent 3D Wavefront Rings along Beam Axis
+      const wavefrontRingCount = Math.min(10, Math.max(3, Math.round(clampedFreq * 1.1)));
+      for (let wIdx = 1; wIdx <= wavefrontRingCount; wIdx++) {
+        const frac = wIdx / (wavefrontRingCount + 1);
+        const ringR = THREE.MathUtils.lerp(nearStartR, farEndR, frac);
+        const wfGeo = new THREE.RingGeometry(Math.max(0.05, ringR * 0.82), ringR, 20);
+        wfGeo.rotateX(-Math.PI / 2);
+        const wfMesh = new THREE.Mesh(
+          wfGeo,
+          new THREE.MeshBasicMaterial({
+            color: 0x67e8f9,
+            transparent: true,
+            opacity: 0.45,
+            side: THREE.DoubleSide,
+          })
+        );
+        wfMesh.position.y = -frac * beamLen;
+        beamGroup.add(wfMesh);
+      }
+
+      const rayGeo = new THREE.CylinderGeometry(0.04, 0.04, beamLen, 8);
+      rayGeo.translate(0, -beamLen / 2, 0);
       const rayMat = new THREE.MeshBasicMaterial({ color: 0xe0f2fe });
       const rayMesh = new THREE.Mesh(rayGeo, rayMat);
       beamGroup.add(rayMesh);
 
-      const impactRingGeo = new THREE.RingGeometry(0.2, 0.6, 24);
+      const impactRingGeo = new THREE.RingGeometry(0.18, farEndR * 0.72, 24);
       impactRingGeo.rotateX(-Math.PI / 2);
       const impactRingMat = new THREE.MeshBasicMaterial({
         color: 0x38bdf8,
         side: THREE.DoubleSide,
       });
       const impactRingMesh = new THREE.Mesh(impactRingGeo, impactRingMat);
-      impactRingMesh.position.y = -4.4;
+      impactRingMesh.position.y = -beamLen;
       beamGroup.add(impactRingMesh);
+
+      if (probePreset === 'C') {
+        beamGroup.rotation.z = (-probeAngleDeg * Math.PI) / 180 * 0.45;
+      }
 
       probeGroup.add(beamGroup);
       soundBeamRef.current = beamGroup;
@@ -672,16 +751,17 @@ export const UtThreeScene: React.FC<UtThreeSceneProps> = ({
       root.add(stepGroup);
 
       const probeGroup = new THREE.Group();
-      const probeCasingGeo = new THREE.CylinderGeometry(0.65, 0.65, 1.2, 24);
+      const stepProbeR = 0.65 * probeScaleRatio;
+      const probeCasingGeo = new THREE.CylinderGeometry(stepProbeR, stepProbeR, 1.2, 24);
       const probeCasingMesh = new THREE.Mesh(probeCasingGeo, probeBodyMaterial);
       probeGroup.add(probeCasingMesh);
 
-      const wearPlateGeo = new THREE.CylinderGeometry(0.63, 0.63, 0.12, 24);
+      const wearPlateGeo = new THREE.CylinderGeometry(stepProbeR * 0.97, stepProbeR * 0.97, 0.12, 24);
       const wearPlateMesh = new THREE.Mesh(wearPlateGeo, probeWearPlateMaterial);
       wearPlateMesh.position.y = -0.6;
       probeGroup.add(wearPlateMesh);
 
-      const couplantGeo = new THREE.RingGeometry(0.1, 0.75, 24);
+      const couplantGeo = new THREE.RingGeometry(0.1, stepProbeR * 1.15, 24);
       couplantGeo.rotateX(-Math.PI / 2);
       const couplantMat = new THREE.MeshStandardMaterial({
         color: 0x38bdf8,
@@ -698,7 +778,9 @@ export const UtThreeScene: React.FC<UtThreeSceneProps> = ({
       probeGroup.position.set(xPos, currentH - 2 + 0.66, 0);
 
       const beamGroup = new THREE.Group();
-      const beamGeo = new THREE.CylinderGeometry(0.4, 0.4, currentH, 16);
+      const topR = Math.max(0.16, stepProbeR * 0.52);
+      const botR = THREE.MathUtils.clamp(topR + Math.tan(halfSpreadRad) * currentH * 2.0, topR + 0.04, 1.35);
+      const beamGeo = new THREE.CylinderGeometry(topR, botR, currentH, 16);
       beamGeo.translate(0, -currentH / 2 - 0.66, 0);
       const beamMat = new THREE.MeshStandardMaterial({
         color: 0x38bdf8,
@@ -708,9 +790,10 @@ export const UtThreeScene: React.FC<UtThreeSceneProps> = ({
         emissiveIntensity: 0.7,
       });
       const beamMesh = new THREE.Mesh(beamGeo, beamMat);
+      beamMesh.userData = { baseOpacity: 0.5 };
       beamGroup.add(beamMesh);
 
-      const echoGeo = new THREE.RingGeometry(0.1, 0.45, 16);
+      const echoGeo = new THREE.RingGeometry(0.1, botR * 1.05, 16);
       echoGeo.rotateX(-Math.PI / 2);
       const echoMat = new THREE.MeshBasicMaterial({ color: 0x67e8f9 });
       const echoMesh = new THREE.Mesh(echoGeo, echoMat);
@@ -729,7 +812,7 @@ export const UtThreeScene: React.FC<UtThreeSceneProps> = ({
     else if (blockType === 'angle_weld') {
       const weldGroup = new THREE.Group();
       const plateWidth = 14;
-      const plateH = 2.2; // represents plateThicknessMm (default 20 mm)
+      const plateH = THREE.MathUtils.clamp((plateThicknessMm / 20) * 2.2, 1.1, 4.4);
       const plateDepth = 5.0; // represents 50 mm visible weld seam span (center Y = 50 mm)
 
       // Base Plate + Specimen Wireframe Outline when X-Ray mode is active
@@ -1015,9 +1098,10 @@ export const UtThreeScene: React.FC<UtThreeSceneProps> = ({
 
       root.add(weldGroup);
 
-      // Angle Probe with Perspex Wedge (45°, 60°, 70°)
+      // Angle Probe with Perspex Wedge & Snell's Law Tilted Piezo Crystal
       const probeGroup = new THREE.Group();
-      const wedgeGeo = new THREE.BoxGeometry(1.8, 1.2, 1.4);
+      const wedgeW = 1.8 * Math.max(0.85, probeScaleRatio * 0.95);
+      const wedgeGeo = new THREE.BoxGeometry(wedgeW, 1.2, 1.4 * Math.max(0.85, probeScaleRatio * 0.95));
       const wedgeMat = new THREE.MeshStandardMaterial({
         color: 0xbae6fd,
         transparent: true,
@@ -1028,10 +1112,14 @@ export const UtThreeScene: React.FC<UtThreeSceneProps> = ({
       wedgeMesh.position.y = 0.6;
       probeGroup.add(wedgeMesh);
 
-      const crystalGeo = new THREE.BoxGeometry(0.8, 0.2, 1.0);
-      crystalGeo.rotateZ((-probeAngleDeg * Math.PI) / 180 / 2);
+      const refractedClampedDeg = THREE.MathUtils.clamp(probeAngleDeg, 0, 78);
+      const refractedRad = (refractedClampedDeg * Math.PI) / 180;
+      const incidentPerspexRad = Math.asin(Math.min(0.94, (2330 / 3240) * Math.sin(refractedRad)));
+
+      const crystalGeo = new THREE.BoxGeometry(0.85 * probeScaleRatio, 0.22, 1.0 * probeScaleRatio);
+      crystalGeo.rotateZ(-incidentPerspexRad);
       const crystalMesh = new THREE.Mesh(crystalGeo, probeBodyMaterial);
-      crystalMesh.position.set(-0.3, 1.2, 0);
+      crystalMesh.position.set(-0.28, 1.18, 0);
       probeGroup.add(crystalMesh);
 
       const cableGeo = new THREE.CylinderGeometry(0.06, 0.06, 2.0, 8);
@@ -1043,40 +1131,127 @@ export const UtThreeScene: React.FC<UtThreeSceneProps> = ({
       root.add(probeGroup);
       probeGroupRef.current = probeGroup;
 
-      // Dynamic 3D Sound Beam (Leg 1 direct to bottom wall, Leg 2 skip bounce)
+      // Dynamic 3D Refracted Ultrasonic Beam Cone (Angle + Frequency Divergence + Near-Field N)
       const beamGroup = new THREE.Group();
-      const angleRad = (probeAngleDeg * Math.PI) / 180;
-      const leg1X = Math.tan(angleRad) * plateH;
+      const leg1X = Math.tan(refractedRad) * plateH;
+      const startVec = new THREE.Vector3(0, 0, 0);
+      const bounceVec = new THREE.Vector3(leg1X, -plateH, 0);
+      const fullSkipVec = new THREE.Vector3(leg1X * 2, 0, 0);
+      const leg1Length = startVec.distanceTo(bounceVec);
 
-      const leg1Path = new THREE.LineCurve3(
-        new THREE.Vector3(0, 0, 0),
-        new THREE.Vector3(leg1X, -plateH, 0)
+      const coreRadiusStart = Math.max(0.06, 0.09 * probeScaleRatio);
+      const coneRadiusBounce = THREE.MathUtils.clamp(
+        coreRadiusStart + Math.tan(halfSpreadRad) * leg1Length * 1.85,
+        coreRadiusStart + 0.04,
+        0.95
       );
-      const leg1Geo = new THREE.TubeGeometry(leg1Path, 10, 0.1, 8, false);
+      const coneRadiusFullSkip = THREE.MathUtils.clamp(
+        coneRadiusBounce + Math.tan(halfSpreadRad) * leg1Length * 1.65,
+        coneRadiusBounce + 0.04,
+        1.45
+      );
+
+      // Center Axis Ray (Leg 1 & Leg 2)
+      const leg1Path = new THREE.LineCurve3(startVec, bounceVec);
+      const leg1Geo = new THREE.TubeGeometry(leg1Path, 10, 0.055, 8, false);
       const beamMat = new THREE.MeshStandardMaterial({
         color: defectDetected ? 0xf59e0b : 0x38bdf8,
         emissive: defectDetected ? 0xf59e0b : 0x0284c7,
-        emissiveIntensity: 0.9,
+        emissiveIntensity: 0.95,
         transparent: true,
-        opacity: 0.85,
+        opacity: 0.88,
       });
       const leg1Mesh = new THREE.Mesh(leg1Geo, beamMat);
+      leg1Mesh.userData = { baseOpacity: 0.86 };
       beamGroup.add(leg1Mesh);
 
-      const bottomBounceGeo = new THREE.RingGeometry(0.1, 0.35, 16);
+      // Outer 3D -6 dB Divergent Ultrasonic Cone Frustum along Leg 1 (Controlled by Frequency MHz!)
+      const leg1Mid = startVec.clone().add(bounceVec).multiplyScalar(0.5);
+      const leg1Dir = bounceVec.clone().sub(startVec).normalize();
+      const leg1ConeGeo = new THREE.CylinderGeometry(
+        coreRadiusStart,
+        coneRadiusBounce,
+        Math.max(0.2, leg1Length),
+        20,
+        1,
+        true
+      );
+      const coneEnvelopeMat = new THREE.MeshStandardMaterial({
+        color: defectDetected ? 0xfbbf24 : 0x22d3ee,
+        emissive: defectDetected ? 0xd97706 : 0x0891b2,
+        emissiveIntensity: 0.7,
+        transparent: true,
+        opacity: 0.34,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+      });
+      const leg1ConeMesh = new THREE.Mesh(leg1ConeGeo, coneEnvelopeMat);
+      leg1ConeMesh.position.copy(leg1Mid);
+      leg1ConeMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), leg1Dir);
+      leg1ConeMesh.userData = { baseOpacity: 0.34 };
+      beamGroup.add(leg1ConeMesh);
+
+      // 3D Fresnel Near-Field Segment along Leg 1 (Length proportional to D^2 * f / 4v)
+      const nfRatioOnLeg1 = THREE.MathUtils.clamp(nearFieldMm / Math.max(12, plateThicknessMm * 2.2), 0.12, 0.85);
+      const nfLen3D = leg1Length * nfRatioOnLeg1;
+      const nfEndVec = startVec.clone().add(leg1Dir.clone().multiplyScalar(nfLen3D));
+      const nfMidVec = startVec.clone().add(nfEndVec).multiplyScalar(0.5);
+      const nfAngleGeo = new THREE.CylinderGeometry(
+        coreRadiusStart * 0.95,
+        THREE.MathUtils.lerp(coreRadiusStart, coneRadiusBounce, nfRatioOnLeg1),
+        Math.max(0.15, nfLen3D),
+        18,
+        1,
+        true
+      );
+      const nfAngleMat = new THREE.MeshStandardMaterial({
+        color: 0xa855f7,
+        emissive: 0x7e22ce,
+        emissiveIntensity: 0.9,
+        transparent: true,
+        opacity: 0.52,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+      });
+      const nfAngleMesh = new THREE.Mesh(nfAngleGeo, nfAngleMat);
+      nfAngleMesh.position.copy(nfMidVec);
+      nfAngleMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), leg1Dir);
+      nfAngleMesh.userData = { baseOpacity: 0.52 };
+      beamGroup.add(nfAngleMesh);
+
+      const bottomBounceGeo = new THREE.RingGeometry(0.08, Math.max(0.28, coneRadiusBounce * 1.15), 20);
       bottomBounceGeo.rotateX(-Math.PI / 2);
-      const bottomBounceMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+      const bottomBounceMat = new THREE.MeshBasicMaterial({
+        color: defectDetected ? 0xfbbf24 : 0x38bdf8,
+        side: THREE.DoubleSide,
+      });
       const bottomBounceMesh = new THREE.Mesh(bottomBounceGeo, bottomBounceMat);
-      bottomBounceMesh.position.set(leg1X, -plateH, 0);
+      bottomBounceMesh.position.copy(bounceVec);
       beamGroup.add(bottomBounceMesh);
 
-      const leg2Path = new THREE.LineCurve3(
-        new THREE.Vector3(leg1X, -plateH, 0),
-        new THREE.Vector3(leg1X * 2, 0, 0)
-      );
-      const leg2Geo = new THREE.TubeGeometry(leg2Path, 10, 0.08, 8, false);
-      const leg2Mesh = new THREE.Mesh(leg2Geo, beamMat);
-      beamGroup.add(leg2Mesh);
+      if (refractedClampedDeg > 5) {
+        const leg2Path = new THREE.LineCurve3(bounceVec, fullSkipVec);
+        const leg2Geo = new THREE.TubeGeometry(leg2Path, 10, 0.048, 8, false);
+        const leg2Mesh = new THREE.Mesh(leg2Geo, beamMat);
+        leg2Mesh.userData = { baseOpacity: 0.8 };
+        beamGroup.add(leg2Mesh);
+
+        const leg2Mid = bounceVec.clone().add(fullSkipVec).multiplyScalar(0.5);
+        const leg2Dir = fullSkipVec.clone().sub(bounceVec).normalize();
+        const leg2ConeGeo = new THREE.CylinderGeometry(
+          coneRadiusBounce,
+          coneRadiusFullSkip,
+          Math.max(0.2, leg1Length),
+          20,
+          1,
+          true
+        );
+        const leg2ConeMesh = new THREE.Mesh(leg2ConeGeo, coneEnvelopeMat);
+        leg2ConeMesh.position.copy(leg2Mid);
+        leg2ConeMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), leg2Dir);
+        leg2ConeMesh.userData = { baseOpacity: 0.28 };
+        beamGroup.add(leg2ConeMesh);
+      }
 
       probeGroup.add(beamGroup);
       soundBeamRef.current = beamGroup;
@@ -1087,8 +1262,11 @@ export const UtThreeScene: React.FC<UtThreeSceneProps> = ({
     // -------------------------------------------------------------
     else if (blockType === 'mt_yoke') {
       const mtGroup = new THREE.Group();
+      const clampedFieldKaM = THREE.MathUtils.clamp(magneticFieldKaM, 0, 6.5);
+      const clampedYokeSpacingMm = THREE.MathUtils.clamp(yokePoleSpacingMm, 75, 200);
+      const poleHalfSpan = THREE.MathUtils.clamp(clampedYokeSpacingMm / 40, 1.85, 5.0);
 
-      const plateGeo = new THREE.BoxGeometry(12, 1.5, 8);
+      const plateGeo = new THREE.BoxGeometry(12.5, 1.5, 8);
       const plateMesh = new THREE.Mesh(plateGeo, specimenSteelMaterial);
       plateMesh.position.y = -0.75;
       plateMesh.castShadow = !xrayActive;
@@ -1181,11 +1359,11 @@ export const UtThreeScene: React.FC<UtThreeSceneProps> = ({
       }
 
       const yokeGroup = new THREE.Group();
-      const handleGeo = new THREE.BoxGeometry(7, 1.4, 1.6);
+      const handleGeo = new THREE.BoxGeometry(poleHalfSpan * 2 + 1.0, 1.4, 1.6);
       const handleMat = new THREE.MeshStandardMaterial({
-        color: 0xdc2626,
-        roughness: 0.6,
-        metalness: 0.2,
+        color: mtCurrentMode === 'HWDC' ? 0xb45309 : 0xdc2626,
+        roughness: 0.55,
+        metalness: 0.25,
       });
       const handleMesh = new THREE.Mesh(handleGeo, handleMat);
       handleMesh.position.y = 4.2;
@@ -1193,13 +1371,13 @@ export const UtThreeScene: React.FC<UtThreeSceneProps> = ({
 
       const triggerGeo = new THREE.BoxGeometry(0.8, 0.4, 0.4);
       const triggerMat = new THREE.MeshBasicMaterial({
-        color: isYokeEnergized ? 0x22c55e : 0x18181b,
+        color: isYokeEnergized && clampedFieldKaM > 0.2 ? 0x22c55e : 0x18181b,
       });
       const triggerMesh = new THREE.Mesh(triggerGeo, triggerMat);
       triggerMesh.position.set(0, 3.4, 0.7);
       yokeGroup.add(triggerMesh);
 
-      [-3.0, 3.0].forEach((xLeg, idx) => {
+      [-poleHalfSpan, poleHalfSpan].forEach((xLeg, idx) => {
         const legGeo = new THREE.BoxGeometry(1.2, 3.6, 1.4);
         const legMesh = new THREE.Mesh(legGeo, steelMaterial);
         legMesh.position.set(xLeg, 2.0, 0);
@@ -1222,24 +1400,49 @@ export const UtThreeScene: React.FC<UtThreeSceneProps> = ({
       mtGroup.add(yokeGroup);
       root.add(mtGroup);
 
+      // Dynamic 3D Magnetic Flux Arches scaled by Magnetic Field Strength (kA/m) & AC/HWDC mode
       const fluxGroup = new THREE.Group();
-      if (isYokeEnergized) {
-        for (let i = -3; i <= 3; i++) {
-          const zOffset = (i / 3) * 1.8;
+      if (isYokeEnergized && clampedFieldKaM > 0.15) {
+        const halfLineSteps = Math.max(1, Math.min(6, Math.round(clampedFieldKaM)));
+        const archPeakY = 0.48 + (clampedFieldKaM / 6.5) * 0.92;
+        const primaryFluxHex = mtCurrentMode === 'HWDC' ? 0xf59e0b : 0x38bdf8;
+        const baseFluxOpacity = THREE.MathUtils.clamp(0.28 + (clampedFieldKaM / 6.5) * 0.58, 0.25, 0.92);
+
+        for (let i = -halfLineSteps; i <= halfLineSteps; i++) {
+          const zOffset = (i / Math.max(1, halfLineSteps)) * 2.15;
           const curve = new THREE.QuadraticBezierCurve3(
-            new THREE.Vector3(-2.8, 0.25, zOffset),
-            new THREE.Vector3(0, 0.9, zOffset * 1.3),
-            new THREE.Vector3(2.8, 0.25, zOffset)
+            new THREE.Vector3(-(poleHalfSpan - 0.2), 0.24, zOffset),
+            new THREE.Vector3(0, archPeakY, zOffset * 1.28),
+            new THREE.Vector3(poleHalfSpan - 0.2, 0.24, zOffset)
           );
-          const points = curve.getPoints(24);
+          const points = curve.getPoints(28);
           const fluxGeo = new THREE.BufferGeometry().setFromPoints(points);
           const fluxLineMat = new THREE.LineBasicMaterial({
-            color: 0x38bdf8,
+            color: primaryFluxHex,
             transparent: true,
-            opacity: 0.7,
+            opacity: baseFluxOpacity,
           });
           const fluxLine = new THREE.Line(fluxGeo, fluxLineMat);
+          fluxLine.userData = { baseOpacity: baseFluxOpacity };
           fluxGroup.add(fluxLine);
+
+          if (mtCurrentMode === 'HWDC' && Math.abs(i) <= 2) {
+            const subCurve = new THREE.QuadraticBezierCurve3(
+              new THREE.Vector3(-(poleHalfSpan - 0.2), -0.05, zOffset * 0.75),
+              new THREE.Vector3(0, -0.68, zOffset * 0.85),
+              new THREE.Vector3(poleHalfSpan - 0.2, -0.05, zOffset * 0.75)
+            );
+            const subGeo = new THREE.BufferGeometry().setFromPoints(subCurve.getPoints(22));
+            const subMat = new THREE.LineBasicMaterial({
+              color: 0xfbbf24,
+              transparent: true,
+              opacity: baseFluxOpacity * 0.75,
+              depthTest: false,
+            });
+            const subLine = new THREE.Line(subGeo, subMat);
+            subLine.userData = { baseOpacity: baseFluxOpacity * 0.75 };
+            fluxGroup.add(subLine);
+          }
         }
       }
       root.add(fluxGroup);
@@ -1247,36 +1450,42 @@ export const UtThreeScene: React.FC<UtThreeSceneProps> = ({
 
       const particlesGroup = new THREE.Group();
       if (areParticlesApplied) {
-        const fluxLeakageStrength = isYokeEnergized
-          ? Math.sin((crackAngleDeg * Math.PI) / 180)
-          : 0.05;
-        const particleCount = 450;
+        const fieldFactor = isYokeEnergized
+          ? THREE.MathUtils.clamp(clampedFieldKaM / 3.6, 0.05, 1.55)
+          : 0.04;
+        const orientationFactor = Math.sin((crackAngleDeg * Math.PI) / 180);
+        const fluxLeakageStrength = THREE.MathUtils.clamp(fieldFactor * orientationFactor, 0.03, 1.35);
+        const particleCount = Math.round(260 + Math.min(620, clampedFieldKaM * 95));
         const pGeo = new THREE.BufferGeometry();
         const pPositions = new Float32Array(particleCount * 3);
 
         for (let i = 0; i < particleCount; i++) {
           let px = 0;
+          let py = 0.03;
           let pz = 0;
 
-          if (Math.random() < fluxLeakageStrength * 0.85) {
+          const clusterProb = Math.min(0.92, fluxLeakageStrength * 0.78);
+          if (Math.random() < clusterProb) {
             const t = (Math.random() - 0.5) * crackLength;
-            const spread = (Math.random() - 0.5) * 0.12 * (1.1 - fluxLeakageStrength);
+            const spread = (Math.random() - 0.5) * Math.max(0.05, 0.16 * (1.25 - Math.min(1, fluxLeakageStrength)));
             px = t * Math.cos(crackRotRad) - spread * Math.sin(crackRotRad);
             pz = t * Math.sin(crackRotRad) + spread * Math.cos(crackRotRad);
+            py = 0.03 + Math.min(0.11, fluxLeakageStrength * 0.06 * Math.random());
           } else {
-            px = (Math.random() - 0.5) * 5.5;
-            pz = (Math.random() - 0.5) * 4.0;
+            px = (Math.random() - 0.5) * (poleHalfSpan * 1.9);
+            pz = (Math.random() - 0.5) * 4.2;
           }
 
           pPositions[i * 3] = px;
-          pPositions[i * 3 + 1] = 0.03;
+          pPositions[i * 3 + 1] = py;
           pPositions[i * 3 + 2] = pz;
         }
 
         pGeo.setAttribute('position', new THREE.BufferAttribute(pPositions, 3));
+        const hasAdequateField = isYokeEnergized && clampedFieldKaM >= 2.4 && orientationFactor > 0.5;
         const pMat = new THREE.PointsMaterial({
-          color: isYokeEnergized && fluxLeakageStrength > 0.5 ? 0x22c55e : 0x1f2937,
-          size: 0.12,
+          color: hasAdequateField ? 0x22c55e : isYokeEnergized && clampedFieldKaM >= 1.2 ? 0xfbbf24 : 0x334155,
+          size: hasAdequateField ? 0.13 : 0.1,
         });
         const particlesMesh = new THREE.Points(pGeo, pMat);
         particlesGroup.add(particlesMesh);
@@ -1290,12 +1499,18 @@ export const UtThreeScene: React.FC<UtThreeSceneProps> = ({
     };
   }, [
     blockType,
+    probePreset,
     selectedStep,
     probeAngleDeg,
     plateThicknessMm,
+    transducerFreqMHz,
+    crystalDiameterMm,
     isYokeEnergized,
     areParticlesApplied,
     crackAngleDeg,
+    magneticFieldKaM,
+    yokePoleSpacingMm,
+    mtCurrentMode,
     defectDetected,
     detectedWireframeOverlays,
     wireframesVisible,
@@ -1340,12 +1555,22 @@ export const UtThreeScene: React.FC<UtThreeSceneProps> = ({
         </div>
       )}
 
-      {/* Top-Left Minimal Spec Header (Solid rgba surface — zero backdrop-filter over WebGL) */}
-      <div className="absolute top-3 left-3 flex items-center gap-2 bg-[#060916]/90 px-3 py-1.5 rounded-xl border border-slate-800 text-[11px] text-slate-300 pointer-events-none">
+      {/* Top-Left Minimal Spec Header + Live 3D Physics Telemetry (Solid rgba surface — zero backdrop-filter over WebGL) */}
+      <div
+        data-testid="three-scene-live-telemetry"
+        className="absolute top-3 left-3 flex flex-col gap-0.5 bg-[#060916]/90 px-3 py-1.5 rounded-xl border border-slate-800 text-[11px] text-slate-300 font-mono tabular-nums pointer-events-none"
+      >
         <span>
           {isAr
             ? 'محاكاة ثلاثية الأبعاد 3D · اسحب للتدوير / العجلة للتكبير'
             : 'Interactive 3D Viewport · Drag to Orbit / Scroll to Zoom'}
+        </span>
+        <span className="text-cyan-300 font-bold">
+          {blockType === 'mt_yoke'
+            ? `MT ${mtCurrentMode} · H = ${
+                isYokeEnergized ? magneticFieldKaM.toFixed(1) : '0.0'
+              } kA/m (${isYokeEnergized ? Math.round(magneticFieldKaM * 12.56) : 0} G) · Pole = ${yokePoleSpacingMm} mm`
+            : `UT f = ${transducerFreqMHz.toFixed(2)} MHz · ∠${probeAngleDeg}° · Ø${crystalDiameterMm} mm · t = ${plateThicknessMm} mm`}
         </span>
       </div>
 

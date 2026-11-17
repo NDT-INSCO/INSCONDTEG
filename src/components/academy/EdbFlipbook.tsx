@@ -12,6 +12,7 @@ import {
   Download,
   ExternalLink,
   FlaskConical,
+  HelpCircle,
   Info,
   List,
   Maximize2,
@@ -25,6 +26,7 @@ import {
 } from 'lucide-react';
 import { Language } from '../../types';
 import { EdbBlock, EdbDocument, EdbPage, EdbText } from '../../edb/types';
+import { QuickKnowledgeCheckQuiz } from './QuickKnowledgeCheckQuiz';
 import {
   downloadEdb,
   epubAssetUrl,
@@ -412,6 +414,7 @@ export const EdbFlipbook: React.FC<EdbFlipbookProps> = ({ language, book, onClos
   const [progress, setProgress] = useState(initialProgress);
   const [showToc, setShowToc] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [showQuickCheck, setShowQuickCheck] = useState(false);
   const [query, setQuery] = useState('');
   const [sound, setSound] = useState(true);
   const [themeMode, setThemeMode] = useState<'night' | 'paper'>('night');
@@ -465,7 +468,8 @@ export const EdbFlipbook: React.FC<EdbFlipbookProps> = ({ language, book, onClos
       const tag = (event.target as HTMLElement | null)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
       if (event.key === 'Escape') {
-        if (showSearch) setShowSearch(false);
+        if (showQuickCheck) setShowQuickCheck(false);
+        else if (showSearch) setShowSearch(false);
         else if (showToc) setShowToc(false);
         else onClose();
       } else if (event.key === 'ArrowRight') {
@@ -484,7 +488,7 @@ export const EdbFlipbook: React.FC<EdbFlipbookProps> = ({ language, book, onClos
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [goTo, isAr, next, onClose, previous, showSearch, showToc, total]);
+  }, [goTo, isAr, next, onClose, previous, showQuickCheck, showSearch, showToc, total]);
 
   const searchResults = useMemo(() => {
     const q = normalize(query.trim());
@@ -550,6 +554,17 @@ export const EdbFlipbook: React.FC<EdbFlipbookProps> = ({ language, book, onClos
           </div>
         </div>
         <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            data-testid="edb-open-quick-check"
+            onClick={() => setShowQuickCheck(true)}
+            className="flex items-center gap-1.5 rounded-lg border border-amber-400/50 bg-amber-500/15 px-2.5 py-2 text-xs font-bold text-amber-300 hover:bg-amber-500/25 cursor-pointer"
+            aria-label={isAr ? 'اختبار المعرفة السريع' : 'Quick Knowledge Check'}
+            title={isAr ? 'اختبار المعرفة السريع' : 'Quick Knowledge Check'}
+          >
+            <HelpCircle className="w-4 h-4" />
+            <span className="hidden md:inline">{isAr ? 'اختبار سريع' : 'Quick Check'}</span>
+          </button>
           <button type="button" onClick={() => setShowToc(true)} className="rounded-lg border border-white/15 p-2 hover:bg-white/10" aria-label={isAr ? 'المحتويات' : 'Contents'} title={isAr ? 'المحتويات' : 'Contents'}>
             <List className="w-4 h-4" />
           </button>
@@ -750,6 +765,44 @@ export const EdbFlipbook: React.FC<EdbFlipbookProps> = ({ language, book, onClos
               {query.trim() && searchResults.length === 0 && <p className="text-xs text-slate-400">{isAr ? 'لا توجد نتائج.' : 'No results.'}</p>}
             </div>
           </aside>
+        </div>
+      )}
+
+      {showQuickCheck && (
+        <div
+          className="absolute inset-0 z-30 flex items-start justify-center overflow-y-auto p-3 sm:p-6"
+          role="dialog"
+          aria-modal="true"
+          aria-label={isAr ? 'اختبار المعرفة السريع' : 'Quick Knowledge Check'}
+        >
+          <button
+            type="button"
+            className="fixed inset-0 bg-black/65"
+            onClick={() => setShowQuickCheck(false)}
+            aria-label={isAr ? 'إغلاق الاختبار' : 'Close Quick Knowledge Check'}
+          />
+          <div className="relative z-10 w-full max-w-4xl my-4 space-y-2">
+            <div className="flex justify-end">
+              <button
+                type="button"
+                data-testid="edb-close-quick-check"
+                onClick={() => setShowQuickCheck(false)}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-white/20 bg-slate-900/90 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" aria-hidden="true" />
+                <span>{isAr ? 'العودة للكتاب' : 'Back to Reader'}</span>
+              </button>
+            </div>
+            <QuickKnowledgeCheckQuiz
+              language={language}
+              edbDocument={book}
+              activePageNumber={page.number}
+              onJumpToPage={targetPage => {
+                goTo(targetPage - 1);
+                setShowQuickCheck(false);
+              }}
+            />
+          </div>
         </div>
       )}
     </div>

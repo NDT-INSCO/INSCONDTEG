@@ -1,9 +1,11 @@
 import React, { Suspense, useEffect, useState } from 'react';
 import { CompanyPortal } from './components/company/CompanyPortal';
 import { GlobalHeaderSearch } from './components/GlobalHeaderSearch';
+import { GlobalThemeSwitcher } from './components/GlobalThemeSwitcher';
 import { Language } from './types';
 import { AcademyTab, readAcademyTab } from './academyTabs';
 import { INSCO_COMPANY_DATA } from './data/inscoCompanyData';
+import { useTheme } from './utils/themeStore';
 import { 
   Globe, 
   GraduationCap, 
@@ -52,6 +54,7 @@ function readLanguage(): Language {
 
 export const App: React.FC = () => {
   const [language, setLanguage] = useState<Language>(readLanguage);
+  const { theme, isLight } = useTheme();
   // A shared link such as `/-Project-/#courses` must open the academy, not the
   // company profile with an ignored hash.
   const [currentView, setCurrentView] = useState<'company' | 'academy'>(() =>
@@ -115,9 +118,21 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div dir={isAr ? 'rtl' : 'ltr'} className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+    <div
+      dir={isAr ? 'rtl' : 'ltr'}
+      data-theme={theme}
+      className={`min-h-screen flex flex-col font-sans transition-colors ${
+        isLight ? 'bg-slate-50 text-slate-900' : 'bg-slate-950 text-slate-100'
+      }`}
+    >
       {/* Persistent Corporate Top Bar Contract */}
-      <header className="sticky top-0 z-50 border-b border-slate-800 bg-slate-950/95 backdrop-blur-md">
+      <header
+        className={`sticky top-0 z-50 border-b backdrop-blur-md transition-colors ${
+          isLight
+            ? 'border-slate-200 bg-white/95'
+            : 'border-slate-800 bg-slate-950/95'
+        }`}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-6">
           {/* Zone 1: Single Brand Element Wordmark */}
           <button
@@ -246,6 +261,8 @@ export const App: React.FC = () => {
                 <span>{isAr ? 'بوابة الشركة' : 'Corporate Portal'}</span>
               </button>
             )}
+
+            <GlobalThemeSwitcher language={language} />
 
             <button
               type="button"

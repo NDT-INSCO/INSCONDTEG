@@ -1,17 +1,32 @@
 @import "tailwindcss";
 
-:root {
+:root,
+:root[data-theme="dark"] {
   font-family: Inter, system-ui, -apple-system, sans-serif;
   line-height: 1.5;
   color-scheme: dark;
-  color-schemas: dark;
+  --app-bg: #020617;
+  --app-fg: #e2e8f0;
+  --scrollbar-track: #0f172a;
+  --scrollbar-thumb: #334155;
+  --scrollbar-thumb-hover: #475569;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --app-bg: #f8fafc;
+  --app-fg: #0f172a;
+  --scrollbar-track: #e2e8f0;
+  --scrollbar-thumb: #94a3b8;
+  --scrollbar-thumb-hover: #64748b;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  background-color: #020617;
-  color: #e2e8f0;
+  background-color: var(--app-bg);
+  color: var(--app-fg);
+  transition: background-color 180ms ease, color 180ms ease;
 }
 
 * {
@@ -29,14 +44,218 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: var(--scrollbar-track);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: var(--scrollbar-thumb);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: var(--scrollbar-thumb-hover);
+}
+
+/* ==========================================================================
+   Global Light Mode Architectural Palette Overrides
+   Maps dark slate & navy surfaces, borders, and typography across Corporate
+   and Academy modules to WCAG AA high-contrast light surfaces while keeping
+   CRT/WebGL viewports and [data-preserve-dark] elements intact.
+   ========================================================================== */
+
+/* Primary page canvases & sticky headers */
+:root[data-theme="light"] :is(
+  .bg-slate-950,
+  .bg-\[\#080914\],
+  .bg-\[\#050711\],
+  .bg-\[\#070916\]
+):not([data-preserve-dark], [data-preserve-dark] *) {
+  background-color: #f8fafc;
+}
+
+:root[data-theme="light"] :is(
+  .bg-slate-950\/95,
+  .bg-slate-950\/90,
+  .bg-slate-950\/85,
+  .bg-slate-950\/80
+):not([data-preserve-dark], [data-preserve-dark] *) {
+  background-color: rgba(248, 250, 252, 0.94);
+}
+
+/* Card & container surfaces */
+:root[data-theme="light"] :is(
+  .bg-slate-900,
+  .bg-slate-900\/95,
+  .bg-slate-900\/90,
+  .bg-slate-900\/80,
+  .bg-slate-900\/70,
+  .bg-slate-900\/60,
+  .bg-slate-900\/50,
+  .bg-slate-900\/40,
+  .bg-\[\#0b0d1e\],
+  .bg-\[\#0c0e22\],
+  .bg-\[\#0d1025\],
+  .bg-\[\#0e1126\],
+  .bg-\[\#10132b\],
+  .bg-\[\#111530\],
+  .bg-\[\#121633\]
+):not([data-preserve-dark], [data-preserve-dark] *) {
+  background-color: #ffffff;
+}
+
+/* Secondary / recessed / interactive pill & control surfaces */
+:root[data-theme="light"] :is(
+  .bg-slate-800,
+  .bg-slate-800\/90,
+  .bg-slate-800\/80,
+  .bg-slate-800\/70,
+  .bg-slate-800\/60,
+  .bg-slate-800\/50,
+  .bg-slate-800\/40,
+  .bg-\[\#141836\],
+  .bg-\[\#151938\],
+  .bg-\[\#161a3f\],
+  .bg-\[\#181d3d\],
+  .bg-\[\#1a2046\],
+  .bg-\[\#1e2554\]
+):not([data-preserve-dark], [data-preserve-dark] *) {
+  background-color: #f1f5f9;
+}
+
+:root[data-theme="light"] :is(
+  .hover\:bg-slate-900:hover,
+  .hover\:bg-slate-900\/60:hover,
+  .hover\:bg-slate-800:hover,
+  .hover\:bg-slate-800\/80:hover,
+  .hover\:bg-slate-700:hover,
+  .hover\:bg-\[\#161a3f\]:hover,
+  .hover\:bg-\[\#181d3d\]:hover,
+  .hover\:bg-\[\#1e2554\]:hover
+):not([data-preserve-dark], [data-preserve-dark] *) {
+  background-color: #e2e8f0;
+}
+
+/* Hero & section decorative dark gradients */
+:root[data-theme="light"] .from-cyan-950\/20:not([data-preserve-dark], [data-preserve-dark] *) {
+  --tw-gradient-from: rgba(8, 145, 178, 0.10);
+}
+
+:root[data-theme="light"] :is(.from-slate-950, .from-slate-900):not([data-preserve-dark], [data-preserve-dark] *) {
+  --tw-gradient-from: #f8fafc;
+}
+
+:root[data-theme="light"] :is(.via-slate-950, .via-slate-900):not([data-preserve-dark], [data-preserve-dark] *) {
+  --tw-gradient-via: #f8fafc;
+}
+
+:root[data-theme="light"] :is(.to-slate-950, .to-slate-900):not([data-preserve-dark], [data-preserve-dark] *) {
+  --tw-gradient-to: #f8fafc;
+}
+
+/* Structural borders & dividers */
+:root[data-theme="light"] :is(
+  .border-slate-800,
+  .border-slate-800\/90,
+  .border-slate-800\/80,
+  .border-slate-800\/70,
+  .border-slate-800\/60,
+  .border-slate-700,
+  .border-slate-700\/80,
+  .border-slate-700\/60,
+  .border-\[\#202752\],
+  .border-\[\#202755\],
+  .border-\[\#21264c\],
+  .border-\[\#242b57\],
+  .border-\[\#262e5c\],
+  .border-\[\#29315b\],
+  .border-\[\#2d3666\],
+  .border-\[\#2e376b\]
+):not([data-preserve-dark], [data-preserve-dark] *) {
+  border-color: #cbd5e1;
+}
+
+:root[data-theme="light"] :is(
+  .divide-slate-800 > :not(:last-child),
+  .divide-slate-800\/70 > :not(:last-child)
+):not([data-preserve-dark], [data-preserve-dark] *) {
+  border-color: #e2e8f0;
+}
+
+/* High-contrast primary headings & foreground text (preserving white text on solid accent buttons) */
+:root[data-theme="light"] :is(
+  .text-white,
+  .text-slate-50,
+  .text-slate-100,
+  .text-slate-200
+):not(:is(
+  .bg-cyan-600, .bg-cyan-500, .bg-cyan-700,
+  .bg-emerald-600, .bg-emerald-500, .bg-emerald-700,
+  .bg-amber-600, .bg-amber-500,
+  .bg-rose-600, .bg-rose-500, .bg-red-600, .bg-red-500,
+  .bg-indigo-600, .bg-indigo-500, .bg-blue-600, .bg-blue-500,
+  .bg-violet-600, .bg-purple-600, .bg-sky-600, .bg-teal-600,
+  .bg-black, [data-preserve-dark],
+  .bg-cyan-600 *, .bg-cyan-500 *, .bg-cyan-700 *,
+  .bg-emerald-600 *, .bg-emerald-500 *, .bg-emerald-700 *,
+  .bg-amber-600 *, .bg-amber-500 *,
+  .bg-rose-600 *, .bg-rose-500 *, .bg-red-600 *, .bg-red-500 *,
+  .bg-indigo-600 *, .bg-indigo-500 *, .bg-blue-600 *, .bg-blue-500 *,
+  .bg-violet-600 *, .bg-purple-600 *, .bg-sky-600 *, .bg-teal-600 *,
+  .bg-black *, [data-preserve-dark] *
+)) {
+  color: #0f172a;
+}
+
+:root[data-theme="light"] .hover\:text-white:hover:not(:is(
+  .bg-cyan-600, .bg-cyan-500, .bg-emerald-600, .bg-rose-600, .bg-indigo-600, .bg-black,
+  [data-preserve-dark], [data-preserve-dark] *
+)) {
+  color: #0f172a;
+}
+
+/* Secondary & muted slate text — WCAG AA >= 4.6:1 on #ffffff / #f8fafc */
+:root[data-theme="light"] .text-slate-300:not(:is(.bg-black, .bg-black *, [data-preserve-dark], [data-preserve-dark] *)) {
+  color: #334155;
+}
+
+:root[data-theme="light"] .text-slate-400:not(:is(.bg-black, .bg-black *, [data-preserve-dark], [data-preserve-dark] *)) {
+  color: #475569;
+}
+
+:root[data-theme="light"] .text-slate-500:not(:is(.bg-black, .bg-black *, [data-preserve-dark], [data-preserve-dark] *)) {
+  color: #64748b;
+}
+
+/* Semantic accent inks tuned for >= 5.0:1 WCAG AA contrast on light surfaces */
+:root[data-theme="light"] :is(.text-cyan-400, .text-cyan-300):not(:is(.bg-black, .bg-black *, [data-preserve-dark], [data-preserve-dark] *)) {
+  color: #0e7490;
+}
+
+:root[data-theme="light"] .hover\:text-cyan-400:hover:not(:is(.bg-black, .bg-black *, [data-preserve-dark], [data-preserve-dark] *)) {
+  color: #0891b2;
+}
+
+:root[data-theme="light"] :is(.text-amber-400, .text-amber-300):not(:is(.bg-black, .bg-black *, [data-preserve-dark], [data-preserve-dark] *)) {
+  color: #b45309;
+}
+
+:root[data-theme="light"] :is(.text-emerald-400, .text-emerald-300):not(:is(.bg-black, .bg-black *, [data-preserve-dark], [data-preserve-dark] *)) {
+  color: #047857;
+}
+
+:root[data-theme="light"] :is(.text-sky-400, .text-sky-300):not(:is(.bg-black, .bg-black *, [data-preserve-dark], [data-preserve-dark] *)) {
+  color: #0369a1;
+}
+
+:root[data-theme="light"] :is(.text-indigo-400, .text-indigo-300):not(:is(.bg-black, .bg-black *, [data-preserve-dark], [data-preserve-dark] *)) {
+  color: #4338ca;
+}
+
+:root[data-theme="light"] :is(.text-rose-400, .text-rose-300):not(:is(.bg-black, .bg-black *, [data-preserve-dark], [data-preserve-dark] *)) {
+  color: #be123c;
+}
+
+/* Subtle elevation for light-mode dropdowns and cards */
+:root[data-theme="light"] .shadow-black\/70 {
+  --tw-shadow-color: rgba(15, 23, 42, 0.14);
 }

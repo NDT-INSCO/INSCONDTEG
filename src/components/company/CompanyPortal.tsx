@@ -1,7 +1,9 @@
 import React from 'react';
 import { Language } from '../../types';
 import { CompanyHero } from './CompanyHero';
+import { CompanyQuickActionsSection } from './CompanyQuickActionsSection';
 import { CompanyServicesSection } from './CompanyServicesSection';
+import { CompanyProjectCostEstimator } from './CompanyProjectCostEstimator';
 import { CompanyFleetInspector } from './CompanyFleetInspector';
 import { AdvancedMotionVisualizerSection } from './AdvancedMotionVisualizerSection';
 import { PwhtCycleSimulator } from './PwhtCycleSimulator';
@@ -34,7 +36,9 @@ export const CompanyPortal: React.FC<CompanyPortalProps> = ({
   const isAr = language === 'ar';
 
   const quickNav = [
+    { id: 'quick-actions', label: isAr ? 'إجراءات سريعة' : 'Quick Actions' },
     { id: 'services', label: isAr ? 'الخدمات' : 'Services' },
+    { id: 'cost-estimator', label: isAr ? 'حاسبة التكلفة' : 'Estimator' },
     { id: 'fleet-inspector', label: isAr ? 'الأسطول (48+)' : 'Fleet' },
     { id: 'hologram-lab', label: isAr ? 'مختبر 3D' : '3D Lab' },
     { id: 'pwht-simulator', label: isAr ? 'محاكي PWHT' : 'PWHT Sim' },
@@ -71,10 +75,23 @@ export const CompanyPortal: React.FC<CompanyPortalProps> = ({
         onNavigateToSection={scrollToSection}
       />
 
+      {/* 1b. One-Click Quick Actions: Request Quote & Download Training Syllabus */}
+      <CompanyQuickActionsSection
+        language={language}
+        onRequestQuote={() => scrollToSection('rfq')}
+        onOpenCurriculum={() => onNavigateToAcademy('curriculum')}
+      />
+
       {/* 2. 12 NDT Inspection Methods & 16-Unit PWHT Fleet */}
       <CompanyServicesSection
         language={language}
         onNavigateToAcademyModule={(subTab) => onNavigateToAcademy(subTab)}
+      />
+
+      {/* 2a. Interactive Project Cost & Mobilization Requirements Estimator */}
+      <CompanyProjectCostEstimator
+        language={language}
+        onTransferToRfq={() => scrollToSection('rfq')}
       />
 
       {/* 2b. Traceable Equipment & Calibrated Instrument Fleet (48+ Units) */}
@@ -87,7 +104,10 @@ export const CompanyPortal: React.FC<CompanyPortalProps> = ({
       <PwhtCycleSimulator language={language} />
 
       {/* 3c. Digital Radiograph Lightbox & Flaw Interpretation Lab (RT Film) */}
-      <RadiographicFilmViewer language={language} />
+      <RadiographicFilmViewer
+        language={language}
+        onOpenFullRtLab={() => onNavigateToAcademy('rt_lab')}
+      />
 
       {/* 3d. Interactive Digital Ultrasonic (UT) & Phased Array (PAUT) Flaw Detector Lab */}
       <CompanyUltrasonicLabSection

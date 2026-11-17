@@ -154,7 +154,10 @@ export const CompanyHero: React.FC<CompanyHeroProps> = ({
 
             {/* Display Viewport */}
             {activeVisualMode === 'photo' ? (
-              <div className="relative rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 group shadow-2xl">
+              <div
+                data-preserve-dark="true"
+                className="relative rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 group shadow-2xl"
+              >
                 <img
                   src={heroImagePath}
                   alt={isAr ? 'فحص اللحام غير الإتلافي بمحطات الطاقة' : 'Non-destructive weld testing in power plant'}

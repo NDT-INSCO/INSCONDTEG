@@ -16,7 +16,9 @@ import {
   Zap,
   Maximize2,
   Atom,
-  Ruler
+  Ruler,
+  PanelLeftClose,
+  PanelLeftOpen
 } from 'lucide-react';
 import { Language } from '../../types';
 import { 
@@ -36,6 +38,7 @@ import { NdtAudioControlChip } from './virtuallab/NdtAudioControlChip';
 import { DiscoveredDefectsLogTable } from './virtuallab/DiscoveredDefectsLogTable';
 import { DefectFrequencyD3Chart } from './virtuallab/DefectFrequencyD3Chart';
 import { V1V2CalibrationLab } from './virtuallab/V1V2CalibrationLab';
+import { DigitalLabSideSettingsPanel } from './virtuallab/DigitalLabSideSettingsPanel';
 import {
   playCalibrationClick,
   playCalibrationSuccessPing,
@@ -203,16 +206,23 @@ export const VirtualLab: React.FC<VirtualLabProps> = ({ language }) => {
   const [iiwPreset, setIiwPreset] = useState<'A' | 'B' | 'C' | 'D'>('B');
   // Step Wedge chosen step (1 to 5)
   const [selectedStep, setSelectedStep] = useState<number>(1);
-  // Angle Beam Weld inspection parameters
+  // Angle Beam Weld & UT Technical Variables (Side Settings Panel)
+  const [isSidePanelOpen, setIsSidePanelOpen] = useState<boolean>(true);
+  const [transducerFreqMHz, setTransducerFreqMHz] = useState<number>(4.0);
+  const [crystalDiameterMm, setCrystalDiameterMm] = useState<number>(12.7);
+  const [plateThicknessMm, setPlateThicknessMm] = useState<number>(20);
   const [probeAngleDeg, setProbeAngleDeg] = useState<number>(60);
   const [probeStandoffMm, setProbeStandoffMm] = useState<number>(40); // mm from weld centerline
   const [weldCouponFlawId, setWeldCouponFlawId] =
     useState<AngleWeldCouponFlawId>('incomplete_penetration');
   const activeWeldFlaw = ANGLE_WELD_COUPON_FLAWS[weldCouponFlawId];
-  // MT Yoke parameters
+  // MT Yoke & Magnetic Technical Variables (Side Settings Panel)
   const [isYokeEnergized, setIsYokeEnergized] = useState<boolean>(false);
   const [areParticlesApplied, setAreParticlesApplied] = useState<boolean>(false);
   const [crackAngleDeg, setCrackAngleDeg] = useState<number>(90); // 90 = perpendicular, 0 = parallel
+  const [magneticFieldKaM, setMagneticFieldKaM] = useState<number>(3.6);
+  const [yokePoleSpacingMm, setYokePoleSpacingMm] = useState<number>(120);
+  const [mtCurrentMode, setMtCurrentMode] = useState<'AC' | 'HWDC'>('AC');
 
   // Active step in the guided mission
   const [activeStepIndex, setActiveStepIndex] = useState<number>(0);
@@ -290,22 +300,27 @@ export const VirtualLab: React.FC<VirtualLabProps> = ({ language }) => {
       reflectorType = 'step';
     } else if (currentExp.blockType === 'angle_weld') {
       reflectorType = 'weld_defect';
-      const targetDepthMm = activeWeldFlaw.depthMm;
+      const targetDepthMm = Number(((activeWeldFlaw.depthMm / 20) * plateThicknessMm).toFixed(1));
       const rad = (probeAngleDeg * Math.PI) / 180;
 
       // Direct Leg 1 horizontal distance from flaw to probe index
       const targetStandoffMm = Math.max(
-        20,
-        Math.min(64, targetDepthMm * Math.tan(rad) + activeWeldFlaw.xMm)
+        16,
+        Math.min(75, targetDepthMm * Math.tan(rad) + activeWeldFlaw.xMm)
       );
 
+      const toleranceMm = Math.max(
+        4.5,
+        Math.min(8.5, 6.0 * (4.0 / Math.max(1.5, transducerFreqMHz)))
+      );
       const diffFromTarget = Math.abs(probeStandoffMm - targetStandoffMm);
-      if (diffFromTarget < 6.0) {
+      if (diffFromTarget < toleranceMm) {
         isDefectIntersected = true;
-        soundPath = targetDepthMm / Math.cos(rad);
+        soundPath = targetDepthMm / Math.max(0.15, Math.cos(rad));
         depth = targetDepthMm;
         surfaceDist = probeStandoffMm;
-        primaryEchoDist = soundPath * (3240 / velocity);
+        const refVel = probeAngleDeg === 0 ? 5920 : 3240;
+        primaryEchoDist = soundPath * (refVel / velocity);
       } else {
         primaryEchoDist = 0;
       }
@@ -317,8 +332,9 @@ export const VirtualLab: React.FC<VirtualLabProps> = ({ language }) => {
       currentExp.blockType === 'angle_weld' && isDefectIntersected
         ? primaryEchoDist * Math.cos(angleRad)
         : depth;
+    const maxWall = plateThicknessMm;
     const calculatedDepthMm = Number(
-      (rawCalcDepth <= 20 ? rawCalcDepth : Math.max(0, 40 - rawCalcDepth)).toFixed(1)
+      (rawCalcDepth <= maxWall ? rawCalcDepth : Math.max(0, maxWall * 2 - rawCalcDepth)).toFixed(1)
     );
     const calculatedLengthMm =
       currentExp.blockType === 'angle_weld' && isDefectIntersected ? activeWeldFlaw.lengthMm : 0;
@@ -341,6 +357,8 @@ export const VirtualLab: React.FC<VirtualLabProps> = ({ language }) => {
     velocity,
     probeAngleDeg,
     probeStandoffMm,
+    plateThicknessMm,
+    transducerFreqMHz,
     activeWeldFlaw,
   ]);
 
@@ -386,6 +404,7 @@ export const VirtualLab: React.FC<VirtualLabProps> = ({ language }) => {
   const isMtDefectDetected =
     currentExp.blockType === 'mt_yoke' &&
     isYokeEnergized &&
+    magneticFieldKaM >= 2.0 &&
     areParticlesApplied &&
     crackAngleDeg >= 60;
 
@@ -624,12 +643,46 @@ export const VirtualLab: React.FC<VirtualLabProps> = ({ language }) => {
     handleSelectExperiment('ut-angle-weld-inspection');
     setProbeAngleDeg(60);
     setVelocity(3240);
+    const scaledDepth = Number(((activeWeldFlaw.depthMm / 20) * plateThicknessMm).toFixed(1));
     setProbeStandoffMm(
       Math.max(
-        20,
-        Math.min(64, Math.round(activeWeldFlaw.depthMm * Math.tan((60 * Math.PI) / 180) + activeWeldFlaw.xMm))
+        16,
+        Math.min(75, Math.round(scaledDepth * Math.tan((60 * Math.PI) / 180) + activeWeldFlaw.xMm))
       )
     );
+  };
+
+  // Real-time handlers from Digital Lab Side Settings Panel -> Instant 3D Scene Sync
+  const ensureUt3dSceneActive = (preferAngleWeld: boolean) => {
+    if (currentExp.blockType === 'mt_yoke' || (preferAngleWeld && currentExp.blockType !== 'angle_weld')) {
+      setActiveLabModule('experiments');
+      setSelectedExpId('ut-angle-weld-inspection');
+      setVelocity(probeAngleDeg === 0 ? 5920 : 3240);
+      setRange(100);
+      setGain(50);
+    }
+  };
+
+  const ensureMt3dSceneActive = () => {
+    if (currentExp.blockType !== 'mt_yoke') {
+      setActiveLabModule('experiments');
+      setSelectedExpId('mt-magnetic-yoke-inspection');
+    }
+  };
+
+  const handleResetSideDefaults = () => {
+    playCalibrationClick();
+    setTransducerFreqMHz(4.0);
+    setCrystalDiameterMm(12.7);
+    setPlateThicknessMm(20);
+    setProbeAngleDeg(60);
+    setProbeStandoffMm(40);
+    setMagneticFieldKaM(3.6);
+    setYokePoleSpacingMm(120);
+    setMtCurrentMode('AC');
+    setCrackAngleDeg(90);
+    setShowDefectWireframes(true);
+    setXraySpecimenMode(false);
   };
 
   const handlePopulateMultiDefectSample = () => {
@@ -725,9 +778,11 @@ export const VirtualLab: React.FC<VirtualLabProps> = ({ language }) => {
       date: new Date().toISOString().split('T')[0],
       equipmentModel: 'INSCO EPOCH 650 Digital Flaw Detector',
       equipmentSerial: 'USM-98442-NDT',
-      transducerModel: currentExp.blockType === 'angle_weld' ? 'A60-2.25MHz-Shear' : 'N0-5MHz-Longitudinal',
-      transducerFreqMHz: currentExp.blockType === 'angle_weld' ? 2.25 : 5.0,
-      transducerSizeMm: 12.7,
+      transducerModel: currentExp.blockType === 'angle_weld'
+        ? `A${probeAngleDeg}-${transducerFreqMHz}MHz-Shear`
+        : `N0-${transducerFreqMHz}MHz-Longitudinal`,
+      transducerFreqMHz,
+      transducerSizeMm: crystalDiameterMm,
       transducerAngleDeg: currentExp.blockType === 'angle_weld' ? probeAngleDeg : 0,
       blockType: currentExp.blockType === 'iiw_v1' ? 'IIW Type 1 (ISO 2400)' : '5-Step Wedge (ASTM E797)',
       calibratedVelocity: velocity,
@@ -742,7 +797,7 @@ export const VirtualLab: React.FC<VirtualLabProps> = ({ language }) => {
         ? 'Equipment successfully calibrated in full compliance with ASME Sec V Art. 4 & ISO 2400. All measurements fall within acceptable code tolerances (±0.05 mm thickness and ±20 m/s velocity).'
         : 'Calibration failed: Measured velocity deviates from standard carbon steel reference. Recalibrate velocity to 5920 m/s.'
     };
-  }, [currentExp, velocity, zeroDelay, gain, probeAngleDeg, isAr]);
+  }, [currentExp, velocity, zeroDelay, gain, probeAngleDeg, transducerFreqMHz, crystalDiameterMm, isAr]);
 
   return (
     <div className="space-y-6">
@@ -769,8 +824,38 @@ export const VirtualLab: React.FC<VirtualLabProps> = ({ language }) => {
             </p>
           </div>
 
-          {/* Action Buttons: Audio Controls, Generate Report, Reset */}
+          {/* Action Buttons: Side Settings Toggle, Audio Controls, Generate Report, Reset */}
           <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              data-testid="toggle-digital-lab-sidebar"
+              aria-expanded={isSidePanelOpen}
+              onClick={() => {
+                playCalibrationClick();
+                setIsSidePanelOpen((prev) => !prev);
+              }}
+              className={`flex items-center gap-2 px-4 py-3 rounded-2xl border text-xs font-black transition cursor-pointer ${
+                isSidePanelOpen
+                  ? 'bg-cyan-500 text-slate-950 border-cyan-400 shadow-lg shadow-cyan-500/20'
+                  : 'bg-[#090d26] hover:bg-[#131b4d] border-[#232c66] text-cyan-300'
+              }`}
+            >
+              {isSidePanelOpen ? (
+                <PanelLeftClose className="w-4 h-4" />
+              ) : (
+                <PanelLeftOpen className="w-4 h-4" />
+              )}
+              <span>
+                {isAr
+                  ? isSidePanelOpen
+                    ? 'إخفاء الإعدادات الجانبية'
+                    : 'لوحة المتغيرات التقنية (3D)'
+                  : isSidePanelOpen
+                  ? 'Hide Side Settings'
+                  : 'Technical Variables Panel'}
+              </span>
+            </button>
+
             <NdtAudioControlChip language={language} />
 
             <button
@@ -856,8 +941,96 @@ export const VirtualLab: React.FC<VirtualLabProps> = ({ language }) => {
         />
       ) : (
       <div className="grid lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column (5 Cols): 3D Viewport & Physical Block Positioning */}
-        <div className="lg:col-span-6 space-y-4">
+        {/* Dedicated Side Settings Panel for Technical Variables & Real-Time 3D Scene Updates */}
+        {isSidePanelOpen && (
+          <div className="lg:col-span-5 xl:col-span-4 xl:sticky xl:top-4">
+            <DigitalLabSideSettingsPanel
+              language={language}
+              activeBlockType={currentExp.blockType}
+              transducerFreqMHz={transducerFreqMHz}
+              onChangeFreqMHz={(freq) => {
+                playCalibrationClick();
+                setTransducerFreqMHz(freq);
+                ensureUt3dSceneActive(false);
+              }}
+              refractionAngleDeg={probeAngleDeg}
+              onChangeRefractionAngleDeg={(deg) => {
+                playCalibrationClick();
+                setProbeAngleDeg(deg);
+                setVelocity(deg === 0 ? 5920 : 3240);
+                ensureUt3dSceneActive(true);
+              }}
+              crystalDiameterMm={crystalDiameterMm}
+              onChangeCrystalDiameterMm={(mm) => {
+                playCalibrationClick();
+                setCrystalDiameterMm(mm);
+                ensureUt3dSceneActive(false);
+              }}
+              plateThicknessMm={plateThicknessMm}
+              onChangePlateThicknessMm={(mm) => {
+                playCalibrationClick();
+                setPlateThicknessMm(mm);
+                ensureUt3dSceneActive(true);
+              }}
+              probeStandoffMm={probeStandoffMm}
+              onChangeProbeStandoffMm={(mm) => {
+                playProbeScanTick();
+                setProbeStandoffMm(mm);
+                ensureUt3dSceneActive(true);
+              }}
+              magneticFieldKaM={magneticFieldKaM}
+              onChangeMagneticFieldKaM={(kaM) => {
+                playCalibrationClick();
+                setMagneticFieldKaM(kaM);
+                setIsYokeEnergized(kaM > 0.1);
+                ensureMt3dSceneActive();
+              }}
+              yokePoleSpacingMm={yokePoleSpacingMm}
+              onChangeYokePoleSpacingMm={(mm) => {
+                playCalibrationClick();
+                setYokePoleSpacingMm(mm);
+                ensureMt3dSceneActive();
+              }}
+              mtCurrentMode={mtCurrentMode}
+              onChangeMtCurrentMode={(mode) => {
+                playCalibrationClick();
+                setMtCurrentMode(mode);
+                if (!isYokeEnergized && magneticFieldKaM > 0.1) {
+                  setIsYokeEnergized(true);
+                }
+                ensureMt3dSceneActive();
+              }}
+              crackAngleDeg={crackAngleDeg}
+              onChangeCrackAngleDeg={(deg) => {
+                playCalibrationClick();
+                setCrackAngleDeg(deg);
+                ensureMt3dSceneActive();
+              }}
+              xraySpecimenMode={xraySpecimenMode}
+              onToggleXraySpecimen={() => {
+                playCalibrationClick();
+                setXraySpecimenMode((v) => !v);
+              }}
+              showDefectWireframes={showDefectWireframes}
+              onToggleDefectWireframes={() => {
+                playCalibrationClick();
+                setShowDefectWireframes((v) => !v);
+              }}
+              onResetDefaults={handleResetSideDefaults}
+            />
+          </div>
+        )}
+
+        {/* 3D Viewport + Digital A-Scan & Guided Mission Workspace */}
+        <div
+          className={
+            isSidePanelOpen
+              ? 'lg:col-span-7 xl:col-span-8 space-y-6'
+              : 'lg:col-span-12 grid lg:grid-cols-12 gap-6 items-start'
+          }
+        >
+        {/* 3D Viewport & Physical Block Positioning */}
+        <div className={isSidePanelOpen ? 'space-y-4' : 'lg:col-span-6 space-y-4'}>
           <div className="bg-[#0b1028] p-4 rounded-3xl border border-[#1e2756] shadow-xl space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-xs font-black uppercase tracking-wider text-sky-400 flex items-center gap-1.5">
@@ -885,7 +1058,9 @@ export const VirtualLab: React.FC<VirtualLabProps> = ({ language }) => {
                 probeAngleDeg={probeAngleDeg}
                 probePreset={iiwPreset}
                 selectedStep={selectedStep}
-                plateThicknessMm={20}
+                plateThicknessMm={plateThicknessMm}
+                transducerFreqMHz={transducerFreqMHz}
+                crystalDiameterMm={crystalDiameterMm}
                 defectDetected={acousticSimulation.isDefectIntersected}
                 detectedWireframeOverlays={detectedWireframeOverlays}
                 showDefectWireframes={showDefectWireframes}
@@ -901,6 +1076,9 @@ export const VirtualLab: React.FC<VirtualLabProps> = ({ language }) => {
                 isYokeEnergized={isYokeEnergized}
                 areParticlesApplied={areParticlesApplied}
                 crackAngleDeg={crackAngleDeg}
+                magneticFieldKaM={magneticFieldKaM}
+                yokePoleSpacingMm={yokePoleSpacingMm}
+                mtCurrentMode={mtCurrentMode}
               />
               </Suspense>
             </div>
@@ -1016,8 +1194,8 @@ export const VirtualLab: React.FC<VirtualLabProps> = ({ language }) => {
                 </div>
                 <input
                   type="range"
-                  min={20}
-                  max={65}
+                  min={16}
+                  max={75}
                   step={1}
                   aria-label={isAr ? 'مسافة المجس عن مركز اللحام' : 'Probe Standoff (X)'}
                   value={probeStandoffMm}
@@ -1084,7 +1262,15 @@ export const VirtualLab: React.FC<VirtualLabProps> = ({ language }) => {
               <div className="bg-[#070a1a] p-3.5 rounded-2xl border border-slate-800 space-y-3">
                 <div className="grid sm:grid-cols-2 gap-3">
                   <button
-                    onClick={() => setIsYokeEnergized(prev => !prev)}
+                    onClick={() =>
+                      setIsYokeEnergized((prev) => {
+                        const next = !prev;
+                        if (next && magneticFieldKaM < 2.4) {
+                          setMagneticFieldKaM(3.6);
+                        }
+                        return next;
+                      })
+                    }
                     className={`p-3 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-2 cursor-pointer ${
                       isYokeEnergized
                         ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 shadow-lg shadow-emerald-500/10'
@@ -1128,8 +1314,8 @@ export const VirtualLab: React.FC<VirtualLabProps> = ({ language }) => {
           </div>
         </div>
 
-        {/* Right Column (6 Cols): Digital A-Scan Unit & Step-by-Step Mission Checklist */}
-        <div className="lg:col-span-6 space-y-4">
+        {/* Digital A-Scan Unit & Step-by-Step Mission Checklist */}
+        <div className={isSidePanelOpen ? 'space-y-4' : 'lg:col-span-6 space-y-4'}>
           {/* Digital Flaw Detector A-Scan */}
           {currentExp.method === 'UT' && (
             <UtAScanDisplay
@@ -1271,6 +1457,7 @@ export const VirtualLab: React.FC<VirtualLabProps> = ({ language }) => {
               })}
             </div>
           </div>
+        </div>
         </div>
       </div>
       )}

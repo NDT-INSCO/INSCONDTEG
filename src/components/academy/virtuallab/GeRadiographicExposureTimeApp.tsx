@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import * as d3 from 'd3';
 import {
   Clock,
   Radio,
@@ -26,7 +27,9 @@ import {
   X,
   History,
   ArrowLeftRight,
-  Trash2
+  Trash2,
+  Copy,
+  Check
 } from 'lucide-react';
 import { Language } from '../../../types';
 import {
@@ -68,6 +71,141 @@ export interface GeConversionLogEntry {
   formattedDuration: string;
 }
 
+const escapeCsvField = (value: string | number): string => {
+  const str = String(value);
+  if (/[",\n\r]/.test(str)) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+};
+
+export const buildConversionLogCsv = (entries: GeConversionLogEntry[]): string => {
+  const headers = [
+    'Timestamp',
+    'From Unit',
+    'To Unit',
+    'Thickness (mm)',
+    'Thickness (in)',
+    'SFD (cm)',
+    'SFD (in)',
+    'SFD (ft)',
+    'Source Type',
+    'Source Label',
+    'Exposure Time (s)',
+    'Formatted Duration'
+  ];
+
+  const rows = entries.map((entry) => [
+    entry.timestamp,
+    entry.fromUnit,
+    entry.toUnit,
+    entry.thicknessMm,
+    entry.thicknessInches,
+    entry.sfdCm,
+    entry.sfdInches,
+    entry.sfdFeet,
+    entry.sourceType,
+    entry.sourceLabel,
+    entry.calculatedTotalSeconds,
+    entry.formattedDuration
+  ]);
+
+  return [headers, ...rows]
+    .map((row) => row.map(escapeCsvField).join(','))
+    .join('\n');
+};
+
+export type GeConversionFormulaKind =
+  | 'quick_thickness'
+  | 'quick_sfd'
+  | 'thickness'
+  | 'reinforcement'
+  | 'sfd'
+  | 'pipe_od';
+
+export interface GeConversionFormulaOptions {
+  kind: GeConversionFormulaKind;
+  unitSystem: GeUnitSystem;
+  isAr: boolean;
+  metricValue: number;
+  imperialValue: number;
+  secondaryImperialValue?: number;
+}
+
+export const getUnitConversionFormula = ({
+  kind,
+  unitSystem,
+  isAr,
+  metricValue,
+  imperialValue,
+  secondaryImperialValue = 0
+}: GeConversionFormulaOptions): string => {
+  if (kind === 'quick_thickness') {
+    if (unitSystem === 'imperial') {
+      return isAr
+        ? `1 بوصة = 25.4 مم · المعادلة: ${imperialValue} بوصة × 25.4 = ${metricValue.toFixed(1)} مم`
+        : `1 in = 25.4 mm · Math: ${imperialValue} in × 25.4 = ${metricValue.toFixed(1)} mm`;
+    }
+    return isAr
+      ? `1 بوصة = 25.4 مم · المعادلة: ${metricValue.toFixed(1)} مم ÷ 25.4 = ${imperialValue} بوصة`
+      : `1 in = 25.4 mm · Math: ${metricValue.toFixed(1)} mm ÷ 25.4 = ${imperialValue} in`;
+  }
+
+  if (kind === 'quick_sfd') {
+    if (unitSystem === 'imperial') {
+      return isAr
+        ? `1 بوصة = 2.54 سم، 1 قدم = 30.48 سم · المعادلة: ${imperialValue} بوصة × 2.54 = ${metricValue} سم (${secondaryImperialValue} قدم × 30.48)`
+        : `1 in = 2.54 cm, 1 ft = 30.48 cm · Math: ${imperialValue} in × 2.54 = ${metricValue} cm (${secondaryImperialValue} ft × 30.48)`;
+    }
+    return isAr
+      ? `1 بوصة = 2.54 سم، 1 قدم = 30.48 سم · المعادلة: ${metricValue} سم ÷ 2.54 = ${imperialValue} بوصة (${secondaryImperialValue} قدم)`
+      : `1 in = 2.54 cm, 1 ft = 30.48 cm · Math: ${metricValue} cm ÷ 2.54 = ${imperialValue} in (${secondaryImperialValue} ft)`;
+  }
+
+  if (kind === 'sfd') {
+    if (unitSystem === 'imperial') {
+      return isAr
+        ? `1 بوصة = 2.54 سم | 1 قدم = 12 بوصة = 30.48 سم (الحالي: ${imperialValue} in / ${secondaryImperialValue} ft ← ${metricValue} cm)`
+        : `1 inch = 2.54 cm · 1 ft = 12 in = 30.48 cm (Live: ${imperialValue} in / ${secondaryImperialValue} ft → ${metricValue} cm in Inverse Square Law)`;
+    }
+    return isAr
+      ? `1 سم = 0.3937 بوصة | 1 بوصة = 2.54 سم | 1 قدم = 30.48 سم (الحالي: ${metricValue} cm = ${imperialValue} in / ${secondaryImperialValue} ft)`
+      : `1 cm = 0.3937 in · 1 inch = 2.54 cm · 1 ft = 30.48 cm (Live: ${metricValue} cm = ${imperialValue} in / ${secondaryImperialValue} ft)`;
+  }
+
+  if (kind === 'reinforcement') {
+    if (unitSystem === 'imperial') {
+      return isAr
+        ? `1 بوصة = 25.4 مم (الحالي: ${imperialValue} in ← ${metricValue.toFixed(1)} mm)`
+        : `1 inch = 25.4 mm (Live: ${imperialValue} in → ${metricValue.toFixed(1)} mm added to wall)`;
+    }
+    return isAr
+      ? `1 مم = 0.0394 بوصة | 1 بوصة = 25.4 مم (الحالي: ${metricValue} mm = ${imperialValue} in)`
+      : `1 mm = 0.0394 in · 1 inch = 25.4 mm (Live: ${metricValue} mm = ${imperialValue} in)`;
+  }
+
+  if (kind === 'pipe_od') {
+    if (unitSystem === 'imperial') {
+      return isAr
+        ? `1 بوصة = 25.4 مم (الحالي: ${imperialValue} in ← ${metricValue} mm)`
+        : `1 inch = 25.4 mm (Live: ${imperialValue} in → ${metricValue} mm used for Ug & beam path)`;
+    }
+    return isAr
+      ? `1 مم = 0.0394 بوصة | 1 بوصة = 25.4 مم (الحالي: ${metricValue} mm = ${imperialValue} in)`
+      : `1 mm = 0.0394 in · 1 inch = 25.4 mm (Live: ${metricValue} mm = ${imperialValue} in)`;
+  }
+
+  // Default: 'thickness'
+  if (unitSystem === 'imperial') {
+    return isAr
+      ? `1 بوصة = 25.4 مم (الحالي: ${imperialValue} in ← ${metricValue.toFixed(1)} mm في معادلة التوهين)`
+      : `1 inch = 25.4 mm (Live: ${imperialValue} in → ${metricValue.toFixed(1)} mm used in physics engine)`;
+  }
+  return isAr
+    ? `1 مم = 0.0394 بوصة | 1 بوصة = 25.4 مم (الحالي: ${metricValue} mm = ${imperialValue} in)`
+    : `1 mm = 0.0394 in · 1 inch = 25.4 mm (Live: ${metricValue} mm = ${imperialValue} in)`;
+};
+
 interface UnitConversionTooltipProps {
   tooltipText: string;
   testId: string;
@@ -108,6 +246,172 @@ const UnitConversionTooltip: React.FC<UnitConversionTooltipProps> = ({ tooltipTe
         <span>{tooltipText}</span>
       </span>
     </span>
+  );
+};
+
+interface UnitConversionSparklineProps {
+  entries: GeConversionLogEntry[];
+  unitSystem: GeUnitSystem;
+  isAr: boolean;
+}
+
+const UnitConversionSparkline: React.FC<UnitConversionSparklineProps> = ({
+  entries,
+  unitSystem,
+  isAr
+}) => {
+  const width = 84;
+  const height = 24;
+
+  const {
+    points,
+    linePath,
+    areaPath,
+    metricCount,
+    imperialCount
+  } = useMemo(() => {
+    const recent = [...entries.slice(0, 5)].reverse();
+    const mCount = recent.filter((e) => e.toUnit === 'metric').length;
+    const iCount = recent.filter((e) => e.toUnit === 'imperial').length;
+
+    if (recent.length === 0) {
+      return {
+        points: [] as Array<{ x: number; y: number; entry: GeConversionLogEntry }>,
+        linePath: '',
+        areaPath: '',
+        metricCount: 0,
+        imperialCount: 0
+      };
+    }
+
+    const xScale = d3
+      .scaleLinear()
+      .domain([0, Math.max(recent.length - 1, 1)])
+      .range(recent.length === 1 ? [width / 2, width / 2] : [6, width - 6]);
+
+    const yScale = d3
+      .scaleLinear()
+      .domain([0, 1])
+      .range([height - 5, 5]);
+
+    const mapped = recent.map((entry, idx) => ({
+      x: xScale(idx),
+      y: yScale(entry.toUnit === 'imperial' ? 1 : 0),
+      entry
+    }));
+
+    const lineGenerator = d3
+      .line<{ x: number; y: number }>()
+      .x((d) => d.x)
+      .y((d) => d.y)
+      .curve(d3.curveMonotoneX);
+
+    const areaGenerator = d3
+      .area<{ x: number; y: number }>()
+      .x((d) => d.x)
+      .y0(height - 3)
+      .y1((d) => d.y)
+      .curve(d3.curveMonotoneX);
+
+    return {
+      points: mapped,
+      linePath: mapped.length > 1 ? lineGenerator(mapped) || '' : '',
+      areaPath: mapped.length > 1 ? areaGenerator(mapped) || '' : '',
+      metricCount: mCount,
+      imperialCount: iCount
+    };
+  }, [entries]);
+
+  const strokeColor = unitSystem === 'metric' ? '#0ea5e9' : '#f59e0b';
+
+  return (
+    <div
+      data-testid="ge-quick-units-sparkline"
+      title={
+        isAr
+          ? `اتجاه آخر 5 تحويلات: متري (${metricCount}) مقابل إمبراطوري (${imperialCount})`
+          : `Last 5 conversion switches trend: Metric (${metricCount}) vs Imperial (${imperialCount})`
+      }
+      className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-white/75 dark:bg-slate-900/75 border border-slate-200 dark:border-slate-800 text-[10px] font-mono"
+    >
+      <TrendingUp
+        className={`w-3 h-3 shrink-0 ${
+          unitSystem === 'metric' ? 'text-sky-500' : 'text-amber-500'
+        }`}
+        aria-hidden="true"
+      />
+      <svg
+        data-testid="ge-quick-units-sparkline-svg"
+        width={width}
+        height={height}
+        viewBox={`0 0 ${width} ${height}`}
+        role="img"
+        aria-label={
+          isAr
+            ? `مخطط خطي لتكرار التحويلات: ${metricCount} متري و ${imperialCount} إمبراطوري`
+            : `Conversion trend sparkline: ${metricCount} Metric and ${imperialCount} Imperial switches`
+        }
+        className="overflow-visible shrink-0"
+      >
+        <line
+          x1={4}
+          y1={height / 2}
+          x2={width - 4}
+          y2={height / 2}
+          stroke="currentColor"
+          strokeOpacity={0.18}
+          strokeDasharray="2 2"
+          strokeWidth={1}
+        />
+        {areaPath && (
+          <path
+            d={areaPath}
+            fill={strokeColor}
+            fillOpacity={0.16}
+          />
+        )}
+        {linePath && (
+          <path
+            data-testid="ge-quick-units-sparkline-path"
+            d={linePath}
+            fill="none"
+            stroke={strokeColor}
+            strokeWidth={1.75}
+            strokeLinecap="round"
+          />
+        )}
+        {points.map((pt, idx) => (
+          <circle
+            key={pt.entry.id}
+            data-testid={`ge-quick-units-sparkline-point-${idx}`}
+            cx={pt.x}
+            cy={pt.y}
+            r={3}
+            fill={pt.entry.toUnit === 'metric' ? '#0ea5e9' : '#f59e0b'}
+            stroke="#0f172a"
+            strokeWidth={1}
+          >
+            <title>
+              {`${pt.entry.fromUnit === 'metric' ? 'mm/cm' : 'in/ft'} → ${
+                pt.entry.toUnit === 'metric' ? 'mm/cm' : 'in/ft'
+              } (${pt.entry.timestamp})`}
+            </title>
+          </circle>
+        ))}
+      </svg>
+      <span
+        data-testid="ge-quick-units-sparkline-summary"
+        className="flex items-center gap-1 font-bold tabular-nums whitespace-nowrap"
+      >
+        <span className="text-sky-600 dark:text-sky-400">
+          {isAr ? `م:${metricCount}` : `M:${metricCount}`}
+        </span>
+        <span className="text-slate-400">/</span>
+        <span className="text-amber-600 dark:text-amber-400">
+          {isAr ? `إ:${imperialCount}` : `I:${imperialCount}`}
+        </span>
+      </span>
+    </div>
   );
 };
 
@@ -159,7 +463,9 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
     return [];
   });
   const [showConversionLog, setShowConversionLog] = useState<boolean>(false);
+  const [showQuickUnitsHistory, setShowQuickUnitsHistory] = useState<boolean>(false);
   const unitTogglerRef = useRef<HTMLDivElement | null>(null);
+  const quickUnitsHistoryRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!showConversionLog) return;
@@ -171,6 +477,17 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
     document.addEventListener('mousedown', handleOutsideClick);
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, [showConversionLog]);
+
+  useEffect(() => {
+    if (!showQuickUnitsHistory) return;
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (quickUnitsHistoryRef.current && !quickUnitsHistoryRef.current.contains(event.target as Node)) {
+        setShowQuickUnitsHistory(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [showQuickUnitsHistory]);
 
   // Calculator Inputs
   const [sourceType, setSourceType] = useState<GeSourceType>(initialSource);
@@ -414,9 +731,136 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
       // ignore
     }
     setShowConversionLog(false);
+    setShowQuickUnitsHistory(false);
   };
 
   const [resetConfirmed, setResetConfirmed] = useState<boolean>(false);
+  const [unitsResetConfirmed, setUnitsResetConfirmed] = useState<boolean>(false);
+  const [csvExportedConfirmed, setCsvExportedConfirmed] = useState<boolean>(false);
+  const [copiedUnitsConfirmed, setCopiedUnitsConfirmed] = useState<boolean>(false);
+  const [unitTransitionPulse, setUnitTransitionPulse] = useState<boolean>(false);
+  const unitsResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const csvExportTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const copyUnitsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const unitTransitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevUnitSystemRef = useRef<GeUnitSystem>(unitSystem);
+
+  useEffect(() => {
+    if (prevUnitSystemRef.current !== unitSystem) {
+      prevUnitSystemRef.current = unitSystem;
+      setUnitTransitionPulse(true);
+      if (unitTransitionTimeoutRef.current) {
+        clearTimeout(unitTransitionTimeoutRef.current);
+      }
+      unitTransitionTimeoutRef.current = setTimeout(() => setUnitTransitionPulse(false), 550);
+    }
+  }, [unitSystem]);
+
+  useEffect(() => {
+    return () => {
+      if (unitsResetTimeoutRef.current) {
+        clearTimeout(unitsResetTimeoutRef.current);
+      }
+      if (csvExportTimeoutRef.current) {
+        clearTimeout(csvExportTimeoutRef.current);
+      }
+      if (copyUnitsTimeoutRef.current) {
+        clearTimeout(copyUnitsTimeoutRef.current);
+      }
+      if (unitTransitionTimeoutRef.current) {
+        clearTimeout(unitTransitionTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleCopyQuickUnits = async () => {
+    const formattedText =
+      unitSystem === 'metric'
+        ? `Thickness (t): ${materialThicknessMm.toFixed(1)} mm · SFD: ${sfdCm} cm`
+        : `Thickness (t): ${thicknessInches}" · SFD: ${sfdInches}" (${sfdFeet} ft)`;
+
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        await navigator.clipboard.writeText(formattedText);
+      } else if (typeof document !== 'undefined') {
+        const textarea = document.createElement('textarea');
+        textarea.value = formattedText;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand?.('copy');
+        document.body.removeChild(textarea);
+      }
+    } catch {
+      // ignore in restricted environments
+    }
+
+    setCopiedUnitsConfirmed(true);
+    if (copyUnitsTimeoutRef.current) {
+      clearTimeout(copyUnitsTimeoutRef.current);
+    }
+    copyUnitsTimeoutRef.current = setTimeout(() => setCopiedUnitsConfirmed(false), 2000);
+  };
+
+  const handleExportConversionLogCsv = () => {
+    if (conversionLog.length === 0) return;
+    const csvContent = buildConversionLogCsv(conversionLog);
+    const filename = `ge-conversion-log-${new Date().toISOString().slice(0, 10)}.csv`;
+
+    try {
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function'
+        ? URL.createObjectURL(blob)
+        : `data:text/csv;charset=utf-8,${encodeURIComponent(csvContent)}`;
+
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      if (typeof URL !== 'undefined' && typeof URL.revokeObjectURL === 'function' && url.startsWith('blob:')) {
+        URL.revokeObjectURL(url);
+      }
+    } catch {
+      // ignore in restricted environments
+    }
+
+    setCsvExportedConfirmed(true);
+    if (csvExportTimeoutRef.current) {
+      clearTimeout(csvExportTimeoutRef.current);
+    }
+    csvExportTimeoutRef.current = setTimeout(() => setCsvExportedConfirmed(false), 2000);
+  };
+
+  const handleResetUnitsOnly = () => {
+    let savedUnitSystem: GeUnitSystem = 'metric';
+    try {
+      const stored = localStorage.getItem('ge_app_unit_system');
+      if (stored === 'metric' || stored === 'imperial') {
+        savedUnitSystem = stored;
+      }
+    } catch {
+      // ignore
+    }
+
+    setUnitSystem(savedUnitSystem);
+    setMaterialThicknessMm(initialThicknessMm);
+    setWeldReinforcementMm(2.5);
+    setSfdCm(initialSfdCm);
+    setPipeOuterDiameterMm(114.3);
+    setShowQuickUnitsHistory(false);
+
+    setUnitsResetConfirmed(true);
+    if (unitsResetTimeoutRef.current) {
+      clearTimeout(unitsResetTimeoutRef.current);
+    }
+    unitsResetTimeoutRef.current = setTimeout(() => setUnitsResetConfirmed(false), 2000);
+  };
 
   const handleResetAllInputs = () => {
     setUnitSystem('metric');
@@ -426,6 +870,7 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
       // ignore
     }
     setShowConversionLog(false);
+    setShowQuickUnitsHistory(false);
 
     setSourceType(initialSource);
     setMaterialId('carbon_steel');
@@ -472,6 +917,66 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
     unitSystem === 'metric'
       ? 'bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/40'
       : 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/40';
+
+  // Dynamic conversion formula strings derived from active unit system & live dimensions
+  const conversionFormulas = useMemo(() => ({
+    quickThickness: getUnitConversionFormula({
+      kind: 'quick_thickness',
+      unitSystem,
+      isAr,
+      metricValue: materialThicknessMm,
+      imperialValue: thicknessInches
+    }),
+    quickSfd: getUnitConversionFormula({
+      kind: 'quick_sfd',
+      unitSystem,
+      isAr,
+      metricValue: sfdCm,
+      imperialValue: sfdInches,
+      secondaryImperialValue: sfdFeet
+    }),
+    thickness: getUnitConversionFormula({
+      kind: 'thickness',
+      unitSystem,
+      isAr,
+      metricValue: materialThicknessMm,
+      imperialValue: thicknessInches
+    }),
+    reinforcement: getUnitConversionFormula({
+      kind: 'reinforcement',
+      unitSystem,
+      isAr,
+      metricValue: weldReinforcementMm,
+      imperialValue: reinforcementInches
+    }),
+    sfd: getUnitConversionFormula({
+      kind: 'sfd',
+      unitSystem,
+      isAr,
+      metricValue: sfdCm,
+      imperialValue: sfdInches,
+      secondaryImperialValue: sfdFeet
+    }),
+    pipeOd: getUnitConversionFormula({
+      kind: 'pipe_od',
+      unitSystem,
+      isAr,
+      metricValue: pipeOuterDiameterMm,
+      imperialValue: pipeOdInches
+    })
+  }), [
+    unitSystem,
+    isAr,
+    materialThicknessMm,
+    thicknessInches,
+    weldReinforcementMm,
+    reinforcementInches,
+    sfdCm,
+    sfdInches,
+    sfdFeet,
+    pipeOuterDiameterMm,
+    pipeOdInches
+  ]);
 
   // Sync initial timer duration when calculated seconds update and timer is idle
   useEffect(() => {
@@ -1271,17 +1776,24 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
         id="ge-quick-units-bar"
         data-testid="ge-quick-units-bar"
         data-unit-mode={unitSystem}
+        data-unit-transitioning={unitTransitionPulse ? 'true' : 'false'}
         className={`flex flex-wrap items-center justify-between gap-3 px-4 py-3 rounded-2xl border-2 transition-all duration-500 ease-in-out ${
           unitSystem === 'metric'
-            ? 'bg-sky-500/10 border-sky-500/60 shadow-[0_0_18px_rgba(14,165,233,0.16)] dark:bg-sky-950/35 dark:border-sky-500/50'
-            : 'bg-amber-500/10 border-amber-500/70 shadow-[0_0_18px_rgba(245,158,11,0.22)] dark:bg-amber-950/35 dark:border-amber-500/60'
+            ? `bg-sky-500/10 border-sky-500/60 shadow-[0_0_18px_rgba(14,165,233,0.16)] dark:bg-sky-950/35 dark:border-sky-500/50 ${
+                unitTransitionPulse ? 'ring-4 ring-sky-400/45 scale-[1.01]' : 'ring-0 ring-transparent scale-100'
+              }`
+            : `bg-amber-500/10 border-amber-500/70 shadow-[0_0_18px_rgba(245,158,11,0.22)] dark:bg-amber-950/35 dark:border-amber-500/60 ${
+                unitTransitionPulse ? 'ring-4 ring-amber-400/50 scale-[1.01]' : 'ring-0 ring-transparent scale-100'
+              }`
         }`}
       >
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
             <ArrowLeftRight
-              className={`w-4 h-4 shrink-0 transition-colors duration-500 ease-in-out ${
-                unitSystem === 'metric' ? 'text-sky-600 dark:text-sky-400' : 'text-amber-600 dark:text-amber-400'
+              className={`w-4 h-4 shrink-0 transition-all duration-500 ease-in-out ${
+                unitSystem === 'metric'
+                  ? 'text-sky-600 dark:text-sky-400 rotate-0 scale-100'
+                  : 'text-amber-600 dark:text-amber-400 rotate-180 scale-110'
               }`}
               aria-hidden="true"
             />
@@ -1292,7 +1804,9 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
 
           <span
             data-testid="ge-quick-units-active-cue"
-            className={`px-2.5 py-1 rounded-lg text-[11px] font-mono font-black border flex items-center gap-1.5 transition-colors duration-500 ease-in-out ${
+            className={`px-2.5 py-1 rounded-lg text-[11px] font-mono font-black border flex items-center gap-1.5 transition-all duration-500 ease-in-out ${
+              unitTransitionPulse ? 'scale-105' : 'scale-100'
+            } ${
               unitSystem === 'metric'
                 ? 'bg-sky-500 text-white border-sky-600 shadow-sm'
                 : 'bg-amber-500 text-slate-950 border-amber-600 shadow-sm'
@@ -1311,14 +1825,74 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
             </span>
           </span>
 
-          <span
-            data-testid="ge-quick-units-preview"
-            className="text-xs font-mono text-slate-700 dark:text-slate-300 transition-colors duration-500 ease-in-out"
+          <button
+            type="button"
+            data-testid="ge-quick-units-copy-btn"
+            onClick={handleCopyQuickUnits}
+            aria-label={
+              copiedUnitsConfirmed
+                ? (isAr ? 'تم نسخ قيم السُمك و SFD' : 'Copied thickness and SFD values')
+                : (isAr ? 'نسخ قيم السُمك و SFD الحالية للحافظة' : 'Copy current thickness and SFD values to clipboard')
+            }
+            title={
+              copiedUnitsConfirmed
+                ? (isAr ? 'تم النسخ!' : 'Copied!')
+                : (isAr ? 'نسخ السُمك و SFD إلى الحافظة' : 'Copy Thickness & SFD to Clipboard')
+            }
+            className={`p-1.5 rounded-lg border transition-colors duration-300 ease-in-out cursor-pointer inline-flex items-center gap-1 text-[11px] font-mono font-bold ${
+              copiedUnitsConfirmed
+                ? 'border-emerald-500/60 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                : 'bg-white/75 dark:bg-slate-900/75 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:border-sky-500/60 hover:text-sky-600 dark:hover:text-sky-400'
+            }`}
           >
-            {unitSystem === 'metric'
-              ? `t: ${materialThicknessMm.toFixed(1)} mm · SFD: ${sfdCm} cm`
-              : `t: ${thicknessInches}" · SFD: ${sfdInches}" (${sfdFeet} ft)`}
-          </span>
+            {copiedUnitsConfirmed ? (
+              <>
+                <Check className="w-3.5 h-3.5" aria-hidden="true" />
+                <span>{isAr ? 'تم النسخ' : 'Copied'}</span>
+              </>
+            ) : (
+              <Copy className="w-3.5 h-3.5" aria-hidden="true" />
+            )}
+          </button>
+
+          <div
+            data-testid="ge-quick-units-preview"
+            className="flex flex-wrap items-center gap-2.5 text-xs font-mono text-slate-700 dark:text-slate-300 transition-colors duration-500 ease-in-out"
+          >
+            <span className="inline-flex items-center gap-1">
+              <span>
+                {unitSystem === 'metric'
+                  ? `Thickness (t): ${materialThicknessMm.toFixed(1)} mm`
+                  : `Thickness (t): ${thicknessInches}"`}
+              </span>
+              <UnitConversionTooltip
+                testId="ge-quick-units-tooltip-thickness"
+                isAr={isAr}
+                tooltipText={conversionFormulas.quickThickness}
+              />
+            </span>
+
+            <span className="text-slate-400 dark:text-slate-600" aria-hidden="true">·</span>
+
+            <span className="inline-flex items-center gap-1">
+              <span>
+                {unitSystem === 'metric'
+                  ? `SFD: ${sfdCm} cm`
+                  : `SFD: ${sfdInches}" (${sfdFeet} ft)`}
+              </span>
+              <UnitConversionTooltip
+                testId="ge-quick-units-tooltip-sfd"
+                isAr={isAr}
+                tooltipText={conversionFormulas.quickSfd}
+              />
+            </span>
+
+            <UnitConversionSparkline
+              entries={conversionLog}
+              unitSystem={unitSystem}
+              isAr={isAr}
+            />
+          </div>
         </div>
 
         <div className="flex items-center gap-2.5">
@@ -1369,6 +1943,202 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
             }`}
           >
             in / ft
+          </button>
+
+          <span className="h-5 w-px bg-slate-300/80 dark:bg-slate-700/80 mx-0.5" aria-hidden="true" />
+
+          {/* Quick Conversion History Dropdown inside #ge-quick-units-bar */}
+          <div ref={quickUnitsHistoryRef} className="relative">
+            <button
+              type="button"
+              data-testid="ge-quick-units-history-toggle"
+              aria-expanded={showQuickUnitsHistory}
+              aria-haspopup="menu"
+              onClick={() => setShowQuickUnitsHistory((prev) => !prev)}
+              title={isAr ? 'استعراض وإعادة تطبيق آخر 5 تحويلات' : 'View & re-apply last 5 unit conversions'}
+              className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold border transition-colors duration-300 ease-in-out cursor-pointer flex items-center gap-1.5 ${
+                showQuickUnitsHistory
+                  ? unitSystem === 'metric'
+                    ? 'bg-sky-500 text-white border-sky-600 shadow-sm'
+                    : 'bg-amber-500 text-slate-950 border-amber-600 shadow-sm'
+                  : 'bg-white/70 dark:bg-slate-900/70 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800'
+              }`}
+            >
+              <History className="w-3.5 h-3.5" aria-hidden="true" />
+              <span>{isAr ? 'آخر 5' : 'History'}</span>
+              <span
+                data-testid="ge-quick-units-history-count"
+                className={`px-1.5 py-0.2 rounded-md text-[10px] font-black tabular-nums ${
+                  showQuickUnitsHistory
+                    ? 'bg-black/15 text-current'
+                    : unitSystem === 'metric'
+                      ? 'bg-sky-500/15 text-sky-700 dark:text-sky-300'
+                      : 'bg-amber-500/20 text-amber-700 dark:text-amber-300'
+                }`}
+              >
+                {conversionLog.length}
+              </span>
+            </button>
+
+            {showQuickUnitsHistory && (
+              <div
+                role="menu"
+                data-testid="ge-quick-units-history-menu"
+                aria-label={isAr ? 'قائمة آخر 5 تحويلات للوحدات' : 'Last 5 unit conversions'}
+                className={`absolute top-full mt-2 ${
+                  isAr ? 'left-0' : 'right-0'
+                } z-50 w-72 sm:w-80 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl p-3 space-y-2.5 text-xs font-mono`}
+              >
+                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+                  <div className="flex items-center gap-1.5 font-bold text-slate-900 dark:text-white">
+                    <ArrowLeftRight
+                      className={`w-3.5 h-3.5 ${
+                        unitSystem === 'metric' ? 'text-sky-500' : 'text-amber-500'
+                      }`}
+                      aria-hidden="true"
+                    />
+                    <span>{isAr ? 'سجل التحويلات (آخر 5)' : 'Recent Conversions (Last 5)'}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {conversionLog.length > 0 && (
+                      <button
+                        type="button"
+                        data-testid="ge-quick-units-history-clear"
+                        onClick={handleClearConversionLog}
+                        className="px-1.5 py-0.5 rounded-md text-[10px] text-red-500 hover:bg-red-500/10 transition flex items-center gap-1 cursor-pointer"
+                        title={isAr ? 'مسح السجل' : 'Clear history'}
+                      >
+                        <Trash2 className="w-3 h-3" aria-hidden="true" />
+                        <span>{isAr ? 'مسح' : 'Clear'}</span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      data-testid="ge-quick-units-history-close"
+                      onClick={() => setShowQuickUnitsHistory(false)}
+                      className="p-1 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-white cursor-pointer"
+                      aria-label={isAr ? 'إغلاق القائمة' : 'Close conversion history menu'}
+                    >
+                      <X className="w-3.5 h-3.5" aria-hidden="true" />
+                    </button>
+                  </div>
+                </div>
+
+                {conversionLog.length === 0 ? (
+                  <div
+                    data-testid="ge-quick-units-history-empty"
+                    className="py-4 text-center text-[11px] text-slate-500 dark:text-slate-400 space-y-1"
+                  >
+                    <History className="w-5 h-5 mx-auto text-slate-400 opacity-60" aria-hidden="true" />
+                    <p>
+                      {isAr
+                        ? 'لا توجد تحويلات بعد. بدّل بين المتري والإمبراطوري للتسجيل.'
+                        : 'No conversions yet. Toggle units to record your last 5 conversions.'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5 max-h-64 overflow-y-auto pr-0.5">
+                    {conversionLog.slice(0, 5).map((entry, idx) => (
+                      <div
+                        key={entry.id}
+                        role="menuitem"
+                        data-testid={`ge-quick-units-history-item-${idx}`}
+                        className="p-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-sky-500/50 transition space-y-1"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span
+                            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                              entry.toUnit === 'imperial'
+                                ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
+                                : 'bg-sky-500/15 text-sky-700 dark:text-sky-300'
+                            }`}
+                          >
+                            <span>{entry.fromUnit === 'metric' ? 'mm/cm' : 'in/ft'}</span>
+                            <ArrowRight className="w-2.5 h-2.5" aria-hidden="true" />
+                            <span>{entry.toUnit === 'metric' ? 'mm/cm' : 'in/ft'}</span>
+                          </span>
+                          <span className="text-[10px] text-slate-400 tabular-nums">{entry.timestamp}</span>
+                        </div>
+
+                        <div className="text-[10px] text-slate-700 dark:text-slate-300 flex flex-wrap gap-x-2">
+                          <span>
+                            t: <strong>{entry.thicknessMm} mm</strong> ⇄ <strong>{entry.thicknessInches} in</strong>
+                          </span>
+                          <span>
+                            SFD: <strong>{entry.sfdCm} cm</strong> ⇄ <strong>{entry.sfdInches} in</strong>
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-1 border-t border-slate-200/70 dark:border-slate-800/70 text-[10px]">
+                          <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                            {entry.sourceLabel} · {entry.formattedDuration}
+                          </span>
+                          <button
+                            type="button"
+                            data-testid={`ge-quick-units-history-apply-${idx}`}
+                            onClick={() => handleRestoreConversionEntry(entry)}
+                            className="px-2 py-0.5 rounded-md bg-sky-500/15 hover:bg-sky-500 hover:text-white text-sky-600 dark:text-sky-400 font-bold transition cursor-pointer"
+                          >
+                            {isAr ? 'تطبيق' : 'Re-apply'}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Export Conversion Log CSV Button inside #ge-quick-units-bar */}
+          <button
+            type="button"
+            data-testid="ge-quick-units-export-csv-btn"
+            onClick={handleExportConversionLogCsv}
+            disabled={conversionLog.length === 0}
+            title={
+              conversionLog.length === 0
+                ? (isAr ? 'بدّل الوحدات أولاً لتسجيل تحويلات قابلة للتصدير' : 'Switch units at least once to export conversion log CSV')
+                : (isAr ? 'تصدير سجل التحويلات الحالي كملف CSV' : 'Export current conversion log as CSV')
+            }
+            className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold border transition-colors duration-300 ease-in-out flex items-center gap-1.5 ${
+              conversionLog.length === 0
+                ? 'bg-slate-100 dark:bg-slate-900/40 text-slate-400 dark:text-slate-600 border-slate-200 dark:border-slate-800 cursor-not-allowed opacity-60'
+                : csvExportedConfirmed
+                  ? 'border-emerald-500/60 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 cursor-pointer'
+                  : 'bg-white/70 dark:bg-slate-900/70 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700 hover:bg-sky-500/10 hover:border-sky-500/50 hover:text-sky-600 dark:hover:text-sky-400 cursor-pointer'
+            }`}
+          >
+            <Download className="w-3.5 h-3.5" aria-hidden="true" />
+            <span>
+              {csvExportedConfirmed
+                ? (isAr ? 'تم تصدير CSV' : 'CSV Exported')
+                : (isAr ? 'تصدير CSV' : 'Export CSV')}
+            </span>
+          </button>
+
+          {/* Reset Units Only Button inside #ge-quick-units-bar */}
+          <button
+            type="button"
+            data-testid="ge-quick-units-reset-only-btn"
+            onClick={handleResetUnitsOnly}
+            title={
+              isAr
+                ? 'إعادة ضبط مدخلات السُمك والمسافة فقط إلى القيم الافتراضية دون تصفير باقي الحاسبة'
+                : 'Reset only thickness & distance inputs to last saved system defaults without a full app reset'
+            }
+            className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold border transition-colors duration-300 ease-in-out cursor-pointer flex items-center gap-1.5 ${
+              unitsResetConfirmed
+                ? 'border-emerald-500/60 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                : 'bg-white/70 dark:bg-slate-900/70 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700 hover:bg-red-500/10 hover:border-red-400/50 hover:text-red-600 dark:hover:text-red-400'
+            }`}
+          >
+            <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
+            <span>
+              {unitsResetConfirmed
+                ? (isAr ? 'تم ضبط الوحدات' : 'Units Reset')
+                : (isAr ? 'إعادة ضبط الوحدات فقط' : 'Reset Units Only')}
+            </span>
           </button>
         </div>
       </div>
@@ -1645,15 +2415,7 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                   <UnitConversionTooltip
                     testId="ge-tooltip-thickness"
                     isAr={isAr}
-                    tooltipText={
-                      unitSystem === 'imperial'
-                        ? (isAr
-                            ? `1 بوصة = 25.4 مم (الحالي: ${thicknessInches} in ← ${materialThicknessMm.toFixed(1)} mm في معادلة التوهين)`
-                            : `1 inch = 25.4 mm (Live: ${thicknessInches} in → ${materialThicknessMm.toFixed(1)} mm used in physics engine)`)
-                        : (isAr
-                            ? `1 مم = 0.0394 بوصة | 1 بوصة = 25.4 مم (الحالي: ${materialThicknessMm} mm = ${thicknessInches} in)`
-                            : `1 mm = 0.0394 in · 1 inch = 25.4 mm (Live: ${materialThicknessMm} mm = ${thicknessInches} in)`)
-                    }
+                    tooltipText={conversionFormulas.thickness}
                   />
                 </span>
                 <div className="flex items-center gap-2 font-mono">
@@ -1754,15 +2516,7 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                   <UnitConversionTooltip
                     testId="ge-tooltip-reinforcement"
                     isAr={isAr}
-                    tooltipText={
-                      unitSystem === 'imperial'
-                        ? (isAr
-                            ? `1 بوصة = 25.4 مم (الحالي: ${reinforcementInches} in ← ${weldReinforcementMm.toFixed(1)} mm)`
-                            : `1 inch = 25.4 mm (Live: ${reinforcementInches} in → ${weldReinforcementMm.toFixed(1)} mm added to wall)`)
-                        : (isAr
-                            ? `1 مم = 0.0394 بوصة | 1 بوصة = 25.4 مم (الحالي: ${weldReinforcementMm} mm = ${reinforcementInches} in)`
-                            : `1 mm = 0.0394 in · 1 inch = 25.4 mm (Live: ${weldReinforcementMm} mm = ${reinforcementInches} in)`)
-                    }
+                    tooltipText={conversionFormulas.reinforcement}
                   />
                 </span>
                 <div className="flex items-center gap-2 font-mono">
@@ -1847,15 +2601,7 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                   <UnitConversionTooltip
                     testId="ge-tooltip-sfd"
                     isAr={isAr}
-                    tooltipText={
-                      unitSystem === 'imperial'
-                        ? (isAr
-                            ? `1 بوصة = 2.54 سم | 1 قدم = 12 بوصة = 30.48 سم (الحالي: ${sfdInches} in / ${sfdFeet} ft ← ${sfdCm} cm)`
-                            : `1 inch = 2.54 cm · 1 ft = 12 in = 30.48 cm (Live: ${sfdInches} in / ${sfdFeet} ft → ${sfdCm} cm in Inverse Square Law)`)
-                        : (isAr
-                            ? `1 سم = 0.3937 بوصة | 1 بوصة = 2.54 سم | 1 قدم = 30.48 سم (الحالي: ${sfdCm} cm = ${sfdInches} in / ${sfdFeet} ft)`
-                            : `1 cm = 0.3937 in · 1 inch = 2.54 cm · 1 ft = 30.48 cm (Live: ${sfdCm} cm = ${sfdInches} in / ${sfdFeet} ft)`)
-                    }
+                    tooltipText={conversionFormulas.sfd}
                   />
                 </span>
                 <strong className={`font-mono ${unitSystem === 'metric' ? 'text-sky-600 dark:text-sky-400' : 'text-amber-600 dark:text-amber-400'}`}>
@@ -1952,15 +2698,7 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                     <UnitConversionTooltip
                       testId="ge-tooltip-pipe-od"
                       isAr={isAr}
-                      tooltipText={
-                        unitSystem === 'imperial'
-                          ? (isAr
-                              ? `1 بوصة = 25.4 مم (الحالي: ${pipeOdInches} in ← ${pipeOuterDiameterMm} mm)`
-                              : `1 inch = 25.4 mm (Live: ${pipeOdInches} in → ${pipeOuterDiameterMm} mm used for Ug & beam path)`)
-                          : (isAr
-                              ? `1 مم = 0.0394 بوصة | 1 بوصة = 25.4 مم (الحالي: ${pipeOuterDiameterMm} mm = ${pipeOdInches} in)`
-                              : `1 mm = 0.0394 in · 1 inch = 25.4 mm (Live: ${pipeOuterDiameterMm} mm = ${pipeOdInches} in)`)
-                      }
+                      tooltipText={conversionFormulas.pipeOd}
                     />
                   </span>
                   <div className="flex items-center gap-2 font-mono">

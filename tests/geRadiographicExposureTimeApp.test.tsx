@@ -10,7 +10,11 @@ import {
   GE_ISOTOPES,
   GE_STRUCTURIX_FILMS
 } from '../src/utils/geExposureTimeEngine';
-import { GeRadiographicExposureTimeApp } from '../src/components/academy/virtuallab/GeRadiographicExposureTimeApp';
+import {
+  GeRadiographicExposureTimeApp,
+  buildConversionLogCsv,
+  getUnitConversionFormula
+} from '../src/components/academy/virtuallab/GeRadiographicExposureTimeApp';
 import { NdtVirtualLabWorkbench } from '../src/components/academy/virtuallab/NdtVirtualLabWorkbench';
 import { RadiographicTestingLab } from '../src/components/academy/virtuallab/RadiographicTestingLab';
 import { InteractiveWorkshops } from '../src/components/academy/InteractiveWorkshops';
@@ -36,7 +40,7 @@ if (!globalThis.URL.revokeObjectURL) {
   globalThis.URL.revokeObjectURL = () => {};
 }
 
-const { render, fireEvent, cleanup, screen } = await import('@testing-library/react');
+const { render, fireEvent, cleanup, screen, waitFor } = await import('@testing-library/react');
 
 afterEach(() => {
   cleanup();
@@ -807,5 +811,390 @@ test('GeRadiographicExposureTimeApp renders Quick Units toggle switch directly a
   assert.equal(quickSwitch.getAttribute('aria-checked'), 'true');
   assert.equal(ui.getByTestId('ge-conversion-log-count').textContent, '3');
 });
+
+test('GeRadiographicExposureTimeApp #ge-quick-units-bar includes a dropdown menu to view and re-apply the last 5 unit conversions', () => {
+  localStorage.removeItem('ge_app_unit_system');
+  localStorage.removeItem('ge_app_conversion_log');
+  const ui = render(<GeRadiographicExposureTimeApp language="en" />);
+
+  const quickBar = ui.container.querySelector('#ge-quick-units-bar') as HTMLElement;
+  assert.ok(quickBar);
+
+  const historyToggle = ui.getByTestId('ge-quick-units-history-toggle');
+  assert.ok(quickBar.contains(historyToggle), 'Expected history toggle inside #ge-quick-units-bar');
+  assert.equal(ui.getByTestId('ge-quick-units-history-count').textContent, '0');
+
+  // Empty state before any conversions
+  fireEvent.click(historyToggle);
+  assert.ok(ui.getByTestId('ge-quick-units-history-menu'));
+  assert.ok(ui.getByTestId('ge-quick-units-history-empty'));
+  fireEvent.click(ui.getByTestId('ge-quick-units-history-close'));
+  assert.equal(ui.queryByTestId('ge-quick-units-history-menu'), null);
+
+  // Perform 6 conversions with distinct wall thicknesses so only the last 5 remain
+  const quickSwitch = ui.getByTestId('ge-quick-units-switch');
+  const thicknessValuesMm = ['10', '16', '22', '28', '34', '40'];
+  for (let i = 0; i < thicknessValuesMm.length; i++) {
+    if (i % 2 === 0) {
+      fireEvent.change(ui.getByTestId('ge-thickness-number-input'), { target: { value: thicknessValuesMm[i] } });
+    } else {
+      const inchesVal = (Number(thicknessValuesMm[i]) / 25.4).toFixed(3);
+      fireEvent.change(ui.getByTestId('ge-thickness-imperial-input'), { target: { value: inchesVal } });
+    }
+    fireEvent.click(quickSwitch);
+  }
+
+  assert.equal(ui.getByTestId('ge-quick-units-history-count').textContent, '5');
+
+  // Open Quick Units history menu and verify max 5 items (most recent first)
+  fireEvent.click(historyToggle);
+  const menu = ui.getByTestId('ge-quick-units-history-menu');
+  assert.ok(quickBar.contains(menu));
+  assert.ok(ui.getByTestId('ge-quick-units-history-item-0').textContent?.includes('40 mm'));
+  assert.ok(ui.getByTestId('ge-quick-units-history-item-4').textContent?.includes('16 mm'));
+  assert.equal(ui.queryByTestId('ge-quick-units-history-item-5'), null);
+
+  // Re-apply item #3 (22 mm -> imperial) and confirm inputs + unit mode restore and menu closes
+  fireEvent.click(ui.getByTestId('ge-quick-units-history-apply-3'));
+  assert.equal(ui.queryByTestId('ge-quick-units-history-menu'), null);
+  assert.equal(quickBar.getAttribute('data-unit-mode'), 'imperial');
+  assert.ok(ui.getByTestId('ge-quick-units-preview').textContent?.includes('0.866"'));
+
+  // Re-open menu and re-apply item #4 (16 mm -> metric)
+  fireEvent.click(historyToggle);
+  fireEvent.click(ui.getByTestId('ge-quick-units-history-apply-4'));
+  assert.equal(ui.queryByTestId('ge-quick-units-history-menu'), null);
+  assert.equal(quickBar.getAttribute('data-unit-mode'), 'metric');
+  assert.ok(ui.getByTestId('ge-quick-units-preview').textContent?.includes('16.0 mm'));
+
+  // Re-open menu and clear conversion history
+  fireEvent.click(historyToggle);
+  fireEvent.click(ui.getByTestId('ge-quick-units-history-clear'));
+  assert.equal(ui.getByTestId('ge-quick-units-history-count').textContent, '0');
+  assert.ok(ui.getByTestId('ge-quick-units-history-empty'));
+});
+
+test('GeRadiographicExposureTimeApp #ge-quick-units-bar Reset Units Only resets only thickness and distance inputs without full app reset', () => {
+  localStorage.removeItem('ge_app_unit_system');
+  localStorage.removeItem('ge_app_conversion_log');
+  const ui = render(<GeRadiographicExposureTimeApp language="en" />);
+
+  const quickBar = ui.container.querySelector('#ge-quick-units-bar') as HTMLElement;
+  const resetUnitsBtn = ui.getByTestId('ge-quick-units-reset-only-btn');
+  assert.ok(quickBar.contains(resetUnitsBtn), 'Expected Reset Units Only button inside #ge-quick-units-bar');
+  assert.ok(resetUnitsBtn.textContent?.includes('Reset Units Only'));
+
+  // Modify non-unit inputs
+  fireEvent.change(ui.getByTestId('ge-select-source-type'), { target: { value: 'co60' } });
+  fireEvent.change(ui.getByTestId('ge-select-material'), { target: { value: 'stainless_steel' } });
+  fireEvent.change(ui.getByTestId('ge-select-film'), { target: { value: 'd4' } });
+  fireEvent.click(ui.getByTestId('ge-lead-screens-toggle')); // false
+
+  // Switch to Imperial (saved as last unit system in localStorage) and modify thickness & SFD
+  fireEvent.click(ui.getByTestId('ge-quick-units-imperial'));
+  fireEvent.change(ui.getByTestId('ge-thickness-imperial-input'), { target: { value: '2.0' } });
+  fireEvent.change(ui.getByTestId('ge-sfd-imperial-input'), { target: { value: '40' } });
+  assert.ok(ui.getByTestId('ge-quick-units-preview').textContent?.includes('2"'));
+
+  // Click Reset Units Only
+  fireEvent.click(resetUnitsBtn);
+
+  // Visual confirmation & dimensional inputs restored to defaults (12 mm = 0.472", 70 cm = 27.6")
+  assert.ok(resetUnitsBtn.textContent?.includes('Units Reset'));
+  assert.equal(quickBar.getAttribute('data-unit-mode'), 'imperial'); // respects last saved unit system
+  assert.equal((ui.getByTestId('ge-thickness-imperial-input') as HTMLInputElement).value, '0.472');
+  assert.equal((ui.getByTestId('ge-sfd-imperial-input') as HTMLInputElement).value, '27.6');
+
+  // Non-unit settings remain untouched (NOT a full app reset)
+  assert.equal((ui.getByTestId('ge-select-source-type') as HTMLSelectElement).value, 'co60');
+  assert.equal((ui.getByTestId('ge-select-material') as HTMLSelectElement).value, 'stainless_steel');
+  assert.equal((ui.getByTestId('ge-select-film') as HTMLSelectElement).value, 'd4');
+  assert.equal((ui.getByTestId('ge-lead-screens-toggle') as HTMLInputElement).checked, false);
+});
+
+test('GeRadiographicExposureTimeApp #ge-quick-units-bar exports the current conversion log as a valid CSV file', async () => {
+  localStorage.removeItem('ge_app_unit_system');
+  localStorage.removeItem('ge_app_conversion_log');
+  const ui = render(<GeRadiographicExposureTimeApp language="en" />);
+
+  const quickBar = ui.container.querySelector('#ge-quick-units-bar') as HTMLElement;
+  const exportCsvBtn = ui.getByTestId('ge-quick-units-export-csv-btn') as HTMLButtonElement;
+  assert.ok(quickBar.contains(exportCsvBtn), 'Expected Export CSV button inside #ge-quick-units-bar');
+
+  // Disabled before any conversions are logged
+  assert.equal(exportCsvBtn.disabled, true);
+
+  // Record 2 conversions with distinct thickness values
+  fireEvent.change(ui.getByTestId('ge-thickness-number-input'), { target: { value: '18' } });
+  fireEvent.click(ui.getByTestId('ge-quick-units-switch')); // metric -> imperial
+  fireEvent.click(ui.getByTestId('ge-quick-units-switch')); // imperial -> metric
+
+  assert.equal(exportCsvBtn.disabled, false);
+
+  // Intercept Blob & createObjectURL to inspect exported CSV content and download filename
+  let capturedBlob: Blob | null = null;
+  let downloadedFilename: string | null = null;
+  const origCreateObjectURL = globalThis.URL.createObjectURL;
+  const origCreateElement = document.createElement.bind(document);
+
+  globalThis.URL.createObjectURL = ((obj: Blob) => {
+    capturedBlob = obj;
+    return 'blob:mock-csv-url';
+  }) as any;
+
+  (document as any).createElement = (tagName: string, options?: any) => {
+    const el = origCreateElement(tagName, options);
+    if (tagName.toLowerCase() === 'a') {
+      const origSetAttr = el.setAttribute.bind(el);
+      el.setAttribute = (name: string, value: string) => {
+        if (name === 'download') {
+          downloadedFilename = value;
+        }
+        return origSetAttr(name, value);
+      };
+      el.click = () => {};
+    }
+    return el;
+  };
+
+  try {
+    fireEvent.click(exportCsvBtn);
+
+    assert.ok(exportCsvBtn.textContent?.includes('CSV Exported'));
+    assert.ok(downloadedFilename?.startsWith('ge-conversion-log-') && downloadedFilename?.endsWith('.csv'));
+    assert.ok(capturedBlob, 'Expected a Blob to be created for CSV download');
+
+    const csvText = await (capturedBlob as Blob).text();
+    const lines = csvText.trim().split('\n');
+    assert.equal(lines.length, 3); // header + 2 conversion rows
+    assert.ok(lines[0].startsWith('Timestamp,From Unit,To Unit,Thickness (mm),Thickness (in),SFD (cm)'));
+    assert.ok(csvText.includes('18'));
+    assert.ok(csvText.includes('imperial,metric'));
+    assert.ok(csvText.includes('metric,imperial'));
+  } finally {
+    globalThis.URL.createObjectURL = origCreateObjectURL;
+    (document as any).createElement = origCreateElement;
+  }
+
+  // Also verify direct CSV escaping helper for commas/quotes
+  const escapedCsv = buildConversionLogCsv([
+    {
+      id: '1',
+      timestamp: '10:00:00 AM',
+      fromUnit: 'metric',
+      toUnit: 'imperial',
+      thicknessMm: 12,
+      thicknessInches: 0.472,
+      sfdCm: 70,
+      sfdInches: 27.6,
+      sfdFeet: 2.3,
+      sourceType: 'ir192',
+      sourceLabel: 'Ir-192, "High"',
+      calculatedTotalSeconds: 120,
+      formattedDuration: '2m 00s'
+    }
+  ]);
+  assert.ok(escapedCsv.includes('"Ir-192, ""High"""'));
+});
+
+test('GeRadiographicExposureTimeApp #ge-quick-units-bar renders interactive info tooltips explaining Thickness and SFD conversion math', () => {
+  localStorage.removeItem('ge_app_unit_system');
+  const ui = render(<GeRadiographicExposureTimeApp language="en" />);
+
+  const quickBar = ui.container.querySelector('#ge-quick-units-bar') as HTMLElement;
+  const tTooltipBtn = ui.getByTestId('ge-quick-units-tooltip-thickness');
+  const tTooltipContent = ui.getByTestId('ge-quick-units-tooltip-thickness-content');
+  const sfdTooltipBtn = ui.getByTestId('ge-quick-units-tooltip-sfd');
+  const sfdTooltipContent = ui.getByTestId('ge-quick-units-tooltip-sfd-content');
+
+  assert.ok(quickBar.contains(tTooltipBtn), 'Expected Thickness info tooltip inside #ge-quick-units-bar');
+  assert.ok(quickBar.contains(sfdTooltipBtn), 'Expected SFD info tooltip inside #ge-quick-units-bar');
+
+  // Metric mode math explanations
+  assert.ok(tTooltipContent.textContent?.includes('1 in = 25.4 mm'));
+  assert.ok(tTooltipContent.textContent?.includes('12.0 mm ÷ 25.4 = 0.472 in'));
+  assert.ok(sfdTooltipContent.textContent?.includes('1 in = 2.54 cm'));
+  assert.ok(sfdTooltipContent.textContent?.includes('70 cm ÷ 2.54 = 27.6 in (2.3 ft)'));
+
+  // Interactive click toggle pins/unpins tooltip
+  assert.equal(tTooltipBtn.getAttribute('aria-expanded'), 'false');
+  fireEvent.click(tTooltipBtn);
+  assert.equal(tTooltipBtn.getAttribute('aria-expanded'), 'true');
+  assert.ok(tTooltipContent.className.includes('opacity-100'));
+  fireEvent.click(tTooltipBtn);
+  assert.equal(tTooltipBtn.getAttribute('aria-expanded'), 'false');
+
+  // Switch to Imperial mode -> tooltip math dynamically updates to multiplication formulas
+  fireEvent.click(ui.getByTestId('ge-quick-units-switch'));
+  assert.ok(tTooltipContent.textContent?.includes('0.472 in × 25.4 = 12.0 mm'));
+  assert.ok(sfdTooltipContent.textContent?.includes('27.6 in × 2.54 = 70 cm'));
+});
+
+test('getUnitConversionFormula dynamically returns unit-system-specific conversion formulas for Thickness and SFD', () => {
+  const metricThicknessEn = getUnitConversionFormula({
+    kind: 'quick_thickness',
+    unitSystem: 'metric',
+    isAr: false,
+    metricValue: 25.4,
+    imperialValue: 1
+  });
+  assert.ok(metricThicknessEn.includes('1 in = 25.4 mm'));
+  assert.ok(metricThicknessEn.includes('25.4 mm ÷ 25.4 = 1 in'));
+
+  const imperialThicknessEn = getUnitConversionFormula({
+    kind: 'quick_thickness',
+    unitSystem: 'imperial',
+    isAr: false,
+    metricValue: 25.4,
+    imperialValue: 1
+  });
+  assert.ok(imperialThicknessEn.includes('1 in = 25.4 mm'));
+  assert.ok(imperialThicknessEn.includes('1 in × 25.4 = 25.4 mm'));
+
+  const imperialSfdAr = getUnitConversionFormula({
+    kind: 'quick_sfd',
+    unitSystem: 'imperial',
+    isAr: true,
+    metricValue: 70,
+    imperialValue: 27.6,
+    secondaryImperialValue: 2.3
+  });
+  assert.ok(imperialSfdAr.includes('1 بوصة = 2.54 سم'));
+  assert.ok(imperialSfdAr.includes('27.6 بوصة × 2.54 = 70 سم'));
+});
+
+test('GeRadiographicExposureTimeApp #ge-quick-units-bar renders D3 sparkline visualizing conversion frequency over last 5 entries', () => {
+  localStorage.removeItem('ge_app_unit_system');
+  localStorage.removeItem('ge_app_conversion_log');
+  const ui = render(<GeRadiographicExposureTimeApp language="en" />);
+
+  const quickBar = ui.container.querySelector('#ge-quick-units-bar') as HTMLElement;
+  const sparkline = ui.getByTestId('ge-quick-units-sparkline');
+  const sparklineSvg = ui.getByTestId('ge-quick-units-sparkline-svg');
+  const sparklineSummary = ui.getByTestId('ge-quick-units-sparkline-summary');
+  const quickSwitch = ui.getByTestId('ge-quick-units-switch');
+
+  assert.ok(quickBar.contains(sparkline), 'Expected D3 sparkline container inside #ge-quick-units-bar');
+  assert.ok(quickBar.contains(sparklineSvg), 'Expected D3 sparkline SVG inside #ge-quick-units-bar');
+  assert.equal(sparklineSummary.textContent, 'M:0/I:0');
+  assert.equal(ui.queryByTestId('ge-quick-units-sparkline-point-0'), null);
+  assert.equal(ui.queryByTestId('ge-quick-units-sparkline-path'), null);
+
+  // 1st toggle: metric -> imperial
+  fireEvent.click(quickSwitch);
+  assert.equal(sparklineSummary.textContent, 'M:0/I:1');
+  const firstPoint = ui.getByTestId('ge-quick-units-sparkline-point-0');
+  assert.equal(firstPoint.getAttribute('fill'), '#f59e0b');
+
+  // Toggle 4 more times (total 5 entries: M->I, I->M, M->I, I->M, M->I => M:2 / I:3)
+  for (let i = 0; i < 4; i++) {
+    fireEvent.click(quickSwitch);
+  }
+  assert.equal(sparklineSummary.textContent, 'M:2/I:3');
+  const trendPath = ui.getByTestId('ge-quick-units-sparkline-path');
+  assert.ok(trendPath.getAttribute('d')?.startsWith('M'), 'Expected valid SVG path string generated by D3');
+  assert.ok(ui.getByTestId('ge-quick-units-sparkline-point-4'));
+  assert.equal(ui.queryByTestId('ge-quick-units-sparkline-point-5'), null);
+
+  // 6th toggle: I->M drops oldest M->I, leaving M:3 / I:2 over last 5 entries
+  fireEvent.click(quickSwitch);
+  assert.equal(sparklineSummary.textContent, 'M:3/I:2');
+  assert.equal(ui.queryByTestId('ge-quick-units-sparkline-point-5'), null);
+
+  // Clearing conversion log resets sparkline counts & points
+  fireEvent.click(ui.getByTestId('ge-quick-units-history-toggle'));
+  fireEvent.click(ui.getByTestId('ge-quick-units-history-clear'));
+  assert.equal(sparklineSummary.textContent, 'M:0/I:0');
+  assert.equal(ui.queryByTestId('ge-quick-units-sparkline-point-0'), null);
+});
+
+test('GeRadiographicExposureTimeApp #ge-quick-units-bar Copy to Clipboard button copies formatted Thickness and SFD values', async () => {
+  localStorage.removeItem('ge_app_unit_system');
+  const ui = render(<GeRadiographicExposureTimeApp language="en" />);
+
+  const quickBar = ui.container.querySelector('#ge-quick-units-bar') as HTMLElement;
+  const activeCue = ui.getByTestId('ge-quick-units-active-cue');
+  const copyBtn = ui.getByTestId('ge-quick-units-copy-btn');
+
+  assert.ok(quickBar.contains(copyBtn), 'Expected Copy button inside #ge-quick-units-bar');
+  assert.equal(activeCue.nextElementSibling, copyBtn, 'Expected Copy button right next to active unit indicator');
+
+  const copiedStrings: string[] = [];
+  const origDescriptor = Object.getOwnPropertyDescriptor(globalThis.navigator, 'clipboard');
+  Object.defineProperty(globalThis.navigator, 'clipboard', {
+    configurable: true,
+    value: {
+      writeText: async (text: string) => {
+        copiedStrings.push(text);
+      }
+    }
+  });
+
+  try {
+    // 1. Copy in Metric mode
+    fireEvent.click(copyBtn);
+    await waitFor(() => {
+      assert.equal(copiedStrings[0], 'Thickness (t): 12.0 mm · SFD: 70 cm');
+      assert.ok(copyBtn.textContent?.includes('Copied'));
+    });
+
+    // 2. Switch to Imperial mode and copy updated formatted values
+    fireEvent.click(ui.getByTestId('ge-quick-units-switch'));
+    fireEvent.click(copyBtn);
+    await waitFor(() => {
+      assert.equal(copiedStrings[1], 'Thickness (t): 0.472" · SFD: 27.6" (2.3 ft)');
+    });
+  } finally {
+    if (origDescriptor) {
+      Object.defineProperty(globalThis.navigator, 'clipboard', origDescriptor);
+    } else {
+      delete (globalThis.navigator as any).clipboard;
+    }
+  }
+});
+
+test('GeRadiographicExposureTimeApp #ge-quick-units-bar emphasizes unit system changes with smooth transition ring and scale pulse', async () => {
+  localStorage.removeItem('ge_app_unit_system');
+  const ui = render(<GeRadiographicExposureTimeApp language="en" />);
+
+  const quickBar = ui.container.querySelector('#ge-quick-units-bar') as HTMLElement;
+  const activeCue = ui.getByTestId('ge-quick-units-active-cue');
+  const quickSwitch = ui.getByTestId('ge-quick-units-switch');
+
+  // Resting state on initial mount
+  assert.equal(quickBar.getAttribute('data-unit-transitioning'), 'false');
+  assert.ok(quickBar.className.includes('scale-100'));
+  assert.ok(activeCue.className.includes('scale-100'));
+
+  // Toggle to Imperial -> active amber ring & scale pulse
+  fireEvent.click(quickSwitch);
+  assert.equal(quickBar.getAttribute('data-unit-transitioning'), 'true');
+  assert.ok(quickBar.className.includes('ring-4'));
+  assert.ok(quickBar.className.includes('ring-amber-400/50'));
+  assert.ok(quickBar.className.includes('scale-[1.01]'));
+  assert.ok(activeCue.className.includes('scale-105'));
+
+  // Toggle back to Metric -> active sky ring & scale pulse
+  fireEvent.click(quickSwitch);
+  assert.equal(quickBar.getAttribute('data-unit-transitioning'), 'true');
+  assert.ok(quickBar.className.includes('ring-sky-400/45'));
+
+  // Settles cleanly back to resting state after animation completes
+  await waitFor(
+    () => {
+      assert.equal(quickBar.getAttribute('data-unit-transitioning'), 'false');
+      assert.ok(quickBar.className.includes('scale-100'));
+    },
+    { timeout: 1000 }
+  );
+});
+
+
+
+
+
+
+
+
 
 

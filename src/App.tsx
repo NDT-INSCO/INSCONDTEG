@@ -1,20 +1,29 @@
-import React, { Suspense, useEffect, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { CompanyPortal } from './components/company/CompanyPortal';
 import { CompanyServicePage } from './components/company/CompanyServicePage';
+import { CompanyFooter } from './components/company/CompanyFooter';
 import { PortalChooser } from './components/PortalChooser';
+import { PortalSwitchBar, type PortalTrailStep } from './components/PortalSwitchBar';
 import { MobileNavDrawer } from './components/MobileNavDrawer';
 import { GlobalHeaderSearch } from './components/GlobalHeaderSearch';
 import { GlobalThemeSwitcher } from './components/GlobalThemeSwitcher';
 import { Language } from './types';
-import { AcademyTab, readAcademyTab } from './academyTabs';
+import { AcademyTab } from './academyTabs';
 import { INSCO_COMPANY_DATA } from './data/inscoCompanyData';
-import { downloadTrainingSyllabus } from './utils/trainingSyllabusGenerator';
 import {
-  readServiceFamilyHash,
   serviceFamilyById,
-  serviceFamilyHash,
   type ServiceFamilyId,
 } from './utils/serviceFamilies';
+import {
+  academySectionLabel,
+  academySectionOfTab,
+  parseRoute,
+  routeToHash,
+  type AcademyRoute,
+  type PortalId,
+  type Route,
+} from './utils/portalRoutes';
+import { AcademyHeader, AcademyFooter } from './components/academy/AcademyShell';
 import { RFQ_QUICK_ACTION_EVENT } from './components/company/CompanyQuickActionsSection';
 import { useTheme } from './utils/themeStore';
 import {
@@ -23,30 +32,25 @@ import {
   shouldOfferPortalChooser,
   type PortalChoice,
 } from './utils/portalChoice';
-import { 
-  Globe, 
-  GraduationCap, 
-  Building2, 
-  FileText, 
-  ArrowLeft, 
-  ArrowRight,
-  Phone,
-  Mail,
-  Award,
+import {
+  Globe,
+  GraduationCap,
+  Building2,
+  FileText,
   Menu,
   MessageCircle,
-  Download
 } from 'lucide-react';
 
-// The academy carries the whole NDT library (textbooks, encyclopedia, quizzes,
-// the AI index). Visitors landing on the company profile must not download it,
-// so it is split out and fetched when the academy is actually opened.
-const EducationalAcademy = React.lazy(() =>
-  import('./components/EducationalAcademy').then(module => ({ default: module.EducationalAcademy }))
+// The academy pages carry the whole NDT library (textbooks, encyclopedia,
+// quizzes, the AI index, fourteen simulators). Visitors landing on the company
+// profile must not download any of it, so the four academy pages share one
+// code-split boundary that is fetched when the academy is actually opened.
+const AcademyContent = React.lazy(() =>
+  import('./components/academy/AcademyContent').then(module => ({ default: module.AcademyContent }))
 );
 
 // The demonstrations page carries four interactive simulators. It is its own
-// route now, so it is fetched on demand instead of shipping with the profile.
+// route, so it is fetched on demand instead of shipping with the profile.
 const CompanyDemoPortal = React.lazy(() =>
   import('./components/company/CompanyDemoPortal').then(module => ({ default: module.CompanyDemoPortal }))
 );
@@ -56,7 +60,7 @@ function AcademyLoading({ isAr }: { isAr: boolean }) {
     <div
       role="status"
       aria-live="polite"
-      className="space-y-3 rounded-2xl border border-slate-800 bg-slate-900/60 p-8"
+      className="space-y-3 rounded-2xl border border-[#29315b] bg-[#10132b] p-8"
     >
       <div className="h-4 w-40 animate-pulse rounded bg-slate-700/70" />
       <div className="h-3 w-2/3 animate-pulse rounded bg-slate-800" />
@@ -70,13 +74,6 @@ function AcademyLoading({ isAr }: { isAr: boolean }) {
 
 const LANGUAGE_KEY = 'insco_language_v1';
 
-/** `#demo` is the technical-demonstrations page, not an academy tab. */
-function isDemoHash(hash: string): boolean {
-  return hash.replace(/^#/, '').trim().toLowerCase() === 'demo';
-}
-
-type AppView = 'company' | 'academy' | 'demo' | 'service';
-
 function readLanguage(): Language {
   try {
     return localStorage.getItem(LANGUAGE_KEY) === 'en' ? 'en' : 'ar';
@@ -85,44 +82,33 @@ function readLanguage(): Language {
   }
 }
 
+/** The corporate view the (older) chooser rules still speak in. */
+function chooserViewOf(route: Route): 'company' | 'academy' | 'demo' | 'service' {
+  if (route.portal === 'academy') return 'academy';
+  if (route.page === 'demo') return 'demo';
+  if (route.page === 'service') return 'service';
+  return 'company';
+}
+
 export const App: React.FC = () => {
   const [language, setLanguage] = useState<Language>(readLanguage);
   const { theme, isLight } = useTheme();
-  // A shared link such as `/-Project-/#courses` must open the academy, and
-  // `#demo` must open the demonstrations page, not the profile with a dead hash.
-  const [initialHash] = useState(() => window.location.hash);
-  const [currentView, setCurrentView] = useState<AppView>(() => {
-    const hash = window.location.hash;
-    if (readAcademyTab(hash)) return 'academy';
-    if (isDemoHash(hash)) return 'demo';
-    if (readServiceFamilyHash(hash)) return 'service';
-    return 'company';
-  });
-  const [serviceFamilyId, setServiceFamilyId] = useState<ServiceFamilyId>(
-    () => readServiceFamilyHash(window.location.hash) ?? 'ndt'
-  );
-  const [academySubTab, setAcademySubTab] = useState<AcademyTab | undefined>(() =>
-    readAcademyTab(window.location.hash)
-  );
-  const [portalChoice, setPortalChoice] = useState<PortalChoice | null>(() => readPortalChoice());
-  const [chooserOpen, setChooserOpen] = useState(() =>
-    shouldOfferPortalChooser({
+
+  // The hash is the router: one structured route, two portals.
+  const [route, setRoute] = useState<Route>(() => parseRoute(window.location.hash));
+  const [chooserOpen, setChooserOpen] = useState(() => {
+    const initial = parseRoute(window.location.hash);
+    return shouldOfferPortalChooser({
       choice: readPortalChoice(),
-      hasAcademyHash: Boolean(readAcademyTab(initialHash)),
-      hasDemoHash: isDemoHash(initialHash) || Boolean(readServiceFamilyHash(initialHash)),
-      view: readAcademyTab(initialHash)
-        ? 'academy'
-        : isDemoHash(initialHash)
-          ? 'demo'
-          : readServiceFamilyHash(initialHash)
-            ? 'service'
-            : 'company',
-    })
-  );
+      hasAcademyHash: initial.portal === 'academy',
+      hasDemoHash: initial.portal === 'company' && initial.page !== 'home',
+      view: chooserViewOf(initial),
+    });
+  });
   const [menuOpen, setMenuOpen] = useState(false);
 
   const isAr = language === 'ar';
-  const ArrowIcon = isAr ? ArrowLeft : ArrowRight;
+  const portal: PortalId = route.portal;
 
   useEffect(() => {
     document.documentElement.lang = language;
@@ -134,381 +120,481 @@ export const App: React.FC = () => {
     }
   }, [language, isAr]);
 
-  // Route-specific titles: a shared `#services/pwht` link must not open with the
-  // generic home title, and browser tabs / search previews stay meaningful.
+  /* ------------------------------- routing -------------------------------- */
+
+  /** Write the address bar without re-running the whole router. */
+  const writeHash = useCallback((next: Route, mode: 'push' | 'replace') => {
+    const target = `${window.location.pathname}${window.location.search}${routeToHash(next)}`;
+    if (mode === 'push') window.history.pushState(null, '', target);
+    else window.history.replaceState(null, '', target);
+  }, []);
+
+  const scrollToId = useCallback((id: string, delay = 60) => {
+    window.setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+    }, delay);
+  }, []);
+
+  /** Corporate profile, optionally at one of its sections. */
+  const openCompany = useCallback(
+    (sectionId?: string) => {
+      setRoute({ portal: 'company', page: 'home' });
+      // The hash belongs to the academy/service page. Leaving it behind would
+      // make the address bar claim the reader is still somewhere else.
+      if (window.location.hash) {
+        window.history.replaceState(
+          null,
+          '',
+          window.location.pathname + window.location.search
+        );
+      }
+      if (sectionId) scrollToId(sectionId);
+      else window.scrollTo({ top: 0, behavior: 'smooth' });
+      savePortalChoice('company');
+    },
+    [scrollToId]
+  );
+
+  const openDemo = useCallback(
+    (anchorId?: string) => {
+      const next: Route = { portal: 'company', page: 'demo' };
+      setRoute(next);
+      writeHash(next, 'replace');
+      if (anchorId) scrollToId(anchorId, 120);
+      else window.scrollTo({ top: 0, behavior: 'smooth' });
+      savePortalChoice('company');
+    },
+    [scrollToId, writeHash]
+  );
+
+  const openService = useCallback(
+    (id: ServiceFamilyId) => {
+      const next: Route = { portal: 'company', page: 'service', family: id };
+      setRoute(next);
+      writeHash(next, 'replace');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      savePortalChoice('company');
+    },
+    [writeHash]
+  );
+
+  /**
+   * Any academy address: `#academy`, `#academy/disciplines/<id>`, `#academy/learn`
+   * or a legacy bare tab (`#edb`, `#rt_lab`). The hash is written verbatim so an
+   * old bookmark keeps its exact form.
+   */
+  const openAcademyHash = useCallback((hash: string) => {
+    const next = parseRoute(hash);
+    if (next.portal !== 'academy') return;
+    setRoute(next);
+    const target = hash.startsWith('#') ? hash : routeToHash(next);
+    window.history.pushState(
+      null,
+      '',
+      `${window.location.pathname}${window.location.search}${target}`
+    );
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    savePortalChoice('academy');
+  }, []);
+
+  const openAcademy = useCallback(
+    (tab?: AcademyTab) => {
+      if (tab) {
+        openAcademyHash(`#${tab}`);
+        return;
+      }
+      openAcademyHash('#academy');
+    },
+    [openAcademyHash]
+  );
+
+  /** A tab moved inside a section: follow it without touching the history. */
+  const handleAcademyTabChange = useCallback((tab: AcademyTab) => {
+    setRoute(prev => {
+      if (prev.portal !== 'academy' || prev.page !== 'section') return prev;
+      const section = academySectionOfTab(tab);
+      if (prev.section === section && prev.tab === tab) return prev;
+      return { portal: 'academy', page: 'section', section, tab };
+    });
+  }, []);
+
+  const openPortal = useCallback(
+    (next: PortalId) => {
+      if (next === portal) return;
+      if (next === 'academy') openAcademyHash('#academy');
+      else openCompany();
+    },
+    [openAcademyHash, openCompany, portal]
+  );
+
+  /**
+   * Entry isolation: a visitor who chose the academy last time lands in the
+   * academy, not on the commercial profile. The base address stays honest for
+   * everyone else, deep links are never redirected, and the redirect replaces
+   * the history entry so Back does not bounce.
+   */
+  useEffect(() => {
+    if (window.location.hash) return;
+    if (readPortalChoice() !== 'academy') return;
+    setRoute({ portal: 'academy', page: 'hub' });
+    window.history.replaceState(
+      null,
+      '',
+      `${window.location.pathname}${window.location.search}#academy`
+    );
+    // Runs once: later portal switches are the visitor's own decision.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Back/forward between portals, service pages, demos and academy deep links.
+  useEffect(() => {
+    const onHashChange = () => setRoute(parseRoute(window.location.hash));
+    window.addEventListener('hashchange', onHashChange);
+    window.addEventListener('popstate', onHashChange);
+    return () => {
+      window.removeEventListener('hashchange', onHashChange);
+      window.removeEventListener('popstate', onHashChange);
+    };
+  }, []);
+
+  // Route-specific titles: a shared link must not open with the home title.
   useEffect(() => {
     const companyName = isAr ? 'إنسكو' : 'INSCO';
-    const family = serviceFamilyById(serviceFamilyId);
     const routeTitle = (() => {
-      if (currentView === 'academy') return isAr ? 'أكاديمية إنسكو الهندسية' : 'INSCO Engineering Academy';
-      if (currentView === 'demo') return isAr ? 'العرض الفني التفاعلي' : 'Technical Demonstrations';
-      if (currentView === 'service' && family) return family.title[language];
+      if (route.portal === 'academy') {
+        if (route.page === 'hub') return isAr ? 'أكاديمية إنسكو الهندسية' : 'INSCO Engineering Academy';
+        if (route.page === 'disciplines') return isAr ? 'التخصصات الهندسية الثمانية' : 'The eight engineering disciplines';
+        if (route.page === 'discipline') return isAr ? 'صفحة التخصص' : 'Discipline';
+        return academySectionLabel(route.section, isAr ? 'ar' : 'en');
+      }
+      if (route.page === 'demo') return isAr ? 'العرض الفني التفاعلي' : 'Technical Demonstrations';
+      if (route.page === 'service') {
+        const family = serviceFamilyById(route.family);
+        if (family) return family.title[language];
+      }
       return isAr ? 'خدمات الفحص غير الإتلافي والمعالجة الحرارية' : 'NDT Inspection & PWHT Services';
     })();
     document.title = `${routeTitle} | ${companyName}`;
-  }, [currentView, serviceFamilyId, language, isAr]);
-
-  const handleNavigateToAcademy = (initialSubTab?: AcademyTab) => {
-    if (initialSubTab) {
-      setAcademySubTab(initialSubTab);
-    }
-    setCurrentView('academy');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  // Back/forward between a cleared hash, a shared academy link and `#demo`.
-  useEffect(() => {
-    const onHashChange = () => {
-      const hash = window.location.hash;
-      const tab = readAcademyTab(hash);
-      if (tab) {
-        setAcademySubTab(tab);
-        setCurrentView('academy');
-        return;
-      }
-      if (isDemoHash(hash)) {
-        setCurrentView('demo');
-        return;
-      }
-      const family = readServiceFamilyHash(hash);
-      if (family) {
-        setServiceFamilyId(family);
-        setCurrentView('service');
-      }
-    };
-    window.addEventListener('hashchange', onHashChange);
-    return () => window.removeEventListener('hashchange', onHashChange);
-  }, []);
-
-  const handleNavigateToCompany = (sectionId?: string) => {
-    setCurrentView('company');
-    // The hash belongs to the academy. Leaving it behind would make the address
-    // bar claim the reader is still on `#edb` while the company page is shown.
-    if (window.location.hash) {
-      window.history.replaceState(null, '', window.location.pathname + window.location.search);
-    }
-    if (sectionId) {
-      setTimeout(() => {
-        const el = document.getElementById(sectionId);
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth' });
-        }
-      }, 50);
-    } else {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  };
-
-  // Page-level destinations live in the hash so they can be shared/bookmarked.
-  const handleOpenDemo = (anchorId?: string) => {
-    setCurrentView('demo');
-    window.history.replaceState(
-      null,
-      '',
-      `${window.location.pathname}${window.location.search}#demo`
-    );
-    if (anchorId) {
-      // Wait for the code-split demonstrations page to mount.
-      setTimeout(() => {
-        document.getElementById(anchorId)?.scrollIntoView({ behavior: 'smooth' });
-      }, 120);
-    } else {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  };
-
-  const handleOpenService = (id: ServiceFamilyId) => {
-    setServiceFamilyId(id);
-    setCurrentView('service');
-    window.history.replaceState(
-      null,
-      '',
-      `${window.location.pathname}${window.location.search}${serviceFamilyHash(id)}`
-    );
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, [route, language, isAr]);
 
   /**
    * "Request a quote for this service": open the RFQ with the service chosen.
    * The form listens for this event, so the choice survives the page switch.
    */
-  const handleRequestQuoteFor = (serviceType: string) => {
-    handleNavigateToCompany();
-    setTimeout(() => {
-      if (typeof CustomEvent !== 'undefined') {
-        window.dispatchEvent(new CustomEvent(RFQ_QUICK_ACTION_EVENT, { detail: { serviceType } }));
-      }
-      document.getElementById('rfq')?.scrollIntoView({ behavior: 'smooth' });
-    }, 120);
-  };
+  const handleRequestQuoteFor = useCallback(
+    (serviceType: string) => {
+      openCompany();
+      window.setTimeout(() => {
+        if (typeof CustomEvent !== 'undefined') {
+          window.dispatchEvent(new CustomEvent(RFQ_QUICK_ACTION_EVENT, { detail: { serviceType } }));
+        }
+        document.getElementById('rfq')?.scrollIntoView({ behavior: 'smooth' });
+      }, 120);
+    },
+    [openCompany]
+  );
 
   const handleChoosePortal = (choice: PortalChoice) => {
     savePortalChoice(choice);
-    setPortalChoice(choice);
     setChooserOpen(false);
-    if (choice === 'academy') handleNavigateToAcademy();
+    if (choice === 'academy') openAcademyHash('#academy');
+    else openCompany();
   };
 
-  // Six corporate destinations and one action — the same list on every screen.
-  const corporateNav = [
-    {
-      ar: 'الرئيسية',
-      en: 'Home',
-      onClick: () => handleNavigateToCompany(),
-      current: currentView === 'company',
-    },
-    { ar: 'خدماتنا', en: 'Services', onClick: () => handleNavigateToCompany('services') },
-    { ar: 'إمكانياتنا', en: 'Capabilities', onClick: () => handleNavigateToCompany('fleet-inspector') },
-    { ar: 'مشروعاتنا', en: 'Projects', onClick: () => handleNavigateToCompany('projects') },
-    { ar: 'ملف التأهيل', en: 'Vendor dossier', onClick: () => handleNavigateToCompany('vault') },
-  ];
+  /* ------------------------------ navigation ------------------------------ */
+
+  // The corporate destinations, and only them: the academy has its own bar.
+  const corporateNav = useMemo(
+    () => [
+      { ar: 'الرئيسية', en: 'Home', onClick: () => openCompany(), current: route.portal === 'company' && route.page === 'home' },
+      { ar: 'خدماتنا', en: 'Services', onClick: () => openCompany('services') },
+      { ar: 'إمكانياتنا', en: 'Capabilities', onClick: () => openCompany('fleet-inspector') },
+      { ar: 'مشروعاتنا', en: 'Projects', onClick: () => openCompany('projects') },
+      { ar: 'ملف التأهيل', en: 'Vendor dossier', onClick: () => openCompany('vault') },
+    ],
+    [openCompany, route]
+  );
+
+  /** Portal › page › sub-page, for the bar at the very top. */
+  const trail: PortalTrailStep[] = useMemo(() => {
+    if (route.portal === 'company') {
+      const steps: PortalTrailStep[] = [
+        { label: isAr ? 'بوابة الشركة' : 'Company portal', onClick: () => openCompany() },
+      ];
+      if (route.page === 'service') {
+        const family = serviceFamilyById(route.family);
+        steps.push({ label: family ? family.title[language] : '' });
+      } else if (route.page === 'demo') {
+        steps.push({ label: isAr ? 'العرض الفني التفاعلي' : 'Technical demonstrations' });
+      } else {
+        steps.push({ label: isAr ? 'ملف الشركة والخدمات' : 'Profile & services' });
+      }
+      return steps;
+    }
+
+    const academy = isAr ? 'الأكاديمية الهندسية' : 'Engineering academy';
+    const steps: PortalTrailStep[] = [
+      { label: academy, onClick: () => openAcademyHash('#academy') },
+    ];
+    if (route.page === 'disciplines') {
+      steps.push({ label: isAr ? 'التخصصات الثمانية' : 'Eight disciplines' });
+    } else if (route.page === 'discipline') {
+      steps.push({
+        label: isAr ? 'التخصصات الثمانية' : 'Eight disciplines',
+        onClick: () => openAcademyHash('#academy/disciplines'),
+      });
+      steps.push({ label: isAr ? 'صفحة التخصص' : 'Discipline page' });
+    } else if (route.page === 'section') {
+      steps.push({
+        label: academySectionLabel(route.section, isAr ? 'ar' : 'en'),
+        onClick: () => openAcademyHash(`#academy/${route.section}`),
+      });
+    } else {
+      steps.push({ label: isAr ? 'رئيسية الأكاديمية' : 'Academy home' });
+    }
+    return steps;
+  }, [route, isAr, language, openCompany, openAcademyHash]);
+
+  const academyRoute: AcademyRoute | null = route.portal === 'academy' ? route : null;
 
   return (
     <div
       dir={isAr ? 'rtl' : 'ltr'}
       data-theme={theme}
+      data-portal={portal}
       className={`min-h-screen flex flex-col font-sans transition-colors ${
         isLight ? 'bg-slate-50 text-slate-900' : 'bg-slate-950 text-slate-100'
       }`}
     >
-      {/* Persistent Corporate Top Bar Contract */}
-      <header
-        className={`sticky top-0 z-50 border-b backdrop-blur-md transition-colors ${
-          isLight
-            ? 'border-slate-200 bg-white/95'
-            : 'border-slate-800 bg-slate-950/95'
-        }`}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-6">
-          {/* Zone 1: Single Brand Element Wordmark */}
-          <button
-            type="button"
-            aria-label={isAr ? 'الرئيسية - شركة إنسكو' : 'INSCO Home Profile'}
-            onClick={() => handleNavigateToCompany()}
-            className="flex items-center gap-2.5 text-start cursor-pointer group"
-          >
-            <div className="p-2 rounded-lg bg-cyan-600/10 border border-cyan-500/30 text-cyan-400 group-hover:border-cyan-400 transition">
-              <Building2 className="w-5 h-5" />
-            </div>
-            <div className="whitespace-nowrap">
-              <div className="text-base sm:text-lg font-black text-white tracking-tight">
-                {isAr ? 'الشركة الدولية للخدمات والمقاولات - إنسكو' : 'INSCO Industrial'}
-              </div>
-              <div className="text-[11px] font-mono text-cyan-400 flex items-center gap-1.5">
-                <span>{isAr ? 'أكاديمية إنسكو NDT' : 'INSCO NDT Academy'}</span>
-                <span aria-hidden="true" className="text-slate-600">·</span>
-                <span>CP/2026-10</span>
-              </div>
-            </div>
-          </button>
+      <div className="sticky top-0 z-50">
+        {/* Which portal am I in, and how do I get to the other one. */}
+        <PortalSwitchBar
+          language={language}
+          portal={portal}
+          trail={trail}
+          onSwitchPortal={openPortal}
+        />
 
-          {/* Zone 2: Six corporate destinations, one action, one academy door. */}
-          <nav
-            aria-label={isAr ? 'التنقل الرئيسي' : 'Main navigation'}
-            className="hidden xl:flex items-center gap-4 text-xs font-semibold text-slate-300"
-          >
-            {corporateNav.map(item => (
-              <button
-                key={item.en}
-                type="button"
-                onClick={item.onClick}
-                aria-current={item.current ? 'page' : undefined}
-                className={`hover:text-cyan-400 transition whitespace-nowrap cursor-pointer ${
-                  item.current ? 'text-cyan-400 font-bold' : ''
+        <header
+          className={`border-b backdrop-blur-md transition-colors ${
+            portal === 'academy'
+              ? isLight
+                ? 'border-slate-200 bg-white/95'
+                : 'border-amber-500/20 bg-[#0b0c1c]/95'
+              : isLight
+                ? 'border-slate-200 bg-white/95'
+                : 'border-slate-800 bg-slate-950/95'
+          }`}
+        >
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+            {/* Zone 1: the company wordmark. It belongs to the company, so it
+                always leads back to the corporate profile; the academy's own
+                home is the first item of the academy bar. */}
+            <button
+              type="button"
+              aria-label={isAr ? 'الرئيسية - شركة إنسكو' : 'INSCO Home Profile'}
+              onClick={() => openCompany()}
+              className="flex items-center gap-2.5 text-start cursor-pointer group"
+            >
+              <div
+                className={`p-2 rounded-lg border transition ${
+                  portal === 'academy'
+                    ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 group-hover:border-amber-400'
+                    : 'bg-cyan-600/10 border border-cyan-500/30 text-cyan-400 group-hover:border-cyan-400'
                 }`}
               >
-                {isAr ? item.ar : item.en}
-              </button>
-            ))}
-            <button
-              type="button"
-              onClick={() => handleNavigateToCompany('rfq')}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 px-3 py-1.5 text-slate-950 font-black transition whitespace-nowrap cursor-pointer"
-            >
-              {isAr ? 'اطلب عرض سعر' : 'Request a quote'}
-            </button>
-            <span aria-hidden="true" className="h-4 w-px bg-slate-700" />
-            <button
-              type="button"
-              onClick={() => handleNavigateToAcademy()}
-              aria-current={currentView === 'academy' ? 'page' : undefined}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md transition whitespace-nowrap cursor-pointer ${
-                currentView === 'academy'
-                  ? 'bg-cyan-600 text-white font-bold'
-                  : 'text-cyan-300 bg-slate-900 border border-slate-800 hover:border-cyan-500/50'
-              }`}
-            >
-              <GraduationCap className="w-3.5 h-3.5" />
-              <span>{isAr ? 'أكاديمية إنسكو' : 'INSCO Academy'}</span>
-            </button>
-          </nav>
-
-          {/* Global Header Search Bar next to navigation links */}
-          <div className="flex-1 max-w-xs hidden md:block">
-            <GlobalHeaderSearch
-              language={language}
-              onNavigateToCompany={handleNavigateToCompany}
-              onNavigateToAcademy={handleNavigateToAcademy}
-            />
-          </div>
-
-          {/* Zone 3: Primary Action & Language Toggle */}
-          <div className="flex items-center gap-2 shrink-0">
-            {currentView !== 'company' ? (
-              <button
-                type="button"
-                onClick={() => handleNavigateToCompany()}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs font-semibold border border-slate-700 transition whitespace-nowrap cursor-pointer"
-              >
-                <Building2 className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">{isAr ? 'بوابة الشركة' : 'Corporate Portal'}</span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => handleNavigateToCompany('rfq')}
-                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black transition whitespace-nowrap cursor-pointer"
-              >
-                <FileText className="w-3.5 h-3.5" />
-                <span>{isAr ? 'اطلب عرض سعر' : 'Request a quote'}</span>
-              </button>
-            )}
-
-            {portalChoice && (
-              <button
-                type="button"
-                onClick={() => setChooserOpen(true)}
-                aria-label={isAr ? 'تبديل البوابة' : 'Switch portal'}
-                title={isAr ? 'تبديل البوابة' : 'Switch portal'}
-                className="hidden lg:inline-flex items-center justify-center p-2 rounded-lg border border-slate-700 text-slate-400 hover:text-cyan-300 hover:border-cyan-500/50 transition cursor-pointer"
-              >
-                {portalChoice === 'company' ? (
-                  <GraduationCap className="w-3.5 h-3.5" />
+                {portal === 'academy' ? (
+                  <GraduationCap className="w-5 h-5" aria-hidden="true" />
                 ) : (
-                  <Building2 className="w-3.5 h-3.5" />
+                  <Building2 className="w-5 h-5" aria-hidden="true" />
                 )}
-              </button>
+              </div>
+              <div className="whitespace-nowrap">
+                <div className="text-base sm:text-lg font-black text-white tracking-tight">
+                  {isAr
+                    ? 'الشركة الدولية للخدمات والمقاولات - إنسكو'
+                    : 'INSCO Industrial'}
+                </div>
+                <div
+                  className={`text-[11px] font-mono flex items-center gap-1.5 ${
+                    portal === 'academy' ? 'text-amber-400' : 'text-cyan-400'
+                  }`}
+                >
+                  <span>
+                    {portal === 'academy'
+                      ? isAr
+                        ? 'مسار المتدرّب · البوابة الهندسية'
+                        : 'Learner path · engineering portal'
+                      : isAr
+                        ? 'أكاديمية إنسكو NDT'
+                        : 'INSCO NDT Academy'}
+                  </span>
+                  <span aria-hidden="true" className="text-slate-600">·</span>
+                  <span>CP/2026-10</span>
+                </div>
+              </div>
+            </button>
+
+            {/* Zone 2: the corporate destinations. The academy has its own bar. */}
+            {portal === 'company' && (
+              <nav
+                aria-label={isAr ? 'التنقل الرئيسي' : 'Main navigation'}
+                className="hidden xl:flex items-center gap-4 text-xs font-semibold text-slate-300"
+              >
+                {corporateNav.map(item => (
+                  <button
+                    key={item.en}
+                    type="button"
+                    onClick={item.onClick}
+                    aria-current={item.current ? 'page' : undefined}
+                    className={`hover:text-cyan-400 transition whitespace-nowrap cursor-pointer ${
+                      item.current ? 'text-cyan-400 font-bold' : ''
+                    }`}
+                  >
+                    {isAr ? item.ar : item.en}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => openCompany('rfq')}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 px-3 py-1.5 text-slate-950 font-black transition whitespace-nowrap cursor-pointer"
+                >
+                  <FileText className="w-3.5 h-3.5" aria-hidden="true" />
+                  {isAr ? 'اطلب عرض سعر' : 'Request a quote'}
+                </button>
+              </nav>
             )}
 
-            {/* One menu instead of the old 14-chip strip. */}
-            <button
-              type="button"
-              onClick={() => setMenuOpen(true)}
-              aria-label={isAr ? 'فتح قائمة التنقل' : 'Open navigation menu'}
-              aria-expanded={menuOpen}
-              className="xl:hidden inline-flex items-center justify-center p-2 rounded-lg border border-slate-700 text-slate-200 hover:bg-slate-800 transition cursor-pointer"
-            >
-              <Menu className="w-4 h-4" />
-            </button>
+            {portal === 'academy' && (
+              <div className="hidden xl:flex items-center gap-2 text-xs font-semibold text-slate-400">
+                <GraduationCap className="w-4 h-4 text-amber-400" aria-hidden="true" />
+                <span>{isAr ? 'مسار المتدرّب · بلا خدمات تجارية' : 'Learner path · no commercial content'}</span>
+              </div>
+            )}
 
-            <GlobalThemeSwitcher language={language} />
+            {/* Global search works in both portals. */}
+            <div className="flex-1 max-w-xs hidden md:block">
+              <GlobalHeaderSearch
+                language={language}
+                onNavigateToCompany={openCompany}
+                onNavigateToAcademy={tab => openAcademy(tab as AcademyTab | undefined)}
+              />
+            </div>
 
-            <button
-              type="button"
-              onClick={() => setLanguage(isAr ? 'en' : 'ar')}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-700 text-xs text-slate-200 hover:bg-slate-800 transition cursor-pointer"
-            >
-              <Globe className="w-3.5 h-3.5" />
-              <span className="font-semibold">{isAr ? 'English' : 'العربية'}</span>
-            </button>
+            {/* Zone 3: actions, menu, theme, language. */}
+            <div className="flex items-center gap-2 shrink-0">
+              {portal === 'company' && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => openCompany('rfq')}
+                    className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black transition whitespace-nowrap cursor-pointer"
+                  >
+                    <FileText className="w-3.5 h-3.5" aria-hidden="true" />
+                    <span>{isAr ? 'اطلب عرض سعر' : 'Request a quote'}</span>
+                  </button>
+                </>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setMenuOpen(true)}
+                aria-label={isAr ? 'فتح قائمة التنقل' : 'Open navigation menu'}
+                aria-expanded={menuOpen}
+                className="xl:hidden inline-flex items-center justify-center p-2 rounded-lg border border-slate-700 text-slate-200 hover:bg-slate-800 transition cursor-pointer"
+              >
+                <Menu className="w-4 h-4" aria-hidden="true" />
+              </button>
+
+              <GlobalThemeSwitcher language={language} />
+
+              <button
+                type="button"
+                onClick={() => setLanguage(isAr ? 'en' : 'ar')}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-700 text-xs text-slate-200 hover:bg-slate-800 transition cursor-pointer"
+              >
+                <Globe className="w-3.5 h-3.5" aria-hidden="true" />
+                <span className="font-semibold">{isAr ? 'English' : 'العربية'}</span>
+              </button>
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
+      </div>
 
-      {/* Main Content Area */}
-      <main className="flex-1 pb-20 xl:pb-0">
-        {currentView === 'company' && (
+      {/* ------------------------------ the pages ---------------------------- */}
+      <main className={`flex-1 ${route.portal === 'company' ? 'pb-20 xl:pb-0' : ''}`}>
+        {route.portal === 'company' && route.page === 'home' && (
           <CompanyPortal
             language={language}
-            onNavigateToAcademy={handleNavigateToAcademy}
-            onOpenDemo={() => handleOpenDemo()}
-            onOpenService={handleOpenService}
+            onNavigateToAcademy={() => openAcademyHash('#academy')}
+            onOpenDemo={() => openDemo()}
+            onOpenService={openService}
           />
         )}
 
-        {currentView === 'service' && (
+        {route.portal === 'company' && route.page === 'service' && (
           <CompanyServicePage
             language={language}
-            family={serviceFamilyById(serviceFamilyId) ?? serviceFamilyById('ndt')!}
-            onBack={() => handleNavigateToCompany('services')}
-            onOpenFamily={handleOpenService}
+            family={serviceFamilyById(route.family) ?? serviceFamilyById('ndt')!}
+            onBack={() => openCompany('services')}
+            onOpenFamily={openService}
             onRequestQuote={handleRequestQuoteFor}
-            onOpenDemo={anchorId => handleOpenDemo(anchorId)}
-            onOpenAcademy={tab => handleNavigateToAcademy(tab as AcademyTab | undefined)}
+            onOpenDemo={anchorId => openDemo(anchorId)}
+            onOpenAcademy={tab => openAcademy(tab as AcademyTab | undefined)}
           />
         )}
 
-        {currentView === 'demo' && (
+        {route.portal === 'company' && route.page === 'demo' && (
           <Suspense fallback={<AcademyLoading isAr={isAr} />}>
             <CompanyDemoPortal
               language={language}
-              onBack={() => handleNavigateToCompany()}
-              onRequestQuote={() => handleNavigateToCompany('rfq')}
-              onOpenAcademy={tab => handleNavigateToAcademy(tab as AcademyTab | undefined)}
+              onBack={() => openCompany()}
+              onRequestQuote={() => openCompany('rfq')}
+              onOpenAcademy={tab => openAcademy(tab as AcademyTab | undefined)}
             />
           </Suspense>
         )}
 
-        {currentView === 'academy' && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-            {/* Integrated Academy Bar linking back to Company facade */}
-            <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
-                  <GraduationCap className="w-6 h-6" />
-                </div>
-                <div>
-                  <h2 className="text-base font-bold text-white">
-                    {isAr ? 'أكاديمية إنسكو الهندسية للفحص غير الإتلافي' : 'INSCO Non-Destructive Testing Academy'}
-                  </h2>
-                  <p className="text-xs text-slate-400">
-                    {isAr
-                      ? 'الذراع الأكاديمي والتدريبي لشركة إنسكو الدولية للخدمات والمقاولات'
-                      : 'Academic & Engineer Qualification Division of INSCO Industrial'}
-                  </p>
-                </div>
-              </div>
+        {academyRoute && (
+          <div data-portal="academy" className="bg-[#080914] min-h-full">
+            {/* The academy door is rendered here, synchronously: it is the proof
+                that the visitor changed portal, before the library loads. */}
+            <AcademyHeader
+              language={language}
+              route={academyRoute}
+              onOpenHash={openAcademyHash}
+              onOpenCompany={() => openCompany()}
+            />
 
-              <div className="flex flex-wrap items-center justify-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => downloadTrainingSyllabus(language)}
-                  className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition cursor-pointer whitespace-nowrap"
-                >
-                  <Download className="w-3.5 h-3.5 text-amber-400" />
-                  <span>{isAr ? 'تحميل المنهج التدريبي (Syllabus)' : 'Download training syllabus'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleNavigateToCompany()}
-                  className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition cursor-pointer whitespace-nowrap"
-                >
-                  <span>{isAr ? 'العودة إلى ملف وخدمات الشركة' : 'Back to Corporate Profile'}</span>
-                  <ArrowIcon className="w-3.5 h-3.5" />
-                </button>
-              </div>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+              <Suspense fallback={<AcademyLoading isAr={isAr} />}>
+                <AcademyContent
+                  language={language}
+                  route={academyRoute}
+                  onOpenHash={openAcademyHash}
+                  onTabChange={handleAcademyTabChange}
+                />
+              </Suspense>
             </div>
 
-            {/* Mount Full Educational Academy */}
-            <Suspense fallback={<AcademyLoading isAr={isAr} />}>
-              <EducationalAcademy
-                language={language}
-                initialSubTab={academySubTab}
-              />
-            </Suspense>
+            <AcademyFooter
+              language={language}
+              onOpenHash={openAcademyHash}
+              onOpenCompany={() => openCompany()}
+            />
           </div>
         )}
       </main>
 
-      {/* One mobile menu for both portals */}
+      {/* One mobile menu for both portals, each audience in its own group. */}
       <MobileNavDrawer
         open={menuOpen}
         language={language}
+        portal={portal}
         onClose={() => setMenuOpen(false)}
-        onNavigateSection={sectionId => handleNavigateToCompany(sectionId)}
-        onOpenDemo={handleOpenDemo}
-        onOpenAcademy={tab => handleNavigateToAcademy(tab)}
+        onNavigateSection={sectionId => openCompany(sectionId)}
+        onOpenDemo={() => openDemo()}
+        onOpenAcademy={tab => openAcademy(tab)}
       />
 
       {/* First-visit fork between the two audiences (never covers a deep link) */}
@@ -520,12 +606,12 @@ export const App: React.FC = () => {
         />
       )}
 
-      {/* Sticky conversion bar on phones */}
-      {currentView === 'company' && (
+      {/* Sticky conversion bar — corporate portal only. */}
+      {route.portal === 'company' && (
         <div className="xl:hidden fixed bottom-0 inset-x-0 z-40 border-t border-slate-800 bg-slate-950/95 backdrop-blur px-3 py-2 flex items-center gap-2">
           <button
             type="button"
-            onClick={() => handleNavigateToCompany('rfq')}
+            onClick={() => openCompany('rfq')}
             className="flex-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 px-3 py-2.5 text-sm font-black transition cursor-pointer"
           >
             {isAr ? 'اطلب عرض سعر' : 'Request a quote'}
@@ -536,150 +622,22 @@ export const App: React.FC = () => {
             rel="noopener noreferrer"
             className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-700 px-3 py-2.5 text-xs font-semibold text-slate-200 hover:bg-slate-800 transition"
           >
-            <MessageCircle className="w-4 h-4 text-emerald-400" />
+            <MessageCircle className="w-4 h-4 text-emerald-400" aria-hidden="true" />
             <span>{isAr ? 'واتساب' : 'WhatsApp'}</span>
           </a>
         </div>
       )}
 
-      {/* Corporate Comprehensive Footer */}
-      <footer className="border-t border-slate-800 bg-slate-950 pt-12 pb-8 text-xs text-slate-400">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pb-10 border-b border-slate-800">
-            {/* Column 1: Brand & Registrations */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-white font-black text-base">
-                <Building2 className="w-5 h-5 text-cyan-400" />
-                <span>{INSCO_COMPANY_DATA.name[language]}</span>
-              </div>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                {INSCO_COMPANY_DATA.subSlogan[language]}
-              </p>
-              <div className="space-y-1 font-mono text-[11px] text-slate-400">
-                <div>{isAr ? 'سجل تجاري:' : 'CR:'} {INSCO_COMPANY_DATA.commercialRegistrationNo}</div>
-                <div>{isAr ? 'تأسيس رقم:' : 'Incorporation:'} {INSCO_COMPANY_DATA.incorporationNo}</div>
-                <div>{isAr ? 'كود إيجاك:' : 'EGAC CAB:'} {INSCO_COMPANY_DATA.egacCabNo}</div>
-                <div>{isAr ? 'سجل NDT العالمي:' : 'ndt.org:'} #{INSCO_COMPANY_DATA.ndtOrgId}</div>
-              </div>
-            </div>
-
-            {/* Column 2: Core Services */}
-            <div className="space-y-3">
-              <div className="text-xs font-bold text-slate-200 uppercase tracking-wider">
-                {isAr ? 'خدمات الشركة المعتمدة' : 'Core Capabilities'}
-              </div>
-              <ul className="space-y-1.5 text-xs">
-                <li>{isAr ? 'معالجة حرارية بعد اللحام (16 وحدة PWHT)' : 'PWHT Heat Treatment (16 Units)'}</li>
-                <li>{isAr ? 'فحوصات حجمية (UT, PAUT, RT إشعاعي)' : 'Volumetric NDT (UT, PAUT, RT)'}</li>
-                <li>{isAr ? 'فحوصات سطحية (MT, PT, VT, Coating)' : 'Surface NDT (MT, PT, VT)'}</li>
-                <li>{isAr ? 'تحليل سبائك واختبار صلادة (PMI, Hardness)' : 'Positive Material ID (PMI & Hardness)'}</li>
-                <li>{isAr ? 'اختبارات هيدروستاتيكية وتوريد عمالة' : 'Hydrostatic Testing & Manpower'}</li>
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => handleOpenDemo()}
-                    className="text-cyan-400 hover:text-cyan-300 underline underline-offset-4 transition cursor-pointer"
-                  >
-                    {isAr ? 'العرض الفني التفاعلي (محاكيات ومعامل)' : 'Technical demonstrations (simulators & labs)'}
-                  </button>
-                </li>
-              </ul>
-            </div>
-
-            {/* Column 3: Academy Modules */}
-            <div className="space-y-3">
-              <div className="text-xs font-bold text-slate-200 uppercase tracking-wider">
-                {isAr ? 'أكاديمية إنسكو الهندسية' : 'Engineering Academy'}
-              </div>
-              <ul className="space-y-1.5 text-xs">
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => handleNavigateToAcademy('workshops')}
-                    className="hover:text-cyan-400 transition cursor-pointer"
-                  >
-                    {isAr ? 'معامل المحاكاة 3D الافتراضية' : '3D Virtual Simulation Labs'}
-                  </button>
-                </li>
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => handleNavigateToAcademy('curriculum')}
-                    className="hover:text-cyan-400 transition cursor-pointer"
-                  >
-                    {isAr ? 'المناهج المعتمدة (ASNT / ISO)' : 'Standardized NDT Curricula'}
-                  </button>
-                </li>
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => handleNavigateToAcademy('certification_center')}
-                    className="hover:text-cyan-400 transition cursor-pointer"
-                  >
-                    {isAr ? 'مركز الامتحانات والتأهيل المهني' : 'Certification Exam Center'}
-                  </button>
-                </li>
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => handleNavigateToAcademy('roadmap')}
-                    className="hover:text-cyan-400 transition cursor-pointer"
-                  >
-                    {isAr ? 'خارطة طريق مهندس الجودة' : 'NDT Career Learning Roadmap'}
-                  </button>
-                </li>
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => handleNavigateToAcademy('leaderboard')}
-                    className="hover:text-cyan-400 transition cursor-pointer"
-                  >
-                    {isAr ? 'لوحة المعرفة ونقاط XP' : 'Knowledge Leaderboard & XP'}
-                  </button>
-                </li>
-              </ul>
-            </div>
-
-            {/* Column 4: Contact & Master PDF */}
-            <div className="space-y-3">
-              <div className="text-xs font-bold text-slate-200 uppercase tracking-wider">
-                {isAr ? 'التواصل المباشر والبروشور' : 'Direct Dispatch & PDF'}
-              </div>
-              <div className="space-y-1.5 text-xs">
-                <div className="flex items-center gap-1.5">
-                  <Phone className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                  <span className="font-mono">{INSCO_COMPANY_DATA.contacts.phones[0]}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Mail className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                  <span className="font-mono">{INSCO_COMPANY_DATA.contacts.email}</span>
-                </div>
-              </div>
-              <div className="pt-2">
-                <a
-                  href={INSCO_COMPANY_DATA.pdfBrochureUrl}
-                  download="INSCO_Brochure_2026.pdf"
-                  className="inline-flex items-center gap-2 px-3 py-2 rounded bg-slate-900 border border-slate-800 text-cyan-400 hover:text-cyan-300 font-semibold text-xs"
-                >
-                  <FileText className="w-4 h-4 shrink-0" />
-                  <span>{isAr ? 'تحميل البروشور (50 صفحة)' : 'Download Dossier PDF'}</span>
-                </a>
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-400">
-            <div>
-              © 2026 {INSCO_COMPANY_DATA.name[language]}. {isAr ? 'جميع الحقوق محفوظة.' : 'All rights reserved.'}
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="font-mono">{INSCO_COMPANY_DATA.docRef}</span>
-              <span aria-hidden="true">·</span>
-              <span>ISO 9001:2015 · ISO 14001:2015 · ISO 45001:2018</span>
-            </div>
-          </div>
-        </div>
-      </footer>
+      {/* Each portal ends in its own footer: evidence for the buyer,
+          the learning sections and the non-accredited notice for the trainee. */}
+      {route.portal === 'company' && (
+        <CompanyFooter
+          language={language}
+          onOpenSection={openCompany}
+          onOpenDemo={() => openDemo()}
+          onOpenAcademy={() => openAcademyHash('#academy')}
+        />
+      )}
     </div>
   );
 };

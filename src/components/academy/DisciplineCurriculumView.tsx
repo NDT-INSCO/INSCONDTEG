@@ -28,6 +28,12 @@ import { PostLessonQuizPanel } from './PostLessonQuizPanel';
 interface DisciplineCurriculumViewProps {
   language: Language;
   disciplineId?: string;
+  /**
+   * Hide the "all eight disciplines" header and its selector.
+   * The dedicated discipline page already names the discipline and offers the
+   * eight siblings, so repeating the comparison grid there would be noise.
+   */
+  compact?: boolean;
   levelIdx?: number;
   moduleId?: string;
   /** Deep-link target names used by the academy container. */
@@ -47,6 +53,7 @@ interface DisciplineCurriculumViewProps {
 export const DisciplineCurriculumView: React.FC<DisciplineCurriculumViewProps> = ({
   language,
   disciplineId,
+  compact = false,
   levelIdx,
   moduleId,
   targetDisciplineId,
@@ -126,6 +133,7 @@ export const DisciplineCurriculumView: React.FC<DisciplineCurriculumViewProps> =
   return (
     <div dir={isAr ? 'rtl' : 'ltr'} className="space-y-6">
       {/* Header & Discipline Selector */}
+      {!compact && (
       <div className="rounded-2xl border border-[#29315b] bg-[#10132b] p-5 sm:p-7 space-y-5">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="space-y-1.5 max-w-3xl">
@@ -231,6 +239,8 @@ export const DisciplineCurriculumView: React.FC<DisciplineCurriculumViewProps> =
           })}
         </div>
       </div>
+
+      )}
 
       {/* Selected Discipline Overview & Qualification Level Tabs */}
       {activeLevel && (

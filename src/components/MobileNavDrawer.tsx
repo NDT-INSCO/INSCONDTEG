@@ -8,6 +8,8 @@ import type { AcademyTab } from '../academyTabs';
 interface MobileNavDrawerProps {
   open: boolean;
   language: Language;
+  /** Which portal the visitor is in; its group is listed first. */
+  portal?: 'company' | 'academy';
   onClose: () => void;
   onNavigateSection: (sectionId: string) => void;
   onOpenDemo: () => void;
@@ -29,6 +31,7 @@ interface DrawerLink {
 export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
   open,
   language,
+  portal = 'company',
   onClose,
   onNavigateSection,
   onOpenDemo,
@@ -137,17 +140,27 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 pb-6">
-          <div className="flex items-center gap-2 px-1 pt-4 text-cyan-300 text-xs font-bold">
-            <Building2 className="w-3.5 h-3.5" />
-            {isAr ? 'الشركة' : 'Company'}
-          </div>
-          {renderGroup(isAr ? 'الخدمات والمشروعات' : 'Services & projects', companyLinks)}
-
-          <div className="flex items-center gap-2 px-1 pt-5 text-cyan-300 text-xs font-bold">
-            <GraduationCap className="w-3.5 h-3.5" />
-            {isAr ? 'أكاديمية إنسكو' : 'INSCO Academy'}
-          </div>
-          {renderGroup(isAr ? 'رحلة المتعلم' : 'Learning journey', academyLinks)}
+          {/* The portal you are in comes first, so the menu never makes you
+              scroll past the other audience to find your own pages. */}
+          {(portal === 'academy' ? ['academy', 'company'] : ['company', 'academy']).map(group =>
+            group === 'company' ? (
+              <React.Fragment key="company">
+                <div className="flex items-center gap-2 px-1 pt-4 text-cyan-300 text-xs font-bold">
+                  <Building2 className="w-3.5 h-3.5" aria-hidden="true" />
+                  {isAr ? 'الشركة' : 'Company'}
+                </div>
+                {renderGroup(isAr ? 'الخدمات والمشروعات' : 'Services & projects', companyLinks)}
+              </React.Fragment>
+            ) : (
+              <React.Fragment key="academy">
+                <div className="flex items-center gap-2 px-1 pt-5 text-amber-300 text-xs font-bold">
+                  <GraduationCap className="w-3.5 h-3.5" aria-hidden="true" />
+                  {isAr ? 'أكاديمية إنسكو' : 'INSCO Academy'}
+                </div>
+                {renderGroup(isAr ? 'رحلة المتعلم' : 'Learning journey', academyLinks)}
+              </React.Fragment>
+            )
+          )}
         </nav>
 
         <div className="border-t border-slate-800 p-3 space-y-2">
@@ -158,13 +171,23 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
             <Phone className="w-3.5 h-3.5 text-cyan-400" />
             <span className="font-mono" dir="ltr">{INSCO_COMPANY_DATA.contacts.phones[0]}</span>
           </a>
-          <button
-            type="button"
-            onClick={section('rfq')}
-            className="w-full rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 px-3 py-2.5 text-sm font-black transition cursor-pointer"
-          >
-            {isAr ? 'اطلب عرض سعر' : 'Request a quote'}
-          </button>
+          {portal === 'company' ? (
+            <button
+              type="button"
+              onClick={section('rfq')}
+              className="w-full rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 px-3 py-2.5 text-sm font-black transition cursor-pointer"
+            >
+              {isAr ? 'اطلب عرض سعر' : 'Request a quote'}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={academy()}
+              className="w-full rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 px-3 py-2.5 text-sm font-black transition cursor-pointer"
+            >
+              {isAr ? 'رئيسية الأكاديمية' : 'Academy home'}
+            </button>
+          )}
         </div>
       </div>
     </div>

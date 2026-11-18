@@ -40,7 +40,8 @@
     "epub:build": "tsx scripts/build-epub.ts",
     "epub:check": "tsx scripts/build-epub.ts --check",
     "site:check": "tsx scripts/check-published-site.ts",
-    "test:portals": "tsx --test tests/portalIsolation.test.tsx"
+    "test:portals": "tsx --test tests/portalIsolation.test.tsx",
+    "docs:check": "tsx scripts/compare-docs-build.ts"
   },
   "dependencies": {
     "@google/genai": "^2.31.0",

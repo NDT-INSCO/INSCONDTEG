@@ -51,8 +51,7 @@ jobs:
       - name: Committed docs/ matches this build
         run: |
           npm run site:check
-          if [ -n "$(git status --porcelain docs)" ]; then
-            echo "::error::docs/ is stale. Run 'npm run build' and commit the result."
-            git status --short docs | head -30
-            exit 1
-          fi
+          # Compares payloads, not file names: Vite's chunk hashes can be
+          # assigned in a different order on another machine for the same
+          # output, which used to fail a perfectly fresh docs/.
+          npx tsx scripts/compare-docs-build.ts

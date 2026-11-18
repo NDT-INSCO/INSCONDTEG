@@ -22,19 +22,22 @@ interface AcademyNavItem {
   id: 'hub' | 'disciplines' | AcademySectionId;
   ar: string;
   en: string;
+  /** One word, for the four-column phone layout — full labels would spill out. */
+  shortAr: string;
+  shortEn: string;
   hash: string;
   icon: typeof Compass;
 }
 
 const ACADEMY_NAV: AcademyNavItem[] = [
-  { id: 'hub', ar: 'رئيسية الأكاديمية', en: 'Academy home', hash: '#academy', icon: GraduationCap },
-  { id: 'disciplines', ar: 'التخصصات الثمانية', en: 'Eight disciplines', hash: '#academy/disciplines', icon: Layers },
-  { id: 'choose', ar: academySectionLabel('choose', 'ar'), en: academySectionLabel('choose', 'en'), hash: '#academy/choose', icon: Compass },
-  { id: 'learn', ar: academySectionLabel('learn', 'ar'), en: academySectionLabel('learn', 'en'), hash: '#academy/learn', icon: BookOpen },
-  { id: 'practice', ar: academySectionLabel('practice', 'ar'), en: academySectionLabel('practice', 'en'), hash: '#academy/practice', icon: Wrench },
-  { id: 'test', ar: academySectionLabel('test', 'ar'), en: academySectionLabel('test', 'en'), hash: '#academy/test', icon: Award },
-  { id: 'progress', ar: academySectionLabel('progress', 'ar'), en: academySectionLabel('progress', 'en'), hash: '#academy/progress', icon: Trophy },
-  { id: 'mentor', ar: academySectionLabel('mentor', 'ar'), en: academySectionLabel('mentor', 'en'), hash: '#academy/mentor', icon: Sparkles },
+  { id: 'hub', ar: 'رئيسية الأكاديمية', shortAr: 'الرئيسية', en: 'Academy home', shortEn: 'Home', hash: '#academy', icon: GraduationCap },
+  { id: 'disciplines', ar: 'التخصصات الثمانية', shortAr: 'التخصصات', en: 'Eight disciplines', shortEn: 'Disciplines', hash: '#academy/disciplines', icon: Layers },
+  { id: 'choose', ar: academySectionLabel('choose', 'ar'), shortAr: 'مسارك', en: academySectionLabel('choose', 'en'), shortEn: 'Path', hash: '#academy/choose', icon: Compass },
+  { id: 'learn', ar: academySectionLabel('learn', 'ar'), shortAr: 'تعلّم', en: academySectionLabel('learn', 'en'), shortEn: 'Learn', hash: '#academy/learn', icon: BookOpen },
+  { id: 'practice', ar: academySectionLabel('practice', 'ar'), shortAr: 'تدرّب', en: academySectionLabel('practice', 'en'), shortEn: 'Practice', hash: '#academy/practice', icon: Wrench },
+  { id: 'test', ar: academySectionLabel('test', 'ar'), shortAr: 'اختبر', en: academySectionLabel('test', 'en'), shortEn: 'Test', hash: '#academy/test', icon: Award },
+  { id: 'progress', ar: academySectionLabel('progress', 'ar'), shortAr: 'إنجازك', en: academySectionLabel('progress', 'en'), shortEn: 'Progress', hash: '#academy/progress', icon: Trophy },
+  { id: 'mentor', ar: academySectionLabel('mentor', 'ar'), shortAr: 'المدرّس', en: academySectionLabel('mentor', 'en'), shortEn: 'Mentor', hash: '#academy/mentor', icon: Sparkles },
 ];
 
 /** Which nav entry is current for a given academy route. */
@@ -131,8 +134,14 @@ export const AcademyHeader: React.FC<AcademyHeaderProps> = ({
 
         <nav
           aria-label={isAr ? 'تنقل الأكاديمية' : 'Academy navigation'}
-          className="flex items-center gap-1.5 overflow-x-auto pb-1"
+          className="grid grid-cols-4 gap-1.5 xl:grid-cols-8"
         >
+          {/*
+            A fixed grid, not a scrolling strip: the eight destinations used to
+            grow past the page edge on a phone and push their icons outside the
+            frame. Every cell is bounded by the grid and every icon has a fixed
+            size, so nothing can escape the page width.
+          */}
           {ACADEMY_NAV.map(item => {
             const Icon = item.icon;
             const isCurrent = item.id === current;
@@ -142,17 +151,22 @@ export const AcademyHeader: React.FC<AcademyHeaderProps> = ({
                 type="button"
                 onClick={() => onOpenHash(item.hash)}
                 aria-current={isCurrent ? 'page' : undefined}
-                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-[11px] sm:text-xs font-bold transition whitespace-nowrap cursor-pointer ${
+                title={isAr ? item.ar : item.en}
+                aria-label={isAr ? item.ar : item.en}
+                className={`flex min-w-0 flex-col items-center justify-center gap-1 rounded-lg px-1.5 py-2 text-center transition cursor-pointer xl:flex-row xl:gap-1.5 xl:px-2 ${
                   isCurrent
                     ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
                     : 'text-slate-300 bg-[#10132b] border border-[#212752] hover:border-amber-400/40 hover:text-white'
                 }`}
               >
                 <Icon
-                  className={`w-3.5 h-3.5 ${isCurrent ? 'text-slate-950' : 'text-amber-400'}`}
+                  className={`w-4 h-4 shrink-0 ${isCurrent ? 'text-slate-950' : 'text-amber-400'}`}
                   aria-hidden="true"
                 />
-                <span>{isAr ? item.ar : item.en}</span>
+                <span className="w-full text-[10px] font-bold leading-tight xl:text-[11px]">
+                  <span className="xl:hidden">{isAr ? item.shortAr : item.shortEn}</span>
+                  <span className="hidden xl:inline">{isAr ? item.ar : item.en}</span>
+                </span>
               </button>
             );
           })}

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Award, BriefcaseBusiness, Building2, FileText, GraduationCap, Mail, Phone, ShieldCheck } from 'lucide-react';
 import type { Language } from '../../types';
+import { AdminKey } from '../admin/AdminKey';
 import { INSCO_COMPANY_DATA } from '../../data/inscoCompanyData';
 
 interface CompanyFooterProps {
@@ -12,6 +13,8 @@ interface CompanyFooterProps {
   onOpenAcademy: () => void;
   /** Opens the client & dossier portal. */
   onOpenClient?: () => void;
+  /** Opens the password-protected admin portal. */
+  onOpenAdmin?: () => void;
 }
 
 /**
@@ -28,6 +31,7 @@ export const CompanyFooter: React.FC<CompanyFooterProps> = ({
   onOpenDemo,
   onOpenAcademy,
   onOpenClient,
+  onOpenAdmin,
 }) => {
   const isAr = language === 'ar';
 
@@ -40,14 +44,20 @@ export const CompanyFooter: React.FC<CompanyFooterProps> = ({
   ];
 
   return (
-    <footer className="border-t border-slate-800 bg-slate-950 pt-12 pb-8 text-xs text-slate-400">
+    <footer
+      id="company-footer"
+      className="border-t border-slate-800 bg-slate-950 pt-12 pb-8 text-xs text-slate-400"
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pb-10 border-b border-slate-800">
           {/* Column 1: Brand & registrations */}
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-white font-black text-base">
-              <Building2 className="w-5 h-5 text-cyan-400" aria-hidden="true" />
-              <span>{INSCO_COMPANY_DATA.name[language]}</span>
+              <Building2 className="w-5 h-5 shrink-0 text-cyan-400" aria-hidden="true" />
+              {/* The admin door sits against the legal name: one small key for
+                  the owner, invisible to a buyer comparing suppliers. */}
+              <span className="min-w-0 truncate">{INSCO_COMPANY_DATA.name[language]}</span>
+              <AdminKey language={language} onOpen={onOpenAdmin} />
             </div>
             <p className="text-xs text-slate-400 leading-relaxed">
               {INSCO_COMPANY_DATA.subSlogan[language]}

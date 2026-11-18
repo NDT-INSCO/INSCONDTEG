@@ -67,7 +67,7 @@ export const AcademyDisciplineIndex: React.FC<AcademyDisciplineIndexProps> = ({
                   </h3>
                 </div>
                 <span className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 shrink-0">
-                  <GraduationCap className="w-4.5 h-4.5" aria-hidden="true" />
+                  <GraduationCap className="w-4 h-4" aria-hidden="true" />
                 </span>
               </div>
 

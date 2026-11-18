@@ -43,6 +43,8 @@ interface ChooserConditions {
   hasClientHash?: boolean;
   /** True when the URL already asks for the demonstrations page (`#demo`). */
   hasDemoHash?: boolean;
+  /** True when the URL carries any in-page anchor of the corporate profile. */
+  hasAnchorHash?: boolean;
   /** Current view, so a deep link never gets covered by a modal. */
   view: 'company' | 'client' | 'academy' | 'demo' | 'service';
 }
@@ -56,9 +58,10 @@ export function shouldOfferPortalChooser({
   hasAcademyHash,
   hasClientHash = false,
   hasDemoHash = false,
+  hasAnchorHash = false,
   view,
 }: ChooserConditions): boolean {
   if (choice) return false;
-  if (hasAcademyHash || hasClientHash || hasDemoHash) return false;
+  if (hasAcademyHash || hasClientHash || hasDemoHash || hasAnchorHash) return false;
   return view === 'company';
 }

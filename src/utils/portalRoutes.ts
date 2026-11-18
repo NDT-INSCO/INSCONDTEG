@@ -23,14 +23,39 @@
  * academy library into the first payload.
  */
 import { isAcademyTab, type AcademyTab } from '../academyTabs';
-import { ADMIN_HASH } from '../admin/contract';
 import {
   readServiceFamilyHash,
   serviceFamilyHash,
   type ServiceFamilyId,
 } from './serviceFamilies';
 
-export type PortalId = 'company' | 'academy';
+export type PortalId = 'company' | 'client' | 'academy';
+
+/* -------------------------------- client ---------------------------------- */
+
+export const CLIENT_SECTIONS = [
+  'overview',
+  'requests',
+  'companies',
+  'register',
+] as const;
+
+export type ClientSectionId = (typeof CLIENT_SECTIONS)[number];
+
+const CLIENT_SECTION_LABELS: Record<ClientSectionId, { ar: string; en: string }> = {
+  overview: { ar: 'لوحة بوابة العملاء', en: 'Client Overview' },
+  requests: { ar: 'طلبات العملاء الجدد', en: 'Client Requests' },
+  companies: { ar: 'أرشيف الشركات والملفات', en: 'Companies & Dossiers' },
+  register: { ar: 'التسجيل وربط الكود', en: 'Registration & Code Link' },
+};
+
+export function clientSectionLabel(section: ClientSectionId, language: 'ar' | 'en'): string {
+  return CLIENT_SECTION_LABELS[section][language];
+}
+
+export function isClientSectionId(value: string): value is ClientSectionId {
+  return (CLIENT_SECTIONS as readonly string[]).includes(value);
+}
 
 /* ------------------------------- academy ---------------------------------- */
 
@@ -158,10 +183,17 @@ export type AcademyRoute =
       tab?: AcademyTab;
     };
 
-export type AdminRoute = { portal: 'admin'; page: 'dashboard' };
-export type Route = CompanyRoute | AcademyRoute | AdminRoute;
+export type ClientRoute = {
+  portal: 'client';
+  page: 'section';
+  section: ClientSectionId;
+  companyId?: string;
+};
+
+export type Route = CompanyRoute | ClientRoute | AcademyRoute;
 
 const DISCIPLINE_SLUG = /^[a-z0-9][a-z0-9_-]*$/i;
+const COMPANY_DOC_SLUG = /^[a-zA-Z0-9_-]{1,128}$/;
 
 /** `#anything` → a structured route. Never throws, never returns undefined. */
 export function parseRoute(hash: string): Route {
@@ -169,13 +201,24 @@ export function parseRoute(hash: string): Route {
   const lower = raw.toLowerCase();
 
   if (!raw) return { portal: 'company', page: 'home' };
-  if (`#${lower}` === ADMIN_HASH) return { portal: 'admin', page: 'dashboard' };
 
   const family = readServiceFamilyHash(hash);
   if (family) return { portal: 'company', page: 'service', family };
   if (lower === 'demo') return { portal: 'company', page: 'demo' };
 
   const parts = lower.split('/').filter(Boolean);
+  const rawParts = raw.split('/').filter(Boolean);
+
+  if (parts[0] === 'client' || parts[0] === 'clients') {
+    const sec = parts[1];
+    if (sec && isClientSectionId(sec)) {
+      if (sec === 'companies' && rawParts[2] && COMPANY_DOC_SLUG.test(rawParts[2])) {
+        return { portal: 'client', page: 'section', section: 'companies', companyId: rawParts[2] };
+      }
+      return { portal: 'client', page: 'section', section: sec };
+    }
+    return { portal: 'client', page: 'section', section: 'overview' };
+  }
 
   if (parts[0] === 'academy') {
     if (parts.length === 1) return { portal: 'academy', page: 'hub' };
@@ -217,11 +260,17 @@ export function parseRoute(hash: string): Route {
  * card points at.
  */
 export function routeToHash(route: Route): string {
-  if (route.portal === 'admin') return ADMIN_HASH;
   if (route.portal === 'company') {
     if (route.page === 'demo') return '#demo';
     if (route.page === 'service') return serviceFamilyHash(route.family);
     return route.anchor ? `#${route.anchor}` : '';
+  }
+  if (route.portal === 'client') {
+    if (route.section === 'overview') return '#client';
+    if (route.section === 'companies' && route.companyId) {
+      return `#client/companies/${route.companyId}`;
+    }
+    return `#client/${route.section}`;
   }
   if (route.page === 'hub') return '#academy';
   if (route.page === 'disciplines') return '#academy/disciplines';
@@ -231,8 +280,18 @@ export function routeToHash(route: Route): string {
     : `#academy/${route.section}`;
 }
 
-export function portalOf(route: Route): Route['portal'] {
+export function portalOf(route: Route): PortalId {
   return route.portal;
+}
+
+export function clientSectionHash(section: ClientSectionId, companyId?: string): string {
+  if (section === 'overview') return '#client';
+  if (section === 'companies' && companyId) return `#client/companies/${companyId}`;
+  return `#client/${section}`;
+}
+
+export function isClientRoute(route: Route): route is ClientRoute {
+  return route.portal === 'client';
 }
 
 export function disciplineHash(disciplineId: string): string {

@@ -1189,6 +1189,42 @@ test('GeRadiographicExposureTimeApp #ge-quick-units-bar emphasizes unit system c
   );
 });
 
+test('GeRadiographicExposureTimeApp initializes unitSystem from localStorage and persists changes via useEffect', () => {
+  // 1. Pre-populated 'imperial' in localStorage is read as initial state
+  localStorage.setItem('ge_app_unit_system', 'imperial');
+  const firstMount = render(<GeRadiographicExposureTimeApp language="en" />);
+  assert.equal(
+    firstMount.container.querySelector('#ge-quick-units-bar')?.getAttribute('data-unit-mode'),
+    'imperial'
+  );
+  assert.ok(firstMount.getByTestId('ge-thickness-imperial-input'));
+
+  // 2. Switching to Metric persists 'metric' to localStorage automatically
+  fireEvent.click(firstMount.getByTestId('ge-quick-units-metric'));
+  assert.equal(localStorage.getItem('ge_app_unit_system'), 'metric');
+
+  // 3. Switching back to Imperial persists 'imperial' and survives remount
+  fireEvent.click(firstMount.getByTestId('ge-unit-toggle-imperial'));
+  assert.equal(localStorage.getItem('ge_app_unit_system'), 'imperial');
+  firstMount.unmount();
+
+  const secondMount = render(<GeRadiographicExposureTimeApp language="en" />);
+  assert.equal(
+    secondMount.container.querySelector('#ge-quick-units-bar')?.getAttribute('data-unit-mode'),
+    'imperial'
+  );
+  secondMount.unmount();
+
+  // 4. Invalid stored value falls back safely to 'metric' and syncs localStorage
+  localStorage.setItem('ge_app_unit_system', 'invalid-unit');
+  const fallbackMount = render(<GeRadiographicExposureTimeApp language="en" />);
+  assert.equal(
+    fallbackMount.container.querySelector('#ge-quick-units-bar')?.getAttribute('data-unit-mode'),
+    'metric'
+  );
+  assert.equal(localStorage.getItem('ge_app_unit_system'), 'metric');
+});
+
 
 
 

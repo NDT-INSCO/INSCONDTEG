@@ -131,7 +131,7 @@ export const AcademyHeader: React.FC<AcademyHeaderProps> = ({
 
         <nav
           aria-label={isAr ? 'تنقل الأكاديمية' : 'Academy navigation'}
-          className="flex flex-wrap items-center gap-1.5"
+          className="flex items-center gap-1.5 overflow-x-auto pb-1"
         >
           {ACADEMY_NAV.map(item => {
             const Icon = item.icon;

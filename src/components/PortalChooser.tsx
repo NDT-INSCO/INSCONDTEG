@@ -1,5 +1,5 @@
 import React from 'react';
-import { Building2, GraduationCap, ArrowLeft, ArrowRight, ShieldCheck } from 'lucide-react';
+import { BriefcaseBusiness, Building2, GraduationCap, ArrowLeft, ArrowRight, ShieldCheck } from 'lucide-react';
 import { Language } from '../types';
 import { INSCO_COMPANY_DATA } from '../data/inscoCompanyData';
 import { useEscapeKey } from '../utils/a11y';
@@ -12,11 +12,7 @@ interface PortalChooserProps {
 }
 
 /**
- * First-visit fork between the corporate profile and the academy.
- *
- * Both doors are real buttons, the dialog is announced, Escape dismisses it
- * without recording a choice (so a deliberate decision is always the visitor's)
- * and the backdrop is a keyboard-skippable button rather than a clickable div.
+ * First-visit fork across the corporate profile, the client portal, and the academy.
  */
 export const PortalChooser: React.FC<PortalChooserProps> = ({ language, onChoose, onDismiss }) => {
   const isAr = language === 'ar';
@@ -42,23 +38,23 @@ export const PortalChooser: React.FC<PortalChooserProps> = ({ language, onChoose
         aria-labelledby={titleId}
         aria-describedby={descId}
         dir={isAr ? 'rtl' : 'ltr'}
-        className="relative z-10 w-full max-w-4xl rounded-2xl border border-slate-700 bg-slate-950 shadow-2xl overflow-hidden"
+        className="relative z-10 w-full max-w-5xl rounded-2xl border border-slate-700 bg-slate-950 shadow-2xl overflow-hidden"
       >
         <div className="px-5 sm:px-8 pt-6 pb-4 border-b border-slate-800 text-center space-y-2">
           <div className="text-[11px] font-mono uppercase tracking-wider text-cyan-400">
-            {isAr ? 'INSCO · بوابة موحّدة' : 'INSCO · One company, two doors'}
+            {isAr ? 'INSCO · منصة ثلاثية المسارات' : 'INSCO · Unified Three-Portal Platform'}
           </div>
           <h2 id={titleId} className="text-xl sm:text-2xl font-black text-white">
             {isAr ? 'اختر المسار الذي يناسبك' : 'Choose the path that fits you'}
           </h2>
           <p id={descId} className="text-xs sm:text-sm text-slate-400 max-w-2xl mx-auto leading-relaxed">
             {isAr
-              ? 'بوابة الشركة للعملاء والمشروعات والمشتريات والجودة. الأكاديمية للمهندسين والمتدرّبين. يمكنك التبديل بينهما في أي وقت من أعلى الصفحة.'
-              : 'The corporate portal serves clients, projects, procurement and quality teams. The academy serves engineers and trainees. You can switch at any time from the header.'}
+              ? 'بوابة الشركة للخدمات والمشروعات. بوابة العملاء لتسجيل الشركات وطلبات الفحص وملفات التقارير المكوّدة. الأكاديمية للمهندسين والمتدرّبين.'
+              : 'Corporate portal for services & projects. Client portal for registration, service requests, coded company archives & reports. Academy for engineers & trainees.'}
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 sm:p-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 sm:p-6">
           <button
             type="button"
             autoFocus
@@ -76,6 +72,26 @@ export const PortalChooser: React.FC<PortalChooserProps> = ({ language, onChoose
             </span>
             <span className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-white">
               {isAr ? 'دخول بوابة الشركة' : 'Enter the corporate portal'}
+              <ArrowIcon className="w-3.5 h-3.5" />
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onChoose('client')}
+            className="group text-start rounded-xl border border-slate-700 bg-slate-900/60 hover:border-emerald-400/70 focus-visible:border-emerald-400 p-5 transition cursor-pointer"
+          >
+            <span className="inline-flex items-center gap-2 text-emerald-300 font-bold text-sm">
+              <BriefcaseBusiness className="w-4 h-4" />
+              {isAr ? 'بوابة العملاء والملفات' : 'Client & Dossier Portal'}
+            </span>
+            <span className="block mt-2 text-xs text-slate-400 leading-relaxed">
+              {isAr
+                ? 'تسجيل العملاء · طلبات الفحص الجديدة · أرشيف الشركات المكوّد · ملفات وتقارير الشركات.'
+                : 'Client registration · new test requests · coded company archive · inspection report dossiers.'}
+            </span>
+            <span className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-white">
+              {isAr ? 'دخول بوابة العملاء' : 'Enter Client Portal'}
               <ArrowIcon className="w-3.5 h-3.5" />
             </span>
           </button>

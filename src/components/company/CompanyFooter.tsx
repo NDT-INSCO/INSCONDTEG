@@ -2,6 +2,9 @@ import React from 'react';
 import { Award, Building2, FileText, GraduationCap, Mail, Phone, ShieldCheck } from 'lucide-react';
 import type { Language } from '../../types';
 import { INSCO_COMPANY_DATA } from '../../data/inscoCompanyData';
+import { AdminKey } from '../admin/AdminKey';
+
+export const COMPANY_FOOTER_ID = 'company-footer';
 
 interface CompanyFooterProps {
   language: Language;
@@ -10,6 +13,7 @@ interface CompanyFooterProps {
   onOpenDemo: () => void;
   /** The one door into the other portal. */
   onOpenAcademy: () => void;
+  onOpenAdmin?: () => void;
 }
 
 /**
@@ -26,6 +30,7 @@ export const CompanyFooter: React.FC<CompanyFooterProps> = ({
   onOpenSection,
   onOpenDemo,
   onOpenAcademy,
+  onOpenAdmin,
 }) => {
   const isAr = language === 'ar';
 
@@ -38,14 +43,15 @@ export const CompanyFooter: React.FC<CompanyFooterProps> = ({
   ];
 
   return (
-    <footer className="border-t border-slate-800 bg-slate-950 pt-12 pb-8 text-xs text-slate-400">
+    <footer id={COMPANY_FOOTER_ID} className="scroll-mt-28 border-t border-slate-800 bg-slate-950 pt-12 pb-20 text-xs text-slate-400 xl:pb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pb-10 border-b border-slate-800">
           {/* Column 1: Brand & registrations */}
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-white font-black text-base">
-              <Building2 className="w-5 h-5 text-cyan-400" aria-hidden="true" />
-              <span>{INSCO_COMPANY_DATA.name[language]}</span>
+              <Building2 className="w-5 h-5 shrink-0 text-cyan-400" aria-hidden="true" />
+              <span className="min-w-0">{INSCO_COMPANY_DATA.name[language]}</span>
+              <AdminKey language={language} onOpen={onOpenAdmin} highlighted />
             </div>
             <p className="text-xs text-slate-400 leading-relaxed">
               {INSCO_COMPANY_DATA.subSlogan[language]}
@@ -144,11 +150,11 @@ export const CompanyFooter: React.FC<CompanyFooterProps> = ({
           </div>
         </div>
 
-        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-400">
-          <div>
-            © 2026 {INSCO_COMPANY_DATA.name[language]}. {isAr ? 'جميع الحقوق محفوظة.' : 'All rights reserved.'}
+        <div className="pt-6 flex flex-col lg:flex-row items-center justify-between gap-3 text-[11px] text-slate-400">
+          <div className="text-center lg:text-start">
+            © 2026 {INSCO_COMPANY_DATA.shortName}. {isAr ? 'جميع الحقوق محفوظة.' : 'All rights reserved.'}
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <span className="font-mono">{INSCO_COMPANY_DATA.docRef}</span>
             <span aria-hidden="true">·</span>
             <span>ISO 9001:2015 · ISO 14001:2015 · ISO 45001:2018</span>

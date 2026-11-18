@@ -290,8 +290,8 @@ export const CompanyContactSection: React.FC<CompanyContactSectionProps> = ({
                   </h4>
                   <p className="text-xs text-slate-300 max-w-md mx-auto">
                     {isAr
-                      ? `تم تسجيل طلبكم لدى فريق التسعير تحت الكود المرجعي (${submittedRef}) وإرسال إشعار بريدي. سيتواصل معكم مهندس العمليات خلال ساعات.`
-                      : `Your request was registered with the tender desk under reference (${submittedRef}) and a notification was emailed. Our lead project engineer will contact you shortly.`}
+                      ? `تم تسجيل طلبكم برقم مرجعي (${submittedRef}). احتفظوا بالرقم لمتابعة الطلب مع فريق التسعير.`
+                      : `Your request was accepted under reference (${submittedRef}). Keep this number to follow up with the tender desk.`}
                   </p>
                   <button
                     type="button"

@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* Do not use the previous Pages build as input to the next build. */
+@source not "../docs";
 
 :root,
 :root[data-theme="dark"] {

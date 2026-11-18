@@ -9,6 +9,8 @@
  * answers success without a delivery acknowledgement.
  */
 
+import { randomBytes } from 'node:crypto';
+
 export interface RfqRecord {
   companyName: string;
   contactName: string;
@@ -128,7 +130,7 @@ export async function handleRfqRequest(
   }
 
   const now = options.now ? options.now() : new Date();
-  const suffix = options.randomSuffix ? options.randomSuffix() : Math.random().toString(36).slice(2, 8).toUpperCase();
+  const suffix = options.randomSuffix ? options.randomSuffix() : randomBytes(5).toString('hex').toUpperCase();
   const reference = makeReference(now, suffix);
   const record: RfqRecord = {
     ...validation.value,

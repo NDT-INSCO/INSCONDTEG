@@ -162,7 +162,7 @@ export const WorkshopTrainingResultsPanel: React.FC<WorkshopTrainingResultsPanel
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-slate-800">
         <div>
           <div className="text-xs font-mono text-emerald-400 mb-1 flex items-center gap-2">
-            <ClipboardCheck className="w-4 h-4 text-emerald-400" />
+            <ClipboardCheck className="w-4 h-4 text-emerald-400 shrink-0" />
             <span>
               {isAr
                 ? 'لوحة النتائج التدريبية وسجل الكفاءة العملية (تتحدث تلقائياً من أجهزة الورشة)'
@@ -188,7 +188,7 @@ export const WorkshopTrainingResultsPanel: React.FC<WorkshopTrainingResultsPanel
             }}
             className="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 text-xs font-mono cursor-pointer flex items-center gap-1.5"
           >
-            <RotateCcw className="w-3.5 h-3.5" />
+            <RotateCcw className="w-3.5 h-3.5 shrink-0" />
             <span>{isAr ? 'إعادة ضبط السجل' : 'Reset Log'}</span>
           </button>
         </div>
@@ -255,7 +255,7 @@ export const WorkshopTrainingResultsPanel: React.FC<WorkshopTrainingResultsPanel
         {/* Left 5 Cols: 5-Axis Practical Skill Breakdown */}
         <div className="lg:col-span-5 p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-3.5">
           <div className="text-xs font-mono font-bold text-white flex items-center gap-2 pb-2 border-b border-slate-800">
-            <TrendingUp className="w-4 h-4 text-cyan-400" />
+            <TrendingUp className="w-4 h-4 text-cyan-400 shrink-0" />
             <span>{isAr ? 'تحليل المهارات الخمس لمفتش الموجات فوق الصوتية:' : '5-Pillar Ultrasonic Inspector Skill Breakdown:'}</span>
           </div>
 
@@ -302,7 +302,7 @@ export const WorkshopTrainingResultsPanel: React.FC<WorkshopTrainingResultsPanel
         <div className="lg:col-span-7 p-4 rounded-xl bg-slate-900/80 border border-cyan-500/30 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-800">
             <div className="text-xs font-mono font-bold text-cyan-300 flex items-center gap-1.5">
-              <Target className="w-4 h-4 text-cyan-400" />
+              <Target className="w-4 h-4 text-cyan-400 shrink-0" />
               <span>
                 {isAr
                   ? 'اختبار العينة العمياء السريع (قيّم القراءات وسجّل نتيجتك في السجل التدريبي):'
@@ -410,7 +410,7 @@ export const WorkshopTrainingResultsPanel: React.FC<WorkshopTrainingResultsPanel
               onClick={handleEvaluateBlindSpecimen}
               className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-black text-xs cursor-pointer flex items-center gap-2 shadow-lg shadow-cyan-950/50"
             >
-              <ShieldCheck className="w-4 h-4" />
+              <ShieldCheck className="w-4 h-4 shrink-0" />
               <span>{isAr ? 'تصحيح العينة وتسجيل النتيجة التدريبية' : 'Grade Blind Specimen & Log Result'}</span>
             </button>
 
@@ -433,9 +433,9 @@ export const WorkshopTrainingResultsPanel: React.FC<WorkshopTrainingResultsPanel
 
       {/* Detailed Practical Inspection Log Table */}
       <div className="space-y-2">
-        <div className="text-xs font-mono text-slate-300 font-bold flex items-center justify-between">
-          <span className="flex items-center gap-1.5">
-            <Award className="w-4 h-4 text-amber-400" />
+        <div className="flex flex-col gap-1 text-xs font-mono font-bold text-slate-300 sm:flex-row sm:items-center sm:justify-between">
+          <span className="flex min-w-0 items-center gap-1.5">
+            <Award className="w-4 h-4 text-amber-400 shrink-0" />
             <span>{isAr ? 'سجل نتائج الفحوصات العملية التفصيلي بالورشة:' : 'Detailed Practical Workshop Inspection Log:'}</span>
           </span>
           <span className="text-slate-500 tabular-nums">

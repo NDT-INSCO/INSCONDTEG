@@ -505,12 +505,17 @@ export const SimulationLabsRtTechniquesWorkbench: React.FC<
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 shrink-0">
+          {/* The four tools used to be a fixed single-line row: on a phone the
+              labels pushed the buttons (and their icons) past the card edge. */}
+          <div
+            data-testid="rt-workbench-toolbar"
+            className="flex w-full min-w-0 flex-wrap items-center gap-2 lg:w-auto lg:justify-end"
+          >
             <button
               type="button"
               data-testid="rt-workbench-camera-toggle"
               onClick={() => setShowCameraArHud((v) => !v)}
-              className={`px-3.5 py-2 rounded-xl border text-xs font-bold transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+              className={`px-3.5 py-2 rounded-xl border text-xs font-bold transition cursor-pointer flex min-w-0 max-w-full items-center gap-1.5 leading-tight ${
                 showCameraArHud
                   ? 'bg-emerald-500 text-slate-950 border-emerald-400 font-black'
                   : isLight
@@ -518,8 +523,8 @@ export const SimulationLabsRtTechniquesWorkbench: React.FC<
                   : 'bg-emerald-950/40 text-emerald-300 border-emerald-500/40 hover:border-emerald-400'
               }`}
             >
-              <Camera className="w-3.5 h-3.5" />
-              <span>
+              <Camera className="w-3.5 h-3.5 shrink-0" />
+              <span className="min-w-0">
                 {isAr ? 'استخدام الكاميرا (تراكب NDT)' : 'Use Camera (NDT Overlay)'}
               </span>
             </button>
@@ -527,7 +532,7 @@ export const SimulationLabsRtTechniquesWorkbench: React.FC<
             <button
               type="button"
               onClick={() => setCompareAllThree((v) => !v)}
-              className={`px-3.5 py-2 rounded-xl border text-xs font-bold transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+              className={`px-3.5 py-2 rounded-xl border text-xs font-bold transition cursor-pointer flex min-w-0 max-w-full items-center gap-1.5 leading-tight ${
                 compareAllThree
                   ? 'bg-cyan-500 text-slate-950 border-cyan-400'
                   : isLight
@@ -535,8 +540,8 @@ export const SimulationLabsRtTechniquesWorkbench: React.FC<
                   : 'bg-slate-950 text-slate-200 border-slate-700 hover:border-cyan-400'
               }`}
             >
-              <Columns className="w-3.5 h-3.5" />
-              <span>
+              <Columns className="w-3.5 h-3.5 shrink-0" />
+              <span className="min-w-0">
                 {isAr ? 'مقارنة التقنيات الثلاث معاً' : 'Compare All 3 Techniques'}
               </span>
             </button>
@@ -544,22 +549,22 @@ export const SimulationLabsRtTechniquesWorkbench: React.FC<
             <button
               type="button"
               onClick={handleAutoOptimizeAll}
-              className="px-3.5 py-2 rounded-xl border border-emerald-500/40 bg-emerald-500/15 hover:bg-emerald-500 hover:text-slate-950 text-emerald-500 text-xs font-bold transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap"
+              className="px-3.5 py-2 rounded-xl border border-emerald-500/40 bg-emerald-500/15 hover:bg-emerald-500 hover:text-slate-950 text-emerald-500 text-xs font-bold transition cursor-pointer flex min-w-0 max-w-full items-center gap-1.5 leading-tight"
             >
-              <Sparkles className="w-3.5 h-3.5" />
+              <Sparkles className="w-3.5 h-3.5 shrink-0" />
               <span>{isAr ? 'ضبط مثالي تلقائي (ASME)' : 'Auto-Optimize ASME'}</span>
             </button>
 
             <button
               type="button"
               onClick={handleResetDefaults}
-              className={`px-3 py-2 rounded-xl border text-xs font-bold transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+              className={`px-3 py-2 rounded-xl border text-xs font-bold transition cursor-pointer flex min-w-0 max-w-full items-center gap-1.5 leading-tight ${
                 isLight
                   ? 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100'
                   : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-600'
               }`}
             >
-              <RotateCcw className="w-3.5 h-3.5" />
+              <RotateCcw className="w-3.5 h-3.5 shrink-0" />
               <span>{isAr ? 'إعادة ضبط' : 'Reset'}</span>
             </button>
           </div>
@@ -781,7 +786,7 @@ export const SimulationLabsRtTechniquesWorkbench: React.FC<
 
             <div className={`p-3.5 rounded-xl border ${subBg}`}>
               <div className={`text-[11px] flex items-center gap-1 ${mutedText}`}>
-                <Clock className="w-3 h-3" />
+                <Clock className="w-3 h-3 shrink-0" />
                 <span>{isAr ? 'زمن التعريض الأمثل' : 'Optimal Exposure'}</span>
               </div>
               <div
@@ -799,7 +804,7 @@ export const SimulationLabsRtTechniquesWorkbench: React.FC<
 
             <div className={`p-3.5 rounded-xl border ${subBg}`}>
               <div className={`text-[11px] flex items-center gap-1 ${mutedText}`}>
-                <ShieldAlert className="w-3 h-3 text-amber-500" />
+                <ShieldAlert className="w-3 h-3 text-amber-500 shrink-0" />
                 <span>{isAr ? 'نصف قطر حاجز 2mR/h' : '2 mR/hr Barricade'}</span>
               </div>
               <div className="text-base sm:text-lg font-black font-mono mt-0.5 text-amber-500">
@@ -833,9 +838,9 @@ export const SimulationLabsRtTechniquesWorkbench: React.FC<
                 }`}
               >
                 {overallCompliant ? (
-                  <CheckCircle2 className="w-4 h-4" />
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
                 ) : (
-                  <AlertTriangle className="w-4 h-4" />
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
                 )}
                 <span>
                   {overallCompliant
@@ -1195,7 +1200,7 @@ export const SimulationLabsRtTechniquesWorkbench: React.FC<
                 onClick={handleSaveExperiment}
                 className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs sm:text-sm transition cursor-pointer flex items-center gap-2"
               >
-                <Award className="w-4 h-4" />
+                <Award className="w-4 h-4 shrink-0" />
                 <span>
                   {isAr
                     ? 'حفظ تجربة المعمل في سجل المحاكاة (+XP)'
@@ -1232,9 +1237,9 @@ export const SimulationLabsRtTechniquesWorkbench: React.FC<
 
         {/* RIGHT / END ZONE (5 Cols): Dynamic Technical Variables Control Deck */}
         <div className={`lg:col-span-5 rounded-2xl border p-5 space-y-5 ${shellBg}`}>
-          <div className="flex items-center justify-between pb-3 border-b border-slate-700/25">
-            <div className="flex items-center gap-2">
-              <Sliders className="w-4 h-4 text-emerald-500" />
+          <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-700/25">
+            <div className="flex min-w-0 items-center gap-2">
+              <Sliders className="w-4 h-4 text-emerald-500 shrink-0" />
               <h3 className="text-base font-bold">
                 {isAr
                   ? 'لوحة التحكم الديناميكية في المتغيرات التقنية'
@@ -1247,7 +1252,7 @@ export const SimulationLabsRtTechniquesWorkbench: React.FC<
           {/* Group 1: Pipe & Weld Dimensions */}
           <div className="space-y-3">
             <div className="text-xs font-bold text-amber-500 flex items-center gap-1.5">
-              <Layers className="w-3.5 h-3.5" />
+              <Layers className="w-3.5 h-3.5 shrink-0" />
               <span>
                 {isAr ? '1. أبعاد الماسورة ووصلة اللحام' : '1. Pipe & Weld Geometry'}
               </span>
@@ -1504,9 +1509,9 @@ export const SimulationLabsRtTechniquesWorkbench: React.FC<
                   <button
                     type="button"
                     onClick={() => setShotRotationIdx((i) => (i + 1) % 2)}
-                    className="px-3 py-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/15 text-cyan-400 text-xs font-bold cursor-pointer flex items-center gap-1.5 tabular-nums"
+                    className="flex min-w-0 max-w-[60%] items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/15 px-3 py-1.5 text-start text-xs font-bold text-cyan-400 tabular-nums cursor-pointer"
                   >
-                    <RotateCw className="w-3.5 h-3.5" />
+                    <RotateCw className="w-3.5 h-3.5 shrink-0" />
                     <span>
                       {shotRotationIdx % 2 === 0
                         ? isAr
@@ -1600,10 +1605,10 @@ export const SimulationLabsRtTechniquesWorkbench: React.FC<
                     onClick={() =>
                       setShotRotationIdx((i) => (i + 1) % Math.max(1, straightGeo.exposuresRequired))
                     }
-                    className="px-3 py-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/15 text-emerald-400 text-xs font-bold cursor-pointer flex items-center gap-1.5 tabular-nums"
+                    className="flex min-w-0 max-w-[60%] items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/15 px-3 py-1.5 text-start text-xs font-bold text-emerald-400 tabular-nums cursor-pointer"
                   >
-                    <RotateCw className="w-3.5 h-3.5" />
-                    <span>{straightGeo.stationMarkersLabel}</span>
+                    <RotateCw className="w-3.5 h-3.5 shrink-0" />
+                    <span className="min-w-0">{straightGeo.stationMarkersLabel}</span>
                   </button>
                 </div>
               </>
@@ -1612,7 +1617,7 @@ export const SimulationLabsRtTechniquesWorkbench: React.FC<
 
           {/* Group 4: Film Class & Exposure Time Dynamic Override */}
           <div className="space-y-3 pt-3 border-t border-slate-700/20">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="text-xs font-bold">
                 {isAr ? '4. نوع الفيلم وزمن التعريض الفعلي' : '4. Film Speed & Exposure Time'}
               </span>

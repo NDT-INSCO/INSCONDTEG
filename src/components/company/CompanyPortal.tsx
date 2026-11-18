@@ -1,6 +1,7 @@
 import React from 'react';
 import { Language } from '../../types';
 import { CompanyHero } from './CompanyHero';
+import { CompanyAnnouncement } from './CompanyAnnouncement';
 import { CompanyServicesSection } from './CompanyServicesSection';
 import { CompanyProjectCostEstimator } from './CompanyProjectCostEstimator';
 import { CompanyFleetInspector } from './CompanyFleetInspector';
@@ -53,6 +54,7 @@ export const CompanyPortal: React.FC<CompanyPortalProps> = ({
 
   return (
     <div id="top" className="space-y-0">
+      <CompanyAnnouncement language={language} />
       {/* 1. Who we are, what we do, and the one action we want. */}
       <CompanyHero
         language={language}

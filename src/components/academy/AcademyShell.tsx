@@ -11,6 +11,7 @@ import {
   Wrench,
 } from 'lucide-react';
 import type { Language } from '../../types';
+import { AdminKey } from '../admin/AdminKey';
 import {
   academySectionLabel,
   type AcademyRoute,
@@ -193,6 +194,7 @@ interface AcademyFooterProps {
   language: Language;
   onOpenHash: (hash: string) => void;
   onOpenCompany: () => void;
+  onOpenAdmin?: () => void;
 }
 
 /**
@@ -207,6 +209,7 @@ export const AcademyFooter: React.FC<AcademyFooterProps> = ({
   language,
   onOpenHash,
   onOpenCompany,
+  onOpenAdmin,
 }) => {
   const isAr = language === 'ar';
   return (
@@ -242,6 +245,7 @@ export const AcademyFooter: React.FC<AcademyFooterProps> = ({
           >
             {isAr ? 'بوابة الشركة' : 'Company portal'}
           </button>
+          <AdminKey language={language} onOpen={onOpenAdmin} />
         </div>
       </div>
     </footer>

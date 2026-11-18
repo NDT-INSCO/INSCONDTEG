@@ -23,6 +23,7 @@
  * academy library into the first payload.
  */
 import { isAcademyTab, type AcademyTab } from '../academyTabs';
+import { ADMIN_HASH } from '../admin/contract';
 import {
   readServiceFamilyHash,
   serviceFamilyHash,
@@ -157,7 +158,8 @@ export type AcademyRoute =
       tab?: AcademyTab;
     };
 
-export type Route = CompanyRoute | AcademyRoute;
+export type AdminRoute = { portal: 'admin'; page: 'dashboard' };
+export type Route = CompanyRoute | AcademyRoute | AdminRoute;
 
 const DISCIPLINE_SLUG = /^[a-z0-9][a-z0-9_-]*$/i;
 
@@ -167,6 +169,7 @@ export function parseRoute(hash: string): Route {
   const lower = raw.toLowerCase();
 
   if (!raw) return { portal: 'company', page: 'home' };
+  if (`#${lower}` === ADMIN_HASH) return { portal: 'admin', page: 'dashboard' };
 
   const family = readServiceFamilyHash(hash);
   if (family) return { portal: 'company', page: 'service', family };
@@ -214,6 +217,7 @@ export function parseRoute(hash: string): Route {
  * card points at.
  */
 export function routeToHash(route: Route): string {
+  if (route.portal === 'admin') return ADMIN_HASH;
   if (route.portal === 'company') {
     if (route.page === 'demo') return '#demo';
     if (route.page === 'service') return serviceFamilyHash(route.family);
@@ -227,7 +231,7 @@ export function routeToHash(route: Route): string {
     : `#academy/${route.section}`;
 }
 
-export function portalOf(route: Route): PortalId {
+export function portalOf(route: Route): Route['portal'] {
   return route.portal;
 }
 

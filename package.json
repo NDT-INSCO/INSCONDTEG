@@ -17,6 +17,7 @@
     "test:cert": "tsx --test tests/certificationCenter.test.tsx",
     "test:company": "tsx --test tests/companyProfile.test.tsx",
     "test:rfq": "tsx --test tests/rfqSubmit.test.ts && tsx --test tests/rfqGateway.test.ts",
+    "test:admin": "tsx --test tests/adminGateway.test.ts tests/adminPortal.test.tsx",
     "test:fleet": "tsx --test tests/fleetCalibration.test.tsx",
     "test:a11y": "tsx --test tests/a11yClickables.test.tsx",
     "test:ux": "tsx --test tests/uxNavigation.test.tsx && tsx --test tests/academyStations.test.tsx",
@@ -25,7 +26,7 @@
     "test:epub": "tsx --test tests/epub.test.tsx",
     "test:ai": "tsx --test tests/aiContract.test.tsx && tsx --test tests/aiTransport.test.ts && tsx --test tests/aiSearch.test.tsx && tsx --test tests/aiUi.test.tsx",
     "test:nde-ed": "tsx --test tests/ndeEdProgress.test.tsx && tsx --test tests/ndeEdData.test.tsx && tsx --test tests/ndeEdCatalog.test.tsx",
-    "test": "npm run test:company && npm run test:rfq && npm run test:fleet && npm run test:a11y && npm run test:ux && npm run test:portals && npm run test:ui && npm run test:academy && npm run test:book && npm run test:leaderboard && npm run test:roadmap && npm run test:cert && npm run test:edb && npm run test:epub && npm run test:ai && npm run test:nde-ed && npm run test:practical && npm run test:review && npm run test:paths && npm run test:routing && npm run test:smoke",
+    "test": "npm run test:company && npm run test:rfq && npm run test:admin && npm run test:fleet && npm run test:a11y && npm run test:ux && npm run test:portals && npm run test:ui && npm run test:academy && npm run test:book && npm run test:leaderboard && npm run test:roadmap && npm run test:cert && npm run test:edb && npm run test:epub && npm run test:ai && npm run test:nde-ed && npm run test:practical && npm run test:review && npm run test:paths && npm run test:routing && npm run test:smoke",
     "verify": "npm run lint && npm run test && npm run edb:check && npm run edb:verify:published && npm run epub:check && npm run links:check && npm run build && npm run site:check",
     "edb:build": "tsx scripts/build-edb.ts",
     "edb:check": "tsx scripts/build-edb.ts --check",
@@ -79,6 +80,6 @@
     "typescript": "^7.0.2"
   },
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.13.0"
   }
 }

@@ -11,7 +11,7 @@ NDT, PWHT, customer-service portal, and the INSCO engineering academy.
 
 ## التشغيل
 
-يتطلب Node 22 أو أحدث.
+يتطلب Node 22.13 أو أحدث.
 
 ```bash
 npm install      # تثبيت الحزم
@@ -45,6 +45,17 @@ npm run build && npm run site:check
 الإعداد الكامل (Apps Script مجاني أو بوابة `server.ts`) في
 [`documentation/RFQ_AR.md`](documentation/RFQ_AR.md).
 
+## بوابة إدارة الموقع
+
+أيقونة المفتاح الصغيرة في تذييل الموقع تفتح بوابة الإدارة (`#admin`). تتحقق
+البوابة من كلمة المرور على الخادم. بعد الدخول تعرض الطلبات المستلمة، وتتيح
+تحديث حالتها ونشر إعلان باللغتين في الصفحة الرئيسية.
+
+اضبط `ADMIN_PASSWORD` على خادم Node وحده؛ لا توجد كلمة مرور افتراضية. GitHub Pages لا يشغّل
+الخادم، لكن يمكن أن يربط المفتاح ببوابة مستضافة على عنوان HTTPS منفصل. انظر
+[`documentation/ADMIN_AR.md`](documentation/ADMIN_AR.md) لإعداد الدخول والنشر
+والتخزين الدائم.
+
 ## المستشار الذكي
 
 `server.ts` بوابة صغيرة تحمل مفتاح Gemini وتقدّم `/api/ai/*`؛ المتصفح لا يرى أي
@@ -57,6 +68,7 @@ npm run build && npm run site:check
 | --- | --- |
 | `documentation/DEPLOY_GITHUB_PAGES_AR.md` | النشر على GitHub Pages خطوة بخطوة |
 | `documentation/RFQ_AR.md` | تشغيل نموذج طلب عرض السعر فعليًا |
+| `documentation/ADMIN_AR.md` | تفعيل لوحة الإدارة وربطها بالموقع المنشور |
 | `documentation/STATUS_AR.md` | ما نُفِّذ وما بقي وأرقام المشروع |
 | `documentation/AI_STUDIO_AR.md` | المستشار الذكي والتكلفة والنشر |
 | `documentation/EDB_FORMAT_AR.md` | صيغة مكتبة EDB |

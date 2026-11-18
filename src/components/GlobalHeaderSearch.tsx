@@ -147,7 +147,7 @@ export const GlobalHeaderSearch: React.FC<GlobalHeaderSearchProps> = ({
   const JumpIcon = isAr ? ArrowUpLeft : ArrowUpRight;
 
   return (
-    <div ref={containerRef} role="search" className="relative w-full xl:w-52 2xl:w-64">
+    <div ref={containerRef} role="search" className="relative w-full max-w-64">
       <div className="relative flex items-center">
         <Search
           aria-hidden="true"

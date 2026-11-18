@@ -1,7 +1,7 @@
 import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { CompanyPortal } from './components/company/CompanyPortal';
 import { CompanyServicePage } from './components/company/CompanyServicePage';
-import { CompanyFooter } from './components/company/CompanyFooter';
+import { COMPANY_FOOTER_ID, CompanyFooter } from './components/company/CompanyFooter';
 import { PortalChooser } from './components/PortalChooser';
 import { PortalSwitchBar, type PortalTrailStep } from './components/PortalSwitchBar';
 import { MobileNavDrawer } from './components/MobileNavDrawer';
@@ -20,6 +20,7 @@ import {
   parseRoute,
   routeToHash,
   type AcademyRoute,
+  type AdminRoute,
   type PortalId,
   type Route,
 } from './utils/portalRoutes';
@@ -55,6 +56,8 @@ const CompanyDemoPortal = React.lazy(() =>
   import('./components/company/CompanyDemoPortal').then(module => ({ default: module.CompanyDemoPortal }))
 );
 
+const AdminPortal = React.lazy(() => import('./components/admin/AdminPortal'));
+
 function AcademyLoading({ isAr }: { isAr: boolean }) {
   return (
     <div
@@ -83,21 +86,26 @@ function readLanguage(): Language {
 }
 
 /** The corporate view the (older) chooser rules still speak in. */
-function chooserViewOf(route: Route): 'company' | 'academy' | 'demo' | 'service' {
+function chooserViewOf(route: Exclude<Route, AdminRoute>): 'company' | 'academy' | 'demo' | 'service' {
   if (route.portal === 'academy') return 'academy';
   if (route.page === 'demo') return 'demo';
   if (route.page === 'service') return 'service';
   return 'company';
 }
 
+function isCompanyFooterLink(route: Route): boolean {
+  return route.portal === 'company' && route.page === 'home' && route.anchor === COMPANY_FOOTER_ID;
+}
+
 export const App: React.FC = () => {
   const [language, setLanguage] = useState<Language>(readLanguage);
   const { theme, isLight } = useTheme();
 
-  // The hash is the router: one structured route, two portals.
+  // The hash routes the two public portals and the separate admin workspace.
   const [route, setRoute] = useState<Route>(() => parseRoute(window.location.hash));
   const [chooserOpen, setChooserOpen] = useState(() => {
     const initial = parseRoute(window.location.hash);
+    if (initial.portal === 'admin' || isCompanyFooterLink(initial)) return false;
     return shouldOfferPortalChooser({
       choice: readPortalChoice(),
       hasAcademyHash: initial.portal === 'academy',
@@ -108,7 +116,8 @@ export const App: React.FC = () => {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const isAr = language === 'ar';
-  const portal: PortalId = route.portal;
+  const portal = route.portal;
+  const linkedFooter = isCompanyFooterLink(route);
 
   useEffect(() => {
     document.documentElement.lang = language;
@@ -128,6 +137,31 @@ export const App: React.FC = () => {
     if (mode === 'push') window.history.pushState(null, '', target);
     else window.history.replaceState(null, '', target);
   }, []);
+
+  const openAdmin = useCallback(() => {
+    const next: AdminRoute = { portal: 'admin', page: 'dashboard' };
+    window.history.pushState({ inscoAdminFromSite: true }, '',
+      `${window.location.pathname}${window.location.search}${routeToHash(next)}`);
+    setChooserOpen(false);
+    setMenuOpen(false);
+    setRoute(next);
+  }, []);
+
+  const leaveAdmin = useCallback(() => {
+    if (window.history.state?.inscoAdminFromSite) {
+      window.history.back();
+    } else {
+      const next: Route = readPortalChoice() === 'academy'
+        ? { portal: 'academy', page: 'hub' }
+        : { portal: 'company', page: 'home' };
+      writeHash(next, 'replace');
+      setRoute(next);
+    }
+  }, [writeHash]);
+
+  useEffect(() => {
+    if (portal === 'admin') window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [portal]);
 
   const scrollToId = useCallback((id: string, delay = 60) => {
     window.setTimeout(() => {
@@ -257,10 +291,18 @@ export const App: React.FC = () => {
     };
   }, []);
 
+  // A shared footer link must reach the key after the client has rendered it.
+  useEffect(() => {
+    if (!linkedFooter) return;
+    setChooserOpen(false);
+    document.getElementById(COMPANY_FOOTER_ID)?.scrollIntoView({ block: 'start' });
+  }, [linkedFooter]);
+
   // Route-specific titles: a shared link must not open with the home title.
   useEffect(() => {
     const companyName = isAr ? 'إنسكو' : 'INSCO';
     const routeTitle = (() => {
+      if (route.portal === 'admin') return isAr ? 'بوابة الإدارة' : 'Admin portal';
       if (route.portal === 'academy') {
         if (route.page === 'hub') return isAr ? 'أكاديمية إنسكو الهندسية' : 'INSCO Engineering Academy';
         if (route.page === 'disciplines') return isAr ? 'التخصصات الهندسية الثمانية' : 'The eight engineering disciplines';
@@ -317,6 +359,7 @@ export const App: React.FC = () => {
 
   /** Portal › page › sub-page, for the bar at the very top. */
   const trail: PortalTrailStep[] = useMemo(() => {
+    if (route.portal === 'admin') return [];
     if (route.portal === 'company') {
       const steps: PortalTrailStep[] = [
         { label: isAr ? 'بوابة الشركة' : 'Company portal', onClick: () => openCompany() },
@@ -355,6 +398,16 @@ export const App: React.FC = () => {
     return steps;
   }, [route, isAr, language, openCompany, openAcademyHash]);
 
+  if (portal === 'admin') {
+    return (
+      <div data-theme={theme} data-portal="admin" dir={isAr ? 'rtl' : 'ltr'}>
+        <Suspense fallback={<main role="status" className="p-8 text-center">{isAr ? 'جارٍ فتح بوابة الإدارة…' : 'Opening the admin portal…'}</main>}>
+          <AdminPortal language={language} onToggleLanguage={() => setLanguage(isAr ? 'en' : 'ar')} onBack={leaveAdmin} />
+        </Suspense>
+      </div>
+    );
+  }
+
   const academyRoute: AcademyRoute | null = route.portal === 'academy' ? route : null;
 
   return (
@@ -386,7 +439,7 @@ export const App: React.FC = () => {
                 : 'border-slate-800 bg-slate-950/95'
           }`}
         >
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-2 sm:gap-4">
             {/* Zone 1: the company wordmark. It belongs to the company, so it
                 always leads back to the corporate profile; the academy's own
                 home is the first item of the academy bar. */}
@@ -394,10 +447,10 @@ export const App: React.FC = () => {
               type="button"
               aria-label={isAr ? 'الرئيسية - شركة إنسكو' : 'INSCO Home Profile'}
               onClick={() => openCompany()}
-              className="flex items-center gap-2.5 text-start cursor-pointer group"
+              className="flex min-w-0 items-center gap-2 text-start cursor-pointer group sm:gap-2.5"
             >
               <div
-                className={`p-2 rounded-lg border transition ${
+                className={`shrink-0 p-1.5 sm:p-2 rounded-lg border transition ${
                   portal === 'academy'
                     ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 group-hover:border-amber-400'
                     : 'bg-cyan-600/10 border border-cyan-500/30 text-cyan-400 group-hover:border-cyan-400'
@@ -409,18 +462,17 @@ export const App: React.FC = () => {
                   <Building2 className="w-5 h-5" aria-hidden="true" />
                 )}
               </div>
-              <div className="whitespace-nowrap">
-                <div className="text-base sm:text-lg font-black text-white tracking-tight">
-                  {isAr
-                    ? 'الشركة الدولية للخدمات والمقاولات - إنسكو'
-                    : 'INSCO Industrial'}
+              <div className="min-w-0 whitespace-nowrap">
+                <div className="truncate text-sm sm:text-base font-black text-white tracking-tight">
+                  <span className="sm:hidden">{isAr ? 'شركة إنسكو' : 'INSCO'}</span>
+                  <span className="hidden sm:inline">{isAr ? 'الشركة الدولية للخدمات والمقاولات - إنسكو' : 'INSCO Industrial'}</span>
                 </div>
                 <div
                   className={`text-[11px] font-mono flex items-center gap-1.5 ${
                     portal === 'academy' ? 'text-amber-400' : 'text-cyan-400'
                   }`}
                 >
-                  <span>
+                  <span className="truncate">
                     {portal === 'academy'
                       ? isAr
                         ? 'مسار المتدرّب · البوابة الهندسية'
@@ -429,8 +481,8 @@ export const App: React.FC = () => {
                         ? 'أكاديمية إنسكو NDT'
                         : 'INSCO NDT Academy'}
                   </span>
-                  <span aria-hidden="true" className="text-slate-600">·</span>
-                  <span>CP/2026-10</span>
+                  <span aria-hidden="true" className="hidden shrink-0 text-slate-600 lg:inline">·</span>
+                  <span className="hidden shrink-0 lg:inline">CP/2026-10</span>
                 </div>
               </div>
             </button>
@@ -473,7 +525,7 @@ export const App: React.FC = () => {
             )}
 
             {/* Global search works in both portals. */}
-            <div className="flex-1 max-w-xs hidden md:block">
+            <div className="hidden md:block min-w-28 max-w-xs flex-1">
               <GlobalHeaderSearch
                 language={language}
                 onNavigateToCompany={openCompany}
@@ -482,13 +534,13 @@ export const App: React.FC = () => {
             </div>
 
             {/* Zone 3: actions, menu, theme, language. */}
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               {portal === 'company' && (
                 <>
                   <button
                     type="button"
                     onClick={() => openCompany('rfq')}
-                    className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black transition whitespace-nowrap cursor-pointer"
+                    className="hidden sm:inline-flex xl:hidden items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black transition whitespace-nowrap cursor-pointer"
                   >
                     <FileText className="w-3.5 h-3.5" aria-hidden="true" />
                     <span>{isAr ? 'اطلب عرض سعر' : 'Request a quote'}</span>
@@ -513,7 +565,7 @@ export const App: React.FC = () => {
                 onClick={() => setLanguage(isAr ? 'en' : 'ar')}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-700 text-xs text-slate-200 hover:bg-slate-800 transition cursor-pointer"
               >
-                <Globe className="w-3.5 h-3.5" aria-hidden="true" />
+                <Globe className="hidden w-3.5 h-3.5 sm:block" aria-hidden="true" />
                 <span className="font-semibold">{isAr ? 'English' : 'العربية'}</span>
               </button>
             </div>
@@ -581,6 +633,7 @@ export const App: React.FC = () => {
               language={language}
               onOpenHash={openAcademyHash}
               onOpenCompany={() => openCompany()}
+              onOpenAdmin={openAdmin}
             />
           </div>
         )}
@@ -636,6 +689,7 @@ export const App: React.FC = () => {
           onOpenSection={openCompany}
           onOpenDemo={() => openDemo()}
           onOpenAcademy={() => openAcademyHash('#academy')}
+          onOpenAdmin={openAdmin}
         />
       )}
     </div>

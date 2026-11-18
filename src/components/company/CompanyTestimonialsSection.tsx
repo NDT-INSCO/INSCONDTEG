@@ -13,6 +13,7 @@ import {
   ArrowRight,
   ArrowLeft
 } from 'lucide-react';
+import { SectionHeading } from '../ui/SectionHeading';
 
 interface TestimonialItem {
   id: string;
@@ -231,22 +232,20 @@ export const CompanyTestimonialsSection: React.FC<CompanyTestimonialsSectionProp
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
         {/* Section Header with Controls */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
-          <div className="max-w-3xl">
-            <div className="text-xs font-mono uppercase tracking-wider text-cyan-400 mb-2 flex items-center gap-2">
-              <Award className="w-4 h-4 text-cyan-400" />
-              <span>{isAr ? 'شهادات العملاء وسجلات النجاح الميداني' : 'Attributable Client Testimonials & Outcomes'}</span>
-            </div>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight">
-              {isAr
+          <SectionHeading
+            eyebrow={isAr ? 'شهادات العملاء وسجلات النجاح الميداني' : 'Attributable Client Testimonials & Outcomes'}
+            eyebrowIcon={<Award className="w-4 h-4 text-cyan-400" />}
+            title={
+              isAr
                 ? 'ثقة معتمدة من كبرى شركات الطاقة والمقاولات العالمية'
-                : 'Verified Partner Feedback on Landmark Infrastructure'}
-            </h2>
-            <p className="mt-3 text-sm sm:text-base text-slate-400 leading-relaxed">
-              {isAr
+                : 'Verified Partner Feedback on Landmark Infrastructure'
+            }
+            description={
+              isAr
                 ? 'شهادات موثقة وخطابات تقدير رسمية صادرة من كبرى الكيانات الهندسية المشرفة على محطات الطاقة، مصافي البترول، وخطوط الأنابيب.'
-                : 'Attributable testimonies and formal letters of commendation issued by resident engineering directors across mega-watt power stations and refineries.'}
-            </p>
-          </div>
+                : 'Attributable testimonies and formal letters of commendation issued by resident engineering directors across mega-watt power stations and refineries.'
+            }
+          />
 
           {/* Action Navigation Controls */}
           <div className="flex items-center gap-3 shrink-0">

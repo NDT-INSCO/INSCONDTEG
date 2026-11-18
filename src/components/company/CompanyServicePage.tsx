@@ -2,6 +2,7 @@ import React from 'react';
 import { ArrowLeft, ArrowRight, ShieldCheck, FileText, FlaskConical, PlayCircle } from 'lucide-react';
 import { Language } from '../../types';
 import { INSCO_COMPANY_DATA } from '../../data/inscoCompanyData';
+import { CtaButton } from '../ui/CtaButton';
 import {
   SERVICE_FAMILIES,
   type ServiceFamily,
@@ -74,23 +75,15 @@ export const CompanyServicePage: React.FC<CompanyServicePageProps> = ({
             <p className="mt-3 text-sm sm:text-base text-slate-400 leading-relaxed">{family.description[language]}</p>
 
             <div className="mt-5 flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={() => onRequestQuote(family.rfqServiceType)}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-sm font-black transition cursor-pointer"
-              >
+              <CtaButton variant="primary" onClick={() => onRequestQuote(family.rfqServiceType)}>
                 <FileText className="w-4 h-4" />
                 {isAr ? 'اطلب عرض سعر لهذه الخدمة' : 'Request a quote for this service'}
-              </button>
+              </CtaButton>
               {family.demoAnchorId && (
-                <button
-                  type="button"
-                  onClick={() => onOpenDemo(family.demoAnchorId)}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-slate-700 text-cyan-300 hover:bg-slate-900 text-sm font-semibold transition cursor-pointer"
-                >
+                <CtaButton variant="secondary" onClick={() => onOpenDemo(family.demoAnchorId)}>
                   <PlayCircle className="w-4 h-4" />
                   {isAr ? 'شاهد العرض الفني' : 'See it demonstrated'}
-                </button>
+                </CtaButton>
               )}
               {family.academyTab && (
                 <button
@@ -212,14 +205,10 @@ export const CompanyServicePage: React.FC<CompanyServicePageProps> = ({
               ? 'عرض السعر الرسمي يصدر من قطاع العمليات الفنية بعد مراجعة نطاق العمل؛ متوسط الرد أقل من 4 ساعات عمل.'
               : 'The official quote is issued by technical operations after scope review; average response under 4 working hours.'}
           </p>
-          <button
-            type="button"
-            onClick={() => onRequestQuote(family.rfqServiceType)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black transition cursor-pointer"
-          >
+          <CtaButton variant="primary" size="sm" onClick={() => onRequestQuote(family.rfqServiceType)}>
             {isAr ? 'اطلب عرض سعر' : 'Request a quote'}
             <ArrowIcon className="w-3.5 h-3.5" />
-          </button>
+          </CtaButton>
         </div>
       </section>
     </div>

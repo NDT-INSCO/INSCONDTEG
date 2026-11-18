@@ -2,6 +2,7 @@ import React from 'react';
 import { Language } from '../../types';
 import { INSCO_COMPANY_DATA } from '../../data/inscoCompanyData';
 import { FileText, Download, ShieldCheck, CheckCircle2, ExternalLink } from 'lucide-react';
+import { SectionHeading } from '../ui/SectionHeading';
 
 interface CompanyVendorVaultSectionProps {
   language: Language;
@@ -27,21 +28,20 @@ export const CompanyVendorVaultSection: React.FC<CompanyVendorVaultSectionProps>
     <section id="vault" className="py-16 border-b border-slate-800 bg-slate-950">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         {/* Section Header */}
-        <div className="max-w-3xl mb-12">
-          <div className="text-xs font-mono uppercase tracking-wider text-cyan-400 mb-2">
-            {isAr ? 'خزينة وثائق التأهيل والكتالوج الرسمي' : 'Vendor Vault & Evidence Annexes'}
-          </div>
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight">
-            {isAr
+        <SectionHeading
+          className="mb-12"
+          eyebrow={isAr ? 'خزينة وثائق التأهيل والكتالوج الرسمي' : 'Vendor Vault & Evidence Annexes'}
+          title={
+            isAr
               ? 'ملف التأهيل الفني والبروشور المعتمد (50 صفحة)'
-              : 'Complete 50-Page Vendor Prequalification Dossier'}
-          </h2>
-          <p className="mt-3 text-sm sm:text-base text-slate-400 leading-relaxed">
-            {isAr
+              : 'Complete 50-Page Vendor Prequalification Dossier'
+          }
+          description={
+            isAr
               ? 'يمكن لفرق المشتريات والمشروعات تحميل البروشور الرسمي بصيغة PDF ومراجعة الملاحق الثبوتية كاملة من شهادات الأيزو وتراخيص الأجهزة وسوابق الأعمال.'
-              : 'Procurement and QA/QC committees can directly download the master corporate profile PDF containing the full catalogue of evidence annexes.'}
-          </p>
-        </div>
+              : 'Procurement and QA/QC committees can directly download the master corporate profile PDF containing the full catalogue of evidence annexes.'
+          }
+        />
 
         {/* Master PDF Download Card */}
         <div className="mb-14 rounded-2xl border border-slate-800 bg-linear-to-r from-slate-900 to-cyan-950/30 p-8 sm:p-10">

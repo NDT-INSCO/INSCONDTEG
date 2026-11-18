@@ -23,6 +23,7 @@ import {
   AlertTriangle,
   MinusCircle
 } from 'lucide-react';
+import { SectionHeading } from '../ui/SectionHeading';
 
 /** Icon that matches the derived calibration state — never a fixed green tick. */
 function StateIcon({ state, className }: { state: CalibrationState; className: string }) {
@@ -274,20 +275,20 @@ export const CompanyFleetInspector: React.FC<CompanyFleetInspectorProps> = ({ la
         {/* Section Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
           <div className="max-w-3xl">
-            <div className="text-xs font-mono uppercase tracking-wider text-cyan-400 mb-2 flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-cyan-400" />
-              <span>{isAr ? 'سجل الأصول والمعايرة والتجهيزات الميدانية' : 'Traceable Equipment Fleet & Calibration Register'}</span>
-            </div>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight">
-              {isAr
-                ? 'مستودع المعدات المملوكة بالكامل وجاهزية الانتشار الفوري'
-                : '100% Company-Owned Fleet: Calibrated & Deployment Ready'}
-            </h2>
-            <p className="mt-3 text-sm sm:text-base text-slate-400 leading-relaxed">
-              {isAr
-                ? 'تمتلك إنسكو أسطولاً متكاملاً من أرقى الشركات العالمية (Olympus, Cooperheat, Krautkramer, Sentinel) مخزناً بالورش المركزية بالقاهرة مع شهادات معايرة دورية معتمدة قابلة للتتبع طبقاً لـ NIST.'
-                : 'INSCO operates a fully-owned, audited instrument fleet stored at our central Cairo workshops with certified calibration records traceable to national and international measurement institutes.'}
-            </p>
+            <SectionHeading
+              eyebrow={isAr ? 'سجل الأصول والمعايرة والتجهيزات الميدانية' : 'Traceable Equipment Fleet & Calibration Register'}
+              eyebrowIcon={<ShieldCheck className="w-4 h-4 text-cyan-400" />}
+              title={
+                isAr
+                  ? 'مستودع المعدات المملوكة بالكامل وجاهزية الانتشار الفوري'
+                  : '100% Company-Owned Fleet: Calibrated & Deployment Ready'
+              }
+              description={
+                isAr
+                  ? 'تمتلك إنسكو أسطولاً متكاملاً من أرقى الشركات العالمية (Olympus, Cooperheat, Krautkramer, Sentinel) مخزناً بالورش المركزية بالقاهرة مع شهادات معايرة دورية معتمدة قابلة للتتبع طبقاً لـ NIST.'
+                  : 'INSCO operates a fully-owned, audited instrument fleet stored at our central Cairo workshops with certified calibration records traceable to national and international measurement institutes.'
+              }
+            />
             <p className="mt-2 text-[11px] text-slate-500 leading-relaxed">
               {isAr
                 ? 'حالة المعايرة محسوبة من تاريخ الصلاحية المسجل، بدقة الشهر (آخر يوم في الشهر). تُحدَّث التواريخ بدقة اليوم فور استلام شهادات المعايرة الموقعة.'

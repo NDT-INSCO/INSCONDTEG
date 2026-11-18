@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowLeft, ArrowRight, ArrowUpRight, FlaskConical, Gauge, ScanLine, Thermometer, Layers3 } from 'lucide-react';
 import { Language } from '../../types';
+import { CtaButton } from '../ui/CtaButton';
 import { AdvancedMotionVisualizerSection } from './AdvancedMotionVisualizerSection';
 import { PwhtCycleSimulator } from './PwhtCycleSimulator';
 import { RadiographicFilmViewer } from './RadiographicFilmViewer';
@@ -85,22 +86,14 @@ export const CompanyDemoPortal: React.FC<CompanyDemoPortalProps> = ({
                 : 'The same instruments and methods used in the field: a thermal cycle simulator, a radiographic film lightbox, and an ultrasonic / phased-array lab. Each tool links to its full training lab inside the academy.'}
             </p>
             <div className="mt-5 flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={onRequestQuote}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-sm font-black transition cursor-pointer"
-              >
+              <CtaButton variant="primary" onClick={onRequestQuote}>
                 {isAr ? 'اطلب عرض سعر' : 'Request a quote'}
-              </button>
-              <button
-                type="button"
-                onClick={() => onOpenAcademy('rt_lab')}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-slate-700 text-cyan-300 hover:bg-slate-900 text-sm font-semibold transition cursor-pointer"
-              >
+              </CtaButton>
+              <CtaButton variant="secondary" onClick={() => onOpenAcademy('rt_lab')}>
                 <FlaskConical className="w-4 h-4" />
                 {isAr ? 'المعامل الكاملة في الأكاديمية' : 'Full labs in the academy'}
                 <ArrowIcon className="w-3.5 h-3.5" />
-              </button>
+              </CtaButton>
             </div>
           </div>
 

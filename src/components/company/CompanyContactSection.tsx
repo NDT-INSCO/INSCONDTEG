@@ -10,6 +10,7 @@ import {
   submitRfq,
   type RfqFailureReason,
 } from '../../rfq/submit';
+import { SectionHeading } from '../ui/SectionHeading';
 
 interface CompanyContactSectionProps {
   language: Language;
@@ -132,21 +133,20 @@ export const CompanyContactSection: React.FC<CompanyContactSectionProps> = ({
     <section id="contact" className="py-16 bg-slate-900/40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         {/* Section Header */}
-        <div className="max-w-3xl mb-12">
-          <div className="text-xs font-mono uppercase tracking-wider text-cyan-400 mb-2">
-            {isAr ? 'قنوات التواصل وطلب عروض الأسعار' : 'Direct Dispatch & RFQ Portal'}
-          </div>
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight">
-            {isAr
+        <SectionHeading
+          className="mb-12"
+          eyebrow={isAr ? 'قنوات التواصل وطلب عروض الأسعار' : 'Direct Dispatch & RFQ Portal'}
+          title={
+            isAr
               ? 'تواصل مع الإدارة الفنية أو اطلب اعتماد مورد فوري'
-              : 'Contact Technical Operations or Submit an RFQ'}
-          </h2>
-          <p className="mt-3 text-sm sm:text-base text-slate-400 leading-relaxed">
-            {isAr
+              : 'Contact Technical Operations or Submit an RFQ'
+          }
+          description={
+            isAr
               ? 'فريق العمليات متواجد على مدار 24 ساعة للاستجابة لمواقع الطوارئ، التوريد العاجل لوحدات المعالجة الحرارية، وفحوصات الصيانة الدورية.'
-              : 'Our operations team is on call 24/7 to mobilize PWHT fleets and certified NDT personnel to refinery shutdowns and emergency outages.'}
-          </p>
-        </div>
+              : 'Our operations team is on call 24/7 to mobilize PWHT fleets and certified NDT personnel to refinery shutdowns and emergency outages.'
+          }
+        />
 
         {topSlot && <div className="mb-10">{topSlot}</div>}
 

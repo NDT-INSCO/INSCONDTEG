@@ -4,6 +4,7 @@ import { INSCO_COMPANY_DATA } from '../../data/inscoCompanyData';
 import { COMPANY_MEDIA } from '../../data/companyMedia';
 import { CompanyRegionalFleetMap } from './CompanyRegionalFleetMap';
 import { SERVICE_FAMILIES, type ServiceFamilyId } from '../../utils/serviceFamilies';
+import { SectionHeading } from '../ui/SectionHeading';
 import { 
   Flame, 
   Wrench, 
@@ -71,21 +72,20 @@ export const CompanyServicesSection: React.FC<CompanyServicesSectionProps> = ({
     <section id="services" className="py-16 border-b border-slate-800 bg-slate-950">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         {/* Section Header */}
-        <div className="max-w-3xl mb-12">
-          <div className="text-xs font-mono uppercase tracking-wider text-cyan-400 mb-2">
-            {isAr ? 'مجالات العمل والمعدات المعتمدة' : 'Operational Scope & Calibrated Fleet'}
-          </div>
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight">
-            {isAr
+        <SectionHeading
+          className="mb-12"
+          eyebrow={isAr ? 'مجالات العمل والمعدات المعتمدة' : 'Operational Scope & Calibrated Fleet'}
+          title={
+            isAr
               ? '12 طريقة فحص غير إتلافي وأسطول معالجة حرارية متكامل'
-              : '12 NDT Inspection Families & Automated PWHT Fleet'}
-          </h2>
-          <p className="mt-3 text-sm sm:text-base text-slate-400 leading-relaxed">
-            {isAr
+              : '12 NDT Inspection Families & Automated PWHT Fleet'
+          }
+          description={
+            isAr
               ? 'تغطي إنسكو كافة متطلبات الجودة الصناعية ومعايير ASME وAWS وAPI وISO عبر طاقم مهندسين معتمدين ASNT Level II/III ومعدات معتمدة ومعايرة دورياً.'
-              : 'INSCO covers exhaustive industrial quality mandates under ASME, AWS, API, and ISO codes with certified ASNT Level II/III inspectors and traceable calibrated equipment.'}
-          </p>
-        </div>
+              : 'INSCO covers exhaustive industrial quality mandates under ASME, AWS, API, and ISO codes with certified ASNT Level II/III inspectors and traceable calibrated equipment.'
+          }
+        />
 
         {/* Four service families, each with its own shareable page. */}
         {onOpenService && (

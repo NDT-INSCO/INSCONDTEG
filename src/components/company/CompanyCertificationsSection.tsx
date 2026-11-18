@@ -2,6 +2,7 @@ import React from 'react';
 import { Language } from '../../types';
 import { INSCO_COMPANY_DATA } from '../../data/inscoCompanyData';
 import { ShieldCheck, Award, FileCheck2, ExternalLink } from 'lucide-react';
+import { SectionHeading } from '../ui/SectionHeading';
 
 interface CompanyCertificationsSectionProps {
   language: Language;
@@ -16,21 +17,20 @@ export const CompanyCertificationsSection: React.FC<CompanyCertificationsSection
     <section id="certifications" className="py-16 border-b border-slate-800 bg-slate-900/40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         {/* Section Header */}
-        <div className="max-w-3xl mb-12">
-          <div className="text-xs font-mono uppercase tracking-wider text-cyan-400 mb-2">
-            {isAr ? 'الامتثال القياسي والتأهيل المؤسسي' : 'Accreditations, Compliance & Lead Audit'}
-          </div>
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight">
-            {isAr
+        <SectionHeading
+          className="mb-12"
+          eyebrow={isAr ? 'الامتثال القياسي والتأهيل المؤسسي' : 'Accreditations, Compliance & Lead Audit'}
+          title={
+            isAr
               ? 'شهادات الجودة الثلاثية والاعتمادات الرسمية السارية حتى 2028'
-              : 'Triple ISO Certifications & Formal Accreditations Valid to 2028'}
-          </h2>
-          <p className="mt-3 text-sm sm:text-base text-slate-400 leading-relaxed">
-            {isAr
+              : 'Triple ISO Certifications & Formal Accreditations Valid to 2028'
+          }
+          description={
+            isAr
               ? 'نظام إدارة جودة متكامل وموثق تحت إشراف مدقق رئيسي معتمد دولياً من CQI-IRCA، وترخيص ممارسة الفحوصات الإشعاعية من هيئة الرقابة النووية والإشعاعية (ENRRA).'
-              : 'An integrated QHSE management system governed by an in-house CQI-IRCA certified Lead Auditor, combined with ENRRA licensing for industrial radiography.'}
-          </p>
-        </div>
+              : 'An integrated QHSE management system governed by an in-house CQI-IRCA certified Lead Auditor, combined with ENRRA licensing for industrial radiography.'
+          }
+        />
 
         {/* Triple ISO Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">

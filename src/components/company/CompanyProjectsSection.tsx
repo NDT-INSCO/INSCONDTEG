@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Language } from '../../types';
 import { INSCO_COMPANY_DATA } from '../../data/inscoCompanyData';
 import { Building2, Globe2, Briefcase, CheckCircle2 } from 'lucide-react';
+import { SectionHeading } from '../ui/SectionHeading';
 
 interface CompanyProjectsSectionProps {
   language: Language;
@@ -18,21 +19,19 @@ export const CompanyProjectsSection: React.FC<CompanyProjectsSectionProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         {/* Section Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
-          <div className="max-w-3xl">
-            <div className="text-xs font-mono uppercase tracking-wider text-cyan-400 mb-2">
-              {isAr ? 'سجل الإنجاز والشركاء الاستراتيجيين' : 'Strategic Partners & Track Record'}
-            </div>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight">
-              {isAr
+          <SectionHeading
+            eyebrow={isAr ? 'سجل الإنجاز والشركاء الاستراتيجيين' : 'Strategic Partners & Track Record'}
+            title={
+              isAr
                 ? 'سابقة أعمال مع كبرى الشركات العالمية والمحلية'
-                : 'Proven Track Record with Global Energy & EPC Leaders'}
-            </h2>
-            <p className="mt-3 text-sm sm:text-base text-slate-400 leading-relaxed">
-              {isAr
+                : 'Proven Track Record with Global Energy & EPC Leaders'
+            }
+            description={
+              isAr
                 ? 'ثقة معتمدة من شركات الطاقة العالمية، مقاولي الهندسة والإنشاءات (EPC)، ومنشآت البترول والغاز في مصر والشرق الأوسط.'
-                : 'Trusted by multinational power giants, major EPC contractors, and oil & gas facilities across Egypt and the Middle East.'}
-            </p>
-          </div>
+                : 'Trusted by multinational power giants, major EPC contractors, and oil & gas facilities across Egypt and the Middle East.'
+            }
+          />
 
           {/* Segmented Control */}
           <div className="flex items-center gap-1 p-1 bg-slate-900 border border-slate-800 rounded-lg shrink-0">

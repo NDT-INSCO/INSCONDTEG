@@ -386,7 +386,7 @@ export const App: React.FC = () => {
                 : 'border-slate-800 bg-slate-950/95'
           }`}
         >
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3 sm:gap-4">
             {/* Zone 1: the company wordmark. It belongs to the company, so it
                 always leads back to the corporate profile; the academy's own
                 home is the first item of the academy bar. */}
@@ -394,7 +394,7 @@ export const App: React.FC = () => {
               type="button"
               aria-label={isAr ? 'الرئيسية - شركة إنسكو' : 'INSCO Home Profile'}
               onClick={() => openCompany()}
-              className="flex items-center gap-2.5 text-start cursor-pointer group"
+              className="flex min-w-0 items-center gap-2.5 text-start cursor-pointer group"
             >
               <div
                 className={`p-2 rounded-lg border transition ${
@@ -409,18 +409,22 @@ export const App: React.FC = () => {
                   <Building2 className="w-5 h-5" aria-hidden="true" />
                 )}
               </div>
-              <div className="whitespace-nowrap">
-                <div className="text-base sm:text-lg font-black text-white tracking-tight">
-                  {isAr
-                    ? 'الشركة الدولية للخدمات والمقاولات - إنسكو'
-                    : 'INSCO Industrial'}
+              <div className="min-w-0">
+                {/* On a phone the full legal name would push the action icons
+                    off the page, so it shortens to the brand and truncates
+                    instead of overflowing. */}
+                <div className="truncate text-base font-black tracking-tight text-white sm:text-lg">
+                  <span className="sm:hidden">{isAr ? 'إنسكو' : 'INSCO'}</span>
+                  <span className="hidden sm:inline">
+                    {isAr ? 'الشركة الدولية للخدمات والمقاولات - إنسكو' : 'INSCO Industrial'}
+                  </span>
                 </div>
                 <div
-                  className={`text-[11px] font-mono flex items-center gap-1.5 ${
+                  className={`flex min-w-0 items-center gap-1.5 text-[11px] font-mono ${
                     portal === 'academy' ? 'text-amber-400' : 'text-cyan-400'
                   }`}
                 >
-                  <span>
+                  <span className="truncate">
                     {portal === 'academy'
                       ? isAr
                         ? 'مسار المتدرّب · البوابة الهندسية'
@@ -429,8 +433,8 @@ export const App: React.FC = () => {
                         ? 'أكاديمية إنسكو NDT'
                         : 'INSCO NDT Academy'}
                   </span>
-                  <span aria-hidden="true" className="text-slate-600">·</span>
-                  <span>CP/2026-10</span>
+                  <span aria-hidden="true" className="hidden shrink-0 text-slate-600 sm:inline">·</span>
+                  <span className="hidden shrink-0 sm:inline">CP/2026-10</span>
                 </div>
               </div>
             </button>

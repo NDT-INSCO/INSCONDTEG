@@ -251,6 +251,49 @@ test('a legacy deep link keeps its exact hash and opens the owning section', () 
   assert.match(document.title, /تعلّم/);
 });
 
+/* --------------------------- containment -------------------------------- */
+
+test('the academy bar is a bounded grid, so its icons cannot leave the page', async () => {
+  localStorage.setItem(PORTAL_CHOICE_KEY, 'academy');
+  dom.window.history.replaceState(null, '', '/INSCONDTEG/#academy');
+  const ui = render(<App />);
+
+  const bar = ui.getByRole('navigation', { name: 'تنقل الأكاديمية' });
+  const classes = bar.className.split(/\s+/);
+  assert.ok(classes.includes('grid'), 'the bar must be a grid, not a wrapping strip');
+  assert.ok(classes.includes('grid-cols-4'), 'the narrow layout is four bounded columns');
+  assert.ok(classes.includes('xl:grid-cols-8'), 'one column per destination when there is room');
+  assert.doesNotMatch(bar.className, /overflow-x-auto|whitespace-nowrap/);
+
+  // Eight destinations, each with a full accessible name and a fixed icon size.
+  const items = within(bar).getAllByRole('button');
+  assert.equal(items.length, 8);
+  for (const item of items) {
+    assert.ok((item.getAttribute('aria-label') || '').length > 0, 'every icon needs a name');
+    assert.ok(item.className.includes('min-w-0'), 'cells must be allowed to shrink');
+  }
+
+  await waitFor(() => {
+    assert.ok(ui.container.querySelector('[data-testid="academy-hub"]'));
+  });
+});
+
+test('the academy home stacks its sections one under the other', async () => {
+  const { AcademyHub } = await import('../src/components/academy/AcademyHub');
+  const ui = render(<AcademyHub language="ar" onOpenHash={() => {}} />);
+
+  const list = ui.getByRole('region', { name: 'أقسام الأكاديمية' });
+  assert.ok(list.className.includes('space-y-2'), 'the sections are a vertical list');
+  assert.doesNotMatch(list.className, /grid-cols-3/);
+
+  const rows = [...list.querySelectorAll('button')];
+  assert.equal(rows.length, 6, 'six sections, one row each');
+  for (const row of rows) {
+    assert.ok(row.className.includes('w-full'), 'a section row spans the page width');
+    assert.ok(row.querySelector('svg'), 'each row keeps its icon inside a fixed tile');
+  }
+});
+
 /* ------------------------------ the hierarchy ----------------------------- */
 
 test('the disciplines index lists the eight disciplines as links to their own pages', () => {

@@ -173,7 +173,7 @@ export const AcademyHub: React.FC<AcademyHubProps> = ({ language, onOpenHash }) 
                 key={discipline.id}
                 type="button"
                 onClick={() => onOpenHash(disciplineHash(discipline.id))}
-                className="rounded-xl border border-[#252d58] bg-[#0b0d1e] hover:border-amber-400/50 p-3 text-start transition cursor-pointer"
+                className="min-w-0 rounded-xl border border-[#252d58] bg-[#0b0d1e] hover:border-amber-400/50 p-3 text-start transition cursor-pointer"
               >
                 <div className="flex items-center justify-between gap-2 text-[10px] font-mono text-amber-300 mb-1">
                   <span className="truncate">{discipline.keyTechniques.slice(0, 3).join(' / ')}</span>
@@ -190,8 +190,24 @@ export const AcademyHub: React.FC<AcademyHubProps> = ({ language, onOpenHash }) 
         </div>
       </div>
 
-      {/* The six journey sections */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      {/*
+        The six journey sections, one under the other.
+
+        They used to sit in a three-column grid: on a narrow screen the cards
+        squeezed and their icons and labels ran into each other. As full-width
+        rows every icon has a fixed tile, the text has room to breathe, and the
+        order of the journey is read top-to-bottom like a table of contents.
+      */}
+      <section aria-label={isAr ? 'أقسام الأكاديمية' : 'Academy sections'} className="space-y-2">
+        <div className="flex items-center justify-between gap-3 px-1">
+          <h3 className="text-sm font-bold text-white">
+            {isAr ? 'أقسام الأكاديمية · رحلة المتعلم' : 'Academy sections · the learner journey'}
+          </h3>
+          <span className="text-[11px] text-slate-500 tabular-nums">
+            {ACADEMY_SECTIONS.length} {isAr ? 'أقسام' : 'sections'}
+          </span>
+        </div>
+
         {ACADEMY_SECTIONS.map((section, index) => {
           const Icon = SECTION_ICONS[section];
           return (
@@ -199,24 +215,27 @@ export const AcademyHub: React.FC<AcademyHubProps> = ({ language, onOpenHash }) 
               key={section}
               type="button"
               onClick={() => onOpenHash(`#academy/${section}`)}
-              className="rounded-2xl border border-[#29315b] bg-[#10132b] hover:border-amber-400/50 p-4 text-start transition cursor-pointer space-y-2"
+              className="w-full min-w-0 rounded-2xl border border-[#29315b] bg-[#10132b] hover:border-amber-400/50 hover:bg-[#131736] p-3.5 text-start transition cursor-pointer flex items-center gap-3"
             >
-              <div className="flex items-center gap-2">
-                <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-amber-500/15 text-amber-300 text-[11px] font-black tabular-nums">
-                  {index + 1}
-                </span>
-                <Icon className="w-4 h-4 text-amber-400" aria-hidden="true" />
-                <span className="text-sm font-bold text-white">
+              <span className="inline-flex shrink-0 items-center justify-center w-7 h-7 rounded-lg bg-amber-500/15 text-amber-300 text-[11px] font-black tabular-nums">
+                {index + 1}
+              </span>
+              <span className="inline-flex shrink-0 items-center justify-center w-9 h-9 rounded-xl bg-[#0b0d1e] border border-[#252d58] text-amber-400">
+                <Icon className="w-4 h-4" aria-hidden="true" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-bold text-white">
                   {academySectionLabel(section, isAr ? 'ar' : 'en')}
                 </span>
-              </div>
-              <p className="text-[11px] text-slate-400 leading-relaxed">
-                {isAr ? ACADEMY_SECTION_COPY[section].ar : ACADEMY_SECTION_COPY[section].en}
-              </p>
+                <span className="mt-0.5 block text-[11px] text-slate-400 leading-relaxed">
+                  {isAr ? ACADEMY_SECTION_COPY[section].ar : ACADEMY_SECTION_COPY[section].en}
+                </span>
+              </span>
+              <ArrowIcon className="w-4 h-4 shrink-0 text-slate-500" aria-hidden="true" />
             </button>
           );
         })}
-      </div>
+      </section>
     </div>
   );
 };

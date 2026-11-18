@@ -41,7 +41,7 @@ export const InteractiveWorkshops: React.FC<InteractiveWorkshopsProps> = ({
     <div className="space-y-6" data-testid="academy-simulation-labs-section">
       {/* Simulation Labs Top Switcher Bar */}
       <div
-        className={`rounded-2xl border p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+        className={`rounded-2xl border p-4 sm:p-5 flex flex-col gap-4 ${
           isLight
             ? 'bg-white border-slate-200 text-slate-900'
             : 'bg-slate-900/95 border-slate-800 text-slate-100'
@@ -58,12 +58,20 @@ export const InteractiveWorkshops: React.FC<InteractiveWorkshopsProps> = ({
           </h3>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 shrink-0">
+        {/*
+          Six labs, each with a long name. As a free-flowing row of single-line
+          buttons they grew past the card on a phone and pushed their icons out of
+          the page. A bounded grid keeps every cell — and every icon — inside.
+        */}
+        <div
+          data-testid="sim-labs-switcher"
+          className="grid w-full min-w-0 grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6"
+        >
           <button
             type="button"
             data-testid="switch-ar-rt-all-codes"
             onClick={() => setActiveSection('ar_rt_all_codes')}
-            className={`px-3.5 py-2 rounded-xl border text-xs font-bold transition cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+            className={`flex min-w-0 items-center gap-1.5 rounded-xl border px-2.5 py-2 text-start text-[11px] font-bold leading-tight transition cursor-pointer sm:text-xs ${
               activeSection === 'ar_rt_all_codes'
                 ? 'bg-teal-400 text-slate-950 border-teal-300 font-black shadow-sm'
                 : isLight
@@ -71,8 +79,8 @@ export const InteractiveWorkshops: React.FC<InteractiveWorkshopsProps> = ({
                 : 'bg-slate-950 border-slate-800 text-teal-300 hover:border-teal-400'
             }`}
           >
-            <Film className="w-4 h-4" />
-            <span>
+            <Film className="w-4 h-4 shrink-0" aria-hidden="true" />
+            <span className="min-w-0">
               {isAr
                 ? 'الواقع المعزز الشامل لتكنيكات وعيوب وأكواد RT'
                 : 'Complete AR RT Techniques, Defects & All Codes'}
@@ -83,7 +91,7 @@ export const InteractiveWorkshops: React.FC<InteractiveWorkshopsProps> = ({
             type="button"
             data-testid="switch-rt-panorama-ellipse-street"
             onClick={() => setActiveSection('rt_panorama_ellipse_street')}
-            className={`px-3.5 py-2 rounded-xl border text-xs font-bold transition cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+            className={`flex min-w-0 items-center gap-1.5 rounded-xl border px-2.5 py-2 text-start text-[11px] font-bold leading-tight transition cursor-pointer sm:text-xs ${
               activeSection === 'rt_panorama_ellipse_street'
                 ? 'bg-emerald-500 text-slate-950 border-emerald-400 font-black shadow-sm'
                 : isLight
@@ -91,8 +99,8 @@ export const InteractiveWorkshops: React.FC<InteractiveWorkshopsProps> = ({
                 : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-emerald-400'
             }`}
           >
-            <Radio className="w-4 h-4" />
-            <span>
+            <Radio className="w-4 h-4 shrink-0" aria-hidden="true" />
+            <span className="min-w-0">
               {isAr
                 ? 'محاكاة (Panorama · Ellipse · Street) والمتغيرات الديناميكية'
                 : 'Panorama · Ellipse · Street Dynamic Simulator'}
@@ -103,7 +111,7 @@ export const InteractiveWorkshops: React.FC<InteractiveWorkshopsProps> = ({
             type="button"
             data-testid="switch-ge-exposure-time"
             onClick={() => setActiveSection('ge_exposure_time')}
-            className={`px-3.5 py-2 rounded-xl border text-xs font-bold transition cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+            className={`flex min-w-0 items-center gap-1.5 rounded-xl border px-2.5 py-2 text-start text-[11px] font-bold leading-tight transition cursor-pointer sm:text-xs ${
               activeSection === 'ge_exposure_time'
                 ? 'bg-amber-500 text-slate-950 border-amber-400 font-black shadow-sm'
                 : isLight
@@ -111,8 +119,8 @@ export const InteractiveWorkshops: React.FC<InteractiveWorkshopsProps> = ({
                 : 'bg-slate-950 border-slate-800 text-amber-300 hover:border-amber-400'
             }`}
           >
-            <Clock className="w-4 h-4" />
-            <span>
+            <Clock className="w-4 h-4 shrink-0" aria-hidden="true" />
+            <span className="min-w-0">
               {isAr
                 ? 'حاسبة وقت التعريض GE Exposure Time (أفلام Agfa و ASME)'
                 : 'GE Radiographic Exposure Time App (Agfa & ASME)'}
@@ -123,7 +131,7 @@ export const InteractiveWorkshops: React.FC<InteractiveWorkshopsProps> = ({
             type="button"
             data-testid="switch-ar-camera-overlay"
             onClick={() => setActiveSection('ar_camera_overlay')}
-            className={`px-3.5 py-2 rounded-xl border text-xs font-bold transition cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+            className={`flex min-w-0 items-center gap-1.5 rounded-xl border px-2.5 py-2 text-start text-[11px] font-bold leading-tight transition cursor-pointer sm:text-xs ${
               activeSection === 'ar_camera_overlay'
                 ? 'bg-cyan-500 text-slate-950 border-cyan-400 font-black shadow-sm'
                 : isLight
@@ -131,8 +139,8 @@ export const InteractiveWorkshops: React.FC<InteractiveWorkshopsProps> = ({
                 : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-cyan-400'
             }`}
           >
-            <Camera className="w-4 h-4" />
-            <span>
+            <Camera className="w-4 h-4 shrink-0" aria-hidden="true" />
+            <span className="min-w-0">
               {isAr
                 ? 'استخدام الكاميرا وتراكب عناصر NDT الحية'
                 : 'Live Camera NDT Overlay (Media API)'}
@@ -143,7 +151,7 @@ export const InteractiveWorkshops: React.FC<InteractiveWorkshopsProps> = ({
             type="button"
             data-testid="switch-digital-3d-lab"
             onClick={() => setActiveSection('digital_3d_lab')}
-            className={`px-3.5 py-2 rounded-xl border text-xs font-bold transition cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+            className={`flex min-w-0 items-center gap-1.5 rounded-xl border px-2.5 py-2 text-start text-[11px] font-bold leading-tight transition cursor-pointer sm:text-xs ${
               activeSection === 'digital_3d_lab'
                 ? 'bg-sky-500 text-slate-950 border-sky-400 font-black shadow-sm'
                 : isLight
@@ -151,8 +159,8 @@ export const InteractiveWorkshops: React.FC<InteractiveWorkshopsProps> = ({
                 : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-sky-400'
             }`}
           >
-            <Atom className="w-4 h-4" />
-            <span>
+            <Atom className="w-4 h-4 shrink-0" aria-hidden="true" />
+            <span className="min-w-0">
               {isAr
                 ? 'المختبر الرقمي ثلاثي الأبعاد ولوحة المتغيرات (3D Lab)'
                 : '3D Digital Lab & Side Settings'}
@@ -163,7 +171,7 @@ export const InteractiveWorkshops: React.FC<InteractiveWorkshopsProps> = ({
             type="button"
             data-testid="switch-ndt-master-workbench"
             onClick={() => setActiveSection('ndt_workbench')}
-            className={`px-3.5 py-2 rounded-xl border text-xs font-bold transition cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+            className={`flex min-w-0 items-center gap-1.5 rounded-xl border px-2.5 py-2 text-start text-[11px] font-bold leading-tight transition cursor-pointer sm:text-xs ${
               activeSection === 'ndt_workbench'
                 ? 'bg-amber-500 text-slate-950 border-amber-400 font-black shadow-sm'
                 : isLight
@@ -171,8 +179,8 @@ export const InteractiveWorkshops: React.FC<InteractiveWorkshopsProps> = ({
                 : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-amber-400'
             }`}
           >
-            <Wrench className="w-4 h-4" />
-            <span>
+            <Wrench className="w-4 h-4 shrink-0" aria-hidden="true" />
+            <span className="min-w-0">
               {isAr
                 ? 'معامل الورش الشاملة وأجهزة (UT · PAUT · RT · 3D)'
                 : 'Master NDT Hardware Labs (UT · PAUT · RT · 3D)'}

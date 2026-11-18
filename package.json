@@ -26,7 +26,7 @@
     "test:epub": "tsx --test tests/epub.test.tsx",
     "test:ai": "tsx --test tests/aiContract.test.tsx && tsx --test tests/aiTransport.test.ts && tsx --test tests/aiSearch.test.tsx && tsx --test tests/aiUi.test.tsx",
     "test:nde-ed": "tsx --test tests/ndeEdProgress.test.tsx && tsx --test tests/ndeEdData.test.tsx && tsx --test tests/ndeEdCatalog.test.tsx",
-    "test": "npm run test:company && npm run test:rfq && npm run test:admin && npm run test:fleet && npm run test:a11y && npm run test:ux && npm run test:portals && npm run test:ui && npm run test:academy && npm run test:book && npm run test:leaderboard && npm run test:roadmap && npm run test:cert && npm run test:edb && npm run test:epub && npm run test:ai && npm run test:nde-ed && npm run test:practical && npm run test:review && npm run test:paths && npm run test:routing && npm run test:smoke",
+    "test": "npm run test:company && npm run test:rfq && npm run test:admin && npm run test:fleet && npm run test:a11y && npm run test:ux && npm run test:portals && npm run test:ui && npm run test:academy && npm run test:book && npm run test:leaderboard && npm run test:roadmap && npm run test:cert && npm run test:edb && npm run test:epub && npm run test:ai && npm run test:nde-ed && npm run test:practical && npm run test:review && npm run test:paths && npm run test:routing && npm run test:smoke && npm run test:simlabs",
     "verify": "npm run lint && npm run test && npm run edb:check && npm run edb:verify:published && npm run epub:check && npm run links:check && npm run build && npm run site:check",
     "edb:build": "tsx scripts/build-edb.ts",
     "edb:check": "tsx scripts/build-edb.ts --check",
@@ -42,7 +42,8 @@
     "epub:check": "tsx scripts/build-epub.ts --check",
     "site:check": "tsx scripts/check-published-site.ts",
     "test:portals": "tsx --test tests/portalIsolation.test.tsx",
-    "docs:check": "tsx scripts/compare-docs-build.ts"
+    "docs:check": "tsx scripts/compare-docs-build.ts",
+    "test:simlabs": "tsx --test tests/simLabsRtLayout.test.tsx"
   },
   "dependencies": {
     "@google/genai": "^2.31.0",

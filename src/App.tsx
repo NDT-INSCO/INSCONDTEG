@@ -7,8 +7,10 @@ import { PortalSwitchBar, type PortalTrailStep } from './components/PortalSwitch
 import { MobileNavDrawer } from './components/MobileNavDrawer';
 import { GlobalHeaderSearch } from './components/GlobalHeaderSearch';
 import { GlobalThemeSwitcher } from './components/GlobalThemeSwitcher';
+import { GlobalAppConfigControl } from './components/GlobalAppConfigControl';
 import { Language } from './types';
 import { AcademyTab } from './academyTabs';
+import { ADMIN_HASH } from './admin/contract';
 import { INSCO_COMPANY_DATA } from './data/inscoCompanyData';
 import {
   serviceFamilyById,
@@ -17,15 +19,19 @@ import {
 import {
   academySectionLabel,
   academySectionOfTab,
+  clientSectionLabel,
   parseRoute,
   routeToHash,
   type AcademyRoute,
+  type ClientRoute,
+  type ClientSectionId,
   type PortalId,
   type Route,
 } from './utils/portalRoutes';
 import { AcademyHeader, AcademyFooter } from './components/academy/AcademyShell';
 import { RFQ_QUICK_ACTION_EVENT } from './components/company/CompanyQuickActionsSection';
 import { useTheme } from './utils/themeStore';
+import { useDefaultUnitSystem } from './utils/unitSystemStore';
 import {
   readPortalChoice,
   savePortalChoice,
@@ -33,6 +39,7 @@ import {
   type PortalChoice,
 } from './utils/portalChoice';
 import {
+  BriefcaseBusiness,
   Globe,
   GraduationCap,
   Building2,
@@ -55,6 +62,16 @@ const CompanyDemoPortal = React.lazy(() =>
   import('./components/company/CompanyDemoPortal').then(module => ({ default: module.CompanyDemoPortal }))
 );
 
+// The client portal manages authentication, client requests, coded companies,
+// and inspection report dossiers in its own code-split chunk.
+const ClientPortal = React.lazy(() =>
+  import('./components/client/ClientPortal').then(module => ({ default: module.ClientPortal }))
+);
+
+// The admin portal is a stand-alone page behind a password: it is never part of
+// a corporate or academy page, so it owns the whole screen when it is open.
+const AdminPortal = React.lazy(() => import('./components/admin/AdminPortal'));
+
 function AcademyLoading({ isAr }: { isAr: boolean }) {
   return (
     <div
@@ -72,6 +89,25 @@ function AcademyLoading({ isAr }: { isAr: boolean }) {
   );
 }
 
+function ClientLoading({ isAr }: { isAr: boolean }) {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="max-w-7xl mx-auto px-4 sm:px-6 py-8"
+    >
+      <div className="space-y-3 rounded-2xl border border-slate-800 bg-slate-900/70 p-8">
+        <div className="h-4 w-44 animate-pulse rounded bg-slate-700/70" />
+        <div className="h-3 w-2/3 animate-pulse rounded bg-slate-800" />
+        <div className="h-3 w-1/2 animate-pulse rounded bg-slate-800" />
+        <p className="pt-2 text-xs text-slate-400">
+          {isAr ? 'جارٍ تحميل بوابة العملاء والملفات…' : 'Loading the Client & Dossier Portal…'}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 const LANGUAGE_KEY = 'insco_language_v1';
 
 function readLanguage(): Language {
@@ -82,9 +118,10 @@ function readLanguage(): Language {
   }
 }
 
-/** The corporate view the (older) chooser rules still speak in. */
-function chooserViewOf(route: Route): 'company' | 'academy' | 'demo' | 'service' {
+/** The view mapped for chooser rules across all three portals. */
+function chooserViewOf(route: Route): 'company' | 'client' | 'academy' | 'demo' | 'service' {
   if (route.portal === 'academy') return 'academy';
+  if (route.portal === 'client') return 'client';
   if (route.page === 'demo') return 'demo';
   if (route.page === 'service') return 'service';
   return 'company';
@@ -93,19 +130,26 @@ function chooserViewOf(route: Route): 'company' | 'academy' | 'demo' | 'service'
 export const App: React.FC = () => {
   const [language, setLanguage] = useState<Language>(readLanguage);
   const { theme, isLight } = useTheme();
+  const { defaultUnitSystem } = useDefaultUnitSystem();
 
-  // The hash is the router: one structured route, two portals.
+  // The hash is the router: one structured route across three portals.
   const [route, setRoute] = useState<Route>(() => parseRoute(window.location.hash));
   const [chooserOpen, setChooserOpen] = useState(() => {
     const initial = parseRoute(window.location.hash);
     return shouldOfferPortalChooser({
       choice: readPortalChoice(),
       hasAcademyHash: initial.portal === 'academy',
+      hasClientHash: initial.portal === 'client',
+      // Any hash on the corporate profile is a shared deep link (a section, the
+      // footer, a service): a modal must never open on top of it.
       hasDemoHash: initial.portal === 'company' && initial.page !== 'home',
+      hasAnchorHash: window.location.hash !== '' && initial.portal === 'company',
       view: chooserViewOf(initial),
     });
   });
   const [menuOpen, setMenuOpen] = useState(false);
+  // `#admin` is its own page, not a fourth portal: no nav, no footer, no browsing.
+  const [adminOpen, setAdminOpen] = useState(() => window.location.hash === ADMIN_HASH);
 
   const isAr = language === 'ar';
   const portal: PortalId = route.portal;
@@ -208,6 +252,27 @@ export const App: React.FC = () => {
     [openAcademyHash]
   );
 
+  /** Open the Client & Dossier Portal at an optional section and company file. */
+  const openClient = useCallback(
+    (section: ClientSectionId = 'overview', companyId?: string) => {
+      const next: ClientRoute = {
+        portal: 'client',
+        page: 'section',
+        section,
+        ...(section === 'companies' && companyId ? { companyId } : {}),
+      };
+      setRoute(next);
+      window.history.pushState(
+        null,
+        '',
+        `${window.location.pathname}${window.location.search}${routeToHash(next)}`
+      );
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      savePortalChoice('client');
+    },
+    []
+  );
+
   /** A tab moved inside a section: follow it without touching the history. */
   const handleAcademyTabChange = useCallback((tab: AcademyTab) => {
     setRoute(prev => {
@@ -222,33 +287,44 @@ export const App: React.FC = () => {
     (next: PortalId) => {
       if (next === portal) return;
       if (next === 'academy') openAcademyHash('#academy');
+      else if (next === 'client') openClient('overview');
       else openCompany();
     },
-    [openAcademyHash, openCompany, portal]
+    [openAcademyHash, openClient, openCompany, portal]
   );
 
   /**
-   * Entry isolation: a visitor who chose the academy last time lands in the
-   * academy, not on the commercial profile. The base address stays honest for
-   * everyone else, deep links are never redirected, and the redirect replaces
-   * the history entry so Back does not bounce.
+   * Entry isolation: a visitor who chose the academy or client portal last time
+   * lands back there, not on the commercial profile. Deep links are never redirected.
    */
   useEffect(() => {
     if (window.location.hash) return;
-    if (readPortalChoice() !== 'academy') return;
-    setRoute({ portal: 'academy', page: 'hub' });
-    window.history.replaceState(
-      null,
-      '',
-      `${window.location.pathname}${window.location.search}#academy`
-    );
+    const savedChoice = readPortalChoice();
+    if (savedChoice === 'academy') {
+      setRoute({ portal: 'academy', page: 'hub' });
+      window.history.replaceState(
+        null,
+        '',
+        `${window.location.pathname}${window.location.search}#academy`
+      );
+    } else if (savedChoice === 'client') {
+      setRoute({ portal: 'client', page: 'section', section: 'overview' });
+      window.history.replaceState(
+        null,
+        '',
+        `${window.location.pathname}${window.location.search}#client`
+      );
+    }
     // Runs once: later portal switches are the visitor's own decision.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Back/forward between portals, service pages, demos and academy deep links.
   useEffect(() => {
-    const onHashChange = () => setRoute(parseRoute(window.location.hash));
+    const onHashChange = () => {
+      setRoute(parseRoute(window.location.hash));
+      setAdminOpen(window.location.hash === ADMIN_HASH);
+    };
     window.addEventListener('hashchange', onHashChange);
     window.addEventListener('popstate', onHashChange);
     return () => {
@@ -261,6 +337,9 @@ export const App: React.FC = () => {
   useEffect(() => {
     const companyName = isAr ? 'إنسكو' : 'INSCO';
     const routeTitle = (() => {
+      if (route.portal === 'client') {
+        return clientSectionLabel(route.section, isAr ? 'ar' : 'en');
+      }
       if (route.portal === 'academy') {
         if (route.page === 'hub') return isAr ? 'أكاديمية إنسكو الهندسية' : 'INSCO Engineering Academy';
         if (route.page === 'disciplines') return isAr ? 'التخصصات الهندسية الثمانية' : 'The eight engineering disciplines';
@@ -298,6 +377,7 @@ export const App: React.FC = () => {
     savePortalChoice(choice);
     setChooserOpen(false);
     if (choice === 'academy') openAcademyHash('#academy');
+    else if (choice === 'client') openClient('overview');
     else openCompany();
   };
 
@@ -315,6 +395,23 @@ export const App: React.FC = () => {
     [openCompany, route]
   );
 
+  const clientNav = useMemo(
+    () =>
+      (
+        [
+          { id: 'overview', ar: 'لوحة التحكم', en: 'Overview' },
+          { id: 'requests', ar: 'طلبات العملاء', en: 'Requests' },
+          { id: 'companies', ar: 'أرشيف الشركات والملفات', en: 'Companies & Dossiers' },
+          { id: 'register', ar: 'التسجيل وربط الكود', en: 'Registration' },
+        ] as { id: ClientSectionId; ar: string; en: string }[]
+      ).map(item => ({
+        ...item,
+        current: route.portal === 'client' && route.section === item.id,
+        onClick: () => openClient(item.id),
+      })),
+    [openClient, route]
+  );
+
   /** Portal › page › sub-page, for the bar at the very top. */
   const trail: PortalTrailStep[] = useMemo(() => {
     if (route.portal === 'company') {
@@ -328,6 +425,20 @@ export const App: React.FC = () => {
         steps.push({ label: isAr ? 'العرض الفني التفاعلي' : 'Technical demonstrations' });
       } else {
         steps.push({ label: isAr ? 'ملف الشركة والخدمات' : 'Profile & services' });
+      }
+      return steps;
+    }
+
+    if (route.portal === 'client') {
+      const steps: PortalTrailStep[] = [
+        { label: isAr ? 'بوابة العملاء' : 'Client portal', onClick: () => openClient('overview') },
+        {
+          label: clientSectionLabel(route.section, isAr ? 'ar' : 'en'),
+          onClick: route.companyId ? () => openClient('companies') : undefined,
+        },
+      ];
+      if (route.companyId) {
+        steps.push({ label: isAr ? 'فايل الشركة والتقارير' : 'Company Dossier' });
       }
       return steps;
     }
@@ -353,14 +464,58 @@ export const App: React.FC = () => {
       steps.push({ label: isAr ? 'رئيسية الأكاديمية' : 'Academy home' });
     }
     return steps;
-  }, [route, isAr, language, openCompany, openAcademyHash]);
+  }, [route, isAr, language, openCompany, openClient, openAcademyHash]);
+
+  /** Stand-alone admin page: the site chrome is replaced, not covered. */
+  const openAdmin = useCallback(() => {
+    setMenuOpen(false);
+    setAdminOpen(true);
+    window.history.pushState(
+      null,
+      '',
+      `${window.location.pathname}${window.location.search}${ADMIN_HASH}`
+    );
+  }, []);
+
+  /** Back to the site, with the address bar no longer claiming `#admin`. */
+  const closeAdmin = useCallback(() => {
+    setAdminOpen(false);
+    window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+  }, []);
 
   const academyRoute: AcademyRoute | null = route.portal === 'academy' ? route : null;
+  const clientRoute: ClientRoute | null = route.portal === 'client' ? route : null;
+
+  if (adminOpen) {
+    return (
+      <div
+        dir={isAr ? 'rtl' : 'ltr'}
+        data-theme={theme}
+        data-portal="admin"
+        className={`min-h-screen font-sans ${isLight ? 'bg-slate-50 text-slate-900' : 'bg-slate-950 text-slate-100'}`}
+      >
+        <Suspense
+          fallback={
+            <div role="status" aria-live="polite" className="p-8 text-sm text-slate-400">
+              {isAr ? 'جارٍ فتح بوابة الإدارة…' : 'Opening the admin portal…'}
+            </div>
+          }
+        >
+          <AdminPortal
+            language={language}
+            onBack={closeAdmin}
+            onToggleLanguage={() => setLanguage(isAr ? 'en' : 'ar')}
+          />
+        </Suspense>
+      </div>
+    );
+  }
 
   return (
     <div
       dir={isAr ? 'rtl' : 'ltr'}
       data-theme={theme}
+      data-unit-system={defaultUnitSystem}
       data-portal={portal}
       className={`min-h-screen flex flex-col font-sans transition-colors ${
         isLight ? 'bg-slate-50 text-slate-900' : 'bg-slate-950 text-slate-100'
@@ -381,15 +536,18 @@ export const App: React.FC = () => {
               ? isLight
                 ? 'border-slate-200 bg-white/95'
                 : 'border-amber-500/20 bg-[#0b0c1c]/95'
-              : isLight
-                ? 'border-slate-200 bg-white/95'
-                : 'border-slate-800 bg-slate-950/95'
+              : portal === 'client'
+                ? isLight
+                  ? 'border-slate-200 bg-white/95'
+                  : 'border-emerald-500/25 bg-slate-950/95'
+                : isLight
+                  ? 'border-slate-200 bg-white/95'
+                  : 'border-slate-800 bg-slate-950/95'
           }`}
         >
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3 sm:gap-4">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
             {/* Zone 1: the company wordmark. It belongs to the company, so it
-                always leads back to the corporate profile; the academy's own
-                home is the first item of the academy bar. */}
+                always leads back to the corporate profile. */}
             <button
               type="button"
               aria-label={isAr ? 'الرئيسية - شركة إنسكو' : 'INSCO Home Profile'}
@@ -400,19 +558,22 @@ export const App: React.FC = () => {
                 className={`p-2 rounded-lg border transition ${
                   portal === 'academy'
                     ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 group-hover:border-amber-400'
-                    : 'bg-cyan-600/10 border border-cyan-500/30 text-cyan-400 group-hover:border-cyan-400'
+                    : portal === 'client'
+                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 group-hover:border-emerald-400'
+                      : 'bg-cyan-600/10 border border-cyan-500/30 text-cyan-400 group-hover:border-cyan-400'
                 }`}
               >
                 {portal === 'academy' ? (
                   <GraduationCap className="w-5 h-5" aria-hidden="true" />
+                ) : portal === 'client' ? (
+                  <BriefcaseBusiness className="w-5 h-5" aria-hidden="true" />
                 ) : (
                   <Building2 className="w-5 h-5" aria-hidden="true" />
                 )}
               </div>
               <div className="min-w-0">
                 {/* On a phone the full legal name would push the action icons
-                    off the page, so it shortens to the brand and truncates
-                    instead of overflowing. */}
+                    off the page, so it shortens to the brand and truncates. */}
                 <div className="truncate text-base font-black tracking-tight text-white sm:text-lg">
                   <span className="sm:hidden">{isAr ? 'إنسكو' : 'INSCO'}</span>
                   <span className="hidden sm:inline">
@@ -421,7 +582,11 @@ export const App: React.FC = () => {
                 </div>
                 <div
                   className={`flex min-w-0 items-center gap-1.5 text-[11px] font-mono ${
-                    portal === 'academy' ? 'text-amber-400' : 'text-cyan-400'
+                    portal === 'academy'
+                      ? 'text-amber-400'
+                      : portal === 'client'
+                        ? 'text-emerald-400'
+                        : 'text-cyan-400'
                   }`}
                 >
                   <span className="truncate">
@@ -429,9 +594,13 @@ export const App: React.FC = () => {
                       ? isAr
                         ? 'مسار المتدرّب · البوابة الهندسية'
                         : 'Learner path · engineering portal'
-                      : isAr
-                        ? 'أكاديمية إنسكو NDT'
-                        : 'INSCO NDT Academy'}
+                      : portal === 'client'
+                        ? isAr
+                          ? 'بوابة العملاء والملفات المكوّدة'
+                          : 'Client & Coded Dossier Portal'
+                        : isAr
+                          ? 'أكاديمية إنسكو NDT'
+                          : 'INSCO NDT Academy'}
                   </span>
                   <span aria-hidden="true" className="hidden shrink-0 text-slate-600 sm:inline">·</span>
                   <span className="hidden shrink-0 sm:inline">CP/2026-10</span>
@@ -439,7 +608,7 @@ export const App: React.FC = () => {
               </div>
             </button>
 
-            {/* Zone 2: the corporate destinations. The academy has its own bar. */}
+            {/* Zone 2: the corporate or client portal destinations. */}
             {portal === 'company' && (
               <nav
                 aria-label={isAr ? 'التنقل الرئيسي' : 'Main navigation'}
@@ -469,6 +638,27 @@ export const App: React.FC = () => {
               </nav>
             )}
 
+            {portal === 'client' && (
+              <nav
+                aria-label={isAr ? 'التنقل في بوابة العملاء' : 'Client portal navigation'}
+                className="hidden xl:flex items-center gap-4 text-xs font-semibold text-slate-300"
+              >
+                {clientNav.map(item => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={item.onClick}
+                    aria-current={item.current ? 'page' : undefined}
+                    className={`hover:text-emerald-400 transition whitespace-nowrap cursor-pointer ${
+                      item.current ? 'text-emerald-400 font-bold' : ''
+                    }`}
+                  >
+                    {isAr ? item.ar : item.en}
+                  </button>
+                ))}
+              </nav>
+            )}
+
             {portal === 'academy' && (
               <div className="hidden xl:flex items-center gap-2 text-xs font-semibold text-slate-400">
                 <GraduationCap className="w-4 h-4 text-amber-400" aria-hidden="true" />
@@ -476,11 +666,12 @@ export const App: React.FC = () => {
               </div>
             )}
 
-            {/* Global search works in both portals. */}
+            {/* Global search works across all portals. */}
             <div className="flex-1 max-w-xs hidden md:block">
               <GlobalHeaderSearch
                 language={language}
                 onNavigateToCompany={openCompany}
+                onNavigateToClient={section => openClient(section)}
                 onNavigateToAcademy={tab => openAcademy(tab as AcademyTab | undefined)}
               />
             </div>
@@ -510,6 +701,8 @@ export const App: React.FC = () => {
                 <Menu className="w-4 h-4" aria-hidden="true" />
               </button>
 
+              <GlobalAppConfigControl language={language} />
+
               <GlobalThemeSwitcher language={language} />
 
               <button
@@ -531,6 +724,8 @@ export const App: React.FC = () => {
           <CompanyPortal
             language={language}
             onNavigateToAcademy={() => openAcademyHash('#academy')}
+            onNavigateToClient={() => openClient('companies')}
+            onOpenCompanyDossier={companyId => openClient('companies', companyId)}
             onOpenDemo={() => openDemo()}
             onOpenService={openService}
           />
@@ -559,6 +754,20 @@ export const App: React.FC = () => {
           </Suspense>
         )}
 
+        {clientRoute && (
+          <div data-portal="client" className="min-h-full">
+            <Suspense fallback={<ClientLoading isAr={isAr} />}>
+              <ClientPortal
+                language={language}
+                section={clientRoute.section}
+                companyId={clientRoute.companyId}
+                onNavigateSection={(sec, compId) => openClient(sec, compId)}
+                onOpenCompanyPortal={() => openCompany()}
+              />
+            </Suspense>
+          </div>
+        )}
+
         {academyRoute && (
           <div data-portal="academy" className="bg-[#080914] min-h-full">
             {/* The academy door is rendered here, synchronously: it is the proof
@@ -585,12 +794,13 @@ export const App: React.FC = () => {
               language={language}
               onOpenHash={openAcademyHash}
               onOpenCompany={() => openCompany()}
+              onOpenAdmin={openAdmin}
             />
           </div>
         )}
       </main>
 
-      {/* One mobile menu for both portals, each audience in its own group. */}
+      {/* One mobile menu for all portals, each audience in its own group. */}
       <MobileNavDrawer
         open={menuOpen}
         language={language}
@@ -599,9 +809,10 @@ export const App: React.FC = () => {
         onNavigateSection={sectionId => openCompany(sectionId)}
         onOpenDemo={() => openDemo()}
         onOpenAcademy={tab => openAcademy(tab)}
+        onOpenClient={section => openClient(section)}
       />
 
-      {/* First-visit fork between the two audiences (never covers a deep link) */}
+      {/* First-visit fork across the three portals (never covers a deep link) */}
       {chooserOpen && (
         <PortalChooser
           language={language}
@@ -632,15 +843,47 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      {/* Each portal ends in its own footer: evidence for the buyer,
-          the learning sections and the non-accredited notice for the trainee. */}
+      {/* Each portal ends in its own footer. */}
       {route.portal === 'company' && (
         <CompanyFooter
           language={language}
           onOpenSection={openCompany}
           onOpenDemo={() => openDemo()}
           onOpenAcademy={() => openAcademyHash('#academy')}
+          onOpenClient={() => openClient('overview')}
+          onOpenAdmin={openAdmin}
         />
+      )}
+
+      {route.portal === 'client' && (
+        <footer className="border-t border-emerald-500/20 bg-slate-950 py-6 text-xs text-slate-400">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <BriefcaseBusiness className="w-4 h-4 text-emerald-400 shrink-0" aria-hidden="true" />
+              <span>
+                {isAr
+                  ? 'بوابة عملاء إنسكو وأرشيف الشركات المكوّدة وملفات التقارير'
+                  : 'INSCO Client Portal — Coded Company Archive & Inspection Dossiers'}
+              </span>
+            </div>
+            <div className="flex items-center gap-4">
+              <button
+                type="button"
+                onClick={() => openCompany()}
+                className="hover:text-cyan-300 transition cursor-pointer"
+              >
+                {isAr ? 'بوابة الشركة والخدمات' : 'Corporate Portal'}
+              </button>
+              <button
+                type="button"
+                onClick={() => openAcademyHash('#academy')}
+                className="hover:text-amber-300 transition cursor-pointer"
+              >
+                {isAr ? 'أكاديمية إنسكو' : 'INSCO Academy'}
+              </button>
+            </div>
+          </div>
+        </footer>
       )}
     </div>
   );

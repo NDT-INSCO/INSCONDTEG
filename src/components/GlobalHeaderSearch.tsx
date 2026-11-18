@@ -5,10 +5,12 @@ import {
   Wrench,
   GraduationCap,
   Building2,
+  BriefcaseBusiness,
   ArrowUpLeft,
   ArrowUpRight,
 } from 'lucide-react';
 import type { Language } from '../types';
+import type { ClientSectionId } from '../utils/portalRoutes';
 import type { SubTab } from './EducationalAcademy';
 import {
   filterGlobalSearchItems,
@@ -19,12 +21,14 @@ import {
 interface GlobalHeaderSearchProps {
   language: Language;
   onNavigateToCompany: (sectionId?: string) => void;
+  onNavigateToClient?: (section?: ClientSectionId) => void;
   onNavigateToAcademy: (subTab?: SubTab) => void;
 }
 
 export const GlobalHeaderSearch: React.FC<GlobalHeaderSearchProps> = ({
   language,
   onNavigateToCompany,
+  onNavigateToClient,
   onNavigateToAcademy,
 }) => {
   const isAr = language === 'ar';
@@ -88,6 +92,8 @@ export const GlobalHeaderSearch: React.FC<GlobalHeaderSearchProps> = ({
   const handleSelectResult = (item: GlobalSearchItem) => {
     if (item.destination.type === 'academy') {
       onNavigateToAcademy(item.destination.subTab);
+    } else if (item.destination.type === 'client') {
+      onNavigateToClient?.(item.destination.section);
     } else {
       onNavigateToCompany(item.destination.sectionId);
     }
@@ -128,18 +134,21 @@ export const GlobalHeaderSearch: React.FC<GlobalHeaderSearchProps> = ({
   const getCategoryLabel = (cat: GlobalSearchCategory) => {
     if (cat === 'services') return isAr ? 'الخدمات والأسطول' : 'Services';
     if (cat === 'academy') return isAr ? 'وحدة تعليمية' : 'Academy Module';
+    if (cat === 'client') return isAr ? 'بوابة العملاء' : 'Client Portal';
     return isAr ? 'معلومات الشركة' : 'Company Info';
   };
 
   const getCategoryIcon = (cat: GlobalSearchCategory) => {
     if (cat === 'services') return <Wrench className="w-3.5 h-3.5 text-cyan-400 shrink-0" />;
     if (cat === 'academy') return <GraduationCap className="w-3.5 h-3.5 text-amber-400 shrink-0" />;
+    if (cat === 'client') return <BriefcaseBusiness className="w-3.5 h-3.5 text-emerald-400 shrink-0" />;
     return <Building2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />;
   };
 
   const filterTabs: { id: 'all' | GlobalSearchCategory; label: string }[] = [
     { id: 'all', label: isAr ? 'الكل' : 'All' },
     { id: 'services', label: isAr ? 'الخدمات' : 'Services' },
+    { id: 'client', label: isAr ? 'العملاء' : 'Clients' },
     { id: 'academy', label: isAr ? 'التعليم' : 'Modules' },
     { id: 'company', label: isAr ? 'الشركة' : 'Company' },
   ];
@@ -147,7 +156,7 @@ export const GlobalHeaderSearch: React.FC<GlobalHeaderSearchProps> = ({
   const JumpIcon = isAr ? ArrowUpLeft : ArrowUpRight;
 
   return (
-    <div ref={containerRef} role="search" className="relative w-full xl:w-52 2xl:w-64">
+    <div ref={containerRef} role="search" className="relative w-full max-w-64">
       <div className="relative flex items-center">
         <Search
           aria-hidden="true"

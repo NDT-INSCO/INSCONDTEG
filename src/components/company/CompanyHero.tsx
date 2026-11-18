@@ -2,7 +2,7 @@ import React, { Suspense, useState } from 'react';
 import { Language } from '../../types';
 import { INSCO_COMPANY_DATA } from '../../data/inscoCompanyData';
 import { COMPANY_MEDIA } from '../../data/companyMedia';
-import { FileText, ArrowRight, ArrowLeft, ShieldCheck, Zap, Award, Layers, Sparkles, Activity, Eye } from 'lucide-react';
+import { FileText, ArrowRight, ArrowLeft, ShieldCheck, Zap, Award, Layers, Sparkles, Activity, Eye, BriefcaseBusiness } from 'lucide-react';
 // three.js is ~1 MB. It powers a decorative 3D hologram, so it must not sit in
 // the first payload of a page that mostly serves text.
 const InteractiveInspectionHologram = React.lazy(() =>
@@ -12,6 +12,7 @@ const InteractiveInspectionHologram = React.lazy(() =>
 interface CompanyHeroProps {
   language: Language;
   onNavigateToAcademy: () => void;
+  onNavigateToClient?: () => void;
   onNavigateToSection: (sectionId: string) => void;
   /** Opens the technical demonstrations page (`#demo`). */
   onOpenDemo?: () => void;
@@ -20,6 +21,7 @@ interface CompanyHeroProps {
 export const CompanyHero: React.FC<CompanyHeroProps> = ({
   language,
   onNavigateToAcademy,
+  onNavigateToClient,
   onNavigateToSection,
   onOpenDemo,
 }) => {
@@ -106,6 +108,19 @@ export const CompanyHero: React.FC<CompanyHeroProps> = ({
                   <Activity className="w-4 h-4 shrink-0" />
                   <span className="whitespace-nowrap">
                     {isAr ? 'شاهد العرض الفني' : 'See the demonstrations'}
+                  </span>
+                </button>
+              )}
+
+              {onNavigateToClient && (
+                <button
+                  type="button"
+                  onClick={onNavigateToClient}
+                  className="inline-flex items-center gap-2 px-4 py-3 rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 hover:text-emerald-200 font-semibold text-sm transition cursor-pointer"
+                >
+                  <BriefcaseBusiness className="w-4 h-4 shrink-0" />
+                  <span className="whitespace-nowrap">
+                    {isAr ? 'بوابة العملاء والملفات' : 'Client & Dossier Portal'}
                   </span>
                 </button>
               )}

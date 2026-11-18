@@ -1,0 +1,445 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Pillar 0: Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // -------------------------------------------------------------------------
+    // Global Hardened Primitives
+    // -------------------------------------------------------------------------
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidCode(code) {
+      return code is string && code.size() >= 3 && code.size() <= 32 && code.matches('^[A-Z0-9\\-]+$');
+    }
+
+    // Zero-lookup admin check (safe inside allow list queries)
+    function isAdminEmail() {
+      return isVerifiedUser() && request.auth.token.email == 'inscondtco@gmail.com';
+    }
+
+    // Full admin check (used on single-document reads and writes)
+    function isAdmin() {
+      return isAdminEmail()
+        || (isVerifiedUser() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
+    }
+
+    // -------------------------------------------------------------------------
+    // Validation Blueprints (Anti-Update-Gap)
+    // -------------------------------------------------------------------------
+    function isValidClientAccount(data, userId) {
+      return data.keys().hasAll([
+          'uid', 'fullName', 'email', 'phone', 'organizationName',
+          'role', 'approvalStatus', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'uid', 'fullName', 'email', 'phone', 'organizationName',
+          'requestedCompanyCode', 'assignedCompanyId', 'assignedCompanyCode',
+          'role', 'approvalStatus', 'sector', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.uid)
+        && data.uid == userId
+        && data.fullName is string && data.fullName.size() >= 2 && data.fullName.size() <= 120
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 160
+        && data.phone is string && data.phone.size() >= 5 && data.phone.size() <= 40
+        && data.organizationName is string && data.organizationName.size() >= 2 && data.organizationName.size() <= 160
+        && (!('requestedCompanyCode' in data) || (data.requestedCompanyCode is string && data.requestedCompanyCode.size() <= 32 && data.requestedCompanyCode.matches('^[A-Z0-9\\-]*$')))
+        && (!('assignedCompanyId' in data) || (data.assignedCompanyId is string && data.assignedCompanyId.size() <= 128))
+        && (!('assignedCompanyCode' in data) || (data.assignedCompanyCode is string && data.assignedCompanyCode.size() <= 32))
+        && (!('sector' in data) || (data.sector is string && data.sector.size() <= 80))
+        && data.role in ['client', 'engineer', 'admin']
+        && data.approvalStatus in ['pending', 'approved', 'suspended']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidClientRequest(data) {
+      return data.keys().hasAll([
+          'requestCode', 'submittedByUid', 'submittedByEmail', 'companyName',
+          'contactName', 'phone', 'serviceMethods', 'projectLocation',
+          'urgency', 'scopeSummary', 'status', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'requestCode', 'submittedByUid', 'submittedByEmail', 'companyName',
+          'companyCode', 'contactName', 'phone', 'serviceMethods',
+          'projectLocation', 'urgency', 'scopeSummary', 'status',
+          'adminNotes', 'createdAt', 'updatedAt'
+        ])
+        && isValidCode(data.requestCode)
+        && isValidId(data.submittedByUid)
+        && data.submittedByEmail is string && data.submittedByEmail.size() >= 3 && data.submittedByEmail.size() <= 160
+        && data.companyName is string && data.companyName.size() >= 2 && data.companyName.size() <= 160
+        && (!('companyCode' in data) || (data.companyCode is string && data.companyCode.size() <= 32 && data.companyCode.matches('^[A-Z0-9\\-]*$')))
+        && data.contactName is string && data.contactName.size() >= 2 && data.contactName.size() <= 120
+        && data.phone is string && data.phone.size() >= 5 && data.phone.size() <= 40
+        && data.serviceMethods is list && data.serviceMethods.size() >= 1 && data.serviceMethods.size() <= 12
+        && data.serviceMethods[0] is string && data.serviceMethods[0].size() <= 32
+        && data.projectLocation is string && data.projectLocation.size() >= 2 && data.projectLocation.size() <= 180
+        && data.urgency in ['standard', 'priority', 'emergency_24h']
+        && data.scopeSummary is string && data.scopeSummary.size() >= 5 && data.scopeSummary.size() <= 2000
+        && data.status in ['new', 'under_review', 'approved', 'in_progress', 'completed', 'rejected']
+        && (!('adminNotes' in data) || (data.adminNotes is string && data.adminNotes.size() <= 1000))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCompanyRecord(data) {
+      return data.keys().hasAll([
+          'companyCode', 'nameAr', 'nameEn', 'archiveCategory',
+          'hasActiveTestingDossier', 'sector', 'assignedClientUid',
+          'reportsCount', 'createdByUid', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'companyCode', 'nameAr', 'nameEn', 'archiveCategory',
+          'hasActiveTestingDossier', 'sector', 'commercialRegNo',
+          'contactPerson', 'contactEmail', 'contactPhone',
+          'projectLocation', 'activeScope', 'assignedClientUid',
+          'legacySinceYear', 'reportsCount', 'createdByUid',
+          'createdAt', 'updatedAt'
+        ])
+        && isValidCode(data.companyCode)
+        && data.nameAr is string && data.nameAr.size() >= 2 && data.nameAr.size() <= 180
+        && data.nameEn is string && data.nameEn.size() >= 2 && data.nameEn.size() <= 180
+        && data.archiveCategory in ['active_testing', 'legacy_archive', 'new_onboarding']
+        && data.hasActiveTestingDossier is bool
+        && data.sector is string && data.sector.size() >= 2 && data.sector.size() <= 100
+        && (!('commercialRegNo' in data) || (data.commercialRegNo is string && data.commercialRegNo.size() <= 64))
+        && (!('contactPerson' in data) || (data.contactPerson is string && data.contactPerson.size() <= 120))
+        && (!('contactEmail' in data) || (data.contactEmail is string && data.contactEmail.size() <= 160))
+        && (!('contactPhone' in data) || (data.contactPhone is string && data.contactPhone.size() <= 40))
+        && (!('projectLocation' in data) || (data.projectLocation is string && data.projectLocation.size() <= 180))
+        && (!('activeScope' in data) || (data.activeScope is string && data.activeScope.size() <= 1500))
+        && data.assignedClientUid is string && data.assignedClientUid.size() <= 128
+        && (!('legacySinceYear' in data) || (data.legacySinceYear is string && data.legacySinceYear.size() <= 16))
+        && data.reportsCount is number && data.reportsCount >= 0 && data.reportsCount <= 100000
+        && isValidId(data.createdByUid)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCompanyCodeReservation(data, codeId) {
+      return data.keys().hasAll(['companyCode', 'companyId', 'createdByUid', 'createdAt'])
+        && data.keys().hasOnly(['companyCode', 'companyId', 'createdByUid', 'createdAt'])
+        && isValidCode(codeId)
+        && data.companyCode == codeId
+        && isValidId(data.companyId)
+        && isValidId(data.createdByUid)
+        && data.createdAt is timestamp;
+    }
+
+    function isValidInspectionReport(data, parentCompanyId) {
+      return data.keys().hasAll([
+          'companyId', 'companyCode', 'assignedClientUid', 'reportNumber',
+          'templateKey', 'method', 'isLegacyArchive', 'projectName',
+          'componentOrJointId', 'codeStandard', 'inspectorName',
+          'inspectionDate', 'verdict', 'status', 'technicalData',
+          'createdByUid', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'companyId', 'companyCode', 'assignedClientUid', 'reportNumber',
+          'templateKey', 'method', 'isLegacyArchive', 'projectName',
+          'clientPoNumber', 'componentOrJointId', 'materialSpec',
+          'thicknessMm', 'codeStandard', 'inspectorName', 'inspectionDate',
+          'verdict', 'status', 'technicalData', 'notes',
+          'createdByUid', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.companyId) && data.companyId == parentCompanyId
+        && isValidCode(data.companyCode)
+        && data.assignedClientUid is string && data.assignedClientUid.size() <= 128
+        && data.reportNumber is string && data.reportNumber.size() >= 3 && data.reportNumber.size() <= 64 && data.reportNumber.matches('^[A-Z0-9\\-/]+$')
+        && data.templateKey is string && data.templateKey.size() >= 2 && data.templateKey.size() <= 64
+        && data.method in ['RT', 'UT', 'PAUT', 'MT', 'PT', 'VT', 'PMI', 'PWHT', 'HYDRO', 'CUSTOM']
+        && data.isLegacyArchive is bool
+        && data.projectName is string && data.projectName.size() >= 2 && data.projectName.size() <= 180
+        && (!('clientPoNumber' in data) || (data.clientPoNumber is string && data.clientPoNumber.size() <= 80))
+        && data.componentOrJointId is string && data.componentOrJointId.size() >= 1 && data.componentOrJointId.size() <= 160
+        && (!('materialSpec' in data) || (data.materialSpec is string && data.materialSpec.size() <= 100))
+        && (!('thicknessMm' in data) || (data.thicknessMm is string && data.thicknessMm.size() <= 40))
+        && data.codeStandard is string && data.codeStandard.size() >= 2 && data.codeStandard.size() <= 120
+        && data.inspectorName is string && data.inspectorName.size() >= 2 && data.inspectorName.size() <= 120
+        && data.inspectionDate is string && data.inspectionDate.size() >= 8 && data.inspectionDate.size() <= 20
+        && data.verdict in ['ACCEPT', 'REJECT', 'HOLD', 'REVIEW']
+        && data.status in ['draft', 'issued', 'archived']
+        && data.technicalData is map && data.technicalData.size() <= 30
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 2000))
+        && isValidId(data.createdByUid)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidModuleProgress(data) {
+      return data.keys().hasAll(['userId', 'moduleId'])
+        && data.keys().hasOnly([
+          'userId', 'moduleId', 'disciplineId', 'completedTopics',
+          'completedCount', 'updatedAt', 'clientTimestamp',
+          'isPassed', 'score', 'unlockedCertificate', 'completedAt'
+        ])
+        && isValidId(data.userId)
+        && data.moduleId is string && data.moduleId.size() >= 1 && data.moduleId.size() <= 80
+        && (!('disciplineId' in data) || (data.disciplineId is string && data.disciplineId.size() <= 80))
+        && (!('completedTopics' in data) || (data.completedTopics is list && data.completedTopics.size() <= 200))
+        && (!('completedCount' in data) || (data.completedCount is number && data.completedCount >= 0 && data.completedCount <= 200))
+        && (!('clientTimestamp' in data) || (data.clientTimestamp is string && data.clientTimestamp.size() <= 40))
+        && (!('isPassed' in data) || data.isPassed is bool)
+        && (!('score' in data) || (data.score is number && data.score >= 0 && data.score <= 100))
+        && (!('unlockedCertificate' in data) || data.unlockedCertificate is bool);
+    }
+
+    function isValidQuizLeaderboardEntry(data) {
+      return data.keys().hasAll(['studentName', 'disciplineId', 'percentage', 'score'])
+        && data.keys().hasOnly(['studentName', 'disciplineId', 'percentage', 'score', 'badgeUnlocked', 'timestamp'])
+        && data.studentName is string && data.studentName.size() >= 2 && data.studentName.size() <= 100
+        && data.disciplineId is string && data.disciplineId.size() >= 1 && data.disciplineId.size() <= 80
+        && data.percentage is number && data.percentage >= 0 && data.percentage <= 100
+        && data.score is number && data.score >= 0 && data.score <= 1000
+        && (!('badgeUnlocked' in data) || data.badgeUnlocked == null || (data.badgeUnlocked is string && data.badgeUnlocked.size() <= 80));
+    }
+
+    // -------------------------------------------------------------------------
+    // Admins Registry
+    // -------------------------------------------------------------------------
+    match /admins/{adminUid} {
+      allow get: if isValidId(adminUid) && (isOwner(adminUid) || isAdminEmail());
+      allow list: if isAdminEmail();
+      allow create, update, delete: if isValidId(adminUid) && isAdminEmail();
+    }
+
+    // -------------------------------------------------------------------------
+    // Client Accounts (PII isolated to account owner or verified admin)
+    // -------------------------------------------------------------------------
+    match /client_accounts/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isAdminEmail() || (isVerifiedUser() && existing().uid == request.auth.uid);
+
+      allow create: if isVerifiedUser()
+        && isValidId(userId)
+        && isValidClientAccount(incoming(), userId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin()
+          || (
+            isOwner(userId)
+            && incoming().role == 'client'
+            && incoming().approvalStatus == 'pending'
+            && (!('assignedCompanyId' in incoming()) || incoming().assignedCompanyId == '')
+            && (!('assignedCompanyCode' in incoming()) || incoming().assignedCompanyCode == '')
+          )
+        );
+
+      allow update: if isVerifiedUser()
+        && isValidId(userId)
+        && isValidClientAccount(incoming(), userId)
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          (isAdmin() && incoming().diff(existing()).affectedKeys().hasOnly([
+            'approvalStatus', 'role', 'assignedCompanyId', 'assignedCompanyCode',
+            'fullName', 'phone', 'organizationName', 'sector', 'updatedAt'
+          ]))
+          || (
+            isOwner(userId)
+            && incoming().role == existing().role
+            && incoming().approvalStatus == existing().approvalStatus
+            && incoming().diff(existing()).affectedKeys().hasOnly([
+              'fullName', 'phone', 'organizationName', 'requestedCompanyCode', 'sector', 'updatedAt'
+            ])
+          )
+        );
+
+      allow delete: if isValidId(userId) && isAdmin();
+    }
+
+    // -------------------------------------------------------------------------
+    // Client Requests Intake
+    // -------------------------------------------------------------------------
+    match /client_requests/{requestId} {
+      allow get: if isValidId(requestId)
+        && (isAdmin() || (isVerifiedUser() && existing().submittedByUid == request.auth.uid));
+      allow list: if isAdminEmail()
+        || (isVerifiedUser() && existing().submittedByUid == request.auth.uid);
+
+      allow create: if isVerifiedUser()
+        && isValidId(requestId)
+        && isValidClientRequest(incoming())
+        && incoming().submittedByUid == request.auth.uid
+        && incoming().status == 'new'
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && !('adminNotes' in incoming());
+
+      allow update: if isVerifiedUser()
+        && isValidId(requestId)
+        && isValidClientRequest(incoming())
+        && incoming().submittedByUid == existing().submittedByUid
+        && incoming().requestCode == existing().requestCode
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          (isAdmin() && incoming().diff(existing()).affectedKeys().hasOnly([
+            'status', 'adminNotes', 'companyCode', 'updatedAt'
+          ]))
+          || (
+            existing().submittedByUid == request.auth.uid
+            && existing().status == 'new'
+            && incoming().status == 'new'
+            && incoming().diff(existing()).affectedKeys().hasOnly([
+              'companyName', 'companyCode', 'contactName', 'phone',
+              'serviceMethods', 'projectLocation', 'urgency', 'scopeSummary', 'updatedAt'
+            ])
+          )
+        );
+
+      allow delete: if isValidId(requestId) && isAdmin();
+    }
+
+    // -------------------------------------------------------------------------
+    // Unique Company Code Reservation Index
+    // -------------------------------------------------------------------------
+    match /company_codes/{companyCode} {
+      allow get: if isAdmin() && isValidCode(companyCode);
+      allow list: if isAdminEmail();
+      allow create: if isAdmin()
+        && isValidCompanyCodeReservation(incoming(), companyCode)
+        && incoming().createdByUid == request.auth.uid
+        && incoming().createdAt == request.time
+        && existsAfter(/databases/$(database)/documents/companies/$(incoming().companyId));
+      allow update: if false;
+      allow delete: if isValidCode(companyCode) && isAdmin();
+    }
+
+    // -------------------------------------------------------------------------
+    // Companies Archive & Active Testing Directory
+    // -------------------------------------------------------------------------
+    match /companies/{companyId} {
+      allow get: if isValidId(companyId)
+        && (isAdmin() || (isVerifiedUser() && existing().assignedClientUid != '' && existing().assignedClientUid == request.auth.uid));
+      allow list: if isAdminEmail()
+        || (isVerifiedUser() && existing().assignedClientUid != '' && existing().assignedClientUid == request.auth.uid);
+
+      allow create: if isAdmin()
+        && isValidId(companyId)
+        && isValidCompanyRecord(incoming())
+        && incoming().createdByUid == request.auth.uid
+        && incoming().reportsCount == 0
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && existsAfter(/databases/$(database)/documents/company_codes/$(incoming().companyCode));
+
+      allow update: if isAdmin()
+        && isValidId(companyId)
+        && isValidCompanyRecord(incoming())
+        && incoming().createdByUid == existing().createdByUid
+        && incoming().createdAt == existing().createdAt
+        && incoming().companyCode == existing().companyCode
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'nameAr', 'nameEn', 'archiveCategory', 'hasActiveTestingDossier',
+          'sector', 'commercialRegNo', 'contactPerson', 'contactEmail',
+          'contactPhone', 'projectLocation', 'activeScope',
+          'assignedClientUid', 'legacySinceYear', 'reportsCount', 'updatedAt'
+        ]);
+
+      allow delete: if isValidId(companyId) && isAdmin();
+
+      // -----------------------------------------------------------------------
+      // Dedicated Company File / Dossier: Inspection Reports Subcollection
+      // Master Gate: enforces parent company existence & client alignment
+      // -----------------------------------------------------------------------
+      match /reports/{reportId} {
+        allow get: if isValidId(companyId) && isValidId(reportId) && (
+          isAdmin()
+          || (
+            isVerifiedUser()
+            && get(/databases/$(database)/documents/companies/$(companyId)).data.assignedClientUid != ''
+            && get(/databases/$(database)/documents/companies/$(companyId)).data.assignedClientUid == request.auth.uid
+          )
+        );
+        allow list: if isAdminEmail()
+          || (isVerifiedUser() && existing().assignedClientUid != '' && existing().assignedClientUid == request.auth.uid);
+
+        allow create: if isAdmin()
+          && isValidId(companyId)
+          && isValidId(reportId)
+          && isValidInspectionReport(incoming(), companyId)
+          && incoming().createdByUid == request.auth.uid
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && exists(/databases/$(database)/documents/companies/$(companyId))
+          && incoming().companyCode == get(/databases/$(database)/documents/companies/$(companyId)).data.companyCode
+          && incoming().assignedClientUid == get(/databases/$(database)/documents/companies/$(companyId)).data.assignedClientUid;
+
+        allow update: if isAdmin()
+          && isValidId(companyId)
+          && isValidId(reportId)
+          && isValidInspectionReport(incoming(), companyId)
+          && incoming().companyId == existing().companyId
+          && incoming().companyCode == existing().companyCode
+          && incoming().createdByUid == existing().createdByUid
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'assignedClientUid', 'reportNumber', 'templateKey', 'method',
+            'isLegacyArchive', 'projectName', 'clientPoNumber',
+            'componentOrJointId', 'materialSpec', 'thicknessMm',
+            'codeStandard', 'inspectorName', 'inspectionDate',
+            'verdict', 'status', 'technicalData', 'notes', 'updatedAt'
+          ]);
+
+        allow delete: if isValidId(companyId) && isValidId(reportId) && isAdmin();
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // Existing Academy & Diagnostics Paths
+    // -------------------------------------------------------------------------
+    match /test/connection {
+      allow get: if true;
+    }
+
+    match /user_module_progress/{progressId} {
+      allow get: if isValidId(progressId)
+        && (isAdmin() || (isVerifiedUser() && existing().userId == request.auth.uid));
+      allow list: if isAdminEmail()
+        || (isVerifiedUser() && existing().userId == request.auth.uid);
+      allow create, update: if isVerifiedUser()
+        && isValidId(progressId)
+        && isValidModuleProgress(incoming())
+        && incoming().userId == request.auth.uid;
+    }
+
+    match /quiz_leaderboard/{entryId} {
+      allow get: if isValidId(entryId);
+      allow list: if true;
+      allow create: if isVerifiedUser()
+        && isValidId(entryId)
+        && isValidQuizLeaderboardEntry(incoming());
+    }
+  }
+}

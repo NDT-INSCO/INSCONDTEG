@@ -1,6 +1,7 @@
 import React from 'react';
 import { Language } from '../../types';
 import { CompanyHero } from './CompanyHero';
+import { CompanyAnnouncement } from './CompanyAnnouncement';
 import { CompanyServicesSection } from './CompanyServicesSection';
 import { CompanyProjectCostEstimator } from './CompanyProjectCostEstimator';
 import { CompanyFleetInspector } from './CompanyFleetInspector';
@@ -10,6 +11,7 @@ import { CompanyProjectsSection } from './CompanyProjectsSection';
 import { CompanyTestimonialsSection } from './CompanyTestimonialsSection';
 import { CompanyAcademyHighlight } from './CompanyAcademyHighlight';
 import { CompanyVendorVaultSection } from './CompanyVendorVaultSection';
+import { CompanyQrQuickAccessSection } from './CompanyQrQuickAccessSection';
 import { CompanyContactSection } from './CompanyContactSection';
 import { CompanyQuickActionsSection } from './CompanyQuickActionsSection';
 import type { ServiceFamilyId } from '../../utils/serviceFamilies';
@@ -17,6 +19,10 @@ import type { ServiceFamilyId } from '../../utils/serviceFamilies';
 interface CompanyPortalProps {
   language: Language;
   onNavigateToAcademy: (initialSubTab?: any) => void;
+  /** Opens the Client & Dossier portal (`#client`). */
+  onNavigateToClient?: () => void;
+  /** Opens a specific registered company's dossier (`#client/companies/<companyId>`). */
+  onOpenCompanyDossier?: (companyId: string) => void;
   /** Opens the technical demonstrations page (`#demo`). */
   onOpenDemo?: () => void;
   /** Opens a shareable service-family page (`#services/ndt` …). */
@@ -39,6 +45,8 @@ interface CompanyPortalProps {
 export const CompanyPortal: React.FC<CompanyPortalProps> = ({
   language,
   onNavigateToAcademy,
+  onNavigateToClient,
+  onOpenCompanyDossier,
   onOpenDemo,
   onOpenService,
 }) => {
@@ -53,10 +61,12 @@ export const CompanyPortal: React.FC<CompanyPortalProps> = ({
 
   return (
     <div id="top" className="space-y-0">
+      <CompanyAnnouncement language={language} />
       {/* 1. Who we are, what we do, and the one action we want. */}
       <CompanyHero
         language={language}
         onNavigateToAcademy={() => onNavigateToAcademy()}
+        onNavigateToClient={onNavigateToClient}
         onNavigateToSection={scrollToSection}
         onOpenDemo={onOpenDemo}
       />
@@ -82,6 +92,13 @@ export const CompanyPortal: React.FC<CompanyPortalProps> = ({
 
       {/* 6. Vendor dossier and evidence annexes. */}
       <CompanyVendorVaultSection language={language} />
+
+      {/* 6b. Field inspector QR quick access to individual company files & report dossiers. */}
+      <CompanyQrQuickAccessSection
+        language={language}
+        onOpenCompanyDossier={onOpenCompanyDossier}
+        onOpenClientArchive={onNavigateToClient}
+      />
 
       {/* Bridge for engineers who arrived through the corporate door. */}
       <CompanyAcademyHighlight

@@ -45,6 +45,7 @@ import { NDT_TEXTBOOKS, NdtTextbook } from '../../data/ndeTextbooksData';
 import { NdeReferenceTablesView } from './NdeReferenceTablesView';
 import { VirtualLab } from './VirtualLab';
 import { QuickKnowledgeCheckQuiz } from './QuickKnowledgeCheckQuiz';
+import { useDefaultUnitSystem, type GlobalUnitSystem } from '../../utils/unitSystemStore';
 
 interface NdeEncyclopediaViewProps {
   language: Language;
@@ -207,13 +208,21 @@ export const NdeEncyclopediaView: React.FC<NdeEncyclopediaViewProps> = ({
     return null;
   }, [currentArticleIndex]);
 
+  // Global default unit system + local override synced to global updates
+  const { defaultUnitSystem } = useDefaultUnitSystem();
+  const [calcUnitSystem, setCalcUnitSystem] = useState<GlobalUnitSystem>(defaultUnitSystem);
+
+  useEffect(() => {
+    setCalcUnitSystem(defaultUnitSystem);
+  }, [defaultUnitSystem]);
+
   // Active calculator state
   const [selectedFormulaId, setSelectedFormulaId] = useState<string>(NDT_INTERACTIVE_FORMULAS[0].id);
   const selectedFormula = useMemo(() => {
     return NDT_INTERACTIVE_FORMULAS.find(f => f.id === selectedFormulaId) || NDT_INTERACTIVE_FORMULAS[0];
   }, [selectedFormulaId]);
 
-  // Calculator inputs state
+  // Calculator inputs state (stored canonically in Metric)
   const [formulaInputs, setFormulaInputs] = useState<Record<string, number>>(() => {
     const init: Record<string, number> = {};
     NDT_INTERACTIVE_FORMULAS.forEach(f => {
@@ -231,13 +240,47 @@ export const NdeEncyclopediaView: React.FC<NdeEncyclopediaViewProps> = ({
     }));
   };
 
+  const getVariableConversion = (unit: string, mode: GlobalUnitSystem) => {
+    if (mode === 'imperial') {
+      if (unit === 'mm') return { factor: 1 / 25.4, displayUnit: 'in', decimals: 2 };
+      if (unit === 'cm') return { factor: 1 / 2.54, displayUnit: 'in', decimals: 1 };
+      if (unit === 'mm/min') return { factor: 1 / 25.4, displayUnit: 'in/min', decimals: 2 };
+    }
+    return { factor: 1, displayUnit: unit, decimals: unit === 'ratio' ? 2 : 1 };
+  };
+
   const formulaCalculation = useMemo(() => {
     const inputs: Record<string, number> = {};
     selectedFormula.variables.forEach(v => {
       inputs[v.symbol] = formulaInputs[`${selectedFormula.id}_${v.symbol}`] ?? v.defaultValue;
     });
     try {
-      return selectedFormula.calculate(inputs);
+      const base = selectedFormula.calculate(inputs);
+      if (calcUnitSystem !== 'imperial') {
+        return base;
+      }
+      if (base.unit === 'mm') {
+        const imperialVal = base.result / 25.4;
+        const decimals = base.result < 2 ? 4 : 3;
+        return {
+          ...base,
+          result: parseFloat(imperialVal.toFixed(decimals)),
+          unit: 'in',
+          formattedAr: `${base.formattedAr} · (${imperialVal.toFixed(decimals)} بوصة)`,
+          formattedEn: `${base.formattedEn} · (${imperialVal.toFixed(decimals)} in)`,
+        };
+      }
+      if (base.unit === 'kJ/mm') {
+        const imperialVal = base.result * 25.4;
+        return {
+          ...base,
+          result: parseFloat(imperialVal.toFixed(2)),
+          unit: 'kJ/in',
+          formattedAr: `${base.formattedAr} · (${imperialVal.toFixed(2)} kJ/in)`,
+          formattedEn: `${base.formattedEn} · (${imperialVal.toFixed(2)} kJ/in)`,
+        };
+      }
+      return base;
     } catch {
       return {
         result: 0,
@@ -248,7 +291,7 @@ export const NdeEncyclopediaView: React.FC<NdeEncyclopediaViewProps> = ({
         explanationEn: 'Please review input parameters'
       };
     }
-  }, [selectedFormula, formulaInputs]);
+  }, [selectedFormula, formulaInputs, calcUnitSystem]);
 
   // Selected defect for atlas view
   const [selectedDefectId, setSelectedDefectId] = useState<string>(NDT_DEFECT_ATLAS[0].id);
@@ -964,11 +1007,49 @@ export const NdeEncyclopediaView: React.FC<NdeEncyclopediaViewProps> = ({
           </div>
 
           {/* Calculator Workspace */}
-          <div className="lg:col-span-8 bg-[#0c0f2b] border border-[#242c64] rounded-3xl p-6 sm:p-10 shadow-xl space-y-8">
+          <div
+            data-testid="encyclopedia-calculator-workspace"
+            data-unit-mode={calcUnitSystem}
+            className="lg:col-span-8 bg-[#0c0f2b] border border-[#242c64] rounded-3xl p-6 sm:p-10 shadow-xl space-y-8"
+          >
             <div className="border-b border-[#1f2756] pb-6">
-              <span className="px-3 py-1 rounded-full text-xs font-black bg-amber-500/20 text-amber-300 border border-amber-500/30 inline-block mb-3">
-                {selectedFormula.method} Method Formula
-              </span>
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+                <span className="px-3 py-1 rounded-full text-xs font-black bg-amber-500/20 text-amber-300 border border-amber-500/30 inline-block">
+                  {selectedFormula.method} Method Formula
+                </span>
+                <div
+                  role="group"
+                  aria-label={isAr ? 'وحدات الحاسبة' : 'Calculator Units'}
+                  className="inline-flex items-center rounded-xl border border-[#242c64] bg-[#090b1c] p-0.5"
+                >
+                  <button
+                    type="button"
+                    data-testid="encyclopedia-calc-unit-metric"
+                    aria-pressed={calcUnitSystem === 'metric'}
+                    onClick={() => setCalcUnitSystem('metric')}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer whitespace-nowrap shrink-0 ${
+                      calcUnitSystem === 'metric'
+                        ? 'bg-amber-400 text-slate-950'
+                        : 'text-slate-300 hover:text-white'
+                    }`}
+                  >
+                    {isAr ? 'متري (mm)' : 'Metric (mm)'}
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="encyclopedia-calc-unit-imperial"
+                    aria-pressed={calcUnitSystem === 'imperial'}
+                    onClick={() => setCalcUnitSystem('imperial')}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer whitespace-nowrap shrink-0 ${
+                      calcUnitSystem === 'imperial'
+                        ? 'bg-amber-400 text-slate-950'
+                        : 'text-slate-300 hover:text-white'
+                    }`}
+                  >
+                    {isAr ? 'إمبراطوري (in)' : 'Imperial (in)'}
+                  </button>
+                </div>
+              </div>
               <h3 className="text-2xl font-black text-white mb-2">
                 {isAr ? selectedFormula.nameAr : selectedFormula.nameEn}
               </h3>
@@ -987,29 +1068,46 @@ export const NdeEncyclopediaView: React.FC<NdeEncyclopediaViewProps> = ({
               </h4>
               <div className="grid sm:grid-cols-2 gap-5">
                 {selectedFormula.variables.map(v => {
-                  const val = formulaInputs[`${selectedFormula.id}_${v.symbol}`] ?? v.defaultValue;
+                  const canonicalVal = formulaInputs[`${selectedFormula.id}_${v.symbol}`] ?? v.defaultValue;
+                  const conv = getVariableConversion(v.unit, calcUnitSystem);
+                  const displayVal = Number((canonicalVal * conv.factor).toFixed(conv.decimals));
+                  const displayMin = Number((v.min * conv.factor).toFixed(conv.decimals));
+                  const displayMax = Number((v.max * conv.factor).toFixed(conv.decimals));
+                  const displayStep =
+                    conv.factor === 1
+                      ? v.step
+                      : Number(Math.max(0.01, v.step * conv.factor).toFixed(conv.decimals + 1));
+
                   return (
                     <div key={v.symbol} className="bg-[#101438] border border-[#202859] rounded-2xl p-4 space-y-2">
-                      <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center justify-between text-xs gap-2">
                         <label className="font-bold text-slate-200">
                           {isAr ? v.nameAr : v.nameEn} ({v.symbol})
                         </label>
-                        <span className="font-mono text-amber-400 font-bold">
-                          {val} {v.unit}
+                        <span
+                          data-testid={`encyclopedia-var-value-${v.symbol}`}
+                          className="font-mono text-amber-400 font-bold tabular-nums whitespace-nowrap shrink-0"
+                        >
+                          {displayVal} {conv.displayUnit}
                         </span>
                       </div>
                       <input
                         type="range"
-                        min={v.min}
-                        max={v.max}
-                        step={v.step}
-                        value={val}
-                        onChange={(e) => handleInputChange(selectedFormula.id, v.symbol, parseFloat(e.target.value) || 0)}
+                        aria-label={`${isAr ? v.nameAr : v.nameEn} (${conv.displayUnit})`}
+                        min={displayMin}
+                        max={displayMax}
+                        step={displayStep}
+                        value={displayVal}
+                        onChange={(e) => {
+                          const entered = parseFloat(e.target.value) || 0;
+                          const canonical = conv.factor === 1 ? entered : entered / conv.factor;
+                          handleInputChange(selectedFormula.id, v.symbol, canonical);
+                        }}
                         className="w-full accent-amber-400 cursor-pointer"
                       />
-                      <div className="flex justify-between text-[10px] text-slate-500 font-mono">
-                        <span>{v.min} {v.unit}</span>
-                        <span>{v.max} {v.unit}</span>
+                      <div className="flex justify-between text-[10px] text-slate-500 font-mono tabular-nums">
+                        <span>{displayMin} {conv.displayUnit}</span>
+                        <span>{displayMax} {conv.displayUnit}</span>
                       </div>
                     </div>
                   );
@@ -1022,8 +1120,11 @@ export const NdeEncyclopediaView: React.FC<NdeEncyclopediaViewProps> = ({
               <span className="text-xs font-black uppercase tracking-wider text-amber-300 block">
                 {isAr ? 'النتيجة الهندسية المحسوبة:' : 'Calculated Engineering Output:'}
               </span>
-              <div className="text-3xl sm:text-4xl font-black text-white font-mono flex items-baseline gap-2">
-                <span>{formulaCalculation.result.toFixed(2)}</span>
+              <div
+                data-testid="encyclopedia-calc-result"
+                className="text-3xl sm:text-4xl font-black text-white font-mono flex items-baseline gap-2 tabular-nums"
+              >
+                <span>{formulaCalculation.result.toFixed(calcUnitSystem === 'imperial' && formulaCalculation.unit === 'in' ? 3 : 2)}</span>
                 <span className="text-sm font-bold text-amber-400 font-sans">{formulaCalculation.unit}</span>
               </div>
               <p className="text-sm font-semibold text-amber-200">

@@ -1,13 +1,4 @@
-/**
- * INSCO academy server.
- *
- * Serves the built SPA (or runs Vite in dev) and hosts the AI gateway.
- *
- * The gateway exists because the site is published statically: a Gemini key in
- * the browser would be public. Here the key stays on the server, the browser
- * only sees `/api/ai/*`, and when no key is configured the API says so with a
- * 503 instead of inventing an answer. That is the whole design.
- */
+/** Serves the INSCO site, AI/RFQ gateways, and the private admin API. */
 import express from 'express';
 import type { Request, Response } from 'express';
 import { existsSync } from 'fs';
@@ -33,6 +24,9 @@ import type { CorpusDocument, CorpusStats } from './src/ai/corpus';
 import type { SearchHit } from './src/ai/search';
 import { streamTutorText, TutorAiClient, TutorTransportMode } from './src/ai/transport';
 import { createRateLimiter, deliveryFromEnv, handleRfqRequest } from './src/rfq/gateway';
+import { ADMIN_API, ANNOUNCEMENT_API } from './src/admin/contract';
+import { adminConfig, createAdminRouter, httpOrigin, publicAnnouncement, publicSiteCors } from './server/admin/router';
+import { adminDatabasePath, AdminStore, deliverToInbox } from './server/admin/store';
 
 dotenv.config();
 
@@ -63,6 +57,9 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+const isProduction = process.env.NODE_ENV === 'production';
+const trustedProxies = process.env.TRUST_PROXY?.trim();
+if (trustedProxies) app.set('trust proxy', trustedProxies);
 
 /* ------------------------------------------------------------------ */
 /* configuration                                                       */
@@ -258,21 +255,39 @@ function streamFromModel(
 /* ------------------------------------------------------------------ */
 
 app.disable('x-powered-by');
-app.use(express.json({ limit: '96kb' }));
 
-/**
- * RFQ intake.
- *
- * A quote request is a commercial commitment, so this endpoint answers 200 + a
- * reference only after the record was handed to a real channel (webhook or
- * mail). Without configuration it returns 503 and the browser offers mail and
- * WhatsApp instead of a fake confirmation.
- */
+const admin = adminConfig(process.env, isProduction);
+let adminStore: AdminStore | null = null;
+if (admin) {
+  try {
+    const dataDir = path.resolve(__dirname, process.env.ADMIN_DATA_DIR?.trim() || '.admin-data');
+    const publicRoots = ['public', 'docs', 'dist'].map(dir => path.join(__dirname, dir));
+    adminStore = new AdminStore(adminDatabasePath(dataDir, publicRoots));
+  } catch {
+    console.error('[admin] Cannot open private storage. Check ADMIN_DATA_DIR and its permissions.');
+  }
+} else if (process.env.ADMIN_PASSWORD || process.env.ADMIN_PIN) {
+  console.warn('[admin] Disabled: check the admin credential and ADMIN_ORIGIN.');
+}
+
+const externalRfqDelivery = deliveryFromEnv(process.env);
+const rfqDelivery = adminStore ? deliverToInbox(adminStore, externalRfqDelivery) : externalRfqDelivery;
+const publicCors = publicSiteCors(httpOrigin(process.env.PUBLIC_SITE_ORIGIN?.trim()));
+
+// Mount before the general body parser and any static/SPA fallback.
+app.use(ADMIN_API, createAdminRouter({
+  config: admin,
+  store: adminStore,
+  services: { tutorConfigured: Boolean(ai), rfqNotificationsConfigured: Boolean(externalRfqDelivery) },
+}));
+app.get(ANNOUNCEMENT_API, publicCors, publicAnnouncement(adminStore));
+
+/** Successful RFQs must reach an actual channel: the durable inbox, email or a webhook. */
 const RFQ_ENDPOINT = '/api/rfq';
 const allowRfqAttempt = createRateLimiter({ windowMs: 60 * 60 * 1000, max: 6 });
-const rfqDelivery = deliveryFromEnv(process.env);
-
-app.post(RFQ_ENDPOINT, async (req: Request, res: Response) => {
+app.options(RFQ_ENDPOINT, publicCors);
+app.use(express.json({ limit: '96kb' }));
+app.post(RFQ_ENDPOINT, publicCors, async (req: Request, res: Response) => {
   const address = req.ip || req.socket.remoteAddress || 'unknown';
   if (!allowRfqAttempt(address)) {
     res.status(429).json({ ok: false, error: 'rfq_rate_limited', detail: 'Too many requests from this address.' });
@@ -471,7 +486,6 @@ app.post(TUTOR_ENDPOINTS.legacyTutor, (req, res) => {
 /* ------------------------------------------------------------------ */
 
 async function startServer(): Promise<void> {
-  const isProduction = process.env.NODE_ENV === 'production';
   const server = createServer(app);
 
   if (!isProduction) {
@@ -517,6 +531,7 @@ async function startServer(): Promise<void> {
     console.log(`[ai] tutor: ${ai ? `enabled, model ${MODEL_CHAIN[0]}` : 'disabled (no GEMINI_API_KEY)'}`);
     console.log(`[ai] transport: ${API_MODE}${ai ? '' : ' (no key, calls will be refused)'}`);
     console.log(`[rfq] delivery: ${rfqDelivery ? 'configured' : 'not configured (POST /api/rfq will answer 503)'}`);
+    console.log(`[admin] portal: ${adminStore ? 'enabled' : 'disabled (set ADMIN_PASSWORD and, in production, ADMIN_ORIGIN)'}`);
   });
 }
 

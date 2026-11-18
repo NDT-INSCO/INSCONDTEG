@@ -3,10 +3,13 @@ import { INSCO_COMPANY_DATA } from '../data/inscoCompanyData';
 import { ENGINEERING_DISCIPLINES } from '../data/academyCurriculum';
 import { NDT_TEXTBOOKS } from '../data/ndeTextbooksData';
 
-export type GlobalSearchCategory = 'services' | 'academy' | 'company';
+import type { ClientSectionId } from './portalRoutes';
+
+export type GlobalSearchCategory = 'services' | 'academy' | 'company' | 'client';
 
 export type GlobalSearchDestination =
   | { type: 'company'; sectionId?: string }
+  | { type: 'client'; section: ClientSectionId }
   | { type: 'academy'; subTab: SubTab };
 
 export interface GlobalSearchItem {
@@ -838,6 +841,112 @@ function buildGlobalSearchIndex(): GlobalSearchItem[] {
       destination: { type: 'company', sectionId: 'vault' },
     });
   }
+
+  /* ------------------------------------------------------------------------
+   * 4. CLIENT PORTAL (Requests, Coded Archive, Report Dossiers, Registration)
+   * ------------------------------------------------------------------------ */
+  items.push(
+    {
+      id: 'client-portal-overview',
+      category: 'client',
+      code: 'CLIENT PORTAL',
+      featured: true,
+      title: {
+        ar: 'بوابة العملاء — لوحة الطلبات وأرشيف الشركات',
+        en: 'Client Portal — Requests & Coded Company Dossiers',
+      },
+      subtitle: {
+        ar: 'إدارة طلبات العملاء الجدد، الشركات المكوّدة، وفايل تقارير الفحص',
+        en: 'Manage new client requests, coded company archive & report dossiers',
+      },
+      keywords: [
+        'client portal',
+        'clients',
+        'dossier',
+        'company code',
+        'ins-co',
+        'بوابه العملاء',
+        'ملف الشركه',
+        'كود الشركه',
+        'تقارير',
+      ],
+      destination: { type: 'client', section: 'overview' },
+    },
+    {
+      id: 'client-requests-intake',
+      category: 'client',
+      code: 'REQUESTS',
+      featured: true,
+      title: {
+        ar: 'استقبال وتقديم طلبات العملاء الجدد (NDT / PWHT)',
+        en: 'New Client Testing Requests Intake & Tracking',
+      },
+      subtitle: {
+        ar: 'إرسال طلب اختبار أو معالجة حرارية ومتابعة حالته وتحويله لشركة مكوّدة',
+        en: 'Submit testing scopes, track review status & promote to coded company file',
+      },
+      keywords: [
+        'client request',
+        'new request',
+        'intake',
+        'rfq',
+        'طلبات العملاء',
+        'طلب فحص',
+        'طلبات جديده',
+      ],
+      destination: { type: 'client', section: 'requests' },
+    },
+    {
+      id: 'client-companies-archive',
+      category: 'client',
+      code: 'INS-CO-XXXX',
+      featured: true,
+      title: {
+        ar: 'أرشيف الشركات القديمة والجديدة وملفات التقارير (فايل كل شركة)',
+        en: 'Coded Companies Archive (Legacy & Active) & Report Dossiers',
+      },
+      subtitle: {
+        ar: 'رقم كودي فريد لكل شركة · أرشيف الريبورتات · أداة إدخال بيانات الريبورتات الجديدة',
+        en: 'Unique Company Code · Archived reports repository · New report data-entry engine',
+      },
+      keywords: [
+        'archive',
+        'legacy',
+        'company code',
+        'reports',
+        'report builder',
+        'pdf report',
+        'ارشفه الشركات',
+        'الرقم الكودي',
+        'الريبورتات',
+        'ادخال بيانات',
+      ],
+      destination: { type: 'client', section: 'companies' },
+    },
+    {
+      id: 'client-registration-link',
+      category: 'client',
+      code: 'REGISTER',
+      title: {
+        ar: 'تسجيل حساب عميل جديد وربط الكود التعريفي للشركة',
+        en: 'Client Organization Registration & Company Code Linking',
+      },
+      subtitle: {
+        ar: 'تسجيل الدخول عبر Google وربط حساب الشركة بالملف الكودي والريبورتات',
+        en: 'Google account registration and company code dossier linking',
+      },
+      keywords: [
+        'register',
+        'sign up',
+        'client account',
+        'link code',
+        'التسجيل في الموقع',
+        'حساب عميل',
+        'ربط الكود',
+      ],
+      destination: { type: 'client', section: 'register' },
+    }
+  );
 
   return items;
 }

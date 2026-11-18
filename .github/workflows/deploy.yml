@@ -45,6 +45,8 @@ jobs:
       # `/exec` URL. Unset ⇒ the form says honestly that online submission is
       # not configured and offers email/WhatsApp instead of a fake receipt.
       VITE_RFQ_ENDPOINT: ${{ vars.VITE_RFQ_ENDPOINT }}
+      # Public HTTPS address only: the password is configured on the Node server.
+      VITE_ADMIN_PORTAL_URL: ${{ vars.VITE_ADMIN_PORTAL_URL }}
     steps:
       - uses: actions/checkout@v4
 
@@ -57,7 +59,12 @@ jobs:
         run: npm ci
 
       - name: Build
-        run: npm run build
+        run: |
+          # Match verify and local builds when an optional URL is unset.
+          for name in VITE_AI_BASE_URL VITE_RFQ_ENDPOINT VITE_ADMIN_PORTAL_URL; do
+            if [[ -z "${!name:-}" ]]; then unset "$name"; fi
+          done
+          npm run build
 
       - name: Check the published folder
         run: npm run site:check

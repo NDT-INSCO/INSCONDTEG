@@ -39,6 +39,10 @@ export default defineConfig({
   // `allowedHosts` only affects the dev server; production output is unchanged.
   server: {
     allowedHosts: true,
+    // Keep the private inbox and its SQLite sidecars off the dev asset server.
+    fs: {
+      deny: ['.env', '.env.*', '*.{crt,pem}', '**/.git/**', '**/.admin-data/**', '**/admin.sqlite*'],
+    },
     hmr: process.env.DISABLE_HMR !== 'true',
     watch: {
       ignored: ['**/docs/**', '**/.aistudio/**', '**/tests/**'],

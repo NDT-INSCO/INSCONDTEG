@@ -11,6 +11,7 @@ import {
   Wrench,
 } from 'lucide-react';
 import type { Language } from '../../types';
+import { AdminKey } from '../admin/AdminKey';
 import {
   academySectionLabel,
   type AcademyRoute,
@@ -131,18 +132,16 @@ export const AcademyHeader: React.FC<AcademyHeaderProps> = ({
           </div>
         </div>
 
-        {/*
-          A fixed grid, not a wrapping strip.
-
-          The eight destinations used to be inline pills: with Arabic labels they
-          grew past the page edge on a phone and pushed their icons outside the
-          frame. Every cell is now bounded by the grid, the phone shows a short
-          one-word label under the icon, and nothing can escape the page width.
-        */}
         <nav
           aria-label={isAr ? 'تنقل الأكاديمية' : 'Academy navigation'}
           className="grid grid-cols-4 gap-1.5 xl:grid-cols-8"
         >
+          {/*
+            A fixed grid, not a scrolling strip: the eight destinations used to
+            grow past the page edge on a phone and push their icons outside the
+            frame. Every cell is bounded by the grid and every icon has a fixed
+            size, so nothing can escape the page width.
+          */}
           {ACADEMY_NAV.map(item => {
             const Icon = item.icon;
             const isCurrent = item.id === current;
@@ -209,6 +208,7 @@ interface AcademyFooterProps {
   language: Language;
   onOpenHash: (hash: string) => void;
   onOpenCompany: () => void;
+  onOpenAdmin?: () => void;
 }
 
 /**
@@ -223,6 +223,7 @@ export const AcademyFooter: React.FC<AcademyFooterProps> = ({
   language,
   onOpenHash,
   onOpenCompany,
+  onOpenAdmin,
 }) => {
   const isAr = language === 'ar';
   return (
@@ -258,6 +259,7 @@ export const AcademyFooter: React.FC<AcademyFooterProps> = ({
           >
             {isAr ? 'بوابة الشركة' : 'Company portal'}
           </button>
+          <AdminKey language={language} onOpen={onOpenAdmin} />
         </div>
       </div>
     </footer>

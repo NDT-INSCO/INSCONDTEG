@@ -66,7 +66,7 @@ export const AcademyDisciplinePage: React.FC<AcademyDisciplinePageProps> = ({
       {/* Siblings: the eight disciplines, this one current. */}
       <nav
         aria-label={isAr ? 'التخصصات الشقيقة' : 'Sibling disciplines'}
-        className="flex items-center gap-1.5 overflow-x-auto pb-1"
+        className="flex flex-wrap items-center gap-1.5"
       >
         <button
           type="button"
@@ -97,7 +97,11 @@ export const AcademyDisciplinePage: React.FC<AcademyDisciplinePageProps> = ({
       </nav>
 
       <AcademyPageHeader
-        eyebrow={isAr ? `تخصص · ${discipline.category}` : `Discipline · ${discipline.category}`}
+        eyebrow={
+          isAr
+            ? `تخصص هندسي · ${ENGINEERING_DISCIPLINES.findIndex(item => item.id === discipline.id) + 1} من ${ENGINEERING_DISCIPLINES.length}`
+            : `Discipline ${ENGINEERING_DISCIPLINES.findIndex(item => item.id === discipline.id) + 1} of ${ENGINEERING_DISCIPLINES.length}`
+        }
         title={isAr ? discipline.titleAr : discipline.titleEn}
         description={isAr ? discipline.overviewAr : discipline.overviewEn}
         actions={

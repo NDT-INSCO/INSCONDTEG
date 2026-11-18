@@ -36,7 +36,13 @@ jobs:
         run: npm run edb:check
 
       - name: Production build
-        run: npm run build
+        run: |
+          # GitHub exposes unset variables as empty strings. Leave optional
+          # URLs out of the Vite environment just as a default local build does.
+          for name in VITE_AI_BASE_URL VITE_RFQ_ENDPOINT VITE_ADMIN_PORTAL_URL; do
+            if [[ -z "${!name:-}" ]]; then unset "$name"; fi
+          done
+          npm run build
 
       # Pages publishes `main` → `/docs` (branch source), so the committed
       # folder *is* the site. Building here and diffing catches a source change

@@ -59,7 +59,12 @@ jobs:
         run: npm ci
 
       - name: Build
-        run: npm run build
+        run: |
+          # Match verify and local builds when an optional URL is unset.
+          for name in VITE_AI_BASE_URL VITE_RFQ_ENDPOINT VITE_ADMIN_PORTAL_URL; do
+            if [[ -z "${!name:-}" ]]; then unset "$name"; fi
+          done
+          npm run build
 
       - name: Check the published folder
         run: npm run site:check

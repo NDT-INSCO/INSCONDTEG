@@ -36,8 +36,16 @@ export interface AcademyStationChild {
   testId?: string;
 }
 
+export type AcademyStationId =
+  | 'choose'
+  | 'learn'
+  | 'practice'
+  | 'test'
+  | 'progress'
+  | 'tutor';
+
 export interface AcademyStation {
-  id: 'choose' | 'learn' | 'practice' | 'test' | 'progress' | 'tutor';
+  id: AcademyStationId;
   ar: string;
   en: string;
   icon: LucideIcon;
@@ -162,6 +170,12 @@ interface AcademyStationNavProps {
   activeSubTab: AcademyTab;
   isAr: boolean;
   onSelect: (tab: AcademyTab) => void;
+  /**
+   * Only this station exists on the current page (the portal gives every
+   * station its own page). The six-station grid is replaced by the station's
+   * own tab pills, because switching station is the page navigation's job.
+   */
+  onlySection?: AcademyStationId;
 }
 
 export const AcademyStationNav: React.FC<AcademyStationNavProps> = ({
@@ -169,8 +183,42 @@ export const AcademyStationNav: React.FC<AcademyStationNavProps> = ({
   activeSubTab,
   isAr,
   onSelect,
+  onlySection,
 }) => {
-  const activeStation = stationForTab(stations, activeSubTab);
+  const activeStation = onlySection
+    ? stations.find(station => station.id === onlySection) ?? stationForTab(stations, activeSubTab)
+    : stationForTab(stations, activeSubTab);
+
+  if (onlySection) {
+    return (
+      <nav
+        aria-label={isAr ? `أقسام محطة ${activeStation.ar}` : `${activeStation.en} tabs`}
+        className="mb-8"
+      >
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border-2 border-[#202755] bg-[#0c0e22] p-2.5 shadow-xl">
+          {activeStation.children.map(child => {
+            const isCurrent = child.tab === activeSubTab;
+            return (
+              <button
+                key={child.tab}
+                type="button"
+                data-testid={child.testId}
+                aria-current={isCurrent ? 'true' : undefined}
+                onClick={() => onSelect(child.tab)}
+                className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-[11px] sm:text-xs font-bold transition cursor-pointer text-start leading-tight ${
+                  isCurrent
+                    ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/25'
+                    : 'bg-[#10132b] text-slate-300 border border-[#212752] hover:text-white hover:border-amber-400/40'
+                }`}
+              >
+                <span>{isAr ? child.ar : child.en}</span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+    );
+  }
 
   return (
     <nav aria-label={isAr ? 'محطات رحلة المتعلم' : 'Learner journey stations'} className="space-y-3 mb-8">

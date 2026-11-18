@@ -35,6 +35,11 @@ import {
 } from 'lucide-react';
 import { Language, EducationalDefect, QuizQuestion } from '../types';
 import { ACADEMY_TABS, AcademyTab, readAcademyTab } from '../academyTabs';
+import {
+  ACADEMY_SECTION_DEFAULT_TAB,
+  ACADEMY_SECTION_TABS,
+  type AcademySectionId,
+} from '../utils/portalRoutes';
 import { NDT_METHODS, EDUCATIONAL_DEFECTS, STANDARDS_LIBRARY, SAMPLE_QUIZZES } from '../data/inscoData';
 import { IndustrialVideoGen } from './IndustrialVideoGen';
 import { DisciplineCurriculumView } from './academy/DisciplineCurriculumView';
@@ -101,6 +106,22 @@ export const SUB_TABS: SubTab[] = [...ACADEMY_TABS];
 interface EducationalAcademyProps {
   language: Language;
   initialSubTab?: SubTab;
+  /**
+   * Restrict the academy to one section of the learner journey.
+   *
+   * The portal gives every section its own page; when a section is supplied the
+   * marketing header, the global search and the progress dashboards step aside
+   * and only this section's own tabs are offered — so a reader on the "practice"
+   * page never lands in the middle of the textbook library.
+   */
+  section?: AcademySectionId;
+  /** Told about every tab change, so the portal can keep its trail in sync. */
+  onTabChange?: (tab: AcademyTab) => void;
+  /**
+   * A link inside the section points at a tab that lives in another section.
+   * The host opens that section's page instead of dropping the link.
+   */
+  onOpenTab?: (tab: AcademyTab) => void;
 }
 
 // The 33 academy tabs grouped into the six stations of the learner journey.
@@ -111,12 +132,43 @@ const ACADEMY_STATIONS = buildAcademyStations({
   paths: LEARNING_PATHS.length,
 });
 
-export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({ language, initialSubTab }) => {
+export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({
+  language,
+  initialSubTab,
+  section,
+  onTabChange,
+  onOpenTab,
+}) => {
   const isAr = language === 'ar';
   const corpusStats = React.useMemo(() => getCorpusStats(), []);
-  const [activeSubTab, setActiveSubTab] = useState<SubTab>(
-    // Order: explicit request → shared link → first tab.
-    initialSubTab ?? readAcademyTab(window.location.hash) ?? 'encyclopedia'
+  const sectionTabs = section ? ACADEMY_SECTION_TABS[section] : undefined;
+  const defaultTab = section ? ACADEMY_SECTION_DEFAULT_TAB[section] : 'encyclopedia';
+  const clampToSection = (tab: SubTab): SubTab =>
+    sectionTabs && !sectionTabs.includes(tab) ? defaultTab : tab;
+
+  const [activeSubTab, setActiveSubTabState] = useState<SubTab>(() =>
+    clampToSection(
+      // Order: explicit request → shared link → first tab.
+      initialSubTab ?? readAcademyTab(window.location.hash) ?? defaultTab
+    )
+  );
+
+  /**
+   * Every tab change goes through here.
+   *
+   * On a section page a request for a tab that lives in another section (a
+   * dashboard link to an exam, say) is handed to the host, which opens that
+   * section's page. The link keeps working; the page never renders nothing.
+   */
+  const setActiveSubTab = React.useCallback(
+    (tab: SubTab) => {
+      if (sectionTabs && !sectionTabs.includes(tab)) {
+        onOpenTab?.(tab);
+        return;
+      }
+      setActiveSubTabState(tab);
+    },
+    [onOpenTab, sectionTabs]
   );
 
   // Target Module/Discipline when navigating to Quiz Mode from Curriculum
@@ -165,8 +217,9 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({ language
   React.useEffect(() => {
     if (initialSubTab && initialSubTab !== appliedRequest.current) {
       appliedRequest.current = initialSubTab;
-      setActiveSubTab(initialSubTab);
+      setActiveSubTabState(clampToSection(initialSubTab));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialSubTab]);
 
   React.useEffect(() => {
@@ -177,6 +230,20 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({ language
     window.addEventListener('hashchange', applyHash);
     return () => window.removeEventListener('hashchange', applyHash);
   }, []);
+
+  // A section page may only show its own tabs. A dashboard or a stale hash can
+  // ask for a tab that lives elsewhere; the request is clamped to the section's
+  // first tab instead of rendering an empty page.
+  React.useEffect(() => {
+    if (!sectionTabs) return;
+    if (!sectionTabs.includes(activeSubTab)) {
+      setActiveSubTabState(defaultTab);
+    }
+  }, [activeSubTab, defaultTab, sectionTabs]);
+
+  React.useEffect(() => {
+    onTabChange?.(activeSubTab);
+  }, [activeSubTab, onTabChange]);
 
   React.useEffect(() => {
     if (window.location.hash.replace(/^#/, '') === activeSubTab) return;
@@ -369,9 +436,17 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({ language
   const aiUnavailable = aiStatus !== null && !aiStatus.configured;
 
   return (
-    <section className="py-16 md:py-24 bg-[#080914] border-b border-[#21264c]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        {/* Section Header */}
+    <section
+      className={
+        section
+          ? // A section page brings its own heading and outer padding.
+            'py-0 bg-transparent'
+          : 'py-16 md:py-24 bg-[#080914] border-b border-[#21264c]'
+      }
+    >
+      <div className={section ? 'w-full' : 'max-w-7xl mx-auto px-4 sm:px-6'}>
+        {/* Section Header — the section pages carry their own heading. */}
+        {!section && (
         <div className="text-center max-w-3xl mx-auto mb-12">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-400/30 text-amber-400 font-bold text-xs uppercase tracking-wider mb-3">
             <BookOpen className="w-4 h-4" />
@@ -395,7 +470,10 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({ language
           </p>
         </div>
 
+        )}
+
         {/* Semantic Search Bar for NDT & PWHT Technical Terms and Curriculum Modules */}
+        {!section && (
         <div className="max-w-4xl mx-auto mb-10">
           <SemanticSearchBar
             language={language}
@@ -409,11 +487,16 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({ language
           />
         </div>
 
-        {/* Learner journey: choose → learn → practice → test → track → ask */}
+        )}
+
+        {/* Learner journey: choose → learn → practice → test → track → ask.
+            On a section page only that section's own tabs are offered. */}
         <AcademyStationNav
           stations={ACADEMY_STATIONS}
           activeSubTab={activeSubTab as AcademyTab}
           isAr={isAr}
+          // The journey station for the mentor section is called `tutor`.
+          onlySection={section === 'mentor' ? 'tutor' : section}
           onSelect={tab => {
             if (tab === 'edb') setEdbTarget(undefined);
             setActiveSubTab(tab);
@@ -421,6 +504,7 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({ language
         />
 
         {/* Persistent Curriculum Level & Per-User Course Progress Dashboard */}
+        {(!section || section === 'progress' || section === 'learn') && (
         <div className="mb-8 space-y-4">
           <CurriculumLevelProgressTracker
             language={language}
@@ -440,6 +524,8 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({ language
             onNavigateToModule={(dId, lIdx, mId) => handleNavigateToCurriculumModule(dId, lIdx, mId)}
           />
         </div>
+
+        )}
 
         {/* Sub-Tab 0A: All Disciplines & Career Roadmaps Curriculum */}
         {activeSubTab === 'curriculum' && (

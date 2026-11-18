@@ -1,0 +1,222 @@
+import React from 'react';
+import {
+  Award,
+  BookOpen,
+  Compass,
+  Layers,
+  ShieldAlert,
+  Sparkles,
+  Trophy,
+  Wrench,
+  ArrowLeft,
+  ArrowRight,
+} from 'lucide-react';
+import type { Language } from '../../types';
+import { ENGINEERING_DISCIPLINES } from '../../data/academyCurriculum';
+import { useUserCourseProgress } from '../../utils/userCourseProgressStore';
+import { AcademyPageHeader } from './AcademyShell';
+import {
+  ACADEMY_SECTION_COPY,
+  ACADEMY_SECTIONS,
+  academySectionLabel,
+  disciplineHash,
+  type AcademySectionId,
+} from '../../utils/portalRoutes';
+
+const SECTION_ICONS: Record<AcademySectionId, typeof Compass> = {
+  choose: Compass,
+  learn: BookOpen,
+  practice: Wrench,
+  test: Award,
+  progress: Trophy,
+  mentor: Sparkles,
+};
+
+interface AcademyHubProps {
+  language: Language;
+  onOpenHash: (hash: string) => void;
+}
+
+/**
+ * The academy's own home page.
+ *
+ * It answers one question — "where do I stand and what is my next step?" — and
+ * then sends the learner down one of two branches: the eight disciplines, or the
+ * six sections of the journey. It never shows commercial content.
+ */
+export const AcademyHub: React.FC<AcademyHubProps> = ({ language, onOpenHash }) => {
+  const isAr = language === 'ar';
+  const ArrowIcon = isAr ? ArrowLeft : ArrowRight;
+  const { activeUser, activeSummary } = useUserCourseProgress();
+  const next = activeSummary.nextRecommendedModule;
+  const byDiscipline = new Map(
+    activeSummary.byDiscipline.map(stat => [stat.disciplineId, stat])
+  );
+
+  return (
+    <div data-testid="academy-hub" className="space-y-6">
+      <AcademyPageHeader
+        eyebrow={isAr ? 'رئيسية الأكاديمية' : 'Academy home'}
+        title={
+          isAr
+            ? 'مسار تعلّم مستقل: تخصص ← وحدات ← معامل ← اختبارات ← إنجاز'
+            : 'An independent learning path: discipline → modules → labs → tests → progress'
+        }
+        description={
+          isAr
+            ? 'كل شيء هنا يخص المتدرّب فقط. لا يوجد طلب عرض سعر ولا خدمات شركة في هذا المسار، ويمكنك الرجوع إلى بوابة الشركة من الأعلى في أي وقت.'
+            : 'Everything here belongs to the learner. No quotes and no commercial services on this path; the company portal is one click away at the top.'
+        }
+        actions={
+          <button
+            type="button"
+            onClick={() => onOpenHash('#academy/disciplines')}
+            className="inline-flex items-center gap-2 rounded-lg bg-amber-500 hover:bg-amber-400 px-3.5 py-2 text-xs font-black text-slate-950 transition cursor-pointer whitespace-nowrap"
+          >
+            <Layers className="w-4 h-4" aria-hidden="true" />
+            <span>{isAr ? 'اختر تخصصك (8 تخصصات)' : 'Choose your discipline (8)'}</span>
+          </button>
+        }
+      />
+
+      {/* Where I stand + my next step */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        <div className="lg:col-span-2 rounded-2xl border border-[#29315b] bg-[#10132b] p-5 space-y-3">
+          <div className="flex items-center justify-between gap-3 text-xs text-slate-400">
+            <span className="font-bold text-slate-200">
+              {isAr ? `تقدّمك يا ${activeUser.nameAr}` : `Your progress, ${activeUser.nameEn}`}
+            </span>
+            <span className="font-mono tabular-nums text-amber-300">
+              {activeSummary.completedCount}/{activeSummary.totalCount} · {activeSummary.percent}%
+            </span>
+          </div>
+          <div
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={activeSummary.percent}
+            aria-label={isAr ? 'نسبة إنجاز وحدات الأكاديمية' : 'Academy modules completion'}
+            className="h-2 w-full rounded-full bg-[#1b2148] overflow-hidden"
+          >
+            <div
+              className="h-full rounded-full bg-amber-400 transition-all"
+              style={{ width: `${activeSummary.percent}%` }}
+            />
+          </div>
+
+          {next ? (
+            <div className="rounded-xl border border-amber-500/30 bg-[#15122b] p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="space-y-0.5">
+                <div className="text-[10px] font-mono uppercase tracking-wider text-amber-400">
+                  {isAr ? 'خطوتك التالية' : 'Your next step'}
+                </div>
+                <div className="text-sm font-bold text-white">
+                  {isAr ? next.titleAr : next.titleEn}
+                </div>
+                <div className="text-[11px] text-slate-400">
+                  {(isAr ? next.disciplineTitleAr : next.disciplineTitleEn)} ·{' '}
+                  {(isAr ? next.levelNameAr : next.levelNameEn)} · {next.duration}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => onOpenHash(disciplineHash(next.disciplineId))}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-2 text-xs font-bold text-cyan-200 transition cursor-pointer whitespace-nowrap"
+              >
+                <span>{isAr ? 'افتح التخصص' : 'Open discipline'}</span>
+                <ArrowIcon className="w-3.5 h-3.5" aria-hidden="true" />
+              </button>
+            </div>
+          ) : (
+            <p className="text-xs text-emerald-300">
+              {isAr
+                ? 'أنهيت كل الوحدات المتاحة. راجع مكتبة الأكواد أو أعد الاختبارات لتثبيت المعرفة.'
+                : 'You finished every available module. Revisit the standards library or retake the quizzes.'}
+            </p>
+          )}
+        </div>
+
+        <div className="rounded-2xl border border-[#29315b] bg-[#10132b] p-5 space-y-2">
+          <div className="text-[10px] font-mono uppercase tracking-wider text-amber-400">
+            {isAr ? 'حدود الإفادة' : 'Statement limits'}
+          </div>
+          <div className="flex items-start gap-2 text-xs text-slate-300 leading-relaxed">
+            <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" aria-hidden="true" />
+            <p>
+              {isAr
+                ? 'ما يصدر من الأكاديمية هو «إفادة تعلّم ذاتي غير معتمدة». الشهادات المهنية تصدر من جهات الاعتماد فقط (ASNT / ISO 9712).'
+                : 'The academy issues a non-accredited self-study statement. Professional certificates are issued by the certification bodies only (ASNT / ISO 9712).'}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* The eight disciplines */}
+      <div className="rounded-2xl border border-[#29315b] bg-[#10132b] p-5 space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-sm font-bold text-white">
+            {isAr ? 'التخصصات الهندسية الثمانية' : 'The eight engineering disciplines'}
+          </h3>
+          <button
+            type="button"
+            onClick={() => onOpenHash('#academy/disciplines')}
+            className="text-[11px] font-bold text-cyan-300 hover:text-cyan-200 underline underline-offset-4 cursor-pointer"
+          >
+            {isAr ? 'كل التخصصات' : 'All disciplines'}
+          </button>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+          {ENGINEERING_DISCIPLINES.map(discipline => {
+            const stat = byDiscipline.get(discipline.id);
+            return (
+              <button
+                key={discipline.id}
+                type="button"
+                onClick={() => onOpenHash(disciplineHash(discipline.id))}
+                className="rounded-xl border border-[#252d58] bg-[#0b0d1e] hover:border-amber-400/50 p-3 text-start transition cursor-pointer"
+              >
+                <div className="flex items-center justify-between gap-2 text-[10px] font-mono text-amber-300 mb-1">
+                  <span className="truncate">{discipline.keyTechniques.slice(0, 3).join(' / ')}</span>
+                  <span className="tabular-nums text-slate-400">
+                    {stat ? `${stat.completed}/${stat.total}` : `0/${discipline.levels.reduce((sum, level) => sum + level.modules.length, 0)}`}
+                  </span>
+                </div>
+                <div className="text-xs font-bold text-white line-clamp-2">
+                  {isAr ? discipline.titleAr : discipline.titleEn}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* The six journey sections */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {ACADEMY_SECTIONS.map((section, index) => {
+          const Icon = SECTION_ICONS[section];
+          return (
+            <button
+              key={section}
+              type="button"
+              onClick={() => onOpenHash(`#academy/${section}`)}
+              className="rounded-2xl border border-[#29315b] bg-[#10132b] hover:border-amber-400/50 p-4 text-start transition cursor-pointer space-y-2"
+            >
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-amber-500/15 text-amber-300 text-[11px] font-black tabular-nums">
+                  {index + 1}
+                </span>
+                <Icon className="w-4 h-4 text-amber-400" aria-hidden="true" />
+                <span className="text-sm font-bold text-white">
+                  {academySectionLabel(section, isAr ? 'ar' : 'en')}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                {isAr ? ACADEMY_SECTION_COPY[section].ar : ACADEMY_SECTION_COPY[section].en}
+              </p>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};

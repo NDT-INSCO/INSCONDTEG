@@ -9,7 +9,7 @@
  * or references the wrong base. These checks run offline.
  */
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { validateEpub } from '../src/epub/validate';
 
@@ -106,6 +106,59 @@ if (!existsSync(indexPath)) {
     );
   }
   note(`index.html: ${local.length} local asset references${baked ? `, built for ${baked}` : ''}`);
+}
+
+// 1b) every chunk the entry can reach must exist.
+//
+// index.html can name a bundle that is present while that bundle imports a
+// chunk nobody committed (a partial build, or a half-staged `docs/`). The page
+// then loads its CSS — so it is not blank white, it is the theme background —
+// and never mounts: exactly the outage this check exists to prevent.
+{
+  const assetsDir = path.join(docs, 'assets');
+  if (existsSync(assetsDir)) {
+    const chunks = readdirSync(assetsDir).filter(file => file.endsWith('.js'));
+    const reachable = new Set<string>();
+    const queue: string[] = [];
+    const html = existsSync(indexPath) ? readFileSync(indexPath, 'utf8') : '';
+    for (const match of html.matchAll(/(?:src|href)="([^"]+\.js)"/g)) {
+      const name = match[1].slice(BASE.length).split('?')[0].replace(/^assets\//, '');
+      if (chunks.includes(name)) {
+        reachable.add(name);
+        queue.push(name);
+      }
+    }
+
+    // `from "./x.js"`, `import("./x.js")`, and Vite's `["assets/x.js", …]` list.
+    const importPattern = /(?:from|import)\s*\(?\s*["']\.\/([^"']+\.js)["']|["']assets\/([^"']+\.js)["']/g;
+    const missing = new Set<string>();
+    while (queue.length) {
+      const chunk = queue.shift()!;
+      const code = readFileSync(path.join(assetsDir, chunk), 'utf8');
+      for (const match of code.matchAll(importPattern)) {
+        const target = (match[1] ?? match[2] ?? '').split('?')[0];
+        if (!target || target.startsWith('http')) continue;
+        if (!existsSync(path.join(assetsDir, target))) {
+          missing.add(`assets/${chunk} imports assets/${target}, which is not in the build`);
+          continue;
+        }
+        if (!reachable.has(target)) {
+          reachable.add(target);
+          queue.push(target);
+        }
+      }
+    }
+
+    for (const problem of missing) fail(problem);
+
+    // A second generation of hashed chunks means a partial rebuild left the old
+    // ones behind: not fatal, but it hides which files the page really uses.
+    const orphans = chunks.filter(chunk => !reachable.has(chunk));
+    if (orphans.length > 0 && orphans.length < chunks.length) {
+      note(`unreferenced chunks left in docs/assets (${orphans.length}): ${orphans.slice(0, 4).join(', ')}${orphans.length > 4 ? ' …' : ''}`);
+    }
+    note(`chunk graph: ${reachable.size} reachable of ${chunks.length} JavaScript chunk(s)`);
+  }
 }
 
 // 2) Jekyll must not process the folder

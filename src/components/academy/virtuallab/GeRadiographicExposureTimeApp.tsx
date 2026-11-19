@@ -31,6 +31,13 @@ import {
   Copy,
   Check
 } from 'lucide-react';
+import {
+  DEFAULT_UNIT_SYSTEM_CHANGE_EVENT,
+  GE_APP_UNIT_OVERRIDE_KEY,
+  normalizeUnitSystem,
+  readDefaultUnitSystem,
+  resolveCalculatorInitialUnitSystem,
+} from '../../../utils/unitSystemStore';
 import { Language } from '../../../types';
 import {
   GeSourceType,
@@ -437,15 +444,32 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
   const isAr = language === 'ar';
 
   // Measurement Unit System (Metric: mm/cm, Imperial: in/ft)
-  const [unitSystem, setUnitSystem] = useState<GeUnitSystem>(() => {
+  const [unitSystem, setUnitSystem] = useState<GeUnitSystem>(() =>
+    resolveCalculatorInitialUnitSystem(GE_APP_UNIT_OVERRIDE_KEY)
+  );
+
+  useEffect(() => {
     try {
-      const stored = localStorage.getItem('ge_app_unit_system');
-      if (stored === 'metric' || stored === 'imperial') return stored;
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(GE_APP_UNIT_OVERRIDE_KEY, unitSystem);
+      }
     } catch {
       // ignore
     }
-    return 'metric';
-  });
+  }, [unitSystem]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleGlobalDefaultChange = (event: Event) => {
+      const custom = event as CustomEvent<GeUnitSystem>;
+      const next = custom.detail ? normalizeUnitSystem(custom.detail) : readDefaultUnitSystem();
+      setUnitSystem(next);
+    };
+    window.addEventListener(DEFAULT_UNIT_SYSTEM_CHANGE_EVENT, handleGlobalDefaultChange);
+    return () => {
+      window.removeEventListener(DEFAULT_UNIT_SYSTEM_CHANGE_EVENT, handleGlobalDefaultChange);
+    };
+  }, []);
 
   // Conversion Log (records the last 5 conversions when switching Metric <-> Imperial)
   const [conversionLog, setConversionLog] = useState<GeConversionLogEntry[]>(() => {
@@ -705,11 +729,6 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
     }
 
     setUnitSystem(targetUnit);
-    try {
-      localStorage.setItem('ge_app_unit_system', targetUnit);
-    } catch {
-      // ignore
-    }
   };
 
   const handleClearConversionLog = () => {
@@ -725,11 +744,6 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
     setMaterialThicknessMm(entry.thicknessMm);
     setSfdCm(entry.sfdCm);
     setUnitSystem(entry.toUnit);
-    try {
-      localStorage.setItem('ge_app_unit_system', entry.toUnit);
-    } catch {
-      // ignore
-    }
     setShowConversionLog(false);
     setShowQuickUnitsHistory(false);
   };
@@ -838,15 +852,7 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
   };
 
   const handleResetUnitsOnly = () => {
-    let savedUnitSystem: GeUnitSystem = 'metric';
-    try {
-      const stored = localStorage.getItem('ge_app_unit_system');
-      if (stored === 'metric' || stored === 'imperial') {
-        savedUnitSystem = stored;
-      }
-    } catch {
-      // ignore
-    }
+    const savedUnitSystem = resolveCalculatorInitialUnitSystem(GE_APP_UNIT_OVERRIDE_KEY);
 
     setUnitSystem(savedUnitSystem);
     setMaterialThicknessMm(initialThicknessMm);
@@ -863,12 +869,7 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
   };
 
   const handleResetAllInputs = () => {
-    setUnitSystem('metric');
-    try {
-      localStorage.removeItem('ge_app_unit_system');
-    } catch {
-      // ignore
-    }
+    setUnitSystem(readDefaultUnitSystem());
     setShowConversionLog(false);
     setShowQuickUnitsHistory(false);
 

@@ -26,7 +26,7 @@
     "test:epub": "tsx --test tests/epub.test.tsx",
     "test:ai": "tsx --test tests/aiContract.test.tsx && tsx --test tests/aiTransport.test.ts && tsx --test tests/aiSearch.test.tsx && tsx --test tests/aiUi.test.tsx",
     "test:nde-ed": "tsx --test tests/ndeEdProgress.test.tsx && tsx --test tests/ndeEdData.test.tsx && tsx --test tests/ndeEdCatalog.test.tsx",
-    "test": "npm run test:company && npm run test:rfq && npm run test:admin && npm run test:fleet && npm run test:a11y && npm run test:ux && npm run test:portals && npm run test:ui && npm run test:academy && npm run test:book && npm run test:leaderboard && npm run test:roadmap && npm run test:cert && npm run test:edb && npm run test:epub && npm run test:ai && npm run test:nde-ed && npm run test:practical && npm run test:review && npm run test:paths && npm run test:routing && npm run test:smoke",
+    "test": "npm run test:company && npm run test:rfq && npm run test:admin && npm run test:fleet && npm run test:a11y && npm run test:ux && npm run test:portals && npm run test:ui && npm run test:academy && npm run test:book && npm run test:leaderboard && npm run test:roadmap && npm run test:cert && npm run test:edb && npm run test:epub && npm run test:ai && npm run test:nde-ed && npm run test:practical && npm run test:review && npm run test:paths && npm run test:routing && npm run test:smoke && npm run test:simlabs",
     "verify": "npm run lint && npm run test && npm run edb:check && npm run edb:verify:published && npm run epub:check && npm run links:check && npm run build && npm run site:check",
     "edb:build": "tsx scripts/build-edb.ts",
     "edb:check": "tsx scripts/build-edb.ts --check",
@@ -42,6 +42,8 @@
     "epub:check": "tsx scripts/build-epub.ts --check",
     "site:check": "tsx scripts/check-published-site.ts",
     "test:portals": "tsx --test tests/portalIsolation.test.tsx",
+    "docs:check": "tsx scripts/compare-docs-build.ts",
+    "test:simlabs": "tsx --test tests/simLabsRtLayout.test.tsx",
     "build:vercel": "SITE_BASE=/ VITE_ADMIN_PORTAL_URL= VITE_RFQ_ENDPOINT= vite build --outDir dist"
   },
   "dependencies": {
@@ -50,6 +52,7 @@
     "@simplewebauthn/browser": "^14.0.0",
     "@simplewebauthn/server": "^14.1.0",
     "@tailwindcss/vite": "^4.3.3",
+    "@types/qrcode": "^1.5.6",
     "@types/three": "^0.186.0",
     "@vitejs/plugin-react": "^6.1.1",
     "canvas-confetti": "^1.9.4",
@@ -60,6 +63,7 @@
     "jspdf": "^4.2.1",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
+    "qrcode": "^1.5.4",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
     "three": "^0.186.1",
@@ -67,6 +71,7 @@
     "ws": "^8.22.0"
   },
   "devDependencies": {
+    "@firebase/eslint-plugin-security-rules": "^0.0.2",
     "@testing-library/react": "^16.3.3",
     "@types/canvas-confetti": "^1.9.0",
     "@types/d3": "^7.4.3",
@@ -77,6 +82,7 @@
     "@types/react-dom": "^19.3.0",
     "@types/ws": "^8.18.2",
     "autoprefixer": "^10.4.21",
+    "eslint": "^10.15.0",
     "fast-xml-parser": "^5.11.2",
     "jsdom": "^30.1.3",
     "tailwindcss": "^4.3.3",

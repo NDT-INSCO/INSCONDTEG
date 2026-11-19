@@ -28,6 +28,22 @@ import {
   buildEstimateRfqSummary,
 } from '../../utils/projectCostEstimator';
 import { RFQ_QUICK_ACTION_EVENT, RfqQuickActionDetail } from './CompanyQuickActionsSection';
+import { useDefaultUnitSystem } from '../../utils/unitSystemStore';
+
+const IMPERIAL_THICKNESS_LABELS: Record<WallThicknessTier, { ar: string; en: string }> = {
+  small_thin: {
+    ar: 'أقطار صغيرة (≤ 6" · سماكة ≤ 0.47 بوصة)',
+    en: 'Small-Bore (≤ 6" · Wall ≤ 0.47")',
+  },
+  medium_std: {
+    ar: 'أقطار قياسية (8"–18" · سماكة 0.47–1.10 بوصة)',
+    en: 'Standard Process (8"–18" · 0.47"–1.10")',
+  },
+  heavy_thick: {
+    ar: 'سماكات ثقيلة ومراجل (≥ 20" · سماكة > 1.10 بوصة)',
+    en: 'Heavy-Wall / Steam Headers (≥ 20" · > 1.10")',
+  },
+};
 
 export interface CompanyProjectCostEstimatorProps {
   language: Language;
@@ -40,6 +56,7 @@ export const CompanyProjectCostEstimator: React.FC<CompanyProjectCostEstimatorPr
 }) => {
   const isAr = language === 'ar';
   const ArrowIcon = isAr ? ArrowLeft : ArrowRight;
+  const { defaultUnitSystem } = useDefaultUnitSystem();
 
   const [selectedServices, setSelectedServices] = useState<EstimatorServiceId[]>(['pwht', 'ut']);
   const [jointCount, setJointCount] = useState<number>(40);
@@ -128,6 +145,7 @@ export const CompanyProjectCostEstimator: React.FC<CompanyProjectCostEstimatorPr
     <section
       id="cost-estimator"
       aria-labelledby="cost-estimator-heading"
+      data-unit-mode={defaultUnitSystem}
       className="py-16 border-b border-slate-800 bg-slate-900/50"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -333,7 +351,9 @@ export const CompanyProjectCostEstimator: React.FC<CompanyProjectCostEstimatorPr
                   >
                     {THICKNESS_TIER_OPTIONS.map((opt) => (
                       <option key={opt.id} value={opt.id}>
-                        {opt.label[language]}
+                        {defaultUnitSystem === 'imperial'
+                          ? IMPERIAL_THICKNESS_LABELS[opt.id][language]
+                          : opt.label[language]}
                       </option>
                     ))}
                   </select>

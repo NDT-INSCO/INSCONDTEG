@@ -1,0 +1,523 @@
+{
+  "entities": {
+    "ClientAccount": {
+      "title": "ClientAccount",
+      "description": "Registered client portal user profile with organization metadata and assigned company code",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth UID of the account owner",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "fullName": {
+          "type": "string",
+          "description": "Full name of the registered client representative",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Verified account email address",
+          "minLength": 3,
+          "maxLength": 160
+        },
+        "phone": {
+          "type": "string",
+          "description": "Direct contact telephone or WhatsApp number",
+          "minLength": 5,
+          "maxLength": 40
+        },
+        "organizationName": {
+          "type": "string",
+          "description": "Client company or entity name",
+          "minLength": 2,
+          "maxLength": 160
+        },
+        "requestedCompanyCode": {
+          "type": "string",
+          "description": "Optional existing INSCO company code claimed during registration",
+          "maxLength": 32,
+          "pattern": "^[A-Z0-9\\-]*$"
+        },
+        "assignedCompanyId": {
+          "type": "string",
+          "description": "Verified Firestore company document ID assigned by INSCO operations",
+          "maxLength": 128
+        },
+        "assignedCompanyCode": {
+          "type": "string",
+          "description": "Verified INSCO company code linked to this client account",
+          "maxLength": 32
+        },
+        "role": {
+          "type": "string",
+          "enum": ["client", "engineer", "admin"],
+          "description": "Portal role assigned to the user"
+        },
+        "approvalStatus": {
+          "type": "string",
+          "enum": ["pending", "approved", "suspended"],
+          "description": "Account verification status managed by INSCO operations"
+        },
+        "sector": {
+          "type": "string",
+          "description": "Industrial sector (Oil & Gas, Power, Petrochemical, Contracting)",
+          "maxLength": 80
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of registration"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last profile update"
+        }
+      },
+      "required": [
+        "uid",
+        "fullName",
+        "email",
+        "phone",
+        "organizationName",
+        "role",
+        "approvalStatus",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ClientRequest": {
+      "title": "ClientRequest",
+      "description": "New or active client inspection/testing service request submitted through the Client Portal",
+      "type": "object",
+      "properties": {
+        "requestCode": {
+          "type": "string",
+          "description": "Tracking reference code (e.g. REQ-2026-001)",
+          "minLength": 4,
+          "maxLength": 40,
+          "pattern": "^[A-Z0-9\\-]+$"
+        },
+        "submittedByUid": {
+          "type": "string",
+          "description": "Firebase Auth UID of submitting user",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "submittedByEmail": {
+          "type": "string",
+          "format": "email",
+          "description": "Verified email of the requester",
+          "minLength": 3,
+          "maxLength": 160
+        },
+        "companyName": {
+          "type": "string",
+          "description": "Client company name",
+          "minLength": 2,
+          "maxLength": 160
+        },
+        "companyCode": {
+          "type": "string",
+          "description": "Optional linked INSCO company code",
+          "maxLength": 32,
+          "pattern": "^[A-Z0-9\\-]*$"
+        },
+        "contactName": {
+          "type": "string",
+          "description": "Contact engineer or procurement officer",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "phone": {
+          "type": "string",
+          "description": "Contact phone number",
+          "minLength": 5,
+          "maxLength": 40
+        },
+        "serviceMethods": {
+          "type": "array",
+          "description": "Requested NDT or PWHT test methods (max 12)"
+        },
+        "projectLocation": {
+          "type": "string",
+          "description": "Project site or plant location",
+          "minLength": 2,
+          "maxLength": 180
+        },
+        "urgency": {
+          "type": "string",
+          "enum": ["standard", "priority", "emergency_24h"],
+          "description": "Mobilization urgency tier"
+        },
+        "scopeSummary": {
+          "type": "string",
+          "description": "Technical scope, weld count, thickness, or standards requested",
+          "minLength": 5,
+          "maxLength": 2000
+        },
+        "status": {
+          "type": "string",
+          "enum": ["new", "under_review", "approved", "in_progress", "completed", "rejected"],
+          "description": "Request workflow state"
+        },
+        "adminNotes": {
+          "type": "string",
+          "description": "Operations review notes and assigned engineer/crew notes",
+          "maxLength": 1000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when request was created"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last workflow update"
+        }
+      },
+      "required": [
+        "requestCode",
+        "submittedByUid",
+        "submittedByEmail",
+        "companyName",
+        "contactName",
+        "phone",
+        "serviceMethods",
+        "projectLocation",
+        "urgency",
+        "scopeSummary",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "CompanyRecord": {
+      "title": "CompanyRecord",
+      "description": "Client company archive & active testing file directory keyed by unique Company Code",
+      "type": "object",
+      "properties": {
+        "companyCode": {
+          "type": "string",
+          "description": "Unique INSCO client company code (e.g. INS-CO-0101)",
+          "minLength": 3,
+          "maxLength": 32,
+          "pattern": "^[A-Z0-9\\-]+$"
+        },
+        "nameAr": {
+          "type": "string",
+          "description": "Company Arabic display name",
+          "minLength": 2,
+          "maxLength": 180
+        },
+        "nameEn": {
+          "type": "string",
+          "description": "Company English display name",
+          "minLength": 2,
+          "maxLength": 180
+        },
+        "archiveCategory": {
+          "type": "string",
+          "enum": ["active_testing", "legacy_archive", "new_onboarding"],
+          "description": "Whether company has active testing dossier or is legacy/new archive"
+        },
+        "hasActiveTestingDossier": {
+          "type": "boolean",
+          "description": "True when INSCO is currently executing testing & issuing reports for this company"
+        },
+        "sector": {
+          "type": "string",
+          "description": "Industrial sector",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "commercialRegNo": {
+          "type": "string",
+          "description": "Commercial registration or tax ID reference",
+          "maxLength": 64
+        },
+        "contactPerson": {
+          "type": "string",
+          "description": "Primary client QA/QC or project contact",
+          "maxLength": 120
+        },
+        "contactEmail": {
+          "type": "string",
+          "description": "Primary client contact email",
+          "maxLength": 160
+        },
+        "contactPhone": {
+          "type": "string",
+          "description": "Primary client contact phone",
+          "maxLength": 40
+        },
+        "projectLocation": {
+          "type": "string",
+          "description": "Primary plant, refinery, or pipeline location",
+          "maxLength": 180
+        },
+        "activeScope": {
+          "type": "string",
+          "description": "Summary of active or archived testing contracts and standards",
+          "maxLength": 1500
+        },
+        "assignedClientUid": {
+          "type": "string",
+          "description": "UID of verified client representative granted portal access to this company file, or empty string",
+          "maxLength": 128
+        },
+        "legacySinceYear": {
+          "type": "string",
+          "description": "Year relationship or legacy archive began",
+          "maxLength": 16
+        },
+        "reportsCount": {
+          "type": "number",
+          "description": "Cached count of reports in the company dossier"
+        },
+        "createdByUid": {
+          "type": "string",
+          "description": "UID of admin who registered the company",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server last-modified timestamp"
+        }
+      },
+      "required": [
+        "companyCode",
+        "nameAr",
+        "nameEn",
+        "archiveCategory",
+        "hasActiveTestingDossier",
+        "sector",
+        "assignedClientUid",
+        "reportsCount",
+        "createdByUid",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "CompanyCodeReservation": {
+      "title": "CompanyCodeReservation",
+      "description": "Unique index reservation guaranteeing no two companies share the same companyCode",
+      "type": "object",
+      "properties": {
+        "companyCode": {
+          "type": "string",
+          "description": "Reserved uppercase company code",
+          "minLength": 3,
+          "maxLength": 32,
+          "pattern": "^[A-Z0-9\\-]+$"
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Linked company document ID",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "createdByUid": {
+          "type": "string",
+          "description": "UID of creator",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp"
+        }
+      },
+      "required": ["companyCode", "companyId", "createdByUid", "createdAt"]
+    },
+    "CompanyInspectionReport": {
+      "title": "CompanyInspectionReport",
+      "description": "Archived or newly generated NDT/PWHT inspection report stored inside a company's dedicated dossier",
+      "type": "object",
+      "properties": {
+        "companyId": {
+          "type": "string",
+          "description": "Parent company document ID",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "companyCode": {
+          "type": "string",
+          "description": "Parent company unique code",
+          "minLength": 3,
+          "maxLength": 32,
+          "pattern": "^[A-Z0-9\\-]+$"
+        },
+        "assignedClientUid": {
+          "type": "string",
+          "description": "Denormalized assigned client UID from parent company for secure list queries",
+          "maxLength": 128
+        },
+        "reportNumber": {
+          "type": "string",
+          "description": "Unique report serial number (e.g. INS-RT-2026-0041)",
+          "minLength": 3,
+          "maxLength": 64,
+          "pattern": "^[A-Z0-9\\-/]+$"
+        },
+        "templateKey": {
+          "type": "string",
+          "description": "Report template identifier allowing drop-in custom company report designs",
+          "minLength": 2,
+          "maxLength": 64
+        },
+        "method": {
+          "type": "string",
+          "enum": ["RT", "UT", "PAUT", "MT", "PT", "VT", "PMI", "PWHT", "HYDRO", "CUSTOM"],
+          "description": "Inspection or heat-treatment discipline"
+        },
+        "isLegacyArchive": {
+          "type": "boolean",
+          "description": "True if imported/archived historical report; false if newly generated via report data-entry"
+        },
+        "projectName": {
+          "type": "string",
+          "description": "Project or shutdown work order name",
+          "minLength": 2,
+          "maxLength": 180
+        },
+        "clientPoNumber": {
+          "type": "string",
+          "description": "Purchase order or contract reference",
+          "maxLength": 80
+        },
+        "componentOrJointId": {
+          "type": "string",
+          "description": "Line number, vessel tag, or weld joint identifier",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "materialSpec": {
+          "type": "string",
+          "description": "Base material & P-No specification (e.g. SA-106 Gr.B)",
+          "maxLength": 100
+        },
+        "thicknessMm": {
+          "type": "string",
+          "description": "Nominal wall/plate thickness in mm",
+          "maxLength": 40
+        },
+        "codeStandard": {
+          "type": "string",
+          "description": "Governing code & acceptance standard (e.g. ASME Sec VIII Div.1)",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "inspectorName": {
+          "type": "string",
+          "description": "Certified NDT Level II/III inspector or PWHT engineer",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "inspectionDate": {
+          "type": "string",
+          "description": "ISO date YYYY-MM-DD of inspection",
+          "minLength": 8,
+          "maxLength": 20
+        },
+        "verdict": {
+          "type": "string",
+          "enum": ["ACCEPT", "REJECT", "HOLD", "REVIEW"],
+          "description": "Final code evaluation outcome"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["draft", "issued", "archived"],
+          "description": "Report lifecycle status"
+        },
+        "technicalData": {
+          "type": "object",
+          "description": "Structured template-specific technical fields and custom fields"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Observations, flaw remarks, or archive notes",
+          "maxLength": 2000
+        },
+        "createdByUid": {
+          "type": "string",
+          "description": "Firebase Auth UID of report author",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server last-updated timestamp"
+        }
+      },
+      "required": [
+        "companyId",
+        "companyCode",
+        "assignedClientUid",
+        "reportNumber",
+        "templateKey",
+        "method",
+        "isLegacyArchive",
+        "projectName",
+        "componentOrJointId",
+        "codeStandard",
+        "inspectorName",
+        "inspectionDate",
+        "verdict",
+        "status",
+        "technicalData",
+        "createdByUid",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/client_accounts/{userId}": {
+      "schema": { "$ref": "#/entities/ClientAccount" },
+      "description": "Registered Client Portal accounts and organization code links (PII isolated to owner or admin)"
+    },
+    "/client_requests/{requestId}": {
+      "schema": { "$ref": "#/entities/ClientRequest" },
+      "description": "Incoming service & testing requests from clients"
+    },
+    "/companies/{companyId}": {
+      "schema": { "$ref": "#/entities/CompanyRecord" },
+      "description": "Master directory of legacy archived and active client companies, indexed by unique companyCode"
+    },
+    "/company_codes/{companyCode}": {
+      "schema": { "$ref": "#/entities/CompanyCodeReservation" },
+      "description": "Unique code reservation index preventing duplicate Company Codes"
+    },
+    "/companies/{companyId}/reports/{reportId}": {
+      "schema": { "$ref": "#/entities/CompanyInspectionReport" },
+      "description": "Dedicated company file subcollection holding archived reports and newly entered inspection reports"
+    }
+  }
+}

@@ -1,18 +1,19 @@
 import React from 'react';
-import { Award, Building2, FileText, GraduationCap, Mail, Phone, ShieldCheck } from 'lucide-react';
+import { Award, BriefcaseBusiness, Building2, FileText, GraduationCap, Mail, Phone, ShieldCheck } from 'lucide-react';
 import type { Language } from '../../types';
-import { INSCO_COMPANY_DATA } from '../../data/inscoCompanyData';
 import { AdminKey } from '../admin/AdminKey';
-
-export const COMPANY_FOOTER_ID = 'company-footer';
+import { INSCO_COMPANY_DATA } from '../../data/inscoCompanyData';
 
 interface CompanyFooterProps {
   language: Language;
   /** Jump to a section of the corporate profile. */
   onOpenSection: (sectionId: string) => void;
   onOpenDemo: () => void;
-  /** The one door into the other portal. */
+  /** Opens the academy portal. */
   onOpenAcademy: () => void;
+  /** Opens the client & dossier portal. */
+  onOpenClient?: () => void;
+  /** Opens the password-protected admin portal. */
   onOpenAdmin?: () => void;
 }
 
@@ -22,14 +23,14 @@ interface CompanyFooterProps {
  * It used to carry a column of academy modules, which made the buyer's page look
  * like a training catalogue and blurred the two portals. The column is now the
  * evidence a procurement or QA reviewer actually looks for (accreditations,
- * qualifications dossier, track record, brochure), and the academy appears once,
- * as a separate door.
+ * qualifications dossier, track record, brochure), and the academy/client doors appear separately.
  */
 export const CompanyFooter: React.FC<CompanyFooterProps> = ({
   language,
   onOpenSection,
   onOpenDemo,
   onOpenAcademy,
+  onOpenClient,
   onOpenAdmin,
 }) => {
   const isAr = language === 'ar';
@@ -43,15 +44,20 @@ export const CompanyFooter: React.FC<CompanyFooterProps> = ({
   ];
 
   return (
-    <footer id={COMPANY_FOOTER_ID} className="scroll-mt-28 border-t border-slate-800 bg-slate-950 pt-12 pb-20 text-xs text-slate-400 xl:pb-8">
+    <footer
+      id="company-footer"
+      className="border-t border-slate-800 bg-slate-950 pt-12 pb-8 text-xs text-slate-400"
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pb-10 border-b border-slate-800">
           {/* Column 1: Brand & registrations */}
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-white font-black text-base">
               <Building2 className="w-5 h-5 shrink-0 text-cyan-400" aria-hidden="true" />
-              <span className="min-w-0">{INSCO_COMPANY_DATA.name[language]}</span>
-              <AdminKey language={language} onOpen={onOpenAdmin} highlighted />
+              {/* The admin door sits against the legal name: one small key for
+                  the owner, invisible to a buyer comparing suppliers. */}
+              <span className="min-w-0 truncate">{INSCO_COMPANY_DATA.name[language]}</span>
+              <AdminKey language={language} onOpen={onOpenAdmin} />
             </div>
             <p className="text-xs text-slate-400 leading-relaxed">
               {INSCO_COMPANY_DATA.subSlogan[language]}
@@ -116,6 +122,18 @@ export const CompanyFooter: React.FC<CompanyFooterProps> = ({
                 {isAr ? 'مهندس أو متدرّب؟ بوابة الأكاديمية' : 'Engineer or trainee? Academy portal'}
               </span>
             </button>
+            {onOpenClient && (
+              <button
+                type="button"
+                onClick={onOpenClient}
+                className="mt-1 inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-300 hover:border-emerald-400/60 transition cursor-pointer"
+              >
+                <BriefcaseBusiness className="w-3.5 h-3.5" aria-hidden="true" />
+                <span>
+                  {isAr ? 'عميل حالي؟ بوابة العملاء والتقارير' : 'Client? Client & Dossier Portal'}
+                </span>
+              </button>
+            )}
           </div>
 
           {/* Column 4: contact & brochure */}
@@ -150,11 +168,11 @@ export const CompanyFooter: React.FC<CompanyFooterProps> = ({
           </div>
         </div>
 
-        <div className="pt-6 flex flex-col lg:flex-row items-center justify-between gap-3 text-[11px] text-slate-400">
-          <div className="text-center lg:text-start">
-            © 2026 {INSCO_COMPANY_DATA.shortName}. {isAr ? 'جميع الحقوق محفوظة.' : 'All rights reserved.'}
+        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-400">
+          <div>
+            © 2026 {INSCO_COMPANY_DATA.name[language]}. {isAr ? 'جميع الحقوق محفوظة.' : 'All rights reserved.'}
           </div>
-          <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-4">
             <span className="font-mono">{INSCO_COMPANY_DATA.docRef}</span>
             <span aria-hidden="true">·</span>
             <span>ISO 9001:2015 · ISO 14001:2015 · ISO 45001:2018</span>

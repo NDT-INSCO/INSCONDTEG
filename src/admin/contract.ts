@@ -6,6 +6,22 @@ export const ANNOUNCEMENT_API = '/api/site/announcement';
 export const NOTICE_LIMIT = 240;
 export const PASSWORD_MIN_LENGTH = 8;
 export const PASSWORD_MAX_LENGTH = 128;
+export const PASSKEY_LIMIT = 10;
+export const PASSKEY_LABEL_LIMIT = 48;
+
+/** Only metadata goes to the management UI; the verifier key stays on the server. */
+export interface PasskeySummary {
+  id: string;
+  label: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+}
+
+export interface PasskeySettings {
+  enabled: boolean;
+  canManage: boolean;
+  items: PasskeySummary[];
+}
 
 /** Prompts and API share the limits, without altering the characters entered. */
 export function isAdminPassword(value: unknown): value is string {

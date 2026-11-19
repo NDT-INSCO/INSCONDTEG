@@ -9,3 +9,5 @@ coverage/
 .admin-data/
 admin.sqlite*
 release/
+
+.vercel/

@@ -134,6 +134,40 @@ test('login verifies against the API, loads the real summary and can publish and
   assert.equal(session, false);
 });
 
+test('a compatible device can choose the Arabic passkey button and still use the password after a passkey error', async () => {
+  const secure = Object.getOwnPropertyDescriptor(dom.window, 'isSecureContext');
+  const credential = Object.getOwnPropertyDescriptor(globalThis, 'PublicKeyCredential');
+  Object.defineProperty(dom.window, 'isSecureContext', { value: true, configurable: true });
+  Object.defineProperty(globalThis, 'PublicKeyCredential', { value: class {}, configurable: true });
+  try {
+    dom.window.history.replaceState(null, '', '/INSCONDTEG/#admin');
+    globalThis.fetch = async (input, init) => {
+      switch (input) {
+        case '/api/admin/dashboard': return signedOut();
+        case '/api/admin/passkeys/status': return adminJson({ available: true });
+        case '/api/admin/passkeys/authenticate/options':
+          assert.equal(init?.method, 'POST');
+          assert.equal(init?.credentials, 'same-origin');
+          return adminJson({ error: 'no_passkeys' }, 409);
+        default: throw new Error(`Unexpected API: ${input}`);
+      }
+    };
+    const ui = render(<App />);
+    const button = await ui.findByRole('button', { name: 'الدخول بالبصمة أو Face ID' });
+    const password = ui.getByLabelText('كلمة المرور', { exact: true }) as HTMLInputElement;
+    fireEvent.click(button);
+    await ui.findByText('لا يوجد مفتاح مرور مسجّل. ادخل بكلمة المرور لإضافة مفتاح.');
+    assert.equal(password.type, 'password');
+    assert.equal(password.readOnly, false);
+    assert.equal((ui.getByRole('button', { name: 'تسجيل الدخول', exact: true }) as HTMLButtonElement).disabled, false);
+  } finally {
+    if (secure) Object.defineProperty(dom.window, 'isSecureContext', secure);
+    else Reflect.deleteProperty(dom.window, 'isSecureContext');
+    if (credential) Object.defineProperty(globalThis, 'PublicKeyCredential', credential);
+    else Reflect.deleteProperty(globalThis, 'PublicKeyCredential');
+  }
+});
+
 test('a Pages footer only accepts an HTTPS admin host and gives it the correct hash', () => {
   assert.equal(externalAdminLink('https://admin.example/site/'), 'https://admin.example/site/#admin');
   assert.equal(externalAdminLink('https://user:password@admin.example/'), null);

@@ -1,10 +1,13 @@
-import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
+import { createHmac, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 import express, { type ErrorRequestHandler, type Request, type RequestHandler, type Response } from 'express';
-import { isAdminPassword, isQuoteStatus, NOTICE_LIMIT } from '../../src/admin/contract';
-import type { AnnouncementInput, DashboardData } from '../../src/admin/contract';
-import type { AdminStore } from './store';
+import { isAdminPassword, isQuoteStatus, NOTICE_LIMIT } from '../../src/admin/contract.js';
+import type { AnnouncementInput, DashboardData } from '../../src/admin/contract.js';
+import { clientAddress, fail, readJsonBody, readTokenCookie, runAsync } from './http.js';
+import { createPasskeyRouter } from './passkeys.js';
+import { PASSKEY_PASSWORD_WINDOW, SESSION_TTL } from './state.js';
+import type { WebAuthnCredential } from '@simplewebauthn/server';
+import type { AdminStore } from './store.js';
 
-const SESSION_TTL = 4 * 60 * 60 * 1000;
 const ATTEMPT_WINDOW = 15 * 60 * 1000;
 const COOKIE = 'insco_admin';
 const COOKIE_PATH = '/api/admin';
@@ -46,19 +49,12 @@ function mutationOrigin(req: Request, configured: string | null): string | null 
     ? origin : null;
 }
 
-function sessionToken(req: Request): string | undefined {
-  const value = req.get('cookie')?.split(';').map(pair => pair.trim()).find(pair => pair.startsWith(`${COOKIE}=`))?.slice(COOKIE.length + 1);
-  return value && /^[a-f0-9]{64}$/.test(value) ? value : undefined;
-}
+function sessionToken(req: Request) { return readTokenCookie(req, COOKIE); }
 
 const noStore: RequestHandler = (_req, res, next) => {
   res.set({ 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'X-Robots-Tag': 'noindex' });
   next();
 };
-
-function fail(res: Response, status: number, error: string) {
-  res.status(status).json({ error });
-}
 
 function announcementInput(body: unknown): AnnouncementInput | null {
   if (!body || typeof body !== 'object') return null;
@@ -75,9 +71,10 @@ interface AdminOptions {
   store: AdminStore | null;
   services: DashboardData['services'];
   now?: () => number;
+  stateKey?: Uint8Array;
 }
 
-export function createAdminRouter({ config, store, services, now = Date.now }: AdminOptions) {
+export function createAdminRouter({ config, store, services, now = Date.now, stateKey = randomBytes(32) }: AdminOptions) {
   const router = express.Router();
   router.use(noStore);
 
@@ -88,10 +85,25 @@ export function createAdminRouter({ config, store, services, now = Date.now }: A
 
   const salt = randomBytes(16);
   const hash = scryptSync(config.secret, salt, 32);
-  const sessions = new Map<string, number>();
-  const attempts = new Map<string, number>();
-  let totalAttempts = 0;
-  let windowEnds = 0;
+  const scope = createHmac('sha256', stateKey).update(JSON.stringify([config.origin, config.secret, config.legacyPin])).digest('hex');
+  const state = store.auth(scope, stateKey, config.origin);
+
+  async function issueSession(req: Request, res: Response, passkey?: WebAuthnCredential) {
+    const token = await state.issueSession(sessionToken(req), now(), passkey);
+    if (!token) return fail(res, 401, 'passkey_verification_failed');
+    res.cookie(COOKIE, token, { httpOnly: true, sameSite: 'strict', secure: res.locals.cookieSecure, path: COOKIE_PATH, maxAge: SESSION_TTL });
+    res.status(204).end();
+  }
+
+  const requireSession = runAsync(async (req, res, next) => {
+    const token = sessionToken(req);
+    const session = await state.session(token, now());
+    if (!session || !token) return fail(res, 401, 'signed_out');
+    res.locals.sessionGrant = state.grant(token);
+    res.locals.sessionExpiresAt = session.expiresAt;
+    res.locals.passwordAt = session.passwordAt;
+    next();
+  });
 
   router.use((req, res, next) => {
     if (['GET', 'HEAD'].includes(req.method)) return next();
@@ -101,104 +113,76 @@ export function createAdminRouter({ config, store, services, now = Date.now }: A
     next();
   });
 
-  const readJson: RequestHandler[] = [
-    (req, res, next) => {
-      if (!req.is('application/json')) return fail(res, 415, 'invalid_request');
-      next();
-    },
-    express.json({ limit: '4kb' }),
-  ];
+  const readJson = readJsonBody();
 
-  router.post('/login', readJson, (req: Request, res: Response) => {
+  router.post('/login', readJson, runAsync(async (req, res) => {
     const time = now();
-    const address = req.ip ?? req.socket.remoteAddress ?? 'unknown';
-    if (time >= windowEnds) {
-      windowEnds = time + ATTEMPT_WINDOW;
-      attempts.clear();
-      totalAttempts = 0;
-    }
-    const misses = attempts.get(address) ?? 0;
-    if (misses >= 5 || totalAttempts >= 40) {
-      res.set('Retry-After', String(Math.ceil((windowEnds - time) / 1000)));
+    const address = clientAddress(req);
+    // Reserve the budgets before password verification, including across workers.
+    const retry = await state.throttle(address, time, { purpose: 'password', window: ATTEMPT_WINDOW, perAddress: 5, total: 40 });
+    if (retry) {
+      res.set('Retry-After', String(retry));
       return fail(res, 429, 'rate_limited');
     }
-
-    // Rate limits bound the expensive verification work, even across addresses.
-    totalAttempts += 1;
     const input: unknown = req.body?.password ?? req.body?.pin;
     const secret = config.legacyPin ? parseLegacyPin(input) : isAdminPassword(input) ? input : null;
     if (!secret || !timingSafeEqual(hash, scryptSync(secret, salt, 32))) {
-      attempts.set(address, misses + 1);
       return fail(res, 401, 'invalid_credentials');
     }
-    attempts.delete(address);
-    const oldToken = sessionToken(req);
-    if (oldToken) sessions.delete(oldToken);
-    for (const [token, expires] of sessions) if (expires <= time) sessions.delete(token);
-    if (sessions.size >= 128) {
-      const oldest = sessions.keys().next().value;
-      if (oldest) sessions.delete(oldest);
-    }
-    const token = randomBytes(32).toString('hex');
-    sessions.set(token, time + SESSION_TTL);
-    res.cookie(COOKIE, token, { httpOnly: true, sameSite: 'strict', secure: res.locals.cookieSecure, path: COOKIE_PATH, maxAge: SESSION_TTL });
-    res.status(204).end();
-  });
+    await state.resetAddress(address, 'password', time);
+    await issueSession(req, res);
+  }));
 
-  router.post('/logout', (req, res) => {
-    const token = sessionToken(req);
-    if (token) sessions.delete(token);
+  router.post('/logout', runAsync(async (req, res) => {
+    await state.forgetSession(sessionToken(req));
     res.clearCookie(COOKIE, { httpOnly: true, sameSite: 'strict', secure: res.locals.cookieSecure, path: COOKIE_PATH });
     res.status(204).end();
-  });
+  }));
 
-  router.use((req, res, next) => {
-    const token = sessionToken(req);
-    const expiresAt = token ? sessions.get(token) : undefined;
-    if (!expiresAt || expiresAt <= now()) {
-      if (token) sessions.delete(token);
-      return fail(res, 401, 'signed_out');
-    }
-    res.locals.sessionExpiresAt = expiresAt;
-    next();
-  });
+  router.use('/passkeys', createPasskeyRouter({
+    origin: config.origin, store, state, now, requireSession,
+    canManage: res => typeof res.locals.passwordAt === 'number' && now() < res.locals.passwordAt + PASSKEY_PASSWORD_WINDOW,
+    signIn: issueSession,
+  }));
 
-  router.get('/dashboard', (_req, res) => {
+  router.use(requireSession);
+
+  router.get('/dashboard', runAsync(async (_req, res) => {
     const time = now();
     const data: DashboardData = {
       sessionExpiresAt: res.locals.sessionExpiresAt,
       updatedAt: new Date(time).toISOString(),
-      ...store.overview(time),
+      ...await store.overview(time),
       services,
     };
     res.json(data);
-  });
+  }));
 
-  router.get('/quotes', (req, res) => {
+  router.get('/quotes', runAsync(async (req, res) => {
     const search = typeof req.query.q === 'string' ? req.query.q.trim().slice(0, 160) : '';
     const status = isQuoteStatus(req.query.status) ? req.query.status : null;
     const page = typeof req.query.page === 'string' ? Number(req.query.page) : 1;
-    res.json(store.listQuotes(search, status, Number.isSafeInteger(page) ? page : 1));
-  });
+    res.json(await store.listQuotes(search, status, Number.isSafeInteger(page) ? page : 1));
+  }));
 
-  router.get('/quotes/:reference', (req, res) => {
-    const quote = store.quote(req.params.reference);
+  router.get('/quotes/:reference', runAsync(async (req, res) => {
+    const quote = await store.quote(req.params.reference);
     if (!quote) return fail(res, 404, 'quote_not_found');
     res.json(quote);
-  });
+  }));
 
-  router.patch('/quotes/:reference', readJson, (req: Request, res: Response) => {
+  router.patch('/quotes/:reference', readJson, runAsync(async (req, res) => {
     const status: unknown = req.body?.status;
     if (!isQuoteStatus(status)) return fail(res, 400, 'invalid_request');
-    if (!store.updateQuote(req.params.reference, status)) return fail(res, 404, 'quote_not_found');
-    res.json(store.quote(req.params.reference));
-  });
+    if (!await store.updateQuote(req.params.reference, status)) return fail(res, 404, 'quote_not_found');
+    res.json(await store.quote(req.params.reference));
+  }));
 
-  router.put('/announcement', readJson, (req: Request, res: Response) => {
+  router.put('/announcement', readJson, runAsync(async (req, res) => {
     const input = announcementInput(req.body);
     if (!input) return fail(res, 400, 'invalid_announcement');
-    res.json(store.saveAnnouncement(input, new Date(now()).toISOString()));
-  });
+    res.json(await store.saveAnnouncement(input, new Date(now()).toISOString()));
+  }));
 
   router.use((_req, res) => fail(res, 404, 'not_found'));
   const handleError: ErrorRequestHandler = (error, _req, res, next) => {
@@ -227,14 +211,14 @@ export function publicSiteCors(origin: string | null): RequestHandler {
 }
 
 export function publicAnnouncement(store: AdminStore | null): RequestHandler {
-  return (_req, res) => {
+  return runAsync(async (_req, res) => {
     res.set({ 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' });
     try {
-      const announcement = store?.announcement();
+      const announcement = await store?.announcement();
       res.json({ message: announcement?.enabled ? announcement.message : null });
     } catch {
       console.error('[admin] Could not read the published announcement.');
       fail(res, 503, 'storage_error');
     }
-  };
+  });
 }

@@ -1,11 +1,14 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Globe2, Inbox, LayoutDashboard, LogOut, Megaphone, RotateCw, ShieldCheck } from 'lucide-react';
+import { Fingerprint, Globe2, Inbox, LayoutDashboard, LogOut, Megaphone, RotateCw, ShieldCheck } from 'lucide-react';
 import { adminClient, AdminApiError } from '../../admin/client';
 import type { DashboardData, QuoteStatus } from '../../admin/contract';
+import { signInWithPasskey } from '../../admin/passkeyClient';
+import { externalAdminLink } from '../../admin/public';
 import type { Language } from '../../types';
 import { AdminAnnouncement } from './AdminAnnouncement';
 import { AdminLogin, type LoginPhase } from './AdminLogin';
 import { AdminOverview } from './AdminOverview';
+import { AdminPasskeys } from './AdminPasskeys';
 import { AdminQuotes } from './AdminQuotes';
 import { AdminBrand, AdminMessage, BackIcon, adminError, shortDate } from './AdminUi';
 
@@ -15,8 +18,11 @@ interface PortalProps { language: Language; onBack: () => void; onToggleLanguage
 export default function AdminPortal(props: PortalProps) {
   const [gate, setGate] = useState<GateState>({ kind: 'checking' });
   const [check, setCheck] = useState(0);
+  const destination = externalAdminLink();
+  const linkedPortal = destination && new URL(destination).origin !== window.location.origin ? destination : null;
 
   useEffect(() => {
+    if (linkedPortal) return; // Old #admin bookmarks on Pages never receive a password form.
     const controller = new AbortController();
     void adminClient.dashboard(controller.signal).then(initial => {
       if (!controller.signal.aborted) setGate({ kind: 'ready', initial });
@@ -26,7 +32,7 @@ export default function AdminPortal(props: PortalProps) {
       setGate({ kind: code === 'signed_out' ? 'login' : code === 'not_configured' ? 'disabled' : 'offline' });
     });
     return () => controller.abort();
-  }, [check]);
+  }, [check, linkedPortal]);
 
   const onSessionError = useCallback((error: unknown) => {
     if (!(error instanceof AdminApiError)) return false;
@@ -41,12 +47,13 @@ export default function AdminPortal(props: PortalProps) {
     return false;
   }, []);
 
-  async function login(password: string) {
+  async function login(authenticate: () => Promise<void>, signal?: AbortSignal) {
     try {
-      await adminClient.login(password);
-      const initial = await adminClient.dashboard();
-      setGate({ kind: 'ready', initial });
+      await authenticate();
+      const initial = await adminClient.dashboard(signal);
+      if (!signal?.aborted) setGate({ kind: 'ready', initial });
     } catch (error) {
+      if (signal?.aborted) return;
       if (error instanceof AdminApiError && error.code === 'signed_out') throw new AdminApiError('cookies_blocked');
       if (!onSessionError(error)) throw error;
     }
@@ -59,13 +66,17 @@ export default function AdminPortal(props: PortalProps) {
 
   return gate.kind === 'ready'
     ? <AdminWorkspace {...props} initial={gate.initial} onSessionError={onSessionError} onLogout={logout} />
-    : <AdminLogin {...props} phase={gate.kind} notice={gate.notice} onLogin={login} onRetry={() => { setGate({ kind: 'checking' }); setCheck(value => value + 1); }} />;
+    : <AdminLogin {...props} phase={gate.kind} notice={gate.notice} linkedPortal={linkedPortal}
+      onLogin={password => login(() => adminClient.login(password))}
+      onPasskeyLogin={signal => login(() => signInWithPasskey(signal), signal)}
+      onRetry={() => { setGate({ kind: 'checking' }); setCheck(value => value + 1); }} />;
 }
 
 const VIEWS = [
   { id: 'overview', icon: LayoutDashboard, ar: 'نظرة عامة', en: 'Overview' },
   { id: 'quotes', icon: Inbox, ar: 'صندوق الطلبات', en: 'Quote requests' },
   { id: 'announcement', icon: Megaphone, ar: 'إعلانات الموقع', en: 'Announcements' },
+  { id: 'passkeys', icon: Fingerprint, ar: 'مفاتيح المرور', en: 'Passkeys' },
 ] as const;
 type ViewId = (typeof VIEWS)[number]['id'];
 
@@ -167,6 +178,7 @@ function AdminWorkspace({ language, initial, onBack, onToggleLanguage, onSession
           {active === 'overview' && <AdminOverview language={language} data={data} onInbox={status => navigate('quotes', status)} onQuote={quote => navigate('quotes', '', quote)} onAnnouncement={() => navigate('announcement')} />}
           {active === 'quotes' && <AdminQuotes language={language} initialStatus={initialStatus} reference={reference} onOpen={selectQuote} onSessionError={onSessionError} onUpdate={() => void refresh()} />}
           {active === 'announcement' && <AdminAnnouncement language={language} initial={data.announcement} onSessionError={onSessionError} onSaved={announcement => setData(current => ({ ...current, announcement }))} />}
+          {active === 'passkeys' && <AdminPasskeys language={language} onSessionError={onSessionError} />}
         </div>
         <footer className="ad-workspace-footer"><span>© 2026 INSCO</span><span>{ar ? 'مركز عمليات الموقع' : 'Site operations workspace'}</span></footer>
       </main>

@@ -10,6 +10,8 @@ export function AdminKey({ language, onOpen, highlighted = false }: { language: 
   return (
     <a
       href={external ?? ADMIN_HASH}
+      target={external ? '_blank' : undefined}
+      rel={external ? 'noopener noreferrer' : undefined}
       aria-label={label}
       title={label}
       onClick={event => {

@@ -23,7 +23,14 @@ service cloud.firestore {
     }
 
     function isVerifiedUser() {
-      return isSignedIn() && request.auth.token.email_verified == true;
+      return isSignedIn() && (
+        request.auth.token.email_verified == true
+        || (
+          request.auth.token.firebase.sign_in_provider == 'phone'
+          && request.auth.token.phone_number is string
+          && request.auth.token.phone_number.size() >= 5
+        )
+      );
     }
 
     function isOwner(userId) {
@@ -38,9 +45,11 @@ service cloud.firestore {
       return code is string && code.size() >= 3 && code.size() <= 32 && code.matches('^[A-Z0-9\\-]+$');
     }
 
-    // Zero-lookup admin check (safe inside allow list queries)
+    // Zero-lookup admin check (strictly requires verified email, never phone auth)
     function isAdminEmail() {
-      return isVerifiedUser() && request.auth.token.email == 'inscondtco@gmail.com';
+      return isSignedIn()
+        && request.auth.token.email_verified == true
+        && request.auth.token.email == 'inscondtco@gmail.com';
     }
 
     // Full admin check (used on single-document reads and writes)
@@ -60,7 +69,12 @@ service cloud.firestore {
         && data.keys().hasOnly([
           'uid', 'fullName', 'email', 'phone', 'organizationName',
           'requestedCompanyCode', 'assignedCompanyId', 'assignedCompanyCode',
-          'role', 'approvalStatus', 'sector', 'createdAt', 'updatedAt'
+          'role', 'approvalStatus', 'sector',
+          'authMethod', 'jobTitle', 'nationalId', 'secondaryPhone',
+          'personalAddress', 'organizationNameEn', 'commercialRegNo',
+          'taxCardNo', 'companyPhone', 'companyEmail', 'website',
+          'companyAddress', 'cityGovernorate', 'activeScope',
+          'createdAt', 'updatedAt'
         ])
         && isValidId(data.uid)
         && data.uid == userId
@@ -72,6 +86,20 @@ service cloud.firestore {
         && (!('assignedCompanyId' in data) || (data.assignedCompanyId is string && data.assignedCompanyId.size() <= 128))
         && (!('assignedCompanyCode' in data) || (data.assignedCompanyCode is string && data.assignedCompanyCode.size() <= 32))
         && (!('sector' in data) || (data.sector is string && data.sector.size() <= 80))
+        && (!('authMethod' in data) || data.authMethod in ['google', 'email', 'phone'])
+        && (!('jobTitle' in data) || (data.jobTitle is string && data.jobTitle.size() <= 120))
+        && (!('nationalId' in data) || (data.nationalId is string && data.nationalId.size() <= 40))
+        && (!('secondaryPhone' in data) || (data.secondaryPhone is string && data.secondaryPhone.size() <= 40))
+        && (!('personalAddress' in data) || (data.personalAddress is string && data.personalAddress.size() <= 240))
+        && (!('organizationNameEn' in data) || (data.organizationNameEn is string && data.organizationNameEn.size() <= 180))
+        && (!('commercialRegNo' in data) || (data.commercialRegNo is string && data.commercialRegNo.size() <= 64))
+        && (!('taxCardNo' in data) || (data.taxCardNo is string && data.taxCardNo.size() <= 64))
+        && (!('companyPhone' in data) || (data.companyPhone is string && data.companyPhone.size() <= 40))
+        && (!('companyEmail' in data) || (data.companyEmail is string && data.companyEmail.size() <= 160))
+        && (!('website' in data) || (data.website is string && data.website.size() <= 200))
+        && (!('companyAddress' in data) || (data.companyAddress is string && data.companyAddress.size() <= 240))
+        && (!('cityGovernorate' in data) || (data.cityGovernorate is string && data.cityGovernorate.size() <= 100))
+        && (!('activeScope' in data) || (data.activeScope is string && data.activeScope.size() <= 1000))
         && data.role in ['client', 'engineer', 'admin']
         && data.approvalStatus in ['pending', 'approved', 'suspended']
         && data.createdAt is timestamp
@@ -354,14 +382,22 @@ service cloud.firestore {
         && (
           (isAdmin() && incoming().diff(existing()).affectedKeys().hasOnly([
             'approvalStatus', 'role', 'assignedCompanyId', 'assignedCompanyCode',
-            'fullName', 'phone', 'organizationName', 'sector', 'updatedAt'
+            'fullName', 'email', 'phone', 'organizationName', 'sector',
+            'jobTitle', 'nationalId', 'secondaryPhone', 'personalAddress',
+            'organizationNameEn', 'commercialRegNo', 'taxCardNo',
+            'companyPhone', 'companyEmail', 'website', 'companyAddress',
+            'cityGovernorate', 'activeScope', 'updatedAt'
           ]))
           || (
             isOwner(userId)
             && incoming().role == existing().role
             && incoming().approvalStatus == existing().approvalStatus
             && incoming().diff(existing()).affectedKeys().hasOnly([
-              'fullName', 'phone', 'organizationName', 'requestedCompanyCode', 'sector', 'updatedAt'
+              'fullName', 'email', 'phone', 'organizationName', 'requestedCompanyCode', 'sector',
+              'jobTitle', 'nationalId', 'secondaryPhone', 'personalAddress',
+              'organizationNameEn', 'commercialRegNo', 'taxCardNo',
+              'companyPhone', 'companyEmail', 'website', 'companyAddress',
+              'cityGovernorate', 'activeScope', 'updatedAt'
             ])
           )
         );

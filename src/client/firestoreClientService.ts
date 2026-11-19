@@ -1,8 +1,16 @@
 import {
+  createUserWithEmailAndPassword,
   GoogleAuthProvider,
   onAuthStateChanged,
+  RecaptchaVerifier,
+  sendEmailVerification,
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
+  signInWithPhoneNumber,
   signInWithPopup,
   signOut,
+  updateProfile,
+  type ConfirmationResult,
   type User,
 } from 'firebase/auth';
 import {
@@ -43,6 +51,8 @@ import {
   type AttendanceLog,
   type ClientAccount,
   type ClientApprovalStatus,
+  type ClientAuthMethod,
+  type ClientRegistrationDraftInput,
   type ClientRequest,
   type ClientRequestStatus,
   type CommunityWorkspaceProfile,
@@ -67,6 +77,85 @@ export function isVerifiedAdminUser(user: User | null): boolean {
   );
 }
 
+export function isVerifiedPortalUser(user: User | null): boolean {
+  if (!user) return false;
+  if (user.emailVerified) return true;
+  return Boolean(
+    user.phoneNumber &&
+      user.providerData?.some(p => p.providerId === 'phone')
+  );
+}
+
+export function detectUserAuthMethod(user: User | null): ClientAuthMethod {
+  const providers = user?.providerData?.map(p => p.providerId) ?? [];
+  if (providers.includes('phone')) return 'phone';
+  if (providers.includes('password')) return 'email';
+  return 'google';
+}
+
+export function normalizeE164Phone(raw: string): string {
+  const trimmed = raw.trim().replace(/[\s\-()]/g, '');
+  if (!trimmed) return '';
+  if (trimmed.startsWith('+')) return trimmed;
+  if (trimmed.startsWith('00')) return `+${trimmed.slice(2)}`;
+  // Egyptian mobile shorthand e.g. 010xxxxxxxx -> +2010xxxxxxxx
+  if (/^01[0125]\d{8}$/.test(trimmed)) return `+2${trimmed}`;
+  return `+${trimmed}`;
+}
+
+export function formatFirebaseAuthError(err: unknown, language: 'ar' | 'en'): string {
+  const isAr = language === 'ar';
+  const code = (err as { code?: string })?.code ?? '';
+  const message = err instanceof Error ? err.message : String(err);
+
+  if (code === 'auth/operation-not-allowed') {
+    return isAr
+      ? 'هذه الطريقة غير مفعّلة بعد في لوحة تحكم Firebase (Authentication → Sign-in method). يمكنك الدخول بحساب Google أو تفعيل Email/Phone من Firebase Console.'
+      : 'This sign-in provider is not yet enabled in Firebase Console (Authentication → Sign-in method). Enable it in Console or use Google Sign-In.';
+  }
+  if (code === 'auth/email-already-in-use') {
+    return isAr
+      ? 'هذا البريد الإلكتروني مسجل بالفعل. بدّل إلى تبويب "تسجيل الدخول" للدخول لحسابك.'
+      : 'This email is already registered. Switch to Sign In mode to log into your account.';
+  }
+  if (code === 'auth/wrong-password' || code === 'auth/invalid-credential' || code === 'auth/user-not-found') {
+    return isAr
+      ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة.'
+      : 'Invalid email or password.';
+  }
+  if (code === 'auth/weak-password') {
+    return isAr
+      ? 'كلمة المرور ضعيفة — يرجى استخدام 6 أحرف أو أرقام على الأقل.'
+      : 'Password is too weak — please use at least 6 characters.';
+  }
+  if (code === 'auth/invalid-phone-number') {
+    return isAr
+      ? 'صيغة رقم الهاتف غير صحيحة. يرجى كتابته بالصيغة الدولية مثل +2010XXXXXXXX.'
+      : 'Invalid phone number format. Use international format e.g. +2010XXXXXXXX.';
+  }
+  if (code === 'auth/invalid-verification-code' || code === 'auth/code-expired') {
+    return isAr
+      ? 'رمز التحقق SMS غير صحيح أو انتهت صلاحيته. اطلب رمزاً جديداً.'
+      : 'Invalid or expired SMS verification code. Please request a new code.';
+  }
+  if (code === 'auth/billing-not-enabled') {
+    return isAr
+      ? 'إرسال رسائل SMS الهاتفية يتطلب تفعيل خطة Blaze أو إضافة أرقام اختبار في Firebase Console → Authentication → Phone.'
+      : 'SMS phone verification requires Firebase Blaze billing or configured test phone numbers in Firebase Console.';
+  }
+  if (code === 'auth/too-many-requests') {
+    return isAr
+      ? 'تم إرسال محاولات كثيرة مؤخراً. يرجى الانتظار بضع دقائق ثم المحاولة مرة أخرى.'
+      : 'Too many attempts. Please wait a few minutes and try again.';
+  }
+  if (code === 'auth/popup-closed-by-user') {
+    return isAr
+      ? 'تم إغلاق نافذة تسجيل الدخول بحساب Google قبل الإتمام.'
+      : 'Google sign-in popup was closed before completing.';
+  }
+  return message;
+}
+
 export async function signInClientPortalWithGoogle(): Promise<User | null> {
   if (!auth) {
     throw new Error('Firebase Auth is not initialized.');
@@ -75,6 +164,74 @@ export async function signInClientPortalWithGoogle(): Promise<User | null> {
   provider.setCustomParameters({ prompt: 'select_account' });
   const cred = await signInWithPopup(auth, provider);
   return cred.user;
+}
+
+export async function signUpClientPortalWithEmail(
+  email: string,
+  password: string,
+  displayName?: string
+): Promise<User> {
+  if (!auth) {
+    throw new Error('Firebase Auth is not initialized.');
+  }
+  const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
+  if (displayName?.trim()) {
+    await updateProfile(cred.user, { displayName: displayName.trim().slice(0, 120) });
+  }
+  try {
+    await sendEmailVerification(cred.user);
+  } catch (verifyErr) {
+    console.warn('Could not dispatch email verification immediately:', verifyErr);
+  }
+  return cred.user;
+}
+
+export async function signInClientPortalWithEmail(
+  email: string,
+  password: string
+): Promise<User> {
+  if (!auth) {
+    throw new Error('Firebase Auth is not initialized.');
+  }
+  const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
+  return cred.user;
+}
+
+export async function resendClientVerificationEmail(user: User): Promise<void> {
+  await sendEmailVerification(user);
+}
+
+export async function sendClientPasswordReset(email: string): Promise<void> {
+  if (!auth) {
+    throw new Error('Firebase Auth is not initialized.');
+  }
+  await sendPasswordResetEmail(auth, email.trim());
+}
+
+export async function sendClientPhoneOtp(
+  rawPhone: string,
+  recaptchaContainerId: string
+): Promise<ConfirmationResult> {
+  if (!auth) {
+    throw new Error('Firebase Auth is not initialized.');
+  }
+  const e164Phone = normalizeE164Phone(rawPhone);
+  if (e164Phone.length < 8) {
+    throw new Error('Please enter a valid international phone number (e.g. +2010XXXXXXXX).');
+  }
+  const verifier = new RecaptchaVerifier(auth, recaptchaContainerId, {
+    size: 'invisible',
+  });
+  try {
+    return await signInWithPhoneNumber(auth, e164Phone, verifier);
+  } catch (err) {
+    try {
+      verifier.clear();
+    } catch {
+      // Ignore cleanup error
+    }
+    throw err;
+  }
 }
 
 export async function signOutClientPortal(): Promise<void> {
@@ -101,46 +258,96 @@ export function isPortalFirestoreReady(): boolean {
 /* 1. Client Registration & Accounts                                          */
 /* -------------------------------------------------------------------------- */
 
+const PENDING_REG_DRAFT_KEY_PREFIX = 'insco_pending_client_reg_v1_';
+
+export function savePendingRegistrationDraft(
+  uid: string,
+  draft: ClientRegistrationDraftInput
+): void {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(`${PENDING_REG_DRAFT_KEY_PREFIX}${uid}`, JSON.stringify(draft));
+    }
+  } catch {
+    // Ignore storage failures
+  }
+}
+
+export function loadPendingRegistrationDraft(uid: string): ClientRegistrationDraftInput | null {
+  try {
+    if (typeof localStorage === 'undefined') return null;
+    const raw = localStorage.getItem(`${PENDING_REG_DRAFT_KEY_PREFIX}${uid}`);
+    if (!raw) return null;
+    return JSON.parse(raw) as ClientRegistrationDraftInput;
+  } catch {
+    return null;
+  }
+}
+
+export function clearPendingRegistrationDraft(uid: string): void {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(`${PENDING_REG_DRAFT_KEY_PREFIX}${uid}`);
+    }
+  } catch {
+    // Ignore storage failures
+  }
+}
+
 export async function saveClientRegistration(
   user: User,
-  input: {
-    fullName: string;
-    phone: string;
-    organizationName: string;
-    requestedCompanyCode?: string;
-    sector?: string;
-  },
+  input: ClientRegistrationDraftInput,
   existingAccount: ClientAccount | null
 ): Promise<void> {
   if (!db) throw new Error('Firestore not initialized');
   const path = `client_accounts/${user.uid}`;
   const docRef = doc(db, 'client_accounts', user.uid);
   const reqCode = sanitizeUpperCode(input.requestedCompanyCode ?? '');
+  const resolvedEmail = clampStr(
+    input.personalEmail || user.email || `${user.uid.slice(0, 12)}@phone.insco.local`,
+    160
+  );
+  const resolvedPhone = clampStr(input.phone || user.phoneNumber || '', 40);
+  const authMethod = existingAccount?.authMethod ?? detectUserAuthMethod(user);
+
+  const extendedFields = {
+    fullName: clampStr(input.fullName, BLUEPRINT_LIMITS.SHORT_NAME_MAX),
+    email: resolvedEmail,
+    phone: resolvedPhone,
+    organizationName: clampStr(input.organizationName, 160),
+    requestedCompanyCode: reqCode,
+    sector: clampStr(input.sector, 80),
+    jobTitle: clampStr(input.jobTitle, 120),
+    nationalId: clampStr(input.nationalId, 40),
+    secondaryPhone: clampStr(input.secondaryPhone, 40),
+    personalAddress: clampStr(input.personalAddress, 240),
+    organizationNameEn: clampStr(input.organizationNameEn, 180),
+    commercialRegNo: clampStr(input.commercialRegNo, 64),
+    taxCardNo: clampStr(input.taxCardNo, 64),
+    companyPhone: clampStr(input.companyPhone, 40),
+    companyEmail: clampStr(input.companyEmail, 160),
+    website: clampStr(input.website, 200),
+    companyAddress: clampStr(input.companyAddress, 240),
+    cityGovernorate: clampStr(input.cityGovernorate, 100),
+    activeScope: clampStr(input.activeScope, 1000),
+  };
 
   try {
     if (!existingAccount) {
       await setDoc(docRef, {
         uid: user.uid,
-        fullName: clampStr(input.fullName, BLUEPRINT_LIMITS.SHORT_NAME_MAX),
-        email: clampStr(user.email || 'client@insco.local', 160),
-        phone: clampStr(input.phone, 40),
-        organizationName: clampStr(input.organizationName, 160),
-        requestedCompanyCode: reqCode,
+        ...extendedFields,
+        authMethod,
         assignedCompanyId: '',
         assignedCompanyCode: '',
         role: isVerifiedAdminUser(user) ? 'admin' : 'client',
         approvalStatus: isVerifiedAdminUser(user) ? 'approved' : 'pending',
-        sector: clampStr(input.sector, 80),
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
     } else {
       await updateDoc(docRef, {
-        fullName: clampStr(input.fullName, BLUEPRINT_LIMITS.SHORT_NAME_MAX),
-        phone: clampStr(input.phone, 40),
-        organizationName: clampStr(input.organizationName, 160),
-        requestedCompanyCode: reqCode,
-        sector: clampStr(input.sector, 80),
+        ...extendedFields,
         updatedAt: serverTimestamp(),
       });
     }
@@ -151,6 +358,33 @@ export async function saveClientRegistration(
       path
     );
   }
+}
+
+export async function createInitialCompanyFromRegistration(
+  user: User,
+  draft: ClientRegistrationDraftInput,
+  existingCompanies: readonly CompanyRecord[] = []
+): Promise<CompanyRecord> {
+  const code =
+    sanitizeUpperCode(draft.requestedCompanyCode ?? '') ||
+    generateNextCompanyCode(existingCompanies.map(c => c.companyCode));
+
+  return createCompanyWithUniqueCode(user.uid, {
+    companyCode: code,
+    nameAr: draft.organizationName.trim(),
+    nameEn: (draft.organizationNameEn || draft.organizationName).trim(),
+    archiveCategory: 'new_onboarding',
+    hasActiveTestingDossier: true,
+    sector: draft.sector?.trim() || 'Industrial & Contracting',
+    commercialRegNo: draft.commercialRegNo?.trim(),
+    contactPerson: draft.fullName.trim(),
+    contactEmail: (draft.companyEmail || draft.personalEmail || user.email || '').trim(),
+    contactPhone: (draft.companyPhone || draft.phone || user.phoneNumber || '').trim(),
+    projectLocation: (draft.cityGovernorate || draft.companyAddress || '').trim(),
+    activeScope: draft.activeScope?.trim(),
+    legacySinceYear: String(new Date().getFullYear()),
+    assignedClientUid: user.uid,
+  });
 }
 
 export function subscribeMyClientAccount(

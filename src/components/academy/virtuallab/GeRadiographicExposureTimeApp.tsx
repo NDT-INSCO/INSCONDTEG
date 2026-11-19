@@ -59,6 +59,7 @@ import {
   generateGeRadiographicExposurePdf,
   GeRadiographicPdfReportData
 } from '../../../utils/geRadiographicExposurePdfGenerator';
+import { IsotopeDecayCurveChart } from './IsotopeDecayCurveChart';
 
 export type GeUnitSystem = 'metric' | 'imperial';
 
@@ -3017,6 +3018,18 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
           </div>
         </div>
       </div>
+
+      {/* -------------------------------------------------------------------
+          INTERACTIVE D3 ISOTOPE DECAY CURVE & SHOT DATE MARKER
+      ------------------------------------------------------------------- */}
+      <IsotopeDecayCurveChart
+        isotope={selectedIsotope}
+        initialActivityCi={initialActivityCi}
+        initialCalibrationDate={initialCalibrationDate}
+        measurementDate={measurementDate}
+        onChangeMeasurementDate={setMeasurementDate}
+        language={language}
+      />
 
       {/* -------------------------------------------------------------------
           INTERACTIVE SVG EXPOSURE vs. THICKNESS CHARTS

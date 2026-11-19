@@ -1,17 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import type { User } from 'firebase/auth';
-import { CheckCircle2, Link2, ShieldCheck, UserCheck } from 'lucide-react';
+import { CheckCircle2, Link2, Mail, Phone, ShieldCheck, UserCheck } from 'lucide-react';
 import type { Language } from '../../types';
 import {
   sanitizeUpperCode,
   type ClientAccount,
   type ClientApprovalStatus,
+  type ClientRegistrationDraftInput,
   type CompanyRecord,
 } from '../../client/types';
 import {
   adminApproveAndLinkClientAccount,
+  detectUserAuthMethod,
+  loadPendingRegistrationDraft,
   saveClientRegistration,
 } from '../../client/firestoreClientService';
+import { ClientRegistrationFormFields } from './ClientRegistrationFormFields';
 
 interface ClientRegistrationSectionProps {
   language: Language;
@@ -20,6 +24,35 @@ interface ClientRegistrationSectionProps {
   allAccounts: ClientAccount[];
   companies: CompanyRecord[];
   isAdmin: boolean;
+}
+
+function buildInitialDraft(
+  user: User,
+  account: ClientAccount | null
+): ClientRegistrationDraftInput {
+  const pending = !account ? loadPendingRegistrationDraft(user.uid) : null;
+  return {
+    fullName: account?.fullName || pending?.fullName || user.displayName || '',
+    personalEmail: account?.email || pending?.personalEmail || user.email || '',
+    phone: account?.phone || pending?.phone || user.phoneNumber || '',
+    jobTitle: account?.jobTitle || pending?.jobTitle || '',
+    nationalId: account?.nationalId || pending?.nationalId || '',
+    secondaryPhone: account?.secondaryPhone || pending?.secondaryPhone || '',
+    personalAddress: account?.personalAddress || pending?.personalAddress || '',
+    organizationName: account?.organizationName || pending?.organizationName || '',
+    organizationNameEn: account?.organizationNameEn || pending?.organizationNameEn || '',
+    sector: account?.sector || pending?.sector || 'Oil & Gas / Power',
+    commercialRegNo: account?.commercialRegNo || pending?.commercialRegNo || '',
+    taxCardNo: account?.taxCardNo || pending?.taxCardNo || '',
+    companyPhone: account?.companyPhone || pending?.companyPhone || '',
+    companyEmail: account?.companyEmail || pending?.companyEmail || '',
+    website: account?.website || pending?.website || '',
+    companyAddress: account?.companyAddress || pending?.companyAddress || '',
+    cityGovernorate: account?.cityGovernorate || pending?.cityGovernorate || '',
+    activeScope: account?.activeScope || pending?.activeScope || '',
+    requestedCompanyCode: account?.requestedCompanyCode || pending?.requestedCompanyCode || '',
+    autoCreateCompanyWorkspace: false,
+  };
 }
 
 export const ClientRegistrationSection: React.FC<ClientRegistrationSectionProps> = ({
@@ -31,15 +64,11 @@ export const ClientRegistrationSection: React.FC<ClientRegistrationSectionProps>
   isAdmin,
 }) => {
   const isAr = language === 'ar';
+  const authMethod = account?.authMethod ?? detectUserAuthMethod(user);
 
-  const [fullName, setFullName] = useState(account?.fullName || user.displayName || '');
-  const [phone, setPhone] = useState(account?.phone || '');
-  const [organizationName, setOrganizationName] = useState(account?.organizationName || '');
-  const [sector, setSector] = useState(account?.sector || 'Oil & Gas / Power');
-  const [requestedCompanyCode, setRequestedCompanyCode] = useState(
-    account?.requestedCompanyCode || ''
+  const [formDraft, setFormDraft] = useState<ClientRegistrationDraftInput>(() =>
+    buildInitialDraft(user, account)
   );
-
   const [saving, setSaving] = useState(false);
   const [savedOk, setSavedOk] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -48,20 +77,19 @@ export const ClientRegistrationSection: React.FC<ClientRegistrationSectionProps>
   const [selectedCompanyByUid, setSelectedCompanyByUid] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (!account) return;
-    setFullName(account.fullName);
-    setPhone(account.phone);
-    setOrganizationName(account.organizationName);
-    setSector(account.sector || '');
-    setRequestedCompanyCode(account.requestedCompanyCode || '');
-  }, [account]);
+    setFormDraft(buildInitialDraft(user, account));
+  }, [account, user]);
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
     setSavedOk(false);
 
-    if (fullName.trim().length < 2 || phone.trim().length < 5 || organizationName.trim().length < 2) {
+    if (
+      formDraft.fullName.trim().length < 2 ||
+      formDraft.phone.trim().length < 5 ||
+      formDraft.organizationName.trim().length < 2
+    ) {
       setErrorMsg(
         isAr
           ? 'يرجى إدخال الاسم الكامل، رقم الهاتف، واسم الشركة بشكل صحيح.'
@@ -75,11 +103,8 @@ export const ClientRegistrationSection: React.FC<ClientRegistrationSectionProps>
       await saveClientRegistration(
         user,
         {
-          fullName: fullName.trim(),
-          phone: phone.trim(),
-          organizationName: organizationName.trim(),
-          requestedCompanyCode: sanitizeUpperCode(requestedCompanyCode),
-          sector: sector.trim(),
+          ...formDraft,
+          requestedCompanyCode: sanitizeUpperCode(formDraft.requestedCompanyCode ?? ''),
         },
         account
       );
@@ -105,27 +130,51 @@ export const ClientRegistrationSection: React.FC<ClientRegistrationSectionProps>
     });
   };
 
+  const authBadgeLabel =
+    authMethod === 'phone'
+      ? isAr
+        ? 'موثّق برقم التليفون'
+        : 'Phone OTP'
+      : authMethod === 'email'
+        ? isAr
+          ? 'حساب بريد إلكتروني'
+          : 'Email Auth'
+        : isAr
+          ? 'حساب Google'
+          : 'Google Auth';
+
   return (
     <div className="space-y-6" data-testid="client-registration-section">
       {/* My Account Registration Card */}
       <form
-        onSubmit={handleSaveProfile}
-        className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 space-y-4"
+        onSubmit={e => void handleSaveProfile(e)}
+        className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 space-y-5"
       >
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3.5">
           <div>
             <h2 className="text-base font-black text-white">
-              {isAr ? 'بيانات التسجيل في الموقع وربط كود الشركة' : 'Client Account Registration & Company Code Link'}
+              {isAr
+                ? 'الملف الشخصي الكامل وبيانات الشركة وربط الكود'
+                : 'Complete Personal & Company Registration Profile'}
             </h2>
             <p className="text-xs text-slate-400">
               {isAr
-                ? 'سجّل بيانات جهتك؛ وإذا كانت شركتك مرسلة مسبقاً، اكتب الكود الخاص بها لربط ملف التقارير بحسابك.'
-                : 'Register your organization details. Include your INSCO Company Code if your company already has an archive dossier.'}
+                ? 'حدّث جميع بياناتك الشخصية والبيانات الرسمية لشركتك؛ واستخدم الكود الخاص بها لربط ملف التقارير بحسابك.'
+                : 'Maintain your complete personal representative profile and official company records.'}
             </p>
           </div>
 
-          {account && (
-            <div className="flex items-center gap-2 text-xs font-mono">
+          <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
+            <span className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-950 px-2.5 py-1 text-slate-200">
+              {authMethod === 'phone' ? (
+                <Phone className="w-3 h-3 text-emerald-400" aria-hidden="true" />
+              ) : (
+                <Mail className="w-3 h-3 text-cyan-400" aria-hidden="true" />
+              )}
+              <span>{authBadgeLabel}</span>
+            </span>
+
+            {account && (
               <span
                 className={`rounded-md border px-2.5 py-1 font-bold ${
                   account.approvalStatus === 'approved'
@@ -135,96 +184,43 @@ export const ClientRegistrationSection: React.FC<ClientRegistrationSectionProps>
               >
                 {account.approvalStatus.toUpperCase()}
               </span>
-              {account.assignedCompanyCode && (
-                <span className="rounded-md border border-cyan-500/40 bg-cyan-500/10 px-2.5 py-1 font-bold text-cyan-300">
-                  {account.assignedCompanyCode}
-                </span>
-              )}
-            </div>
-          )}
+            )}
+            {account?.assignedCompanyCode && (
+              <span className="rounded-md border border-cyan-500/40 bg-cyan-500/10 px-2.5 py-1 font-bold text-cyan-300">
+                {account.assignedCompanyCode}
+              </span>
+            )}
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-          <label className="space-y-1">
-            <span className="text-slate-400 block">{isAr ? 'الاسم الكامل *' : 'Full Name *'}</span>
-            <input
-              type="text"
-              required
-              value={fullName}
-              onChange={e => setFullName(e.target.value)}
-              className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-white focus:border-cyan-500 focus:outline-none"
-            />
-          </label>
-
-          <label className="space-y-1">
-            <span className="text-slate-400 block">{isAr ? 'البريد الإلكتروني الموثّق' : 'Verified Email'}</span>
-            <input
-              type="email"
-              disabled
-              value={user.email || ''}
-              className="w-full rounded-lg border border-slate-800 bg-slate-950/60 px-3 py-2 font-mono text-xs text-slate-400"
-            />
-          </label>
-
-          <label className="space-y-1">
-            <span className="text-slate-400 block">{isAr ? 'رقم الهاتف / واتساب *' : 'Phone / WhatsApp *'}</span>
-            <input
-              type="text"
-              required
-              value={phone}
-              onChange={e => setPhone(e.target.value)}
-              className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-xs text-white focus:border-cyan-500 focus:outline-none"
-            />
-          </label>
-
-          <label className="space-y-1">
-            <span className="text-slate-400 block">{isAr ? 'اسم الشركة / الجهة *' : 'Organization Name *'}</span>
-            <input
-              type="text"
-              required
-              value={organizationName}
-              onChange={e => setOrganizationName(e.target.value)}
-              className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-white focus:border-cyan-500 focus:outline-none"
-            />
-          </label>
-
-          <label className="space-y-1">
-            <span className="text-slate-400 block">{isAr ? 'القطاع الصناعي' : 'Sector'}</span>
-            <input
-              type="text"
-              value={sector}
-              onChange={e => setSector(e.target.value)}
-              className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-white focus:border-cyan-500 focus:outline-none"
-            />
-          </label>
-
-          <label className="space-y-1">
-            <span className="text-slate-400 block">
-              {isAr ? 'كود الشركة المطلوب ربطه (اختياري)' : 'Existing Company Code (optional)'}
-            </span>
-            <input
-              type="text"
-              value={requestedCompanyCode}
-              onChange={e => setRequestedCompanyCode(sanitizeUpperCode(e.target.value))}
-              placeholder="INS-CO-0101"
-              className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-xs text-cyan-300 focus:border-cyan-500 focus:outline-none"
-            />
-          </label>
-        </div>
+        <ClientRegistrationFormFields
+          language={language}
+          value={formDraft}
+          onChange={setFormDraft}
+          lockPersonalEmail={Boolean(user.email && authMethod !== 'phone')}
+          lockPrimaryPhone={Boolean(user.phoneNumber && authMethod === 'phone')}
+          showAutoCreateCompanyToggle={false}
+        />
 
         {errorMsg && (
-          <div role="alert" className="rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-300">
+          <div
+            role="alert"
+            className="rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-300"
+          >
             {errorMsg}
           </div>
         )}
 
         {savedOk && (
-          <div role="status" className="flex items-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
+          <div
+            role="status"
+            className="flex items-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300"
+          >
             <CheckCircle2 className="w-4 h-4 shrink-0" />
             <span>
               {isAr
-                ? 'تم حفظ بيانات تسجيلك في الموقع بنجاح.'
-                : 'Your Client Portal registration profile has been saved.'}
+                ? 'تم حفظ جميع البيانات الشخصية وبيانات الشركة في حسابك بنجاح.'
+                : 'Your complete personal and company registration profile has been saved.'}
             </span>
           </div>
         )}
@@ -242,11 +238,11 @@ export const ClientRegistrationSection: React.FC<ClientRegistrationSectionProps>
                 : 'Saving...'
               : account
                 ? isAr
-                  ? 'تحديث بيانات الحساب'
-                  : 'Update Registration Profile'
+                  ? 'تحديث جميع البيانات وحفظها'
+                  : 'Update Complete Profile'
                 : isAr
-                  ? 'إتمام التسجيل في الموقع'
-                  : 'Complete Site Registration'}
+                  ? 'إتمام وحفظ التسجيل الكامل'
+                  : 'Complete & Save Registration'}
           </span>
         </button>
       </form>
@@ -258,7 +254,7 @@ export const ClientRegistrationSection: React.FC<ClientRegistrationSectionProps>
             <ShieldCheck className="w-4 h-4 text-amber-400" aria-hidden="true" />
             <h3 className="text-sm font-black text-white">
               {isAr
-                ? 'إدارة الحسابات المسجلة وربطها بأكواد الشركات'
+                ? 'إدارة الحسابات المسجلة ومراجعة البيانات الشخصية والشركات'
                 : 'Registered Client Accounts & Company Code Binding'}
             </h3>
           </div>
@@ -272,21 +268,30 @@ export const ClientRegistrationSection: React.FC<ClientRegistrationSectionProps>
               {allAccounts.map(acc => (
                 <div
                   key={acc.uid}
-                  className="rounded-lg border border-slate-800 bg-slate-950/70 p-3.5 flex flex-col lg:flex-row lg:items-center justify-between gap-3 text-xs"
+                  className="rounded-lg border border-slate-800 bg-slate-950/70 p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3 text-xs"
                 >
-                  <div className="space-y-1">
+                  <div className="space-y-1.5">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-bold text-white">{acc.fullName}</span>
-                      <span className="text-slate-400">· {acc.organizationName}</span>
+                      {acc.jobTitle && (
+                        <span className="text-cyan-300">({acc.jobTitle})</span>
+                      )}
+                      <span className="text-slate-300 font-semibold">· {acc.organizationName}</span>
                       {acc.requestedCompanyCode && (
                         <span className="font-mono text-amber-300">
                           [{isAr ? 'كود مطلوب:' : 'Req:'} {acc.requestedCompanyCode}]
                         </span>
                       )}
                     </div>
-                    <div className="font-mono text-[11px] text-slate-400">
-                      {acc.email} · {acc.phone} · {acc.approvalStatus}
-                      {acc.assignedCompanyCode ? ` · Linked: ${acc.assignedCompanyCode}` : ''}
+                    <div className="font-mono text-[11px] text-slate-400 flex flex-wrap gap-x-3 gap-y-0.5">
+                      <span>{acc.email}</span>
+                      <span>{acc.phone}</span>
+                      {acc.commercialRegNo && <span>CR: {acc.commercialRegNo}</span>}
+                      {acc.taxCardNo && <span>Tax: {acc.taxCardNo}</span>}
+                      {acc.cityGovernorate && <span>{acc.cityGovernorate}</span>}
+                      {acc.authMethod && <span>via {acc.authMethod.toUpperCase()}</span>}
+                      <span>· {acc.approvalStatus}</span>
+                      {acc.assignedCompanyCode && <span>· Linked: {acc.assignedCompanyCode}</span>}
                     </div>
                   </div>
 

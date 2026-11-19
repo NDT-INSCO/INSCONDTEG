@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import type { User } from 'firebase/auth';
 import {
+  Bell,
   BriefcaseBusiness,
   Building2,
   ClipboardList,
@@ -8,8 +9,9 @@ import {
   FolderOpen,
   Globe2,
   LayoutDashboard,
-  LogIn,
   LogOut,
+  MailCheck,
+  RefreshCw,
   ShieldCheck,
   UserPlus,
 } from 'lucide-react';
@@ -25,10 +27,15 @@ import type {
   CompanyRecord,
 } from '../../client/types';
 import {
+  clearPendingRegistrationDraft,
+  createInitialCompanyFromRegistration,
   isPortalFirestoreReady,
   isVerifiedAdminUser,
+  isVerifiedPortalUser,
+  loadPendingRegistrationDraft,
   observeClientPortalAuth,
-  signInClientPortalWithGoogle,
+  resendClientVerificationEmail,
+  saveClientRegistration,
   signOutClientPortal,
   subscribeAllClientAccounts,
   subscribeClientRequests,
@@ -42,6 +49,7 @@ import {
   updateEmployeeLiveLocation,
 } from '../../client/firestoreClientService';
 import { ClientErrorBoundary } from './ClientErrorBoundary';
+import { ClientAuthOnboardingCard } from './ClientAuthOnboardingCard';
 import { ClientCompaniesSection } from './ClientCompaniesSection';
 import { ClientCompanyDossier } from './ClientCompanyDossier';
 import { ClientRequestsSection } from './ClientRequestsSection';
@@ -69,7 +77,9 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
 
   const [authReady, setAuthReady] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-  const [authError, setAuthError] = useState<string | null>(null);
+  const [verificationTick, setVerificationTick] = useState(0);
+  const [verificationNotice, setVerificationNotice] = useState<string | null>(null);
+  const [committingPendingDraft, setCommittingPendingDraft] = useState(false);
 
   const [myAccount, setMyAccount] = useState<ClientAccount | null>(null);
   const [allAccounts, setAllAccounts] = useState<ClientAccount[]>([]);
@@ -93,7 +103,8 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
     throw runtimeError;
   }
 
-  const isAdmin = useMemo(() => isVerifiedAdminUser(user), [user]);
+  const isAdmin = useMemo(() => isVerifiedAdminUser(user), [user, verificationTick]);
+  const isVerifiedUser = useMemo(() => isVerifiedPortalUser(user), [user, verificationTick]);
 
   useEffect(() => {
     const unsub = observeClientPortalAuth(current => {
@@ -104,7 +115,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
   }, []);
 
   useEffect(() => {
-    if (!authReady || !user || !firebaseReady) {
+    if (!authReady || !user || !isVerifiedUser || !firebaseReady) {
       setMyAccount(null);
       setAllAccounts([]);
       setRequests([]);
@@ -156,7 +167,33 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
       unsubCompanies();
       unsubAllAccounts();
     };
-  }, [authReady, user, isAdmin, firebaseReady]);
+  }, [authReady, user, isVerifiedUser, isAdmin, firebaseReady]);
+
+  // Auto-commit pending Email registration draft once email_verified becomes true
+  useEffect(() => {
+    if (!authReady || !user || !isVerifiedUser || !firebaseReady || myAccount || committingPendingDraft) {
+      return;
+    }
+    const pendingDraft = loadPendingRegistrationDraft(user.uid);
+    if (!pendingDraft) return;
+
+    setCommittingPendingDraft(true);
+    void (async () => {
+      try {
+        await saveClientRegistration(user, pendingDraft, null);
+        if (pendingDraft.autoCreateCompanyWorkspace) {
+          try {
+            await createInitialCompanyFromRegistration(user, pendingDraft);
+          } catch (coErr) {
+            console.warn('Auto-create company skipped:', coErr);
+          }
+        }
+        clearPendingRegistrationDraft(user.uid);
+      } finally {
+        setCommittingPendingDraft(false);
+      }
+    })();
+  }, [authReady, user, isVerifiedUser, firebaseReady, myAccount, committingPendingDraft]);
 
   const activeCompany = useMemo(
     () => (companyId ? companies.find(c => c.id === companyId) ?? null : null),
@@ -233,13 +270,29 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
     );
   };
 
-  const handleGoogleSignIn = async () => {
-    setAuthError(null);
-    try {
-      await signInClientPortalWithGoogle();
-    } catch (err) {
-      setAuthError(err instanceof Error ? err.message : String(err));
+  const handleRefreshVerification = async () => {
+    if (!user) return;
+    setVerificationNotice(null);
+    await user.reload();
+    setVerificationTick(v => v + 1);
+    if (!isVerifiedPortalUser(user)) {
+      setVerificationNotice(
+        isAr
+          ? 'لم يتم تأكيد البريد الإلكتروني بعد. افتح رسالة التفعيل في بريدك واضغط الرابط ثم أعد المحاولة.'
+          : 'Email is not verified yet. Click the verification link in your inbox, then refresh again.'
+      );
     }
+  };
+
+  const handleResendVerification = async () => {
+    if (!user) return;
+    setVerificationNotice(null);
+    await resendClientVerificationEmail(user);
+    setVerificationNotice(
+      isAr
+        ? `تم إرسال رابط التفعيل مجدداً إلى ${user.email}`
+        : `Verification link resent to ${user.email}`
+    );
   };
 
   const navItems: Array<{
@@ -297,88 +350,58 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
     <ClientErrorBoundary language={language}>
       <div data-testid="client-portal-root" className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
         {!user ? (
-          /* Unauthenticated Sign-In & Onboarding Landing View */
-          <div className="max-w-3xl mx-auto rounded-2xl border border-slate-800 bg-slate-900/70 p-6 sm:p-8 space-y-6">
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-2">
-                <div className="inline-flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-emerald-400">
-                  <BriefcaseBusiness className="w-4 h-4" aria-hidden="true" />
-                  <span>{isAr ? 'بوابة عملاء وملفات إنسكو' : 'INSCO Client & Dossier Portal'}</span>
-                </div>
-                <h1 className="text-2xl sm:text-3xl font-black text-white">
-                  {isAr
-                    ? 'بوابة طلبات العملاء، أرشيف الشركات المكوّد، وملفات التقارير'
-                    : 'Client Requests, Coded Company Archive & Inspection Dossiers'}
-                </h1>
-                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                  {isAr
-                    ? 'سجّل دخولك عبر Google لإنشاء حساب جهة أو متابعة طلبات الاختبار الجديدة، واستعراض ملف شركتك برقمها الكودي وأرشيف تقارير الفحص والريبورتات الصادرة.'
-                    : 'Sign in with Google to register your organization, submit and track NDT/PWHT testing requests, and access your company’s coded archive and inspection reports.'}
-                </p>
-              </div>
+          /* Unauthenticated Multi-Provider Sign-In & Complete Registration View */
+          <ClientAuthOnboardingCard
+            language={language}
+            firebaseReady={firebaseReady}
+            authReady={authReady}
+            onOpenCompanyPortal={onOpenCompanyPortal}
+          />
+        ) : !isVerifiedUser ? (
+          /* Email Verification Checkpoint before Firestore Profile Activation */
+          <div className="max-w-2xl mx-auto rounded-2xl border border-amber-500/40 bg-slate-900/80 p-6 sm:p-8 space-y-4">
+            <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-amber-300">
+              <MailCheck className="w-4 h-4" aria-hidden="true" />
+              <span>{isAr ? 'تفعيل البريد الإلكتروني مطلوب' : 'Email Verification Required'}</span>
             </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-              <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-4 space-y-1">
-                <div className="font-bold text-cyan-300">
-                  {isAr ? '1. التسجيل وطلبات العملاء' : '1. Registration & Requests'}
-                </div>
-                <p className="text-slate-400 leading-relaxed">
-                  {isAr
-                    ? 'تقديم طلبات الفحص والمعالجة الحرارية ومتابعة حالتها لحظياً.'
-                    : 'Submit inspection scopes and monitor operations review status live.'}
-                </p>
-              </div>
-              <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-4 space-y-1">
-                <div className="font-bold text-emerald-300">
-                  {isAr ? '2. أرشيف الشركات بالكود' : '2. Coded Company Archive'}
-                </div>
-                <p className="text-slate-400 leading-relaxed">
-                  {isAr
-                    ? 'رقم كودي فريد لكل شركة قديمة أو جديدة لسهولة الفهرسة والأرشفة.'
-                    : 'Unique Company Code assigned to every legacy and new client company.'}
-                </p>
-              </div>
-              <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-4 space-y-1">
-                <div className="font-bold text-amber-300">
-                  {isAr ? '3. فايل الريبورتات والبيانات' : '3. Dedicated Report File'}
-                </div>
-                <p className="text-slate-400 leading-relaxed">
-                  {isAr
-                    ? 'أرشفة تقارير الشركة قيد الاختبار وآلية إدخال بيانات الريبورتات الجديدة.'
-                    : 'Archived reports repository plus modular data-entry report builder.'}
-                </p>
-              </div>
-            </div>
-
-            {authError && (
-              <div role="alert" className="rounded-lg border border-rose-500/40 bg-rose-500/10 px-3.5 py-2.5 text-xs text-rose-300">
-                {authError}
+            <h2 className="text-xl font-black text-white">
+              {isAr
+                ? 'تم إنشاء حسابك — بقي خطوة تفعيل البريد الإلكتروني'
+                : 'Account Created — Confirm Your Email to Activate Workspace'}
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+              {isAr
+                ? `أرسلنا رابط تفعيل إلى (${user.email}). افتح الرسالة واضغط رابط التأكيد، ثم اضغط "تحقق من التفعيل الآن" ليتم حفظ جميع بياناتك الشخصية وبيانات شركتك وتفعيل البوابة فوراً.`
+                : `We sent a verification link to (${user.email}). Click the link in your inbox, then click Refresh Status to save your personal & company profile automatically.`}
+            </p>
+            {verificationNotice && (
+              <div role="status" className="rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-200 flex items-center gap-2">
+                <Bell className="w-4 h-4 shrink-0" />
+                <span>{verificationNotice}</span>
               </div>
             )}
-
             <div className="flex flex-wrap items-center gap-3 pt-2">
               <button
                 type="button"
-                data-testid="client-portal-google-signin"
-                disabled={!firebaseReady || !authReady}
-                onClick={() => void handleGoogleSignIn()}
-                className="inline-flex items-center gap-2 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 px-5 py-3 text-sm font-black text-slate-950 transition cursor-pointer"
+                onClick={() => void handleRefreshVerification()}
+                className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-4 py-2.5 text-xs font-black text-white cursor-pointer"
               >
-                <LogIn className="w-4 h-4" aria-hidden="true" />
-                <span>
-                  {isAr
-                    ? 'تسجيل الدخول / التسجيل بحساب Google'
-                    : 'Sign In / Register with Google'}
-                </span>
+                <RefreshCw className="w-4 h-4" aria-hidden="true" />
+                <span>{isAr ? 'تحقق من التفعيل الآن' : 'I Verified — Refresh Status'}</span>
               </button>
-
               <button
                 type="button"
-                onClick={onOpenCompanyPortal}
-                className="rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-xs font-semibold text-slate-300 hover:bg-slate-800 transition cursor-pointer"
+                onClick={() => void handleResendVerification()}
+                className="rounded-lg border border-cyan-500/40 bg-cyan-500/10 hover:bg-cyan-500/20 px-4 py-2.5 text-xs font-bold text-cyan-300 cursor-pointer"
               >
-                {isAr ? 'العودة لبوابة الشركة' : 'Back to Corporate Portal'}
+                {isAr ? 'إعادة إرسال رابط التفعيل' : 'Resend Verification Email'}
+              </button>
+              <button
+                type="button"
+                onClick={() => void signOutClientPortal()}
+                className="rounded-lg border border-slate-700 bg-slate-950 hover:bg-slate-800 px-4 py-2.5 text-xs font-semibold text-slate-300 cursor-pointer"
+              >
+                {isAr ? 'تسجيل الخروج' : 'Sign Out'}
               </button>
             </div>
           </div>
@@ -391,10 +414,10 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                 <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0">
                     <div className="text-xs font-bold text-white truncate">
-                      {myAccount?.fullName || user.displayName || user.email}
+                      {myAccount?.fullName || user.displayName || user.email || user.phoneNumber}
                     </div>
                     <div className="text-[11px] font-mono text-slate-400 truncate">
-                      {user.email}
+                      {user.email || user.phoneNumber}
                     </div>
                   </div>
                   {isAdmin && (

@@ -68,6 +68,76 @@
           "description": "Industrial sector (Oil & Gas, Power, Petrochemical, Contracting)",
           "maxLength": 80
         },
+        "authMethod": {
+          "type": "string",
+          "enum": ["google", "email", "phone"],
+          "description": "Authentication provider used during registration"
+        },
+        "jobTitle": {
+          "type": "string",
+          "description": "Personal job title or authority role",
+          "maxLength": 120
+        },
+        "nationalId": {
+          "type": "string",
+          "description": "National ID or passport reference for representative verification",
+          "maxLength": 40
+        },
+        "secondaryPhone": {
+          "type": "string",
+          "description": "Optional alternative mobile or backup telephone",
+          "maxLength": 40
+        },
+        "personalAddress": {
+          "type": "string",
+          "description": "Representative residential or correspondence address",
+          "maxLength": 240
+        },
+        "organizationNameEn": {
+          "type": "string",
+          "description": "Official English company name for bilingual reports",
+          "maxLength": 180
+        },
+        "commercialRegNo": {
+          "type": "string",
+          "description": "Company Commercial Registration number",
+          "maxLength": 64
+        },
+        "taxCardNo": {
+          "type": "string",
+          "description": "Company Tax Registration / VAT number",
+          "maxLength": 64
+        },
+        "companyPhone": {
+          "type": "string",
+          "description": "Official company landline or operations phone",
+          "maxLength": 40
+        },
+        "companyEmail": {
+          "type": "string",
+          "description": "Official company corporate email",
+          "maxLength": 160
+        },
+        "website": {
+          "type": "string",
+          "description": "Company website URL",
+          "maxLength": 200
+        },
+        "companyAddress": {
+          "type": "string",
+          "description": "Company headquarters or site address",
+          "maxLength": 240
+        },
+        "cityGovernorate": {
+          "type": "string",
+          "description": "City, governorate, and country",
+          "maxLength": 100
+        },
+        "activeScope": {
+          "type": "string",
+          "description": "Primary NDT/PWHT engineering activities and project scope",
+          "maxLength": 1000
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time",

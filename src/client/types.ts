@@ -1,5 +1,6 @@
 export type ClientAccountRole = 'client' | 'engineer' | 'admin';
 export type ClientApprovalStatus = 'pending' | 'approved' | 'suspended';
+export type ClientAuthMethod = 'google' | 'email' | 'phone';
 
 export interface ClientAccount {
   uid: string;
@@ -13,8 +14,47 @@ export interface ClientAccount {
   role: ClientAccountRole;
   approvalStatus: ClientApprovalStatus;
   sector?: string;
+  authMethod?: ClientAuthMethod;
+  // Personal Details
+  jobTitle?: string;
+  nationalId?: string;
+  secondaryPhone?: string;
+  personalAddress?: string;
+  // Company Details
+  organizationNameEn?: string;
+  commercialRegNo?: string;
+  taxCardNo?: string;
+  companyPhone?: string;
+  companyEmail?: string;
+  website?: string;
+  companyAddress?: string;
+  cityGovernorate?: string;
+  activeScope?: string;
   createdAt?: unknown;
   updatedAt?: unknown;
+}
+
+export interface ClientRegistrationDraftInput {
+  fullName: string;
+  personalEmail?: string;
+  phone: string;
+  jobTitle?: string;
+  nationalId?: string;
+  secondaryPhone?: string;
+  personalAddress?: string;
+  organizationName: string;
+  organizationNameEn?: string;
+  sector?: string;
+  commercialRegNo?: string;
+  taxCardNo?: string;
+  companyPhone?: string;
+  companyEmail?: string;
+  website?: string;
+  companyAddress?: string;
+  cityGovernorate?: string;
+  activeScope?: string;
+  requestedCompanyCode?: string;
+  autoCreateCompanyWorkspace?: boolean;
 }
 
 export type RequestUrgency = 'standard' | 'priority' | 'emergency_24h';

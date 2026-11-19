@@ -1225,6 +1225,91 @@ test('GeRadiographicExposureTimeApp initializes unitSystem from localStorage and
   assert.equal(localStorage.getItem('ge_app_unit_system'), 'metric');
 });
 
+test('GeRadiographicExposureTimeApp renders interactive D3 isotope decay curve with vertical shot-date line across isotopes', () => {
+  const ui = render(<GeRadiographicExposureTimeApp language="en" />);
+
+  const card = ui.getByTestId('isotope-decay-curve-card');
+  const svg = ui.getByTestId('isotope-decay-svg');
+  const curvePath = ui.getByTestId('isotope-decay-path');
+  const shotLine = ui.getByTestId('isotope-decay-shot-line');
+  const shotLabel = ui.getByTestId('isotope-decay-shot-label');
+
+  assert.ok(card);
+  assert.ok(svg);
+  const initialD = curvePath.getAttribute('d') || '';
+  assert.ok(initialD.startsWith('M') && !initialD.includes('NaN'), `Valid SVG path expected, got: ${initialD.slice(0, 40)}`);
+
+  // Shot marker line must be strictly vertical (x1 === x2) and have finite coordinates
+  const initialX1 = Number(shotLine.getAttribute('x1'));
+  const initialX2 = Number(shotLine.getAttribute('x2'));
+  assert.equal(initialX1, initialX2);
+  assert.ok(Number.isFinite(initialX1) && initialX1 > 0);
+  assert.ok((shotLabel.textContent || '').includes('2026-11-05'));
+
+  // Half-life milestone marker 1 T1/2 should appear in 3xT1/2 default horizon
+  assert.ok(ui.getByTestId('isotope-decay-halflife-1'));
+  assert.ok(ui.getByTestId('isotope-decay-halflife-2'));
+
+  // Switching isotope to Se-75 (half-life 119.78d) changes curve geometry and vertical shot position
+  const sourceSelect = ui.getByTestId('ge-select-source-type');
+  fireEvent.change(sourceSelect, { target: { value: 'se75' } });
+  const sePath = ui.getByTestId('isotope-decay-path').getAttribute('d') || '';
+  const seShotX = Number(ui.getByTestId('isotope-decay-shot-line').getAttribute('x1'));
+  assert.notEqual(sePath, initialD);
+  assert.notEqual(seShotX, initialX1);
+  assert.ok((ui.getByTestId('isotope-decay-curve-card').textContent || '').includes('119.78d'));
+
+  // Toggle isotope comparison curves on and verify Co-60 / Ir-192 overlays render
+  fireEvent.click(ui.getByTestId('isotope-decay-compare-btn'));
+  assert.ok(ui.getByTestId('isotope-decay-compare-ir192'));
+  assert.ok(ui.getByTestId('isotope-decay-compare-co60'));
+  assert.ok(ui.getByTestId('isotope-decay-compare-yb169'));
+
+  // Switch to X-Ray tube -> flat constant output with zero NaN coordinates
+  fireEvent.change(sourceSelect, { target: { value: 'xray_dir' } });
+  const xrayPath = ui.getByTestId('isotope-decay-path').getAttribute('d') || '';
+  assert.ok(xrayPath.startsWith('M') && !xrayPath.includes('NaN'));
+  assert.ok((ui.getByTestId('isotope-decay-curve-card').textContent || '').includes('Non-decaying'));
+});
+
+test('IsotopeDecayCurveChart supports hover crosshair, horizon toggle, and clicking/scrubbing to move shot date', () => {
+  const ui = render(<GeRadiographicExposureTimeApp language="en" />);
+
+  const shotLine = ui.getByTestId('isotope-decay-shot-line');
+  const shotInput = ui.getByTestId('ge-shot-date-input') as HTMLInputElement;
+  const initialShotDate = shotInput.value;
+  const initialShotX = Number(shotLine.getAttribute('x1'));
+
+  // Hovering over plot reveals crosshair vertical line and telemetry readout
+  const interactionLayer = ui.getByTestId('isotope-decay-interaction-layer');
+  fireEvent.mouseMove(interactionLayer, { clientX: 350, clientY: 120 });
+  assert.ok(ui.getByTestId('isotope-decay-hover-line'));
+  const hoverReadout = ui.getByTestId('isotope-decay-hover-readout').textContent || '';
+  assert.ok(hoverReadout.includes('Ci') && hoverReadout.includes('%'));
+
+  fireEvent.mouseLeave(interactionLayer);
+  assert.equal(ui.queryByTestId('isotope-decay-hover-line'), null);
+
+  // Clicking on the curve updates measurementDate & recalculates live activity badge
+  fireEvent.click(interactionLayer, { clientX: 420, clientY: 120 });
+  const clickedShotDate = (ui.getByTestId('ge-shot-date-input') as HTMLInputElement).value;
+  assert.notEqual(clickedShotDate, initialShotDate);
+  const clickedShotX = Number(ui.getByTestId('isotope-decay-shot-line').getAttribute('x1'));
+  assert.notEqual(clickedShotX, initialShotX);
+
+  // Jumping to 1xT1/2 (~74 days after 2026-10-06 -> ~50% of 45 Ci = ~22.5 Ci)
+  fireEvent.click(ui.getByTestId('isotope-decay-jump-half1'));
+  const liveBadgeText = ui.getByTestId('ge-live-curie-badge').textContent || '';
+  const liveCi = parseFloat(liveBadgeText);
+  assert.ok(liveCi >= 22 && liveCi <= 23, `Expected ~22.5 Ci at 1xT1/2, got ${liveBadgeText}`);
+
+  // Switching horizon to 5xT1/2 adjusts domain and keeps vertical line inside plot
+  fireEvent.click(ui.getByTestId('isotope-decay-horizon-5'));
+  const horizon5X = Number(ui.getByTestId('isotope-decay-shot-line').getAttribute('x1'));
+  assert.ok(horizon5X > 58 && horizon5X < 704, `Shot line x=${horizon5X} must remain inside plot`);
+});
+
+
 
 
 

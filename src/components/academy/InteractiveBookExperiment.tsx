@@ -697,86 +697,324 @@ export const InteractiveBookExperiment: React.FC<InteractiveBookExperimentProps>
 
           {/* Interactive Visual Canvas / SVG diagram */}
           <div className="bg-[#050714] border border-[#1b224d] rounded-2xl p-4 text-center overflow-hidden">
-            <svg viewBox="0 0 500 240" className="w-full max-h-64 mx-auto">
-              {/* Perspex Wedge */}
-              <polygon points="50,20 180,20 180,100 50,100" fill="#1e2954" stroke="#3b82f6" strokeWidth="1.5" />
-              <text x="70" y="55" fill="#93c5fd" fontSize="11" fontWeight="bold">إسفين البلكسيجلاس (2700 m/s)</text>
+            {(() => {
+              const incStartX = 180 - Math.tan((utIncidentAngle * Math.PI) / 180) * 80;
+              const shearEndX = 180 + Math.tan((utCalculations.shearAngleDeg * Math.PI) / 180) * 110;
+              const skipEndX = 180 + Math.tan((utCalculations.shearAngleDeg * Math.PI) / 180) * 220;
+              const longEndX = 180 + Math.tan((utCalculations.longAngleDeg * Math.PI) / 180) * 110;
+              const incDx = 180 - incStartX;
+              const shearDx = shearEndX - 180;
+              const skipDx = skipEndX - shearEndX;
+              const longDx = longEndX - 180;
 
-              {/* Steel Workpiece */}
-              <rect x="20" y="100" width="460" height="110" fill="#111827" stroke="#475569" strokeWidth="2" />
-              <text x="30" y="125" fill="#94a3b8" fontSize="11" fontWeight="bold">قطعة الفولاذ (الصلب الكربوني)</text>
-              <text x="30" y="145" fill="#64748b" fontSize="10">سماكة القطعة: {utPlateThickness} mm</text>
+              return (
+                <svg
+                  viewBox="0 0 500 240"
+                  className="w-full max-h-64 mx-auto"
+                  role="img"
+                  aria-label={
+                    isAr
+                      ? 'رسم تفاعلي متحرك لانكسار الأشعة فوق الصوتية عبر الحد الفاصل بين الإسفين والفولاذ'
+                      : 'Animated ultrasonic beam refraction diagram across wedge-to-steel material interface'
+                  }
+                >
+                  <defs>
+                    <linearGradient id="utIncidentBeamGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#fbbf24" stopOpacity="0.28" />
+                      <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.06" />
+                    </linearGradient>
+                    <linearGradient id="utShearBeamGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.26" />
+                      <stop offset="100%" stopColor="#0284c7" stopOpacity="0.06" />
+                    </linearGradient>
+                  </defs>
 
-              {/* Interface Line */}
-              <line x1="20" y1="100" x2="480" y2="100" stroke="#f59e0b" strokeWidth="2" strokeDasharray="4 2" />
-
-              {/* Incident Sound Beam in Wedge */}
-              <line 
-                x1={180 - Math.tan((utIncidentAngle * Math.PI) / 180) * 80} 
-                y1="20" 
-                x2="180" 
-                y2="100" 
-                stroke="#fbbf24" 
-                strokeWidth="3" 
-              />
-              <circle cx="180" cy="100" r="4" fill="#f59e0b" />
-
-              {/* Refracted Shear Wave Beam */}
-              {utCalculations.hasShearWave && (
-                <>
-                  <line 
-                    x1="180" 
-                    y1="100" 
-                    x2={180 + Math.tan((utCalculations.shearAngleDeg * Math.PI) / 180) * 110} 
-                    y2="210" 
-                    stroke="#38bdf8" 
-                    strokeWidth="3" 
-                  />
-                  {/* Reflected Skip from Backwall */}
-                  <line 
-                    x1={180 + Math.tan((utCalculations.shearAngleDeg * Math.PI) / 180) * 110} 
-                    y1="210" 
-                    x2={180 + Math.tan((utCalculations.shearAngleDeg * Math.PI) / 180) * 220} 
-                    y2="100" 
-                    stroke="#38bdf8" 
-                    strokeWidth="2" 
-                    strokeDasharray="4 2" 
-                  />
-                  <text 
-                    x={200 + Math.tan((utCalculations.shearAngleDeg * Math.PI) / 180) * 50} 
-                    y="160" 
-                    fill="#38bdf8" 
-                    fontSize="11" 
-                    fontWeight="bold"
-                  >
-                    موجة القص: {utCalculations.shearAngleDeg.toFixed(1)}°
+                  {/* Perspex Wedge */}
+                  <polygon points="50,20 180,20 180,100 50,100" fill="#1e2954" stroke="#3b82f6" strokeWidth="1.5" />
+                  <text x="62" y="42" fill="#93c5fd" fontSize="10.5" fontWeight="bold">
+                    {isAr ? 'إسفين البلكسيجلاس (2700 m/s)' : 'Perspex Wedge (2700 m/s)'}
                   </text>
-                </>
-              )}
 
-              {/* Refracted Longitudinal Wave Beam (if below 1st critical) */}
-              {utCalculations.hasLongWave && (
-                <>
-                  <line 
-                    x1="180" 
-                    y1="100" 
-                    x2={180 + Math.tan((utCalculations.longAngleDeg * Math.PI) / 180) * 110} 
-                    y2="210" 
-                    stroke="#f43f5e" 
-                    strokeWidth="2" 
-                    strokeDasharray="2 2" 
-                  />
-                  <text 
-                    x={210 + Math.tan((utCalculations.longAngleDeg * Math.PI) / 180) * 30} 
-                    y="130" 
-                    fill="#f43f5e" 
-                    fontSize="10"
-                  >
-                    موجة طولية: {utCalculations.longAngleDeg.toFixed(1)}°
+                  {/* Steel Workpiece */}
+                  <rect x="20" y="100" width="460" height="110" fill="#111827" stroke="#475569" strokeWidth="2" />
+                  <text x="30" y="125" fill="#94a3b8" fontSize="10.5" fontWeight="bold">
+                    {isAr ? 'قطعة الفولاذ (الصلب الكربوني)' : 'Carbon Steel Workpiece'}
                   </text>
-                </>
-              )}
-            </svg>
+                  <text x="30" y="143" fill="#64748b" fontSize="10">
+                    {isAr ? `سماكة القطعة: ${utPlateThickness} mm` : `Thickness: ${utPlateThickness} mm`}
+                  </text>
+
+                  {/* Normal Reference Line at Material Interface */}
+                  <line x1="180" y1="20" x2="180" y2="210" stroke="#475569" strokeWidth="1" strokeDasharray="3 3" opacity="0.55" />
+
+                  {/* Material Interface Boundary Line */}
+                  <line x1="20" y1="100" x2="480" y2="100" stroke="#f59e0b" strokeWidth="2" strokeDasharray="4 2" />
+                  <text x="292" y="94" fill="#fbbf24" fontSize="9.5" fontFamily="monospace">
+                    {isAr ? 'الحد الفاصل (Material Interface)' : 'Material Interface (Couplant)'}
+                  </text>
+
+                  {/* Incident Sound Beam Cone & CSS-Animated Wave Ray in Wedge */}
+                  <polygon
+                    points={`${incStartX - 6},20 ${incStartX + 6},20 189,100 171,100`}
+                    fill="url(#utIncidentBeamGrad)"
+                    className="ut-beam-cone-pulse"
+                  />
+                  <line
+                    x1={incStartX}
+                    y1="20"
+                    x2="180"
+                    y2="100"
+                    stroke="#f59e0b"
+                    strokeWidth="4.5"
+                    strokeOpacity="0.28"
+                  />
+                  <line
+                    x1={incStartX}
+                    y1="20"
+                    x2="180"
+                    y2="100"
+                    stroke="#fbbf24"
+                    strokeWidth="2.8"
+                    strokeDasharray="10 6"
+                    className="ut-beam-flow"
+                  />
+                  {/* Traveling Incident Wave Packets */}
+                  <circle
+                    cx={incStartX}
+                    cy="20"
+                    r="3.5"
+                    fill="#fef08a"
+                    className="ut-wave-packet"
+                    style={
+                      {
+                        '--beam-dx': `${incDx.toFixed(1)}px`,
+                        '--beam-dy': '80px',
+                        '--beam-duration': '1.05s',
+                        '--beam-delay': '0s',
+                      } as React.CSSProperties
+                    }
+                  />
+                  <circle
+                    cx={incStartX}
+                    cy="20"
+                    r="2.8"
+                    fill="#fbbf24"
+                    className="ut-wave-packet"
+                    style={
+                      {
+                        '--beam-dx': `${incDx.toFixed(1)}px`,
+                        '--beam-dy': '80px',
+                        '--beam-duration': '1.05s',
+                        '--beam-delay': '0.52s',
+                      } as React.CSSProperties
+                    }
+                  />
+
+                  {/* Acoustic Refraction / Mode-Conversion Ripple at Material Interface */}
+                  <circle
+                    cx="180"
+                    cy="100"
+                    r="7"
+                    fill="none"
+                    stroke="#fbbf24"
+                    strokeWidth="1.6"
+                    className="ut-interface-ripple"
+                  />
+                  <circle
+                    cx="180"
+                    cy="100"
+                    r="7"
+                    fill="none"
+                    stroke="#38bdf8"
+                    strokeWidth="1.4"
+                    className="ut-interface-ripple-delayed"
+                  />
+                  <circle cx="180" cy="100" r="4.2" fill="#f59e0b" stroke="#fef3c7" strokeWidth="1" />
+
+                  {/* Refracted Shear Wave Beam + Reflected Skip */}
+                  {utCalculations.hasShearWave ? (
+                    <>
+                      <polygon
+                        points={`174,100 186,100 ${shearEndX + 12},210 ${shearEndX - 12},210`}
+                        fill="url(#utShearBeamGrad)"
+                        className="ut-beam-cone-pulse"
+                      />
+                      <line
+                        x1="180"
+                        y1="100"
+                        x2={shearEndX}
+                        y2="210"
+                        stroke="#0284c7"
+                        strokeWidth="5"
+                        strokeOpacity="0.28"
+                      />
+                      <line
+                        x1="180"
+                        y1="100"
+                        x2={shearEndX}
+                        y2="210"
+                        stroke="#38bdf8"
+                        strokeWidth="2.8"
+                        strokeDasharray="10 6"
+                        className="ut-beam-flow"
+                      />
+                      {/* Traveling Shear Wave Packets (Leg 1) */}
+                      <circle
+                        cx="180"
+                        cy="100"
+                        r="3.5"
+                        fill="#bae6fd"
+                        className="ut-wave-packet"
+                        style={
+                          {
+                            '--beam-dx': `${shearDx.toFixed(1)}px`,
+                            '--beam-dy': '110px',
+                            '--beam-duration': '1.35s',
+                            '--beam-delay': '0.2s',
+                          } as React.CSSProperties
+                        }
+                      />
+                      <circle
+                        cx="180"
+                        cy="100"
+                        r="2.8"
+                        fill="#38bdf8"
+                        className="ut-wave-packet"
+                        style={
+                          {
+                            '--beam-dx': `${shearDx.toFixed(1)}px`,
+                            '--beam-dy': '110px',
+                            '--beam-duration': '1.35s',
+                            '--beam-delay': '0.88s',
+                          } as React.CSSProperties
+                        }
+                      />
+
+                      {/* Backwall Bounce Ripple */}
+                      <circle
+                        cx={shearEndX}
+                        cy="210"
+                        r="6"
+                        fill="none"
+                        stroke="#38bdf8"
+                        strokeWidth="1.4"
+                        className="ut-interface-ripple"
+                      />
+                      <circle cx={shearEndX} cy="210" r="3" fill="#38bdf8" />
+
+                      {/* Reflected Skip from Backwall (Leg 2) */}
+                      <line
+                        x1={shearEndX}
+                        y1="210"
+                        x2={skipEndX}
+                        y2="100"
+                        stroke="#38bdf8"
+                        strokeWidth="2.2"
+                        strokeDasharray="10 6"
+                        className="ut-beam-flow-delayed"
+                      />
+                      <circle
+                        cx={shearEndX}
+                        cy="210"
+                        r="2.8"
+                        fill="#7dd3fc"
+                        className="ut-wave-packet"
+                        style={
+                          {
+                            '--beam-dx': `${skipDx.toFixed(1)}px`,
+                            '--beam-dy': '-110px',
+                            '--beam-duration': '1.35s',
+                            '--beam-delay': '0.55s',
+                          } as React.CSSProperties
+                        }
+                      />
+
+                      <text
+                        x={Math.min(395, 196 + Math.tan((utCalculations.shearAngleDeg * Math.PI) / 180) * 50)}
+                        y="162"
+                        fill="#38bdf8"
+                        fontSize="10.5"
+                        fontWeight="bold"
+                      >
+                        {isAr ? `موجة القص: ${utCalculations.shearAngleDeg.toFixed(1)}°` : `Shear: ${utCalculations.shearAngleDeg.toFixed(1)}°`}
+                      </text>
+                    </>
+                  ) : (
+                    <>
+                      {/* Surface Rayleigh Creep Wave when exceeding 2nd Critical Angle */}
+                      <line
+                        x1="180"
+                        y1="100"
+                        x2="465"
+                        y2="100"
+                        stroke="#22d3ee"
+                        strokeWidth="3.2"
+                        strokeDasharray="10 6"
+                        className="ut-beam-flow-fast"
+                      />
+                      <circle
+                        cx="180"
+                        cy="100"
+                        r="3.2"
+                        fill="#67e8f9"
+                        className="ut-wave-packet"
+                        style={
+                          {
+                            '--beam-dx': '280px',
+                            '--beam-dy': '0px',
+                            '--beam-duration': '1.1s',
+                            '--beam-delay': '0s',
+                          } as React.CSSProperties
+                        }
+                      />
+                      <text x="275" y="122" fill="#22d3ee" fontSize="10.5" fontWeight="bold">
+                        {isAr ? 'موجة ريليه سطحية (Rayleigh)' : 'Surface Rayleigh Wave'}
+                      </text>
+                    </>
+                  )}
+
+                  {/* Refracted Longitudinal Wave Beam (if below 1st critical, faster 5920 m/s) */}
+                  {utCalculations.hasLongWave && (
+                    <>
+                      <line
+                        x1="180"
+                        y1="100"
+                        x2={longEndX}
+                        y2="210"
+                        stroke="#f43f5e"
+                        strokeWidth="2.2"
+                        strokeDasharray="10 6"
+                        className="ut-beam-flow-fast"
+                      />
+                      <circle
+                        cx="180"
+                        cy="100"
+                        r="3"
+                        fill="#fda4af"
+                        className="ut-wave-packet"
+                        style={
+                          {
+                            '--beam-dx': `${longDx.toFixed(1)}px`,
+                            '--beam-dy': '110px',
+                            '--beam-duration': '0.82s',
+                            '--beam-delay': '0.1s',
+                          } as React.CSSProperties
+                        }
+                      />
+                      <text
+                        x={Math.min(395, 206 + Math.tan((utCalculations.longAngleDeg * Math.PI) / 180) * 32)}
+                        y="130"
+                        fill="#fb7185"
+                        fontSize="10"
+                        fontWeight="bold"
+                      >
+                        {isAr ? `موجة طولية: ${utCalculations.longAngleDeg.toFixed(1)}°` : `Long.: ${utCalculations.longAngleDeg.toFixed(1)}°`}
+                      </text>
+                    </>
+                  )}
+                </svg>
+              );
+            })()}
           </div>
 
           {/* Calculations Summary Card */}
@@ -1416,14 +1654,23 @@ export const InteractiveBookExperiment: React.FC<InteractiveBookExperimentProps>
                 className="absolute top-8 left-1/2 -translate-x-1/2 origin-top transition-all duration-300 flex flex-col items-center"
                 style={{
                   transform: `translateX(-50%) rotate(${pautSteerAngle}deg)`,
-                  height: `${Math.min(130, pautFocalDepthMm * 2.2)}px`
-                }}
+                  height: `${Math.min(130, pautFocalDepthMm * 2.2)}px`,
+                  '--paut-depth': `${Math.min(115, pautFocalDepthMm * 1.95)}px`,
+                } as React.CSSProperties}
               >
                 {/* Acoustic focal cone */}
-                <div 
-                  className="w-0 h-0 border-l-[18px] border-r-[18px] border-t-[110px] border-l-transparent border-r-transparent border-t-amber-400/30 opacity-70"
+                <div
+                  className="w-0 h-0 border-l-[18px] border-r-[18px] border-t-[110px] border-l-transparent border-r-transparent border-t-amber-400/30 ut-beam-cone-pulse"
                 />
-                <div 
+                {/* Traveling CSS wavefront arcs across element-steel interface */}
+                {[0, 0.45, 0.9].map((delaySec) => (
+                  <div
+                    key={delaySec}
+                    className="ut-paut-wavefront absolute top-1 w-7 h-2 rounded-full border-b-2 border-cyan-300/90 pointer-events-none"
+                    style={{ '--paut-delay': `${delaySec}s` } as React.CSSProperties}
+                  />
+                ))}
+                <div
                   className="w-3 h-3 rounded-full bg-amber-400 shadow-[0_0_15px_#f59e0b] animate-ping"
                   title="Focal Point"
                 />

@@ -21,6 +21,8 @@ import {
   getDefectCodeTolerance,
 } from '../src/data/utWeldDefectsCatalog';
 import { UtThreeScene } from '../src/components/academy/virtuallab/UtThreeScene';
+import { V1V2CalibrationLab } from '../src/components/academy/virtuallab/V1V2CalibrationLab';
+import { InteractiveBookExperiment } from '../src/components/academy/InteractiveBookExperiment';
 import { EducationalAcademy } from '../src/components/EducationalAcademy';
 import { generateWeldInspectionPdf } from '../src/utils/weldInspectionPdfGenerator';
 
@@ -594,3 +596,32 @@ test('drawUltrasonicBeamCone2D animates traveling wavefronts, Near-Field fringes
   }
 });
 
+test('UT Snell simulator, PAUT beam steering, and V1/V2 Calibration Lab apply CSS wave animations across the material interface', () => {
+  // 1) UT Snell's Law simulator (Perspex wedge -> Carbon Steel interface)
+  const snellUi = render(<InteractiveBookExperiment experimentId="exp-ut-snell-beam" language="en" />);
+  assert.ok(snellUi.container.querySelectorAll('.ut-beam-flow').length >= 2);
+  assert.ok(snellUi.container.querySelectorAll('.ut-interface-ripple').length >= 1);
+  assert.ok(snellUi.container.querySelectorAll('.ut-wave-packet').length >= 4);
+
+  // Switch incident angle below 1st critical angle (e.g., 15°) -> Longitudinal + Shear waves both animate
+  const angleSlider = snellUi.container.querySelector('input[type="range"][max="70"]') as HTMLInputElement;
+  assert.ok(angleSlider);
+  fireEvent.change(angleSlider, { target: { value: '15' } });
+  assert.ok(snellUi.container.querySelectorAll('.ut-beam-flow-fast').length >= 1);
+
+  // Switch incident angle above 2nd critical angle (e.g., 64°) -> Surface Rayleigh creep wave animates
+  fireEvent.change(angleSlider, { target: { value: '64' } });
+  assert.ok(snellUi.getAllByText(/Surface Rayleigh Wave/i).length >= 2);
+  cleanup();
+
+  // 2) PAUT beam steering CSS wavefronts
+  const pautExpUi = render(<InteractiveBookExperiment experimentId="exp-paut-beam-steering" language="en" />);
+  assert.ok(pautExpUi.container.querySelectorAll('.ut-paut-wavefront').length === 3);
+  assert.ok(pautExpUi.container.querySelector('.ut-beam-cone-pulse'));
+  cleanup();
+
+  // 3) V1/V2 Calibration Lab SVG beam rays
+  const v1v2Ui = render(<V1V2CalibrationLab language="en" />);
+  assert.ok(v1v2Ui.container.querySelectorAll('.ut-beam-flow').length >= 1);
+  assert.ok(v1v2Ui.container.querySelectorAll('.ut-interface-ripple').length >= 1);
+});

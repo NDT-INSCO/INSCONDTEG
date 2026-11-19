@@ -277,6 +277,106 @@ body {
   outline-color: #b45309;
 }
 
+/* ---------------------------------------------------------------------------
+   Ultrasonic Wave & Radiation Beam CSS Animations
+   Visualizes wave packets traveling across the Perspex/steel material
+   interface, mode conversion ripples, and PAUT wavefront convergence.
+   --------------------------------------------------------------------------- */
+@keyframes utBeamFlow {
+  from {
+    stroke-dashoffset: 32;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes utBeamPulse {
+  0%, 100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.95;
+  }
+}
+
+@keyframes utInterfaceRipple {
+  0% {
+    transform: scale(0.45);
+    opacity: 0.92;
+  }
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+
+@keyframes utWavePacketTravel {
+  0% {
+    transform: translate(0px, 0px) scale(0.7);
+    opacity: 0;
+  }
+  14% {
+    opacity: 1;
+  }
+  84% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--beam-dx, 0px), var(--beam-dy, 80px)) scale(1.08);
+    opacity: 0;
+  }
+}
+
+@keyframes utPautWaveSweep {
+  0% {
+    transform: translateY(0px) scaleX(0.45);
+    opacity: 0.85;
+  }
+  100% {
+    transform: translateY(var(--paut-depth, 96px)) scaleX(1.3);
+    opacity: 0;
+  }
+}
+
+.ut-beam-flow {
+  animation: utBeamFlow 1.15s linear infinite;
+}
+
+.ut-beam-flow-fast {
+  animation: utBeamFlow 0.68s linear infinite;
+}
+
+.ut-beam-flow-delayed {
+  animation: utBeamFlow 1.15s linear -0.57s infinite;
+}
+
+.ut-beam-cone-pulse {
+  animation: utBeamPulse 1.8s ease-in-out infinite;
+}
+
+.ut-interface-ripple {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: utInterfaceRipple 1.6s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+.ut-interface-ripple-delayed {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: utInterfaceRipple 1.6s cubic-bezier(0.16, 1, 0.3, 1) 0.8s infinite;
+}
+
+.ut-wave-packet {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: utWavePacketTravel var(--beam-duration, 1.45s) linear var(--beam-delay, 0s) infinite;
+}
+
+.ut-paut-wavefront {
+  animation: utPautWaveSweep 1.35s cubic-bezier(0.22, 1, 0.36, 1) var(--paut-delay, 0s) infinite;
+}
+
 /* Respect users who ask the OS to reduce motion: the flip/scale affordances
    become instant instead of animated. */
 @media (prefers-reduced-motion: reduce) {

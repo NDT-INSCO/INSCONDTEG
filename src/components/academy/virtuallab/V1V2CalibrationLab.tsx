@@ -1257,6 +1257,15 @@ export const V1V2CalibrationLab: React.FC<V1V2CalibrationLabProps> = ({
                             <text x={probeSvgX - 9} y={oy - 9} fill="#ffffff" fontSize="8.5" fontFamily="monospace" fontWeight="bold">
                               0°
                             </text>
+                            <circle
+                              cx={v1ZeroSpot === 'thk_25' ? 691 : probeSvgX}
+                              cy={oy}
+                              r="4.5"
+                              fill="none"
+                              stroke="#34d399"
+                              strokeWidth="1.2"
+                              className="ut-interface-ripple"
+                            />
                             {v1ZeroSpot === 'thk_25' ? (
                               <line
                                 x1="691"
@@ -1265,7 +1274,8 @@ export const V1V2CalibrationLab: React.FC<V1V2CalibrationLabProps> = ({
                                 y2="268"
                                 stroke="#34d399"
                                 strokeWidth="2.2"
-                                strokeDasharray="5 3"
+                                strokeDasharray="8 5"
+                                className="ut-beam-flow"
                               />
                             ) : (
                               <>
@@ -1280,12 +1290,13 @@ export const V1V2CalibrationLab: React.FC<V1V2CalibrationLabProps> = ({
                                   }
                                   stroke="#34d399"
                                   strokeWidth="2.2"
-                                  strokeDasharray="5 3"
+                                  strokeDasharray="8 5"
+                                  className="ut-beam-flow"
                                 />
                                 {v1ZeroSpot === 'res_steps' && (
                                   <>
-                                    <line x1={probeSvgX - 5} y1={oy} x2={probeSvgX - 5} y2={oy + 100 * sc} stroke="#34d399" strokeWidth="1.2" opacity="0.7" />
-                                    <line x1={probeSvgX + 5} y1={oy} x2={probeSvgX + 5} y2={oy + 91 * sc} stroke="#34d399" strokeWidth="1.2" opacity="0.7" />
+                                    <line x1={probeSvgX - 5} y1={oy} x2={probeSvgX - 5} y2={oy + 100 * sc} stroke="#34d399" strokeWidth="1.2" strokeDasharray="6 4" className="ut-beam-flow-delayed" opacity="0.7" />
+                                    <line x1={probeSvgX + 5} y1={oy} x2={probeSvgX + 5} y2={oy + 91 * sc} stroke="#34d399" strokeWidth="1.2" strokeDasharray="6 4" className="ut-beam-flow" opacity="0.7" />
                                   </>
                                 )}
                               </>
@@ -1326,7 +1337,17 @@ export const V1V2CalibrationLab: React.FC<V1V2CalibrationLabProps> = ({
                             {/* Ultrasonic Shear Beam Cone & Central Axis */}
                             <polygon
                               points={`${probeSvgX},${oy} ${rayEndX - 10},${Math.min(oy + 198, rayEndY)} ${rayEndX + 10},${Math.min(oy + 198, rayEndY)}`}
-                              fill="rgba(56, 189, 248, 0.16)"
+                              fill="rgba(56, 189, 248, 0.18)"
+                              className="ut-beam-cone-pulse"
+                            />
+                            <circle
+                              cx={probeSvgX}
+                              cy={oy}
+                              r="5"
+                              fill="none"
+                              stroke="#38bdf8"
+                              strokeWidth="1.3"
+                              className="ut-interface-ripple"
                             />
                             <line
                               x1={probeSvgX}
@@ -1334,8 +1355,9 @@ export const V1V2CalibrationLab: React.FC<V1V2CalibrationLabProps> = ({
                               x2={rayEndX}
                               y2={Math.min(oy + 198, rayEndY)}
                               stroke="#38bdf8"
-                              strokeWidth="2.2"
-                              strokeDasharray="6 3"
+                              strokeWidth="2.4"
+                              strokeDasharray="10 6"
+                              className="ut-beam-flow"
                             />
                           </g>
                         )}
@@ -1512,7 +1534,7 @@ export const V1V2CalibrationLab: React.FC<V1V2CalibrationLabProps> = ({
                             <text x={probeSvgX - 8} y={oy - 9} fill="#fff" fontSize="8.5" fontFamily="monospace" fontWeight="bold">
                               0°
                             </text>
-                            <line x1="605" y1={oy} x2="605" y2={oy + 43 * sc} stroke="#34d399" strokeWidth="2.2" strokeDasharray="5 3" />
+                            <line x1="605" y1={oy} x2="605" y2={oy + 43 * sc} stroke="#34d399" strokeWidth="2.2" strokeDasharray="8 5" className="ut-beam-flow" />
                           </g>
                         ) : (
                           <g>
@@ -1537,6 +1559,15 @@ export const V1V2CalibrationLab: React.FC<V1V2CalibrationLabProps> = ({
                             <text x={probeSvgX - 22} y={oy - 28} fill="#fef3c7" fontSize="8.5" fontFamily="monospace" fontWeight="bold">
                               {nominalAngleDeg}° ({beamDirection === 'left' ? '← R25' : 'R50 →'})
                             </text>
+                            <circle
+                              cx={probeSvgX}
+                              cy={oy}
+                              r="5"
+                              fill="none"
+                              stroke="#38bdf8"
+                              strokeWidth="1.3"
+                              className="ut-interface-ripple"
+                            />
                             <line
                               x1={probeSvgX}
                               y1={oy}
@@ -1544,7 +1575,8 @@ export const V1V2CalibrationLab: React.FC<V1V2CalibrationLabProps> = ({
                               y2={Math.min(oy + 43 * sc, rayEndY)}
                               stroke="#38bdf8"
                               strokeWidth="2.4"
-                              strokeDasharray="6 3"
+                              strokeDasharray="10 6"
+                              className="ut-beam-flow"
                             />
                             {/* Show secondary R50/R25 reverb path when near zero center */}
                             {Math.abs(probePositionXmm - 25) <= 4 && (
@@ -1557,9 +1589,10 @@ export const V1V2CalibrationLab: React.FC<V1V2CalibrationLabProps> = ({
                                   oy + (beamDirection === 'left' ? 50 : 25) * Math.cos(trueAngleRad) * sc
                                 )}
                                 stroke="#fbbf24"
-                                strokeWidth="1.4"
-                                strokeDasharray="3 3"
-                                opacity="0.75"
+                                strokeWidth="1.6"
+                                strokeDasharray="8 5"
+                                className="ut-beam-flow-delayed"
+                                opacity="0.8"
                               />
                             )}
                           </g>
@@ -1703,6 +1736,15 @@ export const V1V2CalibrationLab: React.FC<V1V2CalibrationLabProps> = ({
                             <text x={probeSvgX - 22} y={topY - 30} fill="#e0f2fe" fontSize="9" fontFamily="monospace" fontWeight="bold">
                               {nominalAngleDeg}° @ X={probePositionXmm}mm
                             </text>
+                            <circle
+                              cx={probeSvgX}
+                              cy={topY}
+                              r="5"
+                              fill="none"
+                              stroke="#fbbf24"
+                              strokeWidth="1.3"
+                              className="ut-interface-ripple"
+                            />
                             {/* Leg I (Direct to Root) */}
                             <line
                               x1={probeSvgX}
@@ -1711,7 +1753,8 @@ export const V1V2CalibrationLab: React.FC<V1V2CalibrationLabProps> = ({
                               y2={botY}
                               stroke="#fbbf24"
                               strokeWidth="2.4"
-                              strokeDasharray="6 3"
+                              strokeDasharray="10 6"
+                              className="ut-beam-flow"
                             />
                             {/* Leg II (Bounce from Root/Bottom up to Cap/Upper Bevel) */}
                             {leg1BounceX > 45 && (
@@ -1722,7 +1765,8 @@ export const V1V2CalibrationLab: React.FC<V1V2CalibrationLabProps> = ({
                                 y2={topY}
                                 stroke="#38bdf8"
                                 strokeWidth="2.0"
-                                strokeDasharray="4 3"
+                                strokeDasharray="10 6"
+                                className="ut-beam-flow-delayed"
                               />
                             )}
                           </g>

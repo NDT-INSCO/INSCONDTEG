@@ -10,6 +10,7 @@ import { GlobalThemeSwitcher } from './components/GlobalThemeSwitcher';
 import { GlobalAppConfigControl } from './components/GlobalAppConfigControl';
 import { Language } from './types';
 import { AcademyTab } from './academyTabs';
+import { ADMIN_HASH } from './admin/contract';
 import { INSCO_COMPANY_DATA } from './data/inscoCompanyData';
 import {
   serviceFamilyById,
@@ -66,6 +67,10 @@ const CompanyDemoPortal = React.lazy(() =>
 const ClientPortal = React.lazy(() =>
   import('./components/client/ClientPortal').then(module => ({ default: module.ClientPortal }))
 );
+
+// The admin portal (password + passkeys) is a stand-alone page: it replaces the
+// site chrome instead of floating inside a corporate or academy page.
+const AdminPortal = React.lazy(() => import('./components/admin/AdminPortal'));
 
 function AcademyLoading({ isAr }: { isAr: boolean }) {
   return (
@@ -136,11 +141,16 @@ export const App: React.FC = () => {
       hasAcademyHash: initial.portal === 'academy',
       hasClientHash: initial.portal === 'client',
       hasDemoHash: initial.portal === 'company' && initial.page !== 'home',
+      // Any hash on the corporate profile is a shared deep link (a section, the
+      // footer, a service): a modal must never open on top of it.
+      hasAnchorHash: window.location.hash !== '' && initial.portal === 'company',
       view: chooserViewOf(initial),
     });
   });
   const [menuOpen, setMenuOpen] = useState(false);
   const [mapsQuotaExceeded, setMapsQuotaExceeded] = useState(false);
+  // `#admin` is its own page, not a fourth portal: no nav, no footer, no browsing.
+  const [adminOpen, setAdminOpen] = useState(() => window.location.hash === ADMIN_HASH);
 
   useEffect(() => {
     const onQuotaExceeded = () => setMapsQuotaExceeded(true);
@@ -318,7 +328,10 @@ export const App: React.FC = () => {
 
   // Back/forward between portals, service pages, demos and academy deep links.
   useEffect(() => {
-    const onHashChange = () => setRoute(parseRoute(window.location.hash));
+    const onHashChange = () => {
+      setRoute(parseRoute(window.location.hash));
+      setAdminOpen(window.location.hash === ADMIN_HASH);
+    };
     window.addEventListener('hashchange', onHashChange);
     window.addEventListener('popstate', onHashChange);
     return () => {
@@ -462,8 +475,50 @@ export const App: React.FC = () => {
     return steps;
   }, [route, isAr, language, openCompany, openClient, openAcademyHash]);
 
+  /** Stand-alone admin page: the site chrome is replaced, not covered. */
+  const openAdmin = useCallback(() => {
+    setMenuOpen(false);
+    setAdminOpen(true);
+    window.history.pushState(
+      null,
+      '',
+      `${window.location.pathname}${window.location.search}${ADMIN_HASH}`
+    );
+  }, []);
+
+  /** Back to the site, with the address bar no longer claiming `#admin`. */
+  const closeAdmin = useCallback(() => {
+    setAdminOpen(false);
+    window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+  }, []);
+
   const academyRoute: AcademyRoute | null = route.portal === 'academy' ? route : null;
   const clientRoute: ClientRoute | null = route.portal === 'client' ? route : null;
+
+  if (adminOpen) {
+    return (
+      <div
+        dir={isAr ? 'rtl' : 'ltr'}
+        data-theme={theme}
+        data-portal="admin"
+        className={`min-h-screen font-sans ${isLight ? 'bg-slate-50 text-slate-900' : 'bg-slate-950 text-slate-100'}`}
+      >
+        <Suspense
+          fallback={
+            <div role="status" aria-live="polite" className="p-8 text-sm text-slate-400">
+              {isAr ? 'جارٍ فتح بوابة الإدارة…' : 'Opening the admin portal…'}
+            </div>
+          }
+        >
+          <AdminPortal
+            language={language}
+            onBack={closeAdmin}
+            onToggleLanguage={() => setLanguage(isAr ? 'en' : 'ar')}
+          />
+        </Suspense>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -761,6 +816,7 @@ export const App: React.FC = () => {
               language={language}
               onOpenHash={openAcademyHash}
               onOpenCompany={() => openCompany()}
+              onOpenAdmin={openAdmin}
             />
           </div>
         )}
@@ -817,6 +873,7 @@ export const App: React.FC = () => {
           onOpenDemo={() => openDemo()}
           onOpenAcademy={() => openAcademyHash('#academy')}
           onOpenClient={() => openClient('overview')}
+          onOpenAdmin={openAdmin}
         />
       )}
 

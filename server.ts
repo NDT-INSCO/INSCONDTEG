@@ -23,10 +23,7 @@ import {
 import type { CorpusDocument, CorpusStats } from './src/ai/corpus';
 import type { SearchHit } from './src/ai/search';
 import { streamTutorText, TutorAiClient, TutorTransportMode } from './src/ai/transport';
-import { createRateLimiter, deliveryFromEnv, handleRfqRequest } from './src/rfq/gateway';
-import { ADMIN_API, ANNOUNCEMENT_API } from './src/admin/contract';
-import { adminConfig, createAdminRouter, httpOrigin, publicAnnouncement, publicSiteCors } from './server/admin/router';
-import { adminDatabasePath, AdminStore, deliverToInbox } from './server/admin/store';
+import { createOperations } from './server/admin/operations';
 
 dotenv.config();
 
@@ -256,46 +253,10 @@ function streamFromModel(
 
 app.disable('x-powered-by');
 
-const admin = adminConfig(process.env, isProduction);
-let adminStore: AdminStore | null = null;
-if (admin) {
-  try {
-    const dataDir = path.resolve(__dirname, process.env.ADMIN_DATA_DIR?.trim() || '.admin-data');
-    const publicRoots = ['public', 'docs', 'dist'].map(dir => path.join(__dirname, dir));
-    adminStore = new AdminStore(adminDatabasePath(dataDir, publicRoots));
-  } catch {
-    console.error('[admin] Cannot open private storage. Check ADMIN_DATA_DIR and its permissions.');
-  }
-} else if (process.env.ADMIN_PASSWORD || process.env.ADMIN_PIN) {
-  console.warn('[admin] Disabled: check the admin credential and ADMIN_ORIGIN.');
-}
-
-const externalRfqDelivery = deliveryFromEnv(process.env);
-const rfqDelivery = adminStore ? deliverToInbox(adminStore, externalRfqDelivery) : externalRfqDelivery;
-const publicCors = publicSiteCors(httpOrigin(process.env.PUBLIC_SITE_ORIGIN?.trim()));
-
-// Mount before the general body parser and any static/SPA fallback.
-app.use(ADMIN_API, createAdminRouter({
-  config: admin,
-  store: adminStore,
-  services: { tutorConfigured: Boolean(ai), rfqNotificationsConfigured: Boolean(externalRfqDelivery) },
-}));
-app.get(ANNOUNCEMENT_API, publicCors, publicAnnouncement(adminStore));
-
-/** Successful RFQs must reach an actual channel: the durable inbox, email or a webhook. */
-const RFQ_ENDPOINT = '/api/rfq';
-const allowRfqAttempt = createRateLimiter({ windowMs: 60 * 60 * 1000, max: 6 });
-app.options(RFQ_ENDPOINT, publicCors);
+// Mount the operations API before the general parser, AI, and static routes.
+const operations = await createOperations(process.env, { production: isProduction, baseDir: __dirname, tutorConfigured: Boolean(ai) });
+app.use(operations.router);
 app.use(express.json({ limit: '96kb' }));
-app.post(RFQ_ENDPOINT, publicCors, async (req: Request, res: Response) => {
-  const address = req.ip || req.socket.remoteAddress || 'unknown';
-  if (!allowRfqAttempt(address)) {
-    res.status(429).json({ ok: false, error: 'rfq_rate_limited', detail: 'Too many requests from this address.' });
-    return;
-  }
-  const result = await handleRfqRequest(req.body, { deliver: rfqDelivery }, address);
-  res.status(result.status).json(result.body);
-});
 
 app.get(TUTOR_ENDPOINTS.status, async (_req: Request, res: Response) => {
   const { getCorpus } = await loadAiLibrary();
@@ -530,8 +491,8 @@ async function startServer(): Promise<void> {
     console.log(`Server listening on http://0.0.0.0:${PORT} (${isProduction ? 'production' : 'development'})`);
     console.log(`[ai] tutor: ${ai ? `enabled, model ${MODEL_CHAIN[0]}` : 'disabled (no GEMINI_API_KEY)'}`);
     console.log(`[ai] transport: ${API_MODE}${ai ? '' : ' (no key, calls will be refused)'}`);
-    console.log(`[rfq] delivery: ${rfqDelivery ? 'configured' : 'not configured (POST /api/rfq will answer 503)'}`);
-    console.log(`[admin] portal: ${adminStore ? 'enabled' : 'disabled (set ADMIN_PASSWORD and, in production, ADMIN_ORIGIN)'}`);
+    console.log(`[rfq] delivery: ${operations.rfqEnabled ? 'configured' : 'not configured (POST /api/rfq will answer 503)'}`);
+    console.log(`[admin] portal: ${operations.adminEnabled ? 'enabled' : 'disabled (set ADMIN_PASSWORD and, in production, ADMIN_ORIGIN)'}`);
   });
 }
 

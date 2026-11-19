@@ -137,6 +137,14 @@
 .ad-password-field button { position: absolute; inset-inline-end: 5px; display: grid; place-items: center; width: 41px; height: 40px; border-radius: 8px; color: #becddd; }
 .ad-password-field button:hover { color: #b0faed; background: #172b3e; }
 .ad-login-cta { justify-content: space-between; min-height: 49px; margin-top: 6px; font-size: .96rem; }
+.ad-passkey-entry { display: grid; gap: 10px; margin-top: 17px; }
+.ad-passkey-entry + .ad-login-form { margin-top: 11px; }
+.ad-sign-in-divider { display: flex; align-items: center; gap: 9px; font-size: .76rem; color: var(--ad-faint); }
+.ad-sign-in-divider::before, .ad-sign-in-divider::after { content: ''; flex: 1 1 0; border-top: 1px solid #2c4057; }
+.ad-passkey-cta { min-height: 48px; color: var(--ad-accent); border-color: #39596b; background: #142c3e; }
+.ad-passkey-entry > .ad-passkey-tip { text-align: center; }
+.ad-passkey-tip { color: var(--ad-muted); font-size: .81rem; line-height: 1.6; }
+.ad-passkey-tip a { color: var(--ad-accent); text-decoration: underline; text-underline-offset: 3px; }
 .ad-login-secure { display: flex; align-items: center; gap: 8px; color: #aabfd1; font-size: .78rem; margin-top: 22px; padding-top: 15px; border-top: 1px solid #2a3a50; }
 .ad-login-secure svg { color: #8de9da; }
 .ad-login-feedback { display: grid; gap: 12px; margin-top: 22px; justify-items: start; }
@@ -298,6 +306,21 @@ textarea.ad-input { resize: vertical; line-height: 1.65; }
 .ad-notice-preview svg { color: var(--ad-amber); margin-top: 1px; }
 .ad-notice-preview p { white-space: pre-wrap; overflow-wrap: anywhere; min-width: 0; }
 
+/* Passkey management */
+.ad-passkey-tip + .ad-passkey-tip { margin-top: 10px; }
+.ad-passkey-form { margin-top: 16px; }
+.ad-passkey-retry { justify-self: start; }
+.ad-theme .ad-passkey-list { list-style: none; padding: 0; display: grid; gap: 9px; }
+.ad-passkey-list li { padding: 11px; min-width: 0; background: var(--ad-inset); border: 1px solid var(--ad-edge); border-radius: 11px; }
+.ad-passkey-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.ad-passkey-item { min-width: 0; flex: 1 1 145px; overflow-wrap: anywhere; }
+.ad-passkey-item strong { font-size: .88rem; }
+.ad-passkey-item small { display: block; margin-top: 3px; color: var(--ad-faint); font-size: .75rem; }
+.ad-passkey-confirm { display: grid; gap: 9px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--ad-edge); color: var(--ad-muted); font-size: .82rem; }
+.ad-passkey-confirm > div { display: flex; flex-wrap: wrap; gap: 7px; }
+.ad-passkey-danger { color: var(--ad-error); background: var(--ad-error-bg); border-color: var(--ad-edge); }
+.ad-passkey-danger:not(:disabled):hover { border-color: var(--ad-error); }
+
 @media (max-width: 975px) {
   .ad-workspace { grid-template-columns: 196px minmax(0, 1fr); }
   .ad-overview-grid, .ad-editor-grid, .ad-detail-grid { grid-template-columns: minmax(0, 1fr); }
@@ -318,7 +341,7 @@ textarea.ad-input { resize: vertical; line-height: 1.65; }
   .ad-sidebar { height: auto; position: static; padding: 13px 16px; display: grid; grid-template-columns: 1fr auto; gap: 11px; border-inline-end: 0; border-bottom: 1px solid #26384e; }
   .ad-sidebar > .ad-brand { margin: 0; padding-inline: 0; }
   .ad-sidebar .ad-sidebar-label, .ad-private { display: none; }
-  .ad-sidebar-nav { grid-column: 1 / -1; grid-row: 2; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .ad-sidebar-nav { grid-column: 1 / -1; grid-row: 2; grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .ad-sidebar-nav button { justify-content: center; text-align: center; }
   .ad-sidebar-bottom { margin: 0; padding: 0; border: 0; display: flex; gap: 3px; justify-self: end; align-items: center; }
   .ad-sidebar-bottom button { width: auto; background: #18293e; border-color: #304256; }

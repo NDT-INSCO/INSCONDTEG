@@ -18,5 +18,5 @@
     "allowJs": true,
     "resolveJsonModule": true
   },
-  "include": ["src", "server.ts"]
+  "include": ["src", "server.ts", "api"]
 }

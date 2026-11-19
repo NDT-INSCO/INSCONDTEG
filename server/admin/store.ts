@@ -1,10 +1,15 @@
+import { randomBytes } from 'node:crypto';
 import { closeSync, constants, existsSync, fchmodSync, fstatSync, mkdirSync, openSync, realpathSync } from 'node:fs';
 import { isAbsolute, join, relative, sep } from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
-import type { Delivery, RfqRecord } from '../../src/rfq/gateway';
+import { localDatabase, type AdminDatabase } from './database.js';
+import { ADMIN_SCHEMA } from './schema.js';
+import { AdminAuthState, PASSKEY_PASSWORD_WINDOW, type PasswordGrant } from './state.js';
+import type { WebAuthnCredential } from '@simplewebauthn/server';
+import type { Delivery, RfqRecord } from '../../src/rfq/gateway.js';
+import { PASSKEY_LIMIT } from '../../src/admin/contract.js';
 import type {
-  Announcement, AnnouncementInput, DashboardData, ManagedQuote, QuotePage, QuoteStatus, QuoteSummary,
-} from '../../src/admin/contract';
+  Announcement, AnnouncementInput, DashboardData, ManagedQuote, PasskeySummary, QuotePage, QuoteStatus, QuoteSummary,
+} from '../../src/admin/contract.js';
 
 const PAGE_SIZE = 12;
 const DAY = 86_400_000;
@@ -39,103 +44,146 @@ export function adminDatabasePath(dataDir: string, publicRoots: string[]): strin
 }
 
 export class AdminStore {
-  private readonly db: DatabaseSync;
+  private readonly db: AdminDatabase;
 
-  constructor(file: string) {
-    this.db = new DatabaseSync(file);
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS quotes (
-        reference TEXT PRIMARY KEY,
-        company_name TEXT NOT NULL,
-        service_type TEXT NOT NULL,
-        received_at TEXT NOT NULL,
-        status TEXT NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'in_progress', 'closed')),
-        contact_name TEXT NOT NULL,
-        phone TEXT NOT NULL,
-        email TEXT NOT NULL,
-        project_location TEXT NOT NULL,
-        description TEXT NOT NULL
-      ) STRICT;
-      CREATE INDEX IF NOT EXISTS quote_received ON quotes (received_at DESC, reference DESC);
-      CREATE TABLE IF NOT EXISTS announcement (
-        id INTEGER PRIMARY KEY CHECK (id = 1),
-        enabled INTEGER NOT NULL CHECK (enabled IN (0, 1)),
-        ar TEXT NOT NULL,
-        en TEXT NOT NULL,
-        updated_at TEXT NOT NULL
-      ) STRICT;
-    `);
+  constructor(file: string | AdminDatabase) {
+    this.db = typeof file === 'string' ? localDatabase(file, ADMIN_SCHEMA) : file;
+  }
+
+  auth(scope: string, key: Uint8Array, origin: string | null) {
+    return new AdminAuthState(this.db, scope, key, origin ?? '');
   }
 
   close() { this.db.close(); }
 
-  addQuote(record: RfqRecord) {
+  async passkeyUserHandle(origin: string): Promise<string | undefined> {
+    const [row] = await this.db.all('SELECT user_handle FROM passkey_accounts WHERE origin = ?', origin);
+    return row?.user_handle as string | undefined;
+  }
+
+  async ensurePasskeyUserHandle(origin: string): Promise<string> {
+    // Two instances starting enrollment at once must agree on the same account handle.
+    const created = randomBytes(32).toString('base64url');
+    await this.db.run('INSERT INTO passkey_accounts (origin, user_handle) VALUES (?, ?) ON CONFLICT DO NOTHING', origin, created);
+    const handle = await this.passkeyUserHandle(origin);
+    if (!handle) throw new Error('No passkey account');
+    return handle;
+  }
+
+  async countPasskeys(origin: string): Promise<number> {
+    const [row] = await this.db.all('SELECT COUNT(*) AS count FROM passkeys WHERE origin = ?', origin);
+    return Number(row?.count ?? 0);
+  }
+
+  async listPasskeys(origin: string): Promise<PasskeySummary[]> {
+    return await this.db.all(`
+      SELECT credential_id AS id, label, created_at AS createdAt, last_used_at AS lastUsedAt
+      FROM passkeys WHERE origin = ? ORDER BY created_at DESC, credential_id
+    `, origin) as unknown as PasskeySummary[];
+  }
+
+  async passkey(origin: string, id: string): Promise<WebAuthnCredential | undefined> {
+    const [row] = await this.db.all(`
+      SELECT credential_id AS id, public_key AS publicKey, sign_count AS counter
+      FROM passkeys WHERE origin = ? AND credential_id = ?
+    `, origin, id);
+    return row as unknown as WebAuthnCredential | undefined;
+  }
+
+  async addPasskey(origin: string, credential: WebAuthnCredential, label: string, time: number, grant: PasswordGrant): Promise<boolean> {
+    // Enforce both the recent password grant and capacity in the same write as enrollment.
+    return (await this.db.run(`
+      INSERT INTO passkeys (origin, credential_id, public_key, sign_count, label, created_at)
+      SELECT ?, ?, ?, ?, ?, ?
+      WHERE (SELECT count(*) FROM passkeys WHERE origin = ?) < ?
+        AND EXISTS (SELECT 1 FROM admin_sessions WHERE scope = ? AND token = ? AND origin = ?
+          AND passkey_id IS NULL AND expires_at > ? AND issued_at > ?)
+      ON CONFLICT (origin, credential_id) DO NOTHING
+    `, origin, credential.id, credential.publicKey, credential.counter, label, new Date(time).toISOString(),
+    origin, PASSKEY_LIMIT, grant.scope, grant.token, origin, time, time - PASSKEY_PASSWORD_WINDOW)) > 0;
+  }
+
+  async usePasskey(origin: string, credential: WebAuthnCredential, counter: number, usedAt: string): Promise<boolean> {
+    // The verification can yield while a concurrent request updates or revokes this credential.
+    return (await this.db.run(`
+      UPDATE passkeys SET sign_count = ?, last_used_at = ?
+      WHERE origin = ? AND credential_id = ? AND sign_count = ? AND public_key = ?
+    `, counter, usedAt, origin, credential.id, credential.counter, credential.publicKey)) > 0;
+  }
+
+  async removePasskey(origin: string, id: string): Promise<boolean> {
+    return (await this.db.run('DELETE FROM passkeys WHERE origin = ? AND credential_id = ?', origin, id)) > 0;
+  }
+
+  async addQuote(record: RfqRecord) {
     // Deliberately don't store IPs, browser URLs, or unvalidated client timestamps.
-    this.db.prepare(`
+    await this.db.run(`
       INSERT INTO quotes (reference, company_name, service_type, received_at, contact_name, phone, email, project_location, description)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(record.reference, record.companyName, record.serviceType, record.receivedAt,
+    `, record.reference, record.companyName, record.serviceType, record.receivedAt,
       record.contactName, record.phone, record.email, record.projectLocation, record.description);
   }
 
-  listQuotes(search: string, status: QuoteStatus | null, requestedPage: number): QuotePage {
+  async listQuotes(search: string, status: QuoteStatus | null, requestedPage: number): Promise<QuotePage> {
     const match = `(? IS NULL OR status = ?) AND (instr(lower(company_name), lower(?)) > 0 OR instr(lower(reference), lower(?)) > 0)`;
     const args = [status, status, search, search];
-    const total = Number(this.db.prepare(`SELECT COUNT(*) AS total FROM quotes WHERE ${match}`).get(...args)?.total ?? 0);
+    const [row] = await this.db.all(`SELECT COUNT(*) AS total FROM quotes WHERE ${match}`, ...args);
+    const total = Number(row?.total ?? 0);
     const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
     const page = Math.min(Math.max(1, requestedPage), pages);
-    const items = this.db.prepare(`
+    const items = await this.db.all(`
       SELECT ${SUMMARY_FIELDS} FROM quotes WHERE ${match} ORDER BY received_at DESC, reference DESC LIMIT ? OFFSET ?
-    `).all(...args, PAGE_SIZE, (page - 1) * PAGE_SIZE) as unknown as QuoteSummary[];
+    `, ...args, PAGE_SIZE, (page - 1) * PAGE_SIZE) as unknown as QuoteSummary[];
     return { items, page, pages, total };
   }
 
-  quote(reference: string): ManagedQuote | undefined {
-    return this.db.prepare(`
+  async quote(reference: string): Promise<ManagedQuote | undefined> {
+    const [row] = await this.db.all(`
       SELECT ${SUMMARY_FIELDS}, contact_name AS contactName, phone, email, project_location AS projectLocation, description
       FROM quotes WHERE reference = ?
-    `).get(reference) as unknown as ManagedQuote | undefined;
+    `, reference);
+    return row as unknown as ManagedQuote | undefined;
   }
 
-  updateQuote(reference: string, status: QuoteStatus): boolean {
-    return Number(this.db.prepare('UPDATE quotes SET status = ? WHERE reference = ?').run(status, reference).changes) > 0;
+  async updateQuote(reference: string, status: QuoteStatus): Promise<boolean> {
+    return (await this.db.run('UPDATE quotes SET status = ? WHERE reference = ?', status, reference)) > 0;
   }
 
-  announcement(): Announcement {
-    const row = this.db.prepare('SELECT enabled, ar, en, updated_at FROM announcement WHERE id = 1').get();
+  async announcement(): Promise<Announcement> {
+    const [row] = await this.db.all('SELECT enabled, ar, en, updated_at FROM announcement WHERE id = 1');
     return row
       ? { enabled: row.enabled === 1, message: { ar: String(row.ar), en: String(row.en) }, updatedAt: String(row.updated_at) }
       : { enabled: false, message: { ar: '', en: '' }, updatedAt: null };
   }
 
-  saveAnnouncement(input: AnnouncementInput, updatedAt: string): Announcement {
-    this.db.prepare(`
+  async saveAnnouncement(input: AnnouncementInput, updatedAt: string): Promise<Announcement> {
+    await this.db.run(`
       INSERT INTO announcement (id, enabled, ar, en, updated_at) VALUES (1, ?, ?, ?, ?)
       ON CONFLICT (id) DO UPDATE SET enabled = excluded.enabled, ar = excluded.ar, en = excluded.en, updated_at = excluded.updated_at
-    `).run(Number(input.enabled), input.message.ar, input.message.en, updatedAt);
+    `, Number(input.enabled), input.message.ar, input.message.en, updatedAt);
     return { ...input, updatedAt };
   }
 
-  overview(now: number): Pick<DashboardData, 'totals' | 'activity' | 'recent' | 'announcement'> {
+  async overview(now: number): Promise<Pick<DashboardData, 'totals' | 'activity' | 'recent' | 'announcement'>> {
     const cutoff = new Date(now - 2 * DAY).toISOString();
-    const totals = this.db.prepare(`
-      SELECT COUNT(*) AS total,
-        COUNT(CASE WHEN status = 'new' THEN 1 END) AS new,
-        COUNT(CASE WHEN status = 'in_progress' THEN 1 END) AS in_progress,
-        COUNT(CASE WHEN status = 'closed' THEN 1 END) AS closed,
-        COUNT(CASE WHEN status != 'closed' AND received_at <= ? THEN 1 END) AS overdue
-      FROM quotes
-    `).get(cutoff) as unknown as DashboardData['totals'];
     const days = Array.from({ length: 7 }, (_, index) => new Date(now - (6 - index) * DAY).toISOString().slice(0, 10));
-    const counts = new Map(this.db.prepare(`
-      SELECT substr(received_at, 1, 10) AS day, COUNT(*) AS count FROM quotes
-      WHERE received_at >= ? GROUP BY day
-    `).all(days[0]).map(row => [String(row.day), Number(row.count)]));
+    const [[totals], rows, recent, announcement] = await Promise.all([
+      this.db.all(`
+        SELECT COUNT(*) AS total,
+          COUNT(CASE WHEN status = 'new' THEN 1 END) AS new,
+          COUNT(CASE WHEN status = 'in_progress' THEN 1 END) AS in_progress,
+          COUNT(CASE WHEN status = 'closed' THEN 1 END) AS closed,
+          COUNT(CASE WHEN status != 'closed' AND received_at <= ? THEN 1 END) AS overdue
+        FROM quotes
+      `, cutoff),
+      this.db.all(`SELECT substr(received_at, 1, 10) AS day, COUNT(*) AS count FROM quotes
+        WHERE received_at >= ? GROUP BY day`, days[0]),
+      this.db.all(`SELECT ${SUMMARY_FIELDS} FROM quotes ORDER BY received_at DESC, reference DESC LIMIT 4`),
+      this.announcement(),
+    ]);
+    const counts = new Map(rows.map(row => [String(row.day), Number(row.count)]));
     const activity = days.map(day => ({ day, count: counts.get(day) ?? 0 }));
-    const recent = this.db.prepare(`
-      SELECT ${SUMMARY_FIELDS} FROM quotes ORDER BY received_at DESC, reference DESC LIMIT 4
-    `).all() as unknown as QuoteSummary[];
-    return { totals, activity, recent, announcement: this.announcement() };
+    return { totals: totals as unknown as DashboardData['totals'], activity, recent: recent as unknown as QuoteSummary[], announcement };
   }
 }
 
@@ -147,7 +195,7 @@ export function deliverToInbox(store: AdminStore, primary: Delivery | null): Del
       if (!result.ok) return result;
     }
     try {
-      store.addQuote(record);
+      await store.addQuote(record);
     } catch {
       console.error('[admin] Could not store an accepted RFQ in the private inbox.');
       // If the original channel accepted it, don't tell the customer to resend it.

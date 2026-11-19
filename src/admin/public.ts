@@ -6,7 +6,7 @@ export function externalAdminLink(raw = import.meta.env?.VITE_ADMIN_PORTAL_URL):
   if (!raw?.trim()) return null;
   try {
     const url = new URL(raw.trim());
-    if (url.protocol !== 'https:' || url.username || url.password) return null;
+    if (url.protocol !== 'https:' || url.username || url.password || url.search) return null;
     url.hash = ADMIN_HASH;
     return url.href;
   } catch {

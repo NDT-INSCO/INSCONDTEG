@@ -1,0 +1,5 @@
+.env*
+.admin-data/
+admin.sqlite*
+docs/
+dist/

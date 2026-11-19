@@ -17,7 +17,7 @@
     "test:cert": "tsx --test tests/certificationCenter.test.tsx",
     "test:company": "tsx --test tests/companyProfile.test.tsx",
     "test:rfq": "tsx --test tests/rfqSubmit.test.ts && tsx --test tests/rfqGateway.test.ts",
-    "test:admin": "tsx --test tests/adminGateway.test.ts tests/adminPortal.test.tsx",
+    "test:admin": "tsx --test tests/adminGateway.test.ts tests/adminHosted.test.ts tests/adminPasskeys.test.ts tests/adminPortal.test.tsx",
     "test:fleet": "tsx --test tests/fleetCalibration.test.tsx",
     "test:a11y": "tsx --test tests/a11yClickables.test.tsx",
     "test:ux": "tsx --test tests/uxNavigation.test.tsx && tsx --test tests/academyStations.test.tsx",
@@ -43,10 +43,14 @@
     "site:check": "tsx scripts/check-published-site.ts",
     "test:portals": "tsx --test tests/portalIsolation.test.tsx",
     "docs:check": "tsx scripts/compare-docs-build.ts",
-    "test:simlabs": "tsx --test tests/simLabsRtLayout.test.tsx"
+    "test:simlabs": "tsx --test tests/simLabsRtLayout.test.tsx",
+    "build:vercel": "SITE_BASE=/ VITE_ADMIN_PORTAL_URL= VITE_RFQ_ENDPOINT= vite build --outDir dist"
   },
   "dependencies": {
     "@google/genai": "^2.31.0",
+    "@libsql/client": "^0.18.0",
+    "@simplewebauthn/browser": "^14.0.0",
+    "@simplewebauthn/server": "^14.1.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/qrcode": "^1.5.6",
     "@types/three": "^0.186.0",

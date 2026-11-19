@@ -1,7 +1,7 @@
 import React from 'react';
 import { ArrowLeft, Building2, CircleAlert, Inbox, LoaderCircle } from 'lucide-react';
 import { AdminApiError } from '../../admin/client';
-import type { QuoteStatus, QuoteSummary } from '../../admin/contract';
+import { ADMIN_HASH, type QuoteStatus, type QuoteSummary } from '../../admin/contract';
 import type { Language } from '../../types';
 
 export function AdminBrand({ language }: { language: Language }) {
@@ -25,6 +25,11 @@ export function AdminMessage({ children, error = true }: { children: React.React
   return <div className={`ad-message ${error ? 'is-error' : 'is-success'}`} role={error ? 'alert' : 'status'}>{error && <CircleAlert size={16} aria-hidden="true" />}<div>{children}</div></div>;
 }
 
+export function PasskeyNewTab({ language }: { language: Language }) {
+  const ar = language === 'ar';
+  return <p className="ad-passkey-tip">{ar ? 'لاستخدام مفتاح المرور، ' : 'To use a passkey, '}<a href={ADMIN_HASH} target="_blank" rel="noopener noreferrer">{ar ? 'افتح البوابة في تبويب مستقل' : 'open the portal in its own tab'}</a>.</p>;
+}
+
 export function adminError(error: unknown, language: Language): string {
   const ar = language === 'ar';
   const generic = ar ? 'تعذّر إتمام العملية. تحقق من الاتصال وحاول مرة أخرى.' : 'Could not complete the request. Check your connection and try again.';
@@ -40,6 +45,17 @@ export function adminError(error: unknown, language: Language): string {
       ? 'تعذّر حفظ جلسة الدخول. افتح البوابة في تبويب مستقل وتأكد من السماح بملفات تعريف الارتباط.'
       : 'Your session could not be saved. Open the portal in its own tab and allow cookies.';
     case 'origin_not_allowed': return ar ? 'افتح البوابة من عنوانها المعتمد ثم حاول مجددًا.' : 'Open the portal at its configured address and try again.';
+    case 'passkey_browser': return ar ? 'مفاتيح المرور غير متاحة في هذا المتصفح. استخدم كلمة المرور.' : 'Passkeys are unavailable in this browser. Use your password.';
+    case 'passkey_prompt_failed': return ar ? 'لم يكتمل التحقق على جهازك. حاول مجددًا أو استخدم كلمة المرور.' : 'Device verification did not complete. Try again or use your password.';
+    case 'passkey_challenge_expired': return ar ? 'انتهت مهلة التحقق. ابدأ المحاولة مرة أخرى في تبويب مستقل.' : 'The verification attempt expired. Start again in the portal’s own tab.';
+    case 'passkey_verification_failed': return ar ? 'تعذّر الدخول بهذا المفتاح. جرّب مفتاحًا مسجّلًا أو استخدم كلمة المرور.' : 'This passkey did not sign you in. Try a registered passkey or use your password.';
+    case 'passkey_registration_failed': return ar ? 'تعذّر حفظ مفتاح المرور. حاول إضافة المفتاح مرة أخرى.' : 'The passkey could not be saved. Try adding it again.';
+    case 'passkey_not_configured': return ar ? 'مفاتيح المرور غير مهيّأة على هذا العنوان.' : 'Passkeys are not configured at this address.';
+    case 'no_passkeys': return ar ? 'لا يوجد مفتاح مرور مسجّل. ادخل بكلمة المرور لإضافة مفتاح.' : 'No passkey is registered. Sign in with your password to add one.';
+    case 'passkey_password_required': return ar ? 'سجّل الخروج ثم ادخل بكلمة المرور لإدارة مفاتيح المرور.' : 'Sign out and sign in with your password to manage passkeys.';
+    case 'passkey_exists': return ar ? 'مفتاح المرور هذا مسجّل بالفعل.' : 'This passkey is already registered.';
+    case 'passkey_limit': return ar ? 'تم الوصول إلى الحد الأقصى. احذف مفتاحًا قبل إضافة آخر.' : 'The passkey limit is reached. Remove a passkey before adding another.';
+    case 'passkey_not_found': return ar ? 'مفتاح المرور لم يعد مسجّلًا.' : 'This passkey is no longer registered.';
     case 'invalid_announcement': return ar ? 'أضف نصًا في اللغتين قبل النشر والتزم بحد الأحرف.' : 'Add a message in both languages before publishing and stay within the character limit.';
     case 'quote_not_found': return ar ? 'هذا الطلب غير موجود.' : 'This request was not found.';
     default: return generic;

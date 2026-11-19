@@ -167,8 +167,8 @@ test('the RFQ inbox receives real requests, computes follow-up, and persists sta
   assert.equal((await changed.json()).status, 'closed');
   const reopened = new AdminStore(file);
   try {
-    assert.equal(reopened.quote(reference)?.status, 'closed');
-    assert.equal(reopened.overview(Date.parse('2026-11-21T00:00:00Z')).totals.overdue, 0);
+    assert.equal((await reopened.quote(reference))?.status, 'closed');
+    assert.equal((await reopened.overview(Date.parse('2026-11-21T00:00:00Z'))).totals.overdue, 0);
   } finally {
     reopened.close();
   }

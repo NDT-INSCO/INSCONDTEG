@@ -12,15 +12,17 @@ import { CompanyTestimonialsSection } from './CompanyTestimonialsSection';
 import { CompanyAcademyHighlight } from './CompanyAcademyHighlight';
 import { CompanyVendorVaultSection } from './CompanyVendorVaultSection';
 import { CompanyQrQuickAccessSection } from './CompanyQrQuickAccessSection';
+import { CompanyAttendanceTimelineSection } from './CompanyAttendanceTimelineSection';
 import { CompanyContactSection } from './CompanyContactSection';
 import { CompanyQuickActionsSection } from './CompanyQuickActionsSection';
 import type { ServiceFamilyId } from '../../utils/serviceFamilies';
+import type { ClientSectionId } from '../../utils/portalRoutes';
 
 interface CompanyPortalProps {
   language: Language;
   onNavigateToAcademy: (initialSubTab?: any) => void;
-  /** Opens the Client & Dossier portal (`#client`). */
-  onNavigateToClient?: () => void;
+  /** Opens the Client & Dossier portal (`#client` or a specific section). */
+  onNavigateToClient?: (section?: ClientSectionId) => void;
   /** Opens a specific registered company's dossier (`#client/companies/<companyId>`). */
   onOpenCompanyDossier?: (companyId: string) => void;
   /** Opens the technical demonstrations page (`#demo`). */
@@ -97,7 +99,18 @@ export const CompanyPortal: React.FC<CompanyPortalProps> = ({
       <CompanyQrQuickAccessSection
         language={language}
         onOpenCompanyDossier={onOpenCompanyDossier}
-        onOpenClientArchive={onNavigateToClient}
+        onOpenClientArchive={() => onNavigateToClient?.('companies')}
+      />
+
+      {/* 6c. Geofenced Field Employee Check-In / Check-Out Timeline & Admin Alerts. */}
+      <CompanyAttendanceTimelineSection
+        language={language}
+        onOpenTimeClockPortal={
+          onNavigateToClient ? () => onNavigateToClient('timeclock') : undefined
+        }
+        onOpenCompaniesPortal={
+          onNavigateToClient ? () => onNavigateToClient('companies') : undefined
+        }
       />
 
       {/* Bridge for engineers who arrived through the corporate door. */}

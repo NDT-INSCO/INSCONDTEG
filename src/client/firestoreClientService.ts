@@ -39,18 +39,25 @@ import {
   sanitizeReportNumber,
   sanitizeUpperCode,
   type ArchiveCategory,
+  type AttendanceEventType,
+  type AttendanceLog,
   type ClientAccount,
   type ClientApprovalStatus,
   type ClientRequest,
   type ClientRequestStatus,
+  type CommunityWorkspaceProfile,
+  type CompanyEmployee,
   type CompanyInspectionReport,
   type CompanyRecord,
+  type EmployeeOnlineStatus,
   type NdtReportMethod,
   type ReportStatus,
   type ReportVerdict,
   type RequestUrgency,
   type TechnicalDataPayload,
+  type VerificationMethod,
 } from './types';
+import { evaluateGeofence, resolveSiteCoordinates } from './geofencing';
 
 export function isVerifiedAdminUser(user: User | null): boolean {
   if (!user) return false;
@@ -350,7 +357,7 @@ export function subscribeClientRequests(
 /* -------------------------------------------------------------------------- */
 
 export async function createCompanyWithUniqueCode(
-  adminUid: string,
+  creatorUid: string,
   input: {
     companyCode: string;
     nameAr: string;
@@ -366,6 +373,9 @@ export async function createCompanyWithUniqueCode(
     activeScope?: string;
     legacySinceYear?: string;
     assignedClientUid?: string;
+    siteLat?: number;
+    siteLng?: number;
+    geofenceRadiusMeters?: number;
   }
 ): Promise<CompanyRecord> {
   if (!db) throw new Error('Firestore not initialized');
@@ -381,6 +391,13 @@ export async function createCompanyWithUniqueCode(
   const codeRef = doc(db, 'company_codes', companyCode);
   const path = `companies/${companyRef.id}`;
 
+  const siteCoords = resolveSiteCoordinates({
+    siteLat: input.siteLat,
+    siteLng: input.siteLng,
+    geofenceRadiusMeters: input.geofenceRadiusMeters,
+    projectLocation: input.projectLocation,
+  });
+
   const payload = {
     companyCode,
     nameAr: clampStr(input.nameAr, BLUEPRINT_LIMITS.NAME_MAX),
@@ -394,10 +411,13 @@ export async function createCompanyWithUniqueCode(
     contactPhone: clampStr(input.contactPhone, 40),
     projectLocation: clampStr(input.projectLocation, 180),
     activeScope: clampStr(input.activeScope, BLUEPRINT_LIMITS.SCOPE_MAX),
-    assignedClientUid: clampStr(input.assignedClientUid, 128),
+    assignedClientUid: clampStr(input.assignedClientUid ?? creatorUid, 128),
     legacySinceYear: clampStr(input.legacySinceYear, 16),
     reportsCount: 0,
-    createdByUid: adminUid,
+    siteLat: siteCoords.lat,
+    siteLng: siteCoords.lng,
+    geofenceRadiusMeters: siteCoords.geofenceRadiusMeters,
+    createdByUid: creatorUid,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
@@ -407,7 +427,7 @@ export async function createCompanyWithUniqueCode(
   batch.set(codeRef, {
     companyCode,
     companyId: companyRef.id,
-    createdByUid: adminUid,
+    createdByUid: creatorUid,
     createdAt: serverTimestamp(),
   });
 
@@ -440,6 +460,9 @@ export async function updateCompanyRecord(
       | 'projectLocation'
       | 'activeScope'
       | 'legacySinceYear'
+      | 'siteLat'
+      | 'siteLng'
+      | 'geofenceRadiusMeters'
     >
   >
 ): Promise<void> {
@@ -475,6 +498,19 @@ export async function updateCompanyRecord(
       ...(updates.legacySinceYear !== undefined && {
         legacySinceYear: clampStr(updates.legacySinceYear, 16),
       }),
+      ...(typeof updates.siteLat === 'number' && Number.isFinite(updates.siteLat) && {
+        siteLat: Math.max(-90, Math.min(90, updates.siteLat)),
+      }),
+      ...(typeof updates.siteLng === 'number' && Number.isFinite(updates.siteLng) && {
+        siteLng: Math.max(-180, Math.min(180, updates.siteLng)),
+      }),
+      ...(typeof updates.geofenceRadiusMeters === 'number' &&
+        Number.isFinite(updates.geofenceRadiusMeters) && {
+          geofenceRadiusMeters: Math.max(
+            BLUEPRINT_LIMITS.MIN_GEOFENCE_RADIUS_M,
+            Math.min(BLUEPRINT_LIMITS.MAX_GEOFENCE_RADIUS_M, Math.round(updates.geofenceRadiusMeters))
+          ),
+        }),
       updatedAt: serverTimestamp(),
     });
   } catch (err) {
@@ -810,3 +846,374 @@ export async function initializeStarterCompaniesArchive(
 
   return created;
 }
+
+/* -------------------------------------------------------------------------- */
+/* 6. Workforce Management, Live Map Coordinates & Attendance Timeline        */
+/* -------------------------------------------------------------------------- */
+
+export async function createCompanyEmployee(
+  actorUid: string,
+  company: CompanyRecord,
+  input: {
+    fullName: string;
+    roleTitle: string;
+    badgeCode: string;
+    phone?: string;
+    workerUid?: string;
+    faceEnrolled?: boolean;
+    faceDigest?: string;
+    lastLat?: number;
+    lastLng?: number;
+  }
+): Promise<CompanyEmployee> {
+  if (!db) throw new Error('Firestore not initialized');
+  const empRef = doc(collection(db, 'companies', company.id, 'employees'));
+  const path = `companies/${company.id}/employees/${empRef.id}`;
+  const cleanBadge = sanitizeUpperCode(input.badgeCode) || 'EMP-101';
+  const ownerUid = company.assignedClientUid || actorUid;
+
+  const payload: Omit<CompanyEmployee, 'id'> = {
+    companyId: company.id,
+    companyCode: company.companyCode,
+    ownerUid,
+    workerUid: clampStr(input.workerUid, 128),
+    fullName: clampStr(input.fullName, BLUEPRINT_LIMITS.SHORT_NAME_MAX),
+    roleTitle: clampStr(input.roleTitle, BLUEPRINT_LIMITS.SHORT_NAME_MAX),
+    badgeCode: cleanBadge.slice(0, 40),
+    phone: clampStr(input.phone, 40),
+    faceEnrolled: Boolean(input.faceEnrolled),
+    faceDigest: clampStr(input.faceDigest, 128),
+    ...(typeof input.lastLat === 'number' && Number.isFinite(input.lastLat) && {
+      lastLat: input.lastLat,
+    }),
+    ...(typeof input.lastLng === 'number' && Number.isFinite(input.lastLng) && {
+      lastLng: input.lastLng,
+    }),
+    lastSeenAt: new Date().toISOString(),
+    onlineStatus: 'off_duty',
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  };
+
+  try {
+    await setDoc(empRef, payload);
+  } catch (err) {
+    handleFirestoreError(err, OperationType.CREATE, path);
+  }
+
+  return {
+    id: empRef.id,
+    ...payload,
+  };
+}
+
+export async function updateEmployeeLiveLocation(
+  companyId: string,
+  employeeId: string,
+  coords: {
+    lat: number;
+    lng: number;
+    onlineStatus?: EmployeeOnlineStatus;
+    faceEnrolled?: boolean;
+    faceDigest?: string;
+  }
+): Promise<void> {
+  if (!db) throw new Error('Firestore not initialized');
+  const path = `companies/${companyId}/employees/${employeeId}`;
+  try {
+    await updateDoc(doc(db, 'companies', companyId, 'employees', employeeId), {
+      lastLat: Math.max(-90, Math.min(90, coords.lat)),
+      lastLng: Math.max(-180, Math.min(180, coords.lng)),
+      lastSeenAt: new Date().toISOString(),
+      ...(coords.onlineStatus !== undefined && { onlineStatus: coords.onlineStatus }),
+      ...(coords.faceEnrolled !== undefined && { faceEnrolled: coords.faceEnrolled }),
+      ...(coords.faceDigest !== undefined && { faceDigest: clampStr(coords.faceDigest, 128) }),
+      updatedAt: serverTimestamp(),
+    });
+  } catch (err) {
+    handleFirestoreError(err, OperationType.UPDATE, path);
+  }
+}
+
+export function subscribeCompanyEmployees(
+  companyId: string,
+  uid: string,
+  isAdmin: boolean,
+  onData: (employees: CompanyEmployee[]) => void,
+  onError?: (error: Error) => void
+): Unsubscribe {
+  if (!db) {
+    onData([]);
+    return () => {};
+  }
+  const path = `companies/${companyId}/employees`;
+  const q = isAdmin
+    ? query(collection(db, 'companies', companyId, 'employees'), orderBy('badgeCode', 'asc'))
+    : query(
+        collection(db, 'companies', companyId, 'employees'),
+        where('ownerUid', '==', uid)
+      );
+
+  return onSnapshot(
+    q,
+    snap => {
+      const list = snap.docs.map(d => ({
+        id: d.id,
+        ...(d.data() as Omit<CompanyEmployee, 'id'>),
+      }));
+      list.sort((a, b) => a.badgeCode.localeCompare(b.badgeCode));
+      onData(list);
+    },
+    err => {
+      try {
+        handleFirestoreError(err, OperationType.LIST, path);
+      } catch (wrapped) {
+        onError?.(wrapped instanceof Error ? wrapped : new Error(String(wrapped)));
+      }
+    }
+  );
+}
+
+export async function recordEmployeeAttendance(params: {
+  actorUid: string;
+  company: CompanyRecord;
+  employee: CompanyEmployee;
+  eventType: AttendanceEventType;
+  lat: number;
+  lng: number;
+  accuracyMeters?: number;
+  faceVerified: boolean;
+  faceSnapshotHash?: string;
+  verificationMethod: VerificationMethod;
+  deviceLabel?: string;
+  notes?: string;
+}): Promise<AttendanceLog> {
+  if (!db) throw new Error('Firestore not initialized');
+  const logRef = doc(collection(db, 'companies', params.company.id, 'attendance'));
+  const path = `companies/${params.company.id}/attendance/${logRef.id}`;
+
+  const site = resolveSiteCoordinates(params.company);
+  const evaluation = evaluateGeofence({
+    workerLat: params.lat,
+    workerLng: params.lng,
+    siteLat: site.lat,
+    siteLng: site.lng,
+    radiusMeters: site.geofenceRadiusMeters,
+  });
+
+  const timestampIso = new Date().toISOString();
+  const nextStatus: EmployeeOnlineStatus =
+    evaluation.status === 'outside_geofence' && params.eventType === 'check_in'
+      ? 'alert'
+      : params.eventType === 'check_in'
+        ? 'on_site'
+        : 'off_duty';
+
+  const logPayload: Omit<AttendanceLog, 'id'> = {
+    companyId: params.company.id,
+    companyCode: params.company.companyCode,
+    ownerUid: params.company.assignedClientUid || params.actorUid,
+    employeeId: params.employee.id,
+    employeeName: clampStr(params.employee.fullName, BLUEPRINT_LIMITS.SHORT_NAME_MAX),
+    workerUid: params.actorUid,
+    eventType: params.eventType,
+    lat: Math.max(-90, Math.min(90, params.lat)),
+    lng: Math.max(-180, Math.min(180, params.lng)),
+    ...(typeof params.accuracyMeters === 'number' &&
+      Number.isFinite(params.accuracyMeters) && {
+        accuracyMeters: Math.max(0, Math.min(50_000, Math.round(params.accuracyMeters))),
+      }),
+    distanceFromSiteMeters: evaluation.distanceMeters,
+    geofenceRadiusMeters: evaluation.radiusMeters,
+    geofenceStatus: evaluation.status,
+    faceVerified: Boolean(params.faceVerified),
+    ...(params.faceSnapshotHash && {
+      faceSnapshotHash: clampStr(params.faceSnapshotHash, 128),
+    }),
+    verificationMethod: params.verificationMethod,
+    ...(params.deviceLabel && { deviceLabel: clampStr(params.deviceLabel, 120) }),
+    ...(params.notes && { notes: clampStr(params.notes, 500) }),
+    timestampIso,
+    createdAt: serverTimestamp(),
+  };
+
+  const batch = writeBatch(db);
+  batch.set(logRef, logPayload);
+  batch.update(doc(db, 'companies', params.company.id, 'employees', params.employee.id), {
+    lastLat: logPayload.lat,
+    lastLng: logPayload.lng,
+    lastSeenAt: timestampIso,
+    onlineStatus: nextStatus,
+    ...(params.faceVerified &&
+      params.faceSnapshotHash && {
+        faceEnrolled: true,
+        faceDigest: clampStr(params.faceSnapshotHash, 128),
+      }),
+    updatedAt: serverTimestamp(),
+  });
+
+  try {
+    await batch.commit();
+  } catch (err) {
+    handleFirestoreError(err, OperationType.CREATE, path);
+  }
+
+  return {
+    id: logRef.id,
+    ...logPayload,
+  };
+}
+
+export function subscribeCompanyAttendance(
+  companyId: string,
+  uid: string,
+  isAdmin: boolean,
+  onData: (logs: AttendanceLog[]) => void,
+  onError?: (error: Error) => void
+): Unsubscribe {
+  if (!db) {
+    onData([]);
+    return () => {};
+  }
+  const path = `companies/${companyId}/attendance`;
+  const q = isAdmin
+    ? query(collection(db, 'companies', companyId, 'attendance'), orderBy('timestampIso', 'desc'))
+    : query(
+        collection(db, 'companies', companyId, 'attendance'),
+        where('ownerUid', '==', uid)
+      );
+
+  return onSnapshot(
+    q,
+    snap => {
+      const list = snap.docs.map(d => ({
+        id: d.id,
+        ...(d.data() as Omit<AttendanceLog, 'id'>),
+      }));
+      list.sort((a, b) => (b.timestampIso || '').localeCompare(a.timestampIso || ''));
+      onData(list);
+    },
+    err => {
+      try {
+        handleFirestoreError(err, OperationType.LIST, path);
+      } catch (wrapped) {
+        onError?.(wrapped instanceof Error ? wrapped : new Error(String(wrapped)));
+      }
+    }
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* 7. Multi-User Community Workspace Directory (PII-Free)                     */
+/* -------------------------------------------------------------------------- */
+
+export async function upsertCommunityWorkspace(
+  user: User,
+  input: {
+    displayName: string;
+    organizationName: string;
+    sector: string;
+    city?: string;
+    companyCode?: string;
+    specialtyTrades?: string;
+    bio?: string;
+    companiesManaged: number;
+    isPublished: boolean;
+  },
+  existing: CommunityWorkspaceProfile | null
+): Promise<void> {
+  if (!db) throw new Error('Firestore not initialized');
+  const path = `community_workspaces/${user.uid}`;
+  const docRef = doc(db, 'community_workspaces', user.uid);
+
+  try {
+    if (!existing) {
+      await setDoc(docRef, {
+        uid: user.uid,
+        displayName: clampStr(input.displayName, BLUEPRINT_LIMITS.SHORT_NAME_MAX),
+        organizationName: clampStr(input.organizationName, 160),
+        sector: clampStr(input.sector, 100),
+        city: clampStr(input.city, 100),
+        companyCode: sanitizeUpperCode(input.companyCode ?? ''),
+        specialtyTrades: clampStr(input.specialtyTrades, 300),
+        bio: clampStr(input.bio, 600),
+        companiesManaged: Math.max(0, Math.min(10_000, Math.round(input.companiesManaged))),
+        isPublished: Boolean(input.isPublished),
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    } else {
+      await updateDoc(docRef, {
+        displayName: clampStr(input.displayName, BLUEPRINT_LIMITS.SHORT_NAME_MAX),
+        organizationName: clampStr(input.organizationName, 160),
+        sector: clampStr(input.sector, 100),
+        city: clampStr(input.city, 100),
+        companyCode: sanitizeUpperCode(input.companyCode ?? ''),
+        specialtyTrades: clampStr(input.specialtyTrades, 300),
+        bio: clampStr(input.bio, 600),
+        companiesManaged: Math.max(0, Math.min(10_000, Math.round(input.companiesManaged))),
+        isPublished: Boolean(input.isPublished),
+        updatedAt: serverTimestamp(),
+      });
+    }
+  } catch (err) {
+    handleFirestoreError(err, existing ? OperationType.UPDATE : OperationType.CREATE, path);
+  }
+}
+
+export function subscribeMyCommunityWorkspace(
+  uid: string,
+  onData: (profile: CommunityWorkspaceProfile | null) => void,
+  onError?: (error: Error) => void
+): Unsubscribe {
+  if (!db) {
+    onData(null);
+    return () => {};
+  }
+  const path = `community_workspaces/${uid}`;
+  return onSnapshot(
+    doc(db, 'community_workspaces', uid),
+    snap => {
+      onData(snap.exists() ? (snap.data() as CommunityWorkspaceProfile) : null);
+    },
+    err => {
+      try {
+        handleFirestoreError(err, OperationType.GET, path);
+      } catch (wrapped) {
+        onError?.(wrapped instanceof Error ? wrapped : new Error(String(wrapped)));
+      }
+    }
+  );
+}
+
+export function subscribeCommunityWorkspaces(
+  isAdmin: boolean,
+  onData: (profiles: CommunityWorkspaceProfile[]) => void,
+  onError?: (error: Error) => void
+): Unsubscribe {
+  if (!db) {
+    onData([]);
+    return () => {};
+  }
+  const path = 'community_workspaces';
+  const q = isAdmin
+    ? query(collection(db, 'community_workspaces'), orderBy('updatedAt', 'desc'))
+    : query(collection(db, 'community_workspaces'), where('isPublished', '==', true));
+
+  return onSnapshot(
+    q,
+    snap => {
+      const list = snap.docs.map(d => d.data() as CommunityWorkspaceProfile);
+      list.sort((a, b) => a.organizationName.localeCompare(b.organizationName));
+      onData(list);
+    },
+    err => {
+      try {
+        handleFirestoreError(err, OperationType.LIST, path);
+      } catch (wrapped) {
+        onError?.(wrapped instanceof Error ? wrapped : new Error(String(wrapped)));
+      }
+    }
+  );
+}
+

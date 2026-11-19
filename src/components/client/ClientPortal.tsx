@@ -4,7 +4,9 @@ import {
   BriefcaseBusiness,
   Building2,
   ClipboardList,
+  Clock,
   FolderOpen,
+  Globe2,
   LayoutDashboard,
   LogIn,
   LogOut,
@@ -13,7 +15,15 @@ import {
 } from 'lucide-react';
 import type { Language } from '../../types';
 import type { ClientSectionId } from '../../utils/portalRoutes';
-import type { ClientAccount, ClientRequest, CompanyInspectionReport, CompanyRecord } from '../../client/types';
+import type {
+  AttendanceLog,
+  ClientAccount,
+  ClientRequest,
+  CommunityWorkspaceProfile,
+  CompanyEmployee,
+  CompanyInspectionReport,
+  CompanyRecord,
+} from '../../client/types';
 import {
   isPortalFirestoreReady,
   isVerifiedAdminUser,
@@ -22,15 +32,22 @@ import {
   signOutClientPortal,
   subscribeAllClientAccounts,
   subscribeClientRequests,
+  subscribeCommunityWorkspaces,
   subscribeCompanies,
+  subscribeCompanyAttendance,
+  subscribeCompanyEmployees,
   subscribeCompanyReports,
   subscribeMyClientAccount,
+  subscribeMyCommunityWorkspace,
+  updateEmployeeLiveLocation,
 } from '../../client/firestoreClientService';
 import { ClientErrorBoundary } from './ClientErrorBoundary';
 import { ClientCompaniesSection } from './ClientCompaniesSection';
 import { ClientCompanyDossier } from './ClientCompanyDossier';
 import { ClientRequestsSection } from './ClientRequestsSection';
 import { ClientRegistrationSection } from './ClientRegistrationSection';
+import { EmployeeTimeClockPortal } from './EmployeeTimeClockPortal';
+import { CommunityWorkspacesHub } from './CommunityWorkspacesHub';
 
 interface ClientPortalProps {
   language: Language;
@@ -59,6 +76,14 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
   const [requests, setRequests] = useState<ClientRequest[]>([]);
   const [companies, setCompanies] = useState<CompanyRecord[]>([]);
   const [activeCompanyReports, setActiveCompanyReports] = useState<CompanyInspectionReport[]>([]);
+  const [activeCompanyEmployees, setActiveCompanyEmployees] = useState<CompanyEmployee[]>([]);
+  const [activeCompanyAttendance, setActiveCompanyAttendance] = useState<AttendanceLog[]>([]);
+  const [selectedWorkforceCompanyId, setSelectedWorkforceCompanyId] = useState<string>('');
+  const [myCommunityProfile, setMyCommunityProfile] = useState<CommunityWorkspaceProfile | null>(
+    null
+  );
+  const [communityDirectory, setCommunityDirectory] = useState<CommunityWorkspaceProfile[]>([]);
+  const [updatingLocation, setUpdatingLocation] = useState(false);
   const [reportsLoading, setReportsLoading] = useState(false);
 
   const [loadingData, setLoadingData] = useState(false);
@@ -84,11 +109,23 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
       setAllAccounts([]);
       setRequests([]);
       setCompanies([]);
+      setMyCommunityProfile(null);
+      setCommunityDirectory([]);
       return;
     }
 
     setLoadingData(true);
     const unsubAccount = subscribeMyClientAccount(user.uid, setMyAccount, setRuntimeError);
+    const unsubMyCommunity = subscribeMyCommunityWorkspace(
+      user.uid,
+      setMyCommunityProfile,
+      setRuntimeError
+    );
+    const unsubDirectory = subscribeCommunityWorkspaces(
+      isAdmin,
+      setCommunityDirectory,
+      setRuntimeError
+    );
     const unsubRequests = subscribeClientRequests(
       user.uid,
       isAdmin,
@@ -113,6 +150,8 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
 
     return () => {
       unsubAccount();
+      unsubMyCommunity();
+      unsubDirectory();
       unsubRequests();
       unsubCompanies();
       unsubAllAccounts();
@@ -122,6 +161,11 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
   const activeCompany = useMemo(
     () => (companyId ? companies.find(c => c.id === companyId) ?? null : null),
     [companies, companyId]
+  );
+
+  const trackedCompanyId = useMemo(
+    () => activeCompany?.id || selectedWorkforceCompanyId || companies[0]?.id || '',
+    [activeCompany?.id, selectedWorkforceCompanyId, companies]
   );
 
   useEffect(() => {
@@ -145,6 +189,49 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
       }
     );
   }, [authReady, user, activeCompany, isAdmin]);
+
+  useEffect(() => {
+    if (!authReady || !user || !trackedCompanyId) {
+      setActiveCompanyEmployees([]);
+      setActiveCompanyAttendance([]);
+      return;
+    }
+    const unsubEmps = subscribeCompanyEmployees(
+      trackedCompanyId,
+      user.uid,
+      isAdmin,
+      setActiveCompanyEmployees,
+      setRuntimeError
+    );
+    const unsubAtt = subscribeCompanyAttendance(
+      trackedCompanyId,
+      user.uid,
+      isAdmin,
+      setActiveCompanyAttendance,
+      setRuntimeError
+    );
+    return () => {
+      unsubEmps();
+      unsubAtt();
+    };
+  }, [authReady, user, trackedCompanyId, isAdmin]);
+
+  const handleRequestEmployeeLocationUpdate = (emp: CompanyEmployee) => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) return;
+    setUpdatingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        void updateEmployeeLiveLocation(emp.companyId, emp.id, {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        }).finally(() => setUpdatingLocation(false));
+      },
+      () => {
+        setUpdatingLocation(false);
+      },
+      { enableHighAccuracy: true, timeout: 7000 }
+    );
+  };
 
   const handleGoogleSignIn = async () => {
     setAuthError(null);
@@ -176,6 +263,19 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
       labelEn: 'Companies & Dossiers',
       Icon: Building2,
       count: companies.length,
+    },
+    {
+      id: 'timeclock',
+      labelAr: 'بوابة الحضور والانصراف',
+      labelEn: 'Worker Time-Clock',
+      Icon: Clock,
+    },
+    {
+      id: 'community',
+      labelAr: 'مجتمع إدارة الأعمال',
+      labelEn: 'Business Community',
+      Icon: Globe2,
+      count: communityDirectory.length,
     },
     { id: 'register', labelAr: 'التسجيل وربط الكود', labelEn: 'Registration & Link', Icon: UserPlus },
   ];
@@ -377,6 +477,13 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                     <div className="flex flex-wrap items-center gap-2">
                       <button
                         type="button"
+                        onClick={() => onNavigateSection('timeclock')}
+                        className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3.5 py-2 text-xs font-bold text-emerald-300 hover:bg-emerald-500/20 transition cursor-pointer whitespace-nowrap"
+                      >
+                        {isAr ? 'بوابة الحضور والانصراف' : 'Worker Time-Clock'}
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => onNavigateSection('requests')}
                         className="rounded-lg bg-amber-500 hover:bg-amber-400 px-3.5 py-2 text-xs font-black text-slate-950 transition cursor-pointer whitespace-nowrap"
                       >
@@ -520,10 +627,18 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                     language={language}
                     company={activeCompany}
                     reports={activeCompanyReports}
+                    employees={activeCompanyEmployees}
+                    attendanceLogs={activeCompanyAttendance}
                     reportsLoading={reportsLoading}
                     isAdmin={isAdmin}
                     currentUid={user.uid}
                     onBackToArchive={() => onNavigateSection('companies')}
+                    onRequestEmployeeLocationUpdate={handleRequestEmployeeLocationUpdate}
+                    isUpdatingEmployeeLocation={updatingLocation}
+                    onOpenTimeClock={() => {
+                      setSelectedWorkforceCompanyId(activeCompany.id);
+                      onNavigateSection('timeclock');
+                    }}
                   />
                 ) : companyId && loadingData ? (
                   <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-6 space-y-3" aria-busy="true">
@@ -560,6 +675,32 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                     onOpenCompanyDossier={id => onNavigateSection('companies', id)}
                   />
                 )
+              )}
+
+              {section === 'timeclock' && (
+                <EmployeeTimeClockPortal
+                  language={language}
+                  currentUid={user.uid}
+                  companies={companies}
+                  selectedCompanyId={trackedCompanyId}
+                  onSelectCompany={id => setSelectedWorkforceCompanyId(id)}
+                  employees={activeCompanyEmployees}
+                  attendanceLogs={activeCompanyAttendance}
+                  onCreateCompanyShortcut={() => onNavigateSection('companies')}
+                />
+              )}
+
+              {section === 'community' && (
+                <CommunityWorkspacesHub
+                  language={language}
+                  user={user}
+                  account={myAccount}
+                  myProfile={myCommunityProfile}
+                  directoryProfiles={communityDirectory}
+                  companies={companies}
+                  onOpenCompanies={() => onNavigateSection('companies')}
+                  onOpenTimeClock={() => onNavigateSection('timeclock')}
+                />
               )}
 
               {section === 'register' && (

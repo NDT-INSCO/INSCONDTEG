@@ -37,6 +37,8 @@ export const CLIENT_SECTIONS = [
   'overview',
   'requests',
   'companies',
+  'timeclock',
+  'community',
   'register',
 ] as const;
 
@@ -46,6 +48,8 @@ const CLIENT_SECTION_LABELS: Record<ClientSectionId, { ar: string; en: string }>
   overview: { ar: 'لوحة بوابة العملاء', en: 'Client Overview' },
   requests: { ar: 'طلبات العملاء الجدد', en: 'Client Requests' },
   companies: { ar: 'أرشيف الشركات والملفات', en: 'Companies & Dossiers' },
+  timeclock: { ar: 'بوابة الحضور والانصراف', en: 'Worker Time-Clock' },
+  community: { ar: 'مجتمع إدارة الأعمال', en: 'Business Community' },
   register: { ar: 'التسجيل وربط الكود', en: 'Registration & Code Link' },
 };
 

@@ -4,6 +4,20 @@ import { App } from './App';
 import './index.css';
 import './components/admin/admin.css';
 
+if (typeof window !== 'undefined') {
+  (window as { gm_authFailure?: () => void }).gm_authFailure = () => {
+    window.dispatchEvent(new CustomEvent('gmp-quota-exceeded'));
+  };
+  const origError = console.error;
+  console.error = (...args: unknown[]) => {
+    origError.apply(console, args);
+    const msg = args.map(a => String(a)).join(' ');
+    if (msg.includes('OverQuotaMapError') || msg.includes('QuotaExceededError')) {
+      window.dispatchEvent(new CustomEvent('gmp-quota-exceeded'));
+    }
+  };
+}
+
 const container = document.getElementById('root');
 if (container) {
   const root = createRoot(container);

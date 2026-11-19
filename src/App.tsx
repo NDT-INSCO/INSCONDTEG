@@ -10,7 +10,6 @@ import { GlobalThemeSwitcher } from './components/GlobalThemeSwitcher';
 import { GlobalAppConfigControl } from './components/GlobalAppConfigControl';
 import { Language } from './types';
 import { AcademyTab } from './academyTabs';
-import { ADMIN_HASH } from './admin/contract';
 import { INSCO_COMPANY_DATA } from './data/inscoCompanyData';
 import {
   serviceFamilyById,
@@ -67,10 +66,6 @@ const CompanyDemoPortal = React.lazy(() =>
 const ClientPortal = React.lazy(() =>
   import('./components/client/ClientPortal').then(module => ({ default: module.ClientPortal }))
 );
-
-// The admin portal is a stand-alone page behind a password: it is never part of
-// a corporate or academy page, so it owns the whole screen when it is open.
-const AdminPortal = React.lazy(() => import('./components/admin/AdminPortal'));
 
 function AcademyLoading({ isAr }: { isAr: boolean }) {
   return (
@@ -140,16 +135,18 @@ export const App: React.FC = () => {
       choice: readPortalChoice(),
       hasAcademyHash: initial.portal === 'academy',
       hasClientHash: initial.portal === 'client',
-      // Any hash on the corporate profile is a shared deep link (a section, the
-      // footer, a service): a modal must never open on top of it.
       hasDemoHash: initial.portal === 'company' && initial.page !== 'home',
-      hasAnchorHash: window.location.hash !== '' && initial.portal === 'company',
       view: chooserViewOf(initial),
     });
   });
   const [menuOpen, setMenuOpen] = useState(false);
-  // `#admin` is its own page, not a fourth portal: no nav, no footer, no browsing.
-  const [adminOpen, setAdminOpen] = useState(() => window.location.hash === ADMIN_HASH);
+  const [mapsQuotaExceeded, setMapsQuotaExceeded] = useState(false);
+
+  useEffect(() => {
+    const onQuotaExceeded = () => setMapsQuotaExceeded(true);
+    window.addEventListener('gmp-quota-exceeded', onQuotaExceeded);
+    return () => window.removeEventListener('gmp-quota-exceeded', onQuotaExceeded);
+  }, []);
 
   const isAr = language === 'ar';
   const portal: PortalId = route.portal;
@@ -321,10 +318,7 @@ export const App: React.FC = () => {
 
   // Back/forward between portals, service pages, demos and academy deep links.
   useEffect(() => {
-    const onHashChange = () => {
-      setRoute(parseRoute(window.location.hash));
-      setAdminOpen(window.location.hash === ADMIN_HASH);
-    };
+    const onHashChange = () => setRoute(parseRoute(window.location.hash));
     window.addEventListener('hashchange', onHashChange);
     window.addEventListener('popstate', onHashChange);
     return () => {
@@ -402,6 +396,8 @@ export const App: React.FC = () => {
           { id: 'overview', ar: 'لوحة التحكم', en: 'Overview' },
           { id: 'requests', ar: 'طلبات العملاء', en: 'Requests' },
           { id: 'companies', ar: 'أرشيف الشركات والملفات', en: 'Companies & Dossiers' },
+          { id: 'timeclock', ar: 'الحضور والانصراف', en: 'Time-Clock' },
+          { id: 'community', ar: 'مجتمع الأعمال', en: 'Community' },
           { id: 'register', ar: 'التسجيل وربط الكود', en: 'Registration' },
         ] as { id: ClientSectionId; ar: string; en: string }[]
       ).map(item => ({
@@ -466,50 +462,8 @@ export const App: React.FC = () => {
     return steps;
   }, [route, isAr, language, openCompany, openClient, openAcademyHash]);
 
-  /** Stand-alone admin page: the site chrome is replaced, not covered. */
-  const openAdmin = useCallback(() => {
-    setMenuOpen(false);
-    setAdminOpen(true);
-    window.history.pushState(
-      null,
-      '',
-      `${window.location.pathname}${window.location.search}${ADMIN_HASH}`
-    );
-  }, []);
-
-  /** Back to the site, with the address bar no longer claiming `#admin`. */
-  const closeAdmin = useCallback(() => {
-    setAdminOpen(false);
-    window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
-  }, []);
-
   const academyRoute: AcademyRoute | null = route.portal === 'academy' ? route : null;
   const clientRoute: ClientRoute | null = route.portal === 'client' ? route : null;
-
-  if (adminOpen) {
-    return (
-      <div
-        dir={isAr ? 'rtl' : 'ltr'}
-        data-theme={theme}
-        data-portal="admin"
-        className={`min-h-screen font-sans ${isLight ? 'bg-slate-50 text-slate-900' : 'bg-slate-950 text-slate-100'}`}
-      >
-        <Suspense
-          fallback={
-            <div role="status" aria-live="polite" className="p-8 text-sm text-slate-400">
-              {isAr ? 'جارٍ فتح بوابة الإدارة…' : 'Opening the admin portal…'}
-            </div>
-          }
-        >
-          <AdminPortal
-            language={language}
-            onBack={closeAdmin}
-            onToggleLanguage={() => setLanguage(isAr ? 'en' : 'ar')}
-          />
-        </Suspense>
-      </div>
-    );
-  }
 
   return (
     <div
@@ -522,6 +476,22 @@ export const App: React.FC = () => {
       }`}
     >
       <div className="sticky top-0 z-50">
+        {mapsQuotaExceeded && (
+          <div className="bg-amber-50 border-b border-amber-200 text-amber-900 px-4 py-2.5 text-xs md:text-sm text-center sticky top-0 z-50 shadow-sm">
+            <span>
+              Google Maps Platform quota reached. If you are the app owner, visit{' '}
+              <a
+                href="https://developers.google.com/maps/ai/ai-studio?utm_campaign=gmp_mcp_codeassist_v1_aistudio#quota_exceeded_errors"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline font-semibold text-amber-950 hover:text-amber-800"
+              >
+                maps developer site
+              </a>{' '}
+              for instructions to update your account.
+            </span>
+          </div>
+        )}
         {/* Which portal am I in, and how do I get to the other one. */}
         <PortalSwitchBar
           language={language}
@@ -552,7 +522,7 @@ export const App: React.FC = () => {
               type="button"
               aria-label={isAr ? 'الرئيسية - شركة إنسكو' : 'INSCO Home Profile'}
               onClick={() => openCompany()}
-              className="flex min-w-0 items-center gap-2.5 text-start cursor-pointer group"
+              className="flex items-center gap-2.5 text-start cursor-pointer group"
             >
               <div
                 className={`p-2 rounded-lg border transition ${
@@ -571,17 +541,14 @@ export const App: React.FC = () => {
                   <Building2 className="w-5 h-5" aria-hidden="true" />
                 )}
               </div>
-              <div className="min-w-0">
-                {/* On a phone the full legal name would push the action icons
-                    off the page, so it shortens to the brand and truncates. */}
-                <div className="truncate text-base font-black tracking-tight text-white sm:text-lg">
-                  <span className="sm:hidden">{isAr ? 'إنسكو' : 'INSCO'}</span>
-                  <span className="hidden sm:inline">
-                    {isAr ? 'الشركة الدولية للخدمات والمقاولات - إنسكو' : 'INSCO Industrial'}
-                  </span>
+              <div className="whitespace-nowrap">
+                <div className="text-base sm:text-lg font-black text-white tracking-tight">
+                  {isAr
+                    ? 'الشركة الدولية للخدمات والمقاولات - إنسكو'
+                    : 'INSCO Industrial'}
                 </div>
                 <div
-                  className={`flex min-w-0 items-center gap-1.5 text-[11px] font-mono ${
+                  className={`text-[11px] font-mono flex items-center gap-1.5 ${
                     portal === 'academy'
                       ? 'text-amber-400'
                       : portal === 'client'
@@ -589,7 +556,7 @@ export const App: React.FC = () => {
                         : 'text-cyan-400'
                   }`}
                 >
-                  <span className="truncate">
+                  <span>
                     {portal === 'academy'
                       ? isAr
                         ? 'مسار المتدرّب · البوابة الهندسية'
@@ -602,8 +569,8 @@ export const App: React.FC = () => {
                           ? 'أكاديمية إنسكو NDT'
                           : 'INSCO NDT Academy'}
                   </span>
-                  <span aria-hidden="true" className="hidden shrink-0 text-slate-600 sm:inline">·</span>
-                  <span className="hidden shrink-0 sm:inline">CP/2026-10</span>
+                  <span aria-hidden="true" className="text-slate-600">·</span>
+                  <span>CP/2026-10</span>
                 </div>
               </div>
             </button>
@@ -724,7 +691,7 @@ export const App: React.FC = () => {
           <CompanyPortal
             language={language}
             onNavigateToAcademy={() => openAcademyHash('#academy')}
-            onNavigateToClient={() => openClient('companies')}
+            onNavigateToClient={sec => openClient(sec ?? 'companies')}
             onOpenCompanyDossier={companyId => openClient('companies', companyId)}
             onOpenDemo={() => openDemo()}
             onOpenService={openService}
@@ -794,7 +761,6 @@ export const App: React.FC = () => {
               language={language}
               onOpenHash={openAcademyHash}
               onOpenCompany={() => openCompany()}
-              onOpenAdmin={openAdmin}
             />
           </div>
         )}
@@ -851,7 +817,6 @@ export const App: React.FC = () => {
           onOpenDemo={() => openDemo()}
           onOpenAcademy={() => openAcademyHash('#academy')}
           onOpenClient={() => openClient('overview')}
-          onOpenAdmin={openAdmin}
         />
       )}
 

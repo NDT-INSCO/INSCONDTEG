@@ -282,9 +282,21 @@
           "type": "number",
           "description": "Cached count of reports in the company dossier"
         },
+        "siteLat": {
+          "type": "number",
+          "description": "Project geofence center latitude (-90 to 90)"
+        },
+        "siteLng": {
+          "type": "number",
+          "description": "Project geofence center longitude (-180 to 180)"
+        },
+        "geofenceRadiusMeters": {
+          "type": "number",
+          "description": "Allowed project geofence perimeter radius in meters (50 to 50000)"
+        },
         "createdByUid": {
           "type": "string",
-          "description": "UID of admin who registered the company",
+          "description": "UID of account/admin who registered the company",
           "minLength": 1,
           "maxLength": 128,
           "pattern": "^[a-zA-Z0-9_\\-]+$"
@@ -496,6 +508,115 @@
         "createdAt",
         "updatedAt"
       ]
+    },
+    "CompanyEmployee": {
+      "title": "CompanyEmployee",
+      "description": "Field technician or employee enrolled under a registered company for GPS tracking and face/time-clock verification",
+      "type": "object",
+      "properties": {
+        "companyId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "companyCode": { "type": "string", "minLength": 3, "maxLength": 32, "pattern": "^[A-Z0-9\\-]+$" },
+        "ownerUid": { "type": "string", "maxLength": 128 },
+        "workerUid": { "type": "string", "maxLength": 128 },
+        "fullName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "roleTitle": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "badgeCode": { "type": "string", "minLength": 2, "maxLength": 40, "pattern": "^[A-Z0-9\\-]+$" },
+        "phone": { "type": "string", "maxLength": 40 },
+        "faceEnrolled": { "type": "boolean" },
+        "faceDigest": { "type": "string", "maxLength": 128 },
+        "lastLat": { "type": "number" },
+        "lastLng": { "type": "number" },
+        "lastSeenAt": { "type": "string", "maxLength": 40 },
+        "onlineStatus": { "type": "string", "enum": ["on_site", "off_duty", "in_transit", "alert"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "companyId",
+        "companyCode",
+        "ownerUid",
+        "fullName",
+        "roleTitle",
+        "badgeCode",
+        "faceEnrolled",
+        "onlineStatus",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "AttendanceLog": {
+      "title": "AttendanceLog",
+      "description": "Immutable chronological check-in/check-out event with GPS coordinates, geofence evaluation, and face verification digest",
+      "type": "object",
+      "properties": {
+        "companyId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "companyCode": { "type": "string", "minLength": 3, "maxLength": 32, "pattern": "^[A-Z0-9\\-]+$" },
+        "ownerUid": { "type": "string", "maxLength": 128 },
+        "employeeId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "employeeName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "workerUid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "eventType": { "type": "string", "enum": ["check_in", "check_out"] },
+        "lat": { "type": "number" },
+        "lng": { "type": "number" },
+        "accuracyMeters": { "type": "number" },
+        "distanceFromSiteMeters": { "type": "number" },
+        "geofenceRadiusMeters": { "type": "number" },
+        "geofenceStatus": { "type": "string", "enum": ["inside_geofence", "outside_geofence"] },
+        "faceVerified": { "type": "boolean" },
+        "faceSnapshotHash": { "type": "string", "maxLength": 128 },
+        "verificationMethod": { "type": "string", "enum": ["face_gps", "gps_only", "manual_override"] },
+        "deviceLabel": { "type": "string", "maxLength": 120 },
+        "notes": { "type": "string", "maxLength": 500 },
+        "timestampIso": { "type": "string", "minLength": 10, "maxLength": 40 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "companyId",
+        "companyCode",
+        "ownerUid",
+        "employeeId",
+        "employeeName",
+        "workerUid",
+        "eventType",
+        "lat",
+        "lng",
+        "distanceFromSiteMeters",
+        "geofenceRadiusMeters",
+        "geofenceStatus",
+        "faceVerified",
+        "verificationMethod",
+        "timestampIso",
+        "createdAt"
+      ]
+    },
+    "CommunityWorkspaceProfile": {
+      "title": "CommunityWorkspaceProfile",
+      "description": "Publicly opt-in business workspace card in the Client & Company Management Community (zero PII)",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "displayName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "organizationName": { "type": "string", "minLength": 2, "maxLength": 160 },
+        "sector": { "type": "string", "minLength": 2, "maxLength": 100 },
+        "city": { "type": "string", "maxLength": 100 },
+        "companyCode": { "type": "string", "maxLength": 32 },
+        "specialtyTrades": { "type": "string", "maxLength": 300 },
+        "bio": { "type": "string", "maxLength": 600 },
+        "companiesManaged": { "type": "number" },
+        "isPublished": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "uid",
+        "displayName",
+        "organizationName",
+        "sector",
+        "companiesManaged",
+        "isPublished",
+        "createdAt",
+        "updatedAt"
+      ]
     }
   },
   "firestore": {
@@ -509,7 +630,7 @@
     },
     "/companies/{companyId}": {
       "schema": { "$ref": "#/entities/CompanyRecord" },
-      "description": "Master directory of legacy archived and active client companies, indexed by unique companyCode"
+      "description": "Master directory of coded client companies owned by members or INSCO operations, with site geofence center & radius"
     },
     "/company_codes/{companyCode}": {
       "schema": { "$ref": "#/entities/CompanyCodeReservation" },
@@ -518,6 +639,18 @@
     "/companies/{companyId}/reports/{reportId}": {
       "schema": { "$ref": "#/entities/CompanyInspectionReport" },
       "description": "Dedicated company file subcollection holding archived reports and newly entered inspection reports"
+    },
+    "/companies/{companyId}/employees/{employeeId}": {
+      "schema": { "$ref": "#/entities/CompanyEmployee" },
+      "description": "Registered field technicians/employees under each company with live GPS coordinates and face enrollment digest"
+    },
+    "/companies/{companyId}/attendance/{logId}": {
+      "schema": { "$ref": "#/entities/AttendanceLog" },
+      "description": "Immutable check-in and check-out logs with GPS coordinates, geofence alerts, and face verification metadata"
+    },
+    "/community_workspaces/{userId}": {
+      "schema": { "$ref": "#/entities/CommunityWorkspaceProfile" },
+      "description": "Opt-in business management community profiles without PII (email/phone excluded)"
     }
   }
 }

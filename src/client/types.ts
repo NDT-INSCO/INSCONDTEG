@@ -64,7 +64,74 @@ export interface CompanyRecord {
   assignedClientUid: string;
   legacySinceYear?: string;
   reportsCount: number;
+  siteLat?: number;
+  siteLng?: number;
+  geofenceRadiusMeters?: number;
   createdByUid: string;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+}
+
+export type EmployeeOnlineStatus = 'on_site' | 'off_duty' | 'in_transit' | 'alert';
+export type AttendanceEventType = 'check_in' | 'check_out';
+export type GeofenceStatus = 'inside_geofence' | 'outside_geofence';
+export type VerificationMethod = 'face_gps' | 'gps_only' | 'manual_override';
+
+export interface CompanyEmployee {
+  id: string;
+  companyId: string;
+  companyCode: string;
+  ownerUid: string;
+  workerUid?: string;
+  fullName: string;
+  roleTitle: string;
+  badgeCode: string;
+  phone?: string;
+  faceEnrolled: boolean;
+  faceDigest?: string;
+  lastLat?: number;
+  lastLng?: number;
+  lastSeenAt?: string;
+  onlineStatus: EmployeeOnlineStatus;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+}
+
+export interface AttendanceLog {
+  id: string;
+  companyId: string;
+  companyCode: string;
+  ownerUid: string;
+  employeeId: string;
+  employeeName: string;
+  workerUid: string;
+  eventType: AttendanceEventType;
+  lat: number;
+  lng: number;
+  accuracyMeters?: number;
+  distanceFromSiteMeters: number;
+  geofenceRadiusMeters: number;
+  geofenceStatus: GeofenceStatus;
+  faceVerified: boolean;
+  faceSnapshotHash?: string;
+  verificationMethod: VerificationMethod;
+  deviceLabel?: string;
+  notes?: string;
+  timestampIso: string;
+  createdAt?: unknown;
+}
+
+export interface CommunityWorkspaceProfile {
+  uid: string;
+  displayName: string;
+  organizationName: string;
+  sector: string;
+  city?: string;
+  companyCode?: string;
+  specialtyTrades?: string;
+  bio?: string;
+  companiesManaged: number;
+  isPublished: boolean;
   createdAt?: unknown;
   updatedAt?: unknown;
 }
@@ -138,6 +205,8 @@ export const BLUEPRINT_LIMITS = {
   ADMIN_NOTES_MAX: 1000,
   MAX_METHODS_PER_REQUEST: 12,
   MAX_TECH_FIELDS: 30,
+  MIN_GEOFENCE_RADIUS_M: 50,
+  MAX_GEOFENCE_RADIUS_M: 50_000,
 } as const;
 
 export function sanitizeUpperCode(raw: string): string {
@@ -208,4 +277,26 @@ export function generateRequestCode(): string {
 
 export function clampStr(val: string | undefined, max: number): string {
   return (val ?? '').trim().slice(0, max);
+}
+
+export function generateNextBadgeCode(
+  existingBadges: readonly string[],
+  prefix = 'EMP'
+): string {
+  const cleanPrefix = sanitizeUpperCode(prefix) || 'EMP';
+  const existingSet = new Set(existingBadges.map(b => b.trim().toUpperCase()));
+  let maxSeq = 100;
+  const pattern = new RegExp(`^${cleanPrefix}-(\\d+)$`);
+  for (const badge of existingSet) {
+    const match = badge.match(pattern);
+    if (match) {
+      const parsed = Number.parseInt(match[1], 10);
+      if (Number.isFinite(parsed) && parsed > maxSeq) maxSeq = parsed;
+    }
+  }
+  let next = maxSeq + 1;
+  while (existingSet.has(`${cleanPrefix}-${String(next).padStart(3, '0')}`)) {
+    next += 1;
+  }
+  return `${cleanPrefix}-${String(next).padStart(3, '0')}`;
 }

@@ -19,6 +19,10 @@ import {
   type CompanyRecord,
 } from '../../client/types';
 import {
+  DEFAULT_SITE_COORDS,
+  resolveSiteCoordinates,
+} from '../../client/geofencing';
+import {
   createCompanyWithUniqueCode,
   initializeStarterCompaniesArchive,
 } from '../../client/firestoreClientService';
@@ -64,6 +68,11 @@ export const ClientCompaniesSection: React.FC<ClientCompaniesSectionProps> = ({
   const [projectLocation, setProjectLocation] = useState('');
   const [activeScope, setActiveScope] = useState('');
   const [legacySinceYear, setLegacySinceYear] = useState(String(new Date().getFullYear()));
+  const [siteLat, setSiteLat] = useState(String(DEFAULT_SITE_COORDS.lat));
+  const [siteLng, setSiteLng] = useState(String(DEFAULT_SITE_COORDS.lng));
+  const [geofenceRadiusMeters, setGeofenceRadiusMeters] = useState(
+    String(DEFAULT_SITE_COORDS.geofenceRadiusMeters)
+  );
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -111,6 +120,16 @@ export const ClientCompaniesSection: React.FC<ClientCompaniesSectionProps> = ({
       return;
     }
 
+    const parsedLat = Number.parseFloat(siteLat);
+    const parsedLng = Number.parseFloat(siteLng);
+    const parsedRadius = Number.parseInt(geofenceRadiusMeters, 10);
+    const resolvedSite = resolveSiteCoordinates({
+      siteLat: Number.isFinite(parsedLat) ? parsedLat : undefined,
+      siteLng: Number.isFinite(parsedLng) ? parsedLng : undefined,
+      geofenceRadiusMeters: Number.isFinite(parsedRadius) ? parsedRadius : undefined,
+      projectLocation: projectLocation.trim(),
+    });
+
     setSaving(true);
     try {
       const created = await createCompanyWithUniqueCode(currentUid, {
@@ -127,7 +146,10 @@ export const ClientCompaniesSection: React.FC<ClientCompaniesSectionProps> = ({
         projectLocation: projectLocation.trim(),
         activeScope: activeScope.trim(),
         legacySinceYear: legacySinceYear.trim(),
-        assignedClientUid: '',
+        assignedClientUid: isAdmin ? '' : currentUid,
+        siteLat: resolvedSite.lat,
+        siteLng: resolvedSite.lng,
+        geofenceRadiusMeters: resolvedSite.geofenceRadiusMeters,
       });
       setSuccessMsg(
         isAr
@@ -189,16 +211,14 @@ export const ClientCompaniesSection: React.FC<ClientCompaniesSectionProps> = ({
           </p>
         </div>
 
-        {isAdmin && (
-          <button
-            type="button"
-            onClick={openCreateModal}
-            className="inline-flex items-center gap-2 rounded-lg bg-amber-500 hover:bg-amber-400 px-4 py-2 text-xs font-black text-slate-950 transition cursor-pointer whitespace-nowrap shrink-0"
-          >
-            <Plus className="w-4 h-4" aria-hidden="true" />
-            <span>{isAr ? 'تكويد وإضافة شركة جديدة' : 'Add & Code Company'}</span>
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={openCreateModal}
+          className="inline-flex items-center gap-2 rounded-lg bg-amber-500 hover:bg-amber-400 px-4 py-2 text-xs font-black text-slate-950 transition cursor-pointer whitespace-nowrap shrink-0"
+        >
+          <Plus className="w-4 h-4" aria-hidden="true" />
+          <span>{isAr ? 'تكويد وإضافة شركة جديدة' : 'Add & Code Company'}</span>
+        </button>
       </div>
 
       {successMsg && (
@@ -266,7 +286,7 @@ export const ClientCompaniesSection: React.FC<ClientCompaniesSectionProps> = ({
       </div>
 
       {/* Add Company Form Modal/Panel */}
-      {showCreateForm && isAdmin && (
+      {showCreateForm && (
         <form
           onSubmit={handleCreateCompany}
           className="rounded-xl border border-cyan-500/40 bg-slate-900 p-5 space-y-4"
@@ -425,6 +445,40 @@ export const ClientCompaniesSection: React.FC<ClientCompaniesSectionProps> = ({
             </div>
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+            <label className="space-y-1">
+              <span className="text-slate-400 block">{isAr ? 'خط عرض الموقع (Site Lat)' : 'Project Latitude'}</span>
+              <input
+                type="number"
+                step="0.00001"
+                value={siteLat}
+                onChange={e => setSiteLat(e.target.value)}
+                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-xs text-white"
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-slate-400 block">{isAr ? 'خط طول الموقع (Site Lng)' : 'Project Longitude'}</span>
+              <input
+                type="number"
+                step="0.00001"
+                value={siteLng}
+                onChange={e => setSiteLng(e.target.value)}
+                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-xs text-white"
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-slate-400 block">{isAr ? 'نطاق السياج الجغرافي (متر)' : 'Geofence Radius (m)'}</span>
+              <input
+                type="number"
+                min={50}
+                max={50000}
+                value={geofenceRadiusMeters}
+                onChange={e => setGeofenceRadiusMeters(e.target.value)}
+                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-xs text-cyan-300"
+              />
+            </label>
+          </div>
+
           <label className="block space-y-1 text-xs">
             <span className="text-slate-400 block">{isAr ? 'نطاق الاختبارات والخدمات' : 'Testing & Scope Summary'}</span>
             <textarea
@@ -488,7 +542,7 @@ export const ClientCompaniesSection: React.FC<ClientCompaniesSectionProps> = ({
                 ? 'بمجرد تسجيل حسابك ومراجعته من فريق إنسكو، سيظهر هنا ملف شركتك بالكود الخاص بها وتقارير الفحص المؤرشفة.'
                 : 'Once INSCO operations links your registered account to your Company Code, your company dossier and reports will appear here.'}
           </p>
-          {isAdmin && companies.length === 0 && (
+          {companies.length === 0 && (
             <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
               <button
                 type="button"
@@ -498,23 +552,25 @@ export const ClientCompaniesSection: React.FC<ClientCompaniesSectionProps> = ({
                 <Plus className="w-4 h-4" />
                 <span>{isAr ? 'تكويد أول شركة' : 'Add First Company'}</span>
               </button>
-              <button
-                type="button"
-                disabled={seeding}
-                onClick={() => void handleSeedArchive()}
-                className="inline-flex items-center gap-2 rounded-lg border border-cyan-500/40 bg-cyan-500/10 hover:bg-cyan-500/20 px-4 py-2 text-xs font-bold text-cyan-300 cursor-pointer"
-              >
-                <Database className="w-4 h-4" />
-                <span>
-                  {seeding
-                    ? isAr
-                      ? 'جاري التهيئة...'
-                      : 'Initializing...'
-                    : isAr
-                      ? 'توليد 3 شركات مرجعية بالأكواد والتقارير'
-                      : 'Initialize 3 Sample Coded Companies'}
-                </span>
-              </button>
+              {isAdmin && (
+                <button
+                  type="button"
+                  disabled={seeding}
+                  onClick={() => void handleSeedArchive()}
+                  className="inline-flex items-center gap-2 rounded-lg border border-cyan-500/40 bg-cyan-500/10 hover:bg-cyan-500/20 px-4 py-2 text-xs font-bold text-cyan-300 cursor-pointer"
+                >
+                  <Database className="w-4 h-4" />
+                  <span>
+                    {seeding
+                      ? isAr
+                        ? 'جاري التهيئة...'
+                        : 'Initializing...'
+                      : isAr
+                        ? 'توليد 3 شركات مرجعية بالأكواد والتقارير'
+                        : 'Initialize 3 Sample Coded Companies'}
+                  </span>
+                </button>
+              )}
             </div>
           )}
         </div>

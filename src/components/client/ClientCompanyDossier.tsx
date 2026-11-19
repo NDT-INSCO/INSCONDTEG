@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  MapPin,
   Archive,
   ArrowLeft,
   ArrowRight,
   Building2,
   Check,
   CheckCircle2,
+  Clock,
   Copy,
   Download,
   FilePlus2,
@@ -15,13 +17,17 @@ import {
   Plus,
   QrCode,
   ShieldCheck,
+  UserPlus,
   X,
 } from 'lucide-react';
 import type { Language } from '../../types';
 import {
+  generateNextBadgeCode,
   generateNextReportNumber,
   sanitizeReportNumber,
   type ArchiveCategory,
+  type AttendanceLog,
+  type CompanyEmployee,
   type CompanyInspectionReport,
   type CompanyRecord,
   type NdtReportMethod,
@@ -38,11 +44,13 @@ import {
   generateCompanyQrPngDataUrl,
 } from '../../client/companyQr';
 import {
+  createCompanyEmployee,
   createCompanyReport,
   deleteCompanyReport,
   updateCompanyRecord,
   updateCompanyReportStatus,
 } from '../../client/firestoreClientService';
+import { resolveSiteCoordinates } from '../../client/geofencing';
 import { filterReportsForCompany } from '../../client/reportGrouping';
 import {
   clearRecentDownloadedReports,
@@ -54,19 +62,26 @@ import { CompanyQrBadge } from './CompanyQrBadge';
 import { CompanyQrModal } from './CompanyQrModal';
 import { ClientReportDossierView } from './ClientReportDossierView';
 import { RecentReportsPanel } from './RecentReportsPanel';
+import { EmployeeMapTracker } from './EmployeeMapTracker';
+import { EmployeeAttendanceTimeline } from './EmployeeAttendanceTimeline';
 
 interface ClientCompanyDossierProps {
   language: Language;
   company: CompanyRecord;
   reports: CompanyInspectionReport[];
+  employees?: CompanyEmployee[];
+  attendanceLogs?: AttendanceLog[];
   reportsLoading?: boolean;
   isAdmin: boolean;
   currentUid: string;
   onBackToArchive: () => void;
   onExportPdf?: (company: CompanyRecord, report: CompanyInspectionReport) => unknown;
+  onRequestEmployeeLocationUpdate?: (employee: CompanyEmployee) => void;
+  isUpdatingEmployeeLocation?: boolean;
+  onOpenTimeClock?: () => void;
 }
 
-type DossierTab = 'archive' | 'builder' | 'profile';
+type DossierTab = 'archive' | 'workforce' | 'builder' | 'profile';
 
 const VERDICT_OPTIONS: ReportVerdict[] = ['ACCEPT', 'REJECT', 'HOLD', 'REVIEW'];
 
@@ -74,14 +89,24 @@ export const ClientCompanyDossier: React.FC<ClientCompanyDossierProps> = ({
   language,
   company,
   reports,
+  employees = [],
+  attendanceLogs = [],
   reportsLoading = false,
   isAdmin,
   currentUid,
   onBackToArchive,
   onExportPdf = exportCompanyInspectionReportPdf,
+  onRequestEmployeeLocationUpdate,
+  isUpdatingEmployeeLocation = false,
+  onOpenTimeClock,
 }) => {
   const isAr = language === 'ar';
   const BackIcon = isAr ? ArrowRight : ArrowLeft;
+  const canManageCompany =
+    isAdmin ||
+    (Boolean(currentUid) &&
+      company.createdByUid === currentUid &&
+      company.assignedClientUid === currentUid);
 
   const [activeTab, setActiveTab] = useState<DossierTab>('archive');
   const [previewReport, setPreviewReport] = useState<CompanyInspectionReport | null>(null);
@@ -148,12 +173,27 @@ export const ClientCompanyDossier: React.FC<ClientCompanyDossierProps> = ({
   ]);
   const [notes, setNotes] = useState('');
 
-  // Company profile edit state (admin)
+  // Company profile & geofence edit state
+  const siteDefaults = useMemo(() => resolveSiteCoordinates(company), [company]);
   const [editCategory, setEditCategory] = useState<ArchiveCategory>(company.archiveCategory);
   const [editActiveTesting, setEditActiveTesting] = useState(company.hasActiveTestingDossier);
   const [editScope, setEditScope] = useState(company.activeScope || '');
   const [editContactPerson, setEditContactPerson] = useState(company.contactPerson || '');
   const [editContactPhone, setEditContactPhone] = useState(company.contactPhone || '');
+  const [editSiteLat, setEditSiteLat] = useState(String(siteDefaults.lat));
+  const [editSiteLng, setEditSiteLng] = useState(String(siteDefaults.lng));
+  const [editGeofenceRadius, setEditGeofenceRadius] = useState(
+    String(siteDefaults.geofenceRadiusMeters)
+  );
+
+  // Workforce employee enrollment state
+  const [empName, setEmpName] = useState('');
+  const [empRole, setEmpRole] = useState('NDT Field Inspector');
+  const [empBadge, setEmpBadge] = useState(() =>
+    generateNextBadgeCode(employees.map(e => e.badgeCode))
+  );
+  const [empPhone, setEmpPhone] = useState('');
+  const [addingEmployee, setAddingEmployee] = useState(false);
 
   const handleSelectTemplate = (templateKey: string) => {
     const tpl = getReportTemplate(templateKey);
@@ -282,6 +322,9 @@ export const ClientCompanyDossier: React.FC<ClientCompanyDossierProps> = ({
     e.preventDefault();
     setSaving(true);
     setFormError(null);
+    const parsedLat = Number.parseFloat(editSiteLat);
+    const parsedLng = Number.parseFloat(editSiteLng);
+    const parsedRadius = Number.parseInt(editGeofenceRadius, 10);
     try {
       await updateCompanyRecord(company.id, {
         archiveCategory: editCategory,
@@ -289,14 +332,46 @@ export const ClientCompanyDossier: React.FC<ClientCompanyDossierProps> = ({
         activeScope: editScope,
         contactPerson: editContactPerson,
         contactPhone: editContactPhone,
+        ...(Number.isFinite(parsedLat) && { siteLat: parsedLat }),
+        ...(Number.isFinite(parsedLng) && { siteLng: parsedLng }),
+        ...(Number.isFinite(parsedRadius) && { geofenceRadiusMeters: parsedRadius }),
       });
       setActionBanner(
-        isAr ? 'تم تحديث إعدادات ملف الشركة بنجاح.' : 'Company dossier settings updated.'
+        isAr ? 'تم تحديث إعدادات ملف الشركة والسياج الجغرافي بنجاح.' : 'Company dossier & geofence settings updated.'
       );
     } catch (err) {
       setFormError(err instanceof Error ? err.message : String(err));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleAddEmployee = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!empName.trim()) return;
+    setAddingEmployee(true);
+    setFormError(null);
+    try {
+      const created = await createCompanyEmployee(currentUid, company, {
+        fullName: empName.trim(),
+        roleTitle: empRole.trim() || 'Field Technician',
+        badgeCode: empBadge.trim() || generateNextBadgeCode(employees.map(emp => emp.badgeCode)),
+        phone: empPhone.trim(),
+        lastLat: siteDefaults.lat,
+        lastLng: siteDefaults.lng,
+      });
+      setEmpName('');
+      setEmpPhone('');
+      setEmpBadge(generateNextBadgeCode([...employees.map(emp => emp.badgeCode), created.badgeCode]));
+      setActionBanner(
+        isAr
+          ? `تم إضافة الفني ${created.fullName} (${created.badgeCode}) إلى سجل الشركة.`
+          : `Added technician ${created.fullName} (${created.badgeCode}) to company roster.`
+      );
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setAddingEmployee(false);
     }
   };
 
@@ -323,7 +398,7 @@ export const ClientCompanyDossier: React.FC<ClientCompanyDossierProps> = ({
             <span>{isAr ? 'QR البطاقة الميدانية' : 'Field QR Pass'}</span>
           </button>
 
-          {isAdmin && (
+          {canManageCompany && (
             <button
               type="button"
               onClick={() => setActiveTab('builder')}
@@ -439,7 +514,23 @@ export const ClientCompanyDossier: React.FC<ClientCompanyDossierProps> = ({
             <span className="font-mono tabular-nums opacity-80">({reports.length})</span>
           </button>
 
-          {isAdmin && (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'workforce'}
+            onClick={() => setActiveTab('workforce')}
+            className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-bold transition cursor-pointer whitespace-nowrap ${
+              activeTab === 'workforce'
+                ? 'bg-cyan-600 text-white'
+                : 'border border-slate-800 bg-slate-950 text-slate-300 hover:bg-slate-800'
+            }`}
+          >
+            <MapPin className="w-3.5 h-3.5" aria-hidden="true" />
+            <span>{isAr ? 'خريطة الموظفين والحضور' : 'Crew Map & Timeline'}</span>
+            <span className="font-mono tabular-nums opacity-80">({employees.length})</span>
+          </button>
+
+          {canManageCompany && (
             <button
               type="button"
               role="tab"
@@ -497,46 +588,141 @@ export const ClientCompanyDossier: React.FC<ClientCompanyDossierProps> = ({
         </div>
       )}
 
-      {/* TAB 1: REPORTS ARCHIVE & DATE-CATEGORIZED DOSSIER + RECENT REPORTS SIDE PANEL */}
+      {/* TAB 1: REPORTS ARCHIVE & DATE-CATEGORIZED DOSSIER + RECENT REPORTS + LIVE MAP TRACKER */}
       {activeTab === 'archive' && (
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
-          <div className="xl:col-span-9 min-w-0">
-            <ClientReportDossierView
-              language={language}
-              company={company}
-              reports={companyReports}
-              loading={reportsLoading}
-              isAdmin={isAdmin}
-              onPreviewReport={setPreviewReport}
-              onReportDownloaded={trackDownloadedReport}
-              onExportPdf={onExportPdf}
-              onArchiveReport={rep =>
-                void updateCompanyReportStatus(company.id, rep.id, {
-                  status: 'archived',
-                  verdict: rep.verdict,
-                  notes: rep.notes,
-                })
-              }
-              onDeleteReport={rep => void deleteCompanyReport(company.id, rep.id)}
-              onOpenBuilder={() => setActiveTab('builder')}
-            />
+        <div className="space-y-5">
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
+            <div className="xl:col-span-9 min-w-0">
+              <ClientReportDossierView
+                language={language}
+                company={company}
+                reports={companyReports}
+                loading={reportsLoading}
+                isAdmin={canManageCompany}
+                onPreviewReport={setPreviewReport}
+                onReportDownloaded={trackDownloadedReport}
+                onExportPdf={onExportPdf}
+                onArchiveReport={rep =>
+                  void updateCompanyReportStatus(company.id, rep.id, {
+                    status: 'archived',
+                    verdict: rep.verdict,
+                    notes: rep.notes,
+                  })
+                }
+                onDeleteReport={rep => void deleteCompanyReport(company.id, rep.id)}
+                onOpenBuilder={() => setActiveTab('builder')}
+              />
+            </div>
+
+            <div className="xl:col-span-3 xl:sticky xl:top-4">
+              <RecentReportsPanel
+                language={language}
+                entries={recentDownloads}
+                companyReports={companyReports}
+                onRedownload={handleDownloadAndTrackReport}
+                onPreviewReport={setPreviewReport}
+                onClearRecent={() => setRecentDownloads(clearRecentDownloadedReports(company.id))}
+              />
+            </div>
           </div>
 
-          <div className="xl:col-span-3 xl:sticky xl:top-4">
-            <RecentReportsPanel
-              language={language}
-              entries={recentDownloads}
-              companyReports={companyReports}
-              onRedownload={handleDownloadAndTrackReport}
-              onPreviewReport={setPreviewReport}
-              onClearRecent={() => setRecentDownloads(clearRecentDownloadedReports(company.id))}
-            />
+          <EmployeeMapTracker
+            language={language}
+            company={company}
+            employees={employees}
+            attendanceLogs={attendanceLogs}
+            onRequestLocationUpdate={onRequestEmployeeLocationUpdate}
+            isUpdatingLocation={isUpdatingEmployeeLocation}
+          />
+        </div>
+      )}
+
+      {/* TAB 1b: CREW MAP TRACKER, EMPLOYEE ROSTER & ATTENDANCE TIMELINE */}
+      {activeTab === 'workforce' && (
+        <div className="space-y-5" data-testid="company-workforce-tab">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-800 bg-slate-900/70 px-4 py-3">
+            <div className="text-xs text-slate-300">
+              {isAr
+                ? `إدارة فريق العمل الميداني وتنبيهات السياج الجغرافي للشركة ${company.companyCode}`
+                : `Field crew tracking, biometric check-ins, and geofencing timeline for ${company.companyCode}`}
+            </div>
+            {onOpenTimeClock && (
+              <button
+                type="button"
+                onClick={onOpenTimeClock}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 text-xs font-bold text-white cursor-pointer whitespace-nowrap"
+              >
+                <Clock className="w-3.5 h-3.5" aria-hidden="true" />
+                <span>{isAr ? 'فتح بوابة تسجيل حضور الأفراد' : 'Open Worker Time-Clock'}</span>
+              </button>
+            )}
           </div>
+
+          {canManageCompany && (
+            <form
+              onSubmit={handleAddEmployee}
+              className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3"
+            >
+              <div className="text-xs font-black text-cyan-300 flex items-center gap-1.5">
+                <UserPlus className="w-4 h-4" aria-hidden="true" />
+                <span>{isAr ? 'إضافة فني / موظف ميداني إلى هذا المشروع' : 'Enroll Technician / Employee'}</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-2.5 text-xs">
+                <input
+                  type="text"
+                  required
+                  value={empName}
+                  onChange={e => setEmpName(e.target.value)}
+                  placeholder={isAr ? 'الاسم الكامل *' : 'Full Name *'}
+                  className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-white"
+                />
+                <input
+                  type="text"
+                  required
+                  value={empRole}
+                  onChange={e => setEmpRole(e.target.value)}
+                  placeholder={isAr ? 'التخصص / الدور' : 'Role / Discipline'}
+                  className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-white"
+                />
+                <input
+                  type="text"
+                  required
+                  value={empBadge}
+                  onChange={e => setEmpBadge(e.target.value.toUpperCase())}
+                  placeholder="EMP-101"
+                  className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-xs text-cyan-300"
+                />
+                <button
+                  type="submit"
+                  disabled={addingEmployee}
+                  className="rounded-lg bg-amber-500 hover:bg-amber-400 px-4 py-2 text-xs font-black text-slate-950 cursor-pointer"
+                >
+                  {addingEmployee ? (isAr ? 'جاري التسجيل...' : 'Saving...') : isAr ? 'تسجيل الفني' : 'Add Employee'}
+                </button>
+              </div>
+            </form>
+          )}
+
+          <EmployeeMapTracker
+            language={language}
+            company={company}
+            employees={employees}
+            attendanceLogs={attendanceLogs}
+            onRequestLocationUpdate={onRequestEmployeeLocationUpdate}
+            isUpdatingLocation={isUpdatingEmployeeLocation}
+          />
+
+          <EmployeeAttendanceTimeline
+            language={language}
+            logs={attendanceLogs}
+            companyName={isAr ? company.nameAr : company.nameEn}
+            companyCode={company.companyCode}
+          />
         </div>
       )}
 
       {/* TAB 2: NEW REPORT DATA-ENTRY BUILDER */}
-      {activeTab === 'builder' && isAdmin && (
+      {activeTab === 'builder' && canManageCompany && (
         <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 space-y-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-800 pb-4">
             <div>
@@ -919,7 +1105,7 @@ export const ClientCompanyDossier: React.FC<ClientCompanyDossierProps> = ({
               <span className="text-slate-400 block">{isAr ? 'تصنيف الأرشفة' : 'Archive Category'}</span>
               <select
                 value={editCategory}
-                disabled={!isAdmin}
+                disabled={!canManageCompany}
                 onChange={e => setEditCategory(e.target.value as ArchiveCategory)}
                 className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-white disabled:opacity-70"
               >
@@ -933,7 +1119,7 @@ export const ClientCompanyDossier: React.FC<ClientCompanyDossierProps> = ({
               <label className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-200 w-full cursor-pointer">
                 <input
                   type="checkbox"
-                  disabled={!isAdmin}
+                  disabled={!canManageCompany}
                   checked={editActiveTesting}
                   onChange={e => setEditActiveTesting(e.target.checked)}
                   className="accent-emerald-500"
@@ -950,7 +1136,7 @@ export const ClientCompanyDossier: React.FC<ClientCompanyDossierProps> = ({
               <span className="text-slate-400 block">{isAr ? 'مسؤول التواصل' : 'Primary Contact'}</span>
               <input
                 type="text"
-                disabled={!isAdmin}
+                disabled={!canManageCompany}
                 value={editContactPerson}
                 onChange={e => setEditContactPerson(e.target.value)}
                 className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-white disabled:opacity-70"
@@ -961,10 +1147,47 @@ export const ClientCompanyDossier: React.FC<ClientCompanyDossierProps> = ({
               <span className="text-slate-400 block">{isAr ? 'هاتف المتابعة' : 'Contact Phone'}</span>
               <input
                 type="text"
-                disabled={!isAdmin}
+                disabled={!canManageCompany}
                 value={editContactPhone}
                 onChange={e => setEditContactPhone(e.target.value)}
                 className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-xs text-white disabled:opacity-70"
+              />
+            </label>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+            <label className="space-y-1">
+              <span className="text-slate-400 block">{isAr ? 'خط عرض المشروع (Lat)' : 'Site Latitude'}</span>
+              <input
+                type="number"
+                step="0.00001"
+                disabled={!canManageCompany}
+                value={editSiteLat}
+                onChange={e => setEditSiteLat(e.target.value)}
+                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-xs text-white disabled:opacity-70"
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-slate-400 block">{isAr ? 'خط طول المشروع (Lng)' : 'Site Longitude'}</span>
+              <input
+                type="number"
+                step="0.00001"
+                disabled={!canManageCompany}
+                value={editSiteLng}
+                onChange={e => setEditSiteLng(e.target.value)}
+                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-xs text-white disabled:opacity-70"
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-slate-400 block">{isAr ? 'نطاق السياج الجغرافي (متر)' : 'Geofence Radius (m)'}</span>
+              <input
+                type="number"
+                min={50}
+                max={50000}
+                disabled={!canManageCompany}
+                value={editGeofenceRadius}
+                onChange={e => setEditGeofenceRadius(e.target.value)}
+                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-xs text-cyan-300 disabled:opacity-70"
               />
             </label>
           </div>
@@ -973,14 +1196,14 @@ export const ClientCompanyDossier: React.FC<ClientCompanyDossierProps> = ({
             <span className="text-slate-400 block">{isAr ? 'نطاق العمل والاختبارات التعاقدية' : 'Testing & Contract Scope'}</span>
             <textarea
               rows={3}
-              disabled={!isAdmin}
+              disabled={!canManageCompany}
               value={editScope}
               onChange={e => setEditScope(e.target.value)}
               className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-white disabled:opacity-70"
             />
           </label>
 
-          {isAdmin && (
+          {canManageCompany && (
             <button
               type="submit"
               disabled={saving}

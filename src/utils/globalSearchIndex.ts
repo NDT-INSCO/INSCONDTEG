@@ -945,6 +945,83 @@ function buildGlobalSearchIndex(): GlobalSearchItem[] {
         'ربط الكود',
       ],
       destination: { type: 'client', section: 'register' },
+    },
+    {
+      id: 'client-worker-timeclock',
+      category: 'client',
+      code: 'TIME-CLOCK GPS',
+      featured: true,
+      title: {
+        ar: 'بوابة تسجيل حضور وانصراف الأفراد بالخرائط والتحقق بالوجه',
+        en: 'Worker Time-Clock Portal — GPS Coordinates & Face Check',
+      },
+      subtitle: {
+        ar: 'تسجيل دخول وخروج العاملين الميدانيين مع كشف النطاق الجغرافي Geofencing',
+        en: 'Field crew clock-in & clock-out with real-time GPS & Geofencing alerts',
+      },
+      keywords: [
+        'timeclock',
+        'attendance',
+        'gps',
+        'geofence',
+        'face check',
+        'check in',
+        'حضور',
+        'انصراف',
+        'تسجيل دخول العمال',
+        'بصمة وجه',
+        'خريطة',
+      ],
+      destination: { type: 'client', section: 'timeclock' },
+    },
+    {
+      id: 'client-employee-map-tracker',
+      category: 'client',
+      code: 'LIVE MAP TRACKER',
+      title: {
+        ar: 'خريطة تتبع الفنيين الميدانيين والجدول الزمني للحضور',
+        en: 'Employee Map Tracker & Geofenced Attendance Timeline',
+      },
+      subtitle: {
+        ar: 'تتبع مواقع الفنيين المباشرة داخل ملف الشركة مع تنبيهات الخروج عن نطاق المشروع',
+        en: 'Live field technician map pins & timeline inside company dossiers',
+      },
+      keywords: [
+        'map tracker',
+        'employee tracker',
+        'timeline',
+        'geofencing alert',
+        'تتبع الموظفين',
+        'جدول زمني',
+        'خرائط',
+        'تنبيه جغرافي',
+      ],
+      destination: { type: 'client', section: 'companies' },
+    },
+    {
+      id: 'client-business-community',
+      category: 'client',
+      code: 'COMMUNITY HUB',
+      featured: true,
+      title: {
+        ar: 'مجتمع إدارة الأعمال والشركات المسجلة على المنصة',
+        en: 'Business Management Community Directory & Workspaces',
+      },
+      subtitle: {
+        ar: 'مساحة مستقلة لكل مشترك لإدارة شركاته وعماله والتواصل في مجتمع المنصة',
+        en: 'Multi-user community hub for workspace operators, contractors & field teams',
+      },
+      keywords: [
+        'community',
+        'workspaces',
+        'business hub',
+        'directory',
+        'كوميونتي',
+        'مجتمع',
+        'ادارة اعمال',
+        'شركات',
+      ],
+      destination: { type: 'client', section: 'community' },
     }
   );
 

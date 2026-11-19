@@ -119,8 +119,8 @@ service cloud.firestore {
           'hasActiveTestingDossier', 'sector', 'commercialRegNo',
           'contactPerson', 'contactEmail', 'contactPhone',
           'projectLocation', 'activeScope', 'assignedClientUid',
-          'legacySinceYear', 'reportsCount', 'createdByUid',
-          'createdAt', 'updatedAt'
+          'legacySinceYear', 'reportsCount', 'siteLat', 'siteLng',
+          'geofenceRadiusMeters', 'createdByUid', 'createdAt', 'updatedAt'
         ])
         && isValidCode(data.companyCode)
         && data.nameAr is string && data.nameAr.size() >= 2 && data.nameAr.size() <= 180
@@ -137,6 +137,9 @@ service cloud.firestore {
         && data.assignedClientUid is string && data.assignedClientUid.size() <= 128
         && (!('legacySinceYear' in data) || (data.legacySinceYear is string && data.legacySinceYear.size() <= 16))
         && data.reportsCount is number && data.reportsCount >= 0 && data.reportsCount <= 100000
+        && (!('siteLat' in data) || (data.siteLat is number && data.siteLat >= -90 && data.siteLat <= 90))
+        && (!('siteLng' in data) || (data.siteLng is number && data.siteLng <= 180 && data.siteLng >= -180))
+        && (!('geofenceRadiusMeters' in data) || (data.geofenceRadiusMeters is number && data.geofenceRadiusMeters >= 50 && data.geofenceRadiusMeters <= 50000))
         && isValidId(data.createdByUid)
         && data.createdAt is timestamp
         && data.updatedAt is timestamp;
@@ -188,6 +191,96 @@ service cloud.firestore {
         && data.technicalData is map && data.technicalData.size() <= 30
         && (!('notes' in data) || (data.notes is string && data.notes.size() <= 2000))
         && isValidId(data.createdByUid)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCompanyEmployee(data, parentCompanyId) {
+      return data.keys().hasAll([
+          'companyId', 'companyCode', 'ownerUid', 'fullName',
+          'roleTitle', 'badgeCode', 'faceEnrolled', 'onlineStatus',
+          'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'companyId', 'companyCode', 'ownerUid', 'workerUid', 'fullName',
+          'roleTitle', 'badgeCode', 'phone', 'faceEnrolled', 'faceDigest',
+          'lastLat', 'lastLng', 'lastSeenAt', 'onlineStatus',
+          'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.companyId) && data.companyId == parentCompanyId
+        && isValidCode(data.companyCode)
+        && data.ownerUid is string && data.ownerUid.size() <= 128
+        && (!('workerUid' in data) || (data.workerUid is string && data.workerUid.size() <= 128))
+        && data.fullName is string && data.fullName.size() >= 2 && data.fullName.size() <= 120
+        && data.roleTitle is string && data.roleTitle.size() >= 2 && data.roleTitle.size() <= 120
+        && data.badgeCode is string && data.badgeCode.size() >= 2 && data.badgeCode.size() <= 40 && data.badgeCode.matches('^[A-Z0-9\\-]+$')
+        && (!('phone' in data) || (data.phone is string && data.phone.size() <= 40))
+        && data.faceEnrolled is bool
+        && (!('faceDigest' in data) || (data.faceDigest is string && data.faceDigest.size() <= 128))
+        && (!('lastLat' in data) || (data.lastLat is number && data.lastLat >= -90 && data.lastLat <= 90))
+        && (!('lastLng' in data) || (data.lastLng is number && data.lastLng >= -180 && data.lastLng <= 180))
+        && (!('lastSeenAt' in data) || (data.lastSeenAt is string && data.lastSeenAt.size() <= 40))
+        && data.onlineStatus in ['on_site', 'off_duty', 'in_transit', 'alert']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidAttendanceLog(data, parentCompanyId) {
+      return data.keys().hasAll([
+          'companyId', 'companyCode', 'ownerUid', 'employeeId',
+          'employeeName', 'workerUid', 'eventType', 'lat', 'lng',
+          'distanceFromSiteMeters', 'geofenceRadiusMeters', 'geofenceStatus',
+          'faceVerified', 'verificationMethod', 'timestampIso', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'companyId', 'companyCode', 'ownerUid', 'employeeId',
+          'employeeName', 'workerUid', 'eventType', 'lat', 'lng',
+          'accuracyMeters', 'distanceFromSiteMeters', 'geofenceRadiusMeters',
+          'geofenceStatus', 'faceVerified', 'faceSnapshotHash',
+          'verificationMethod', 'deviceLabel', 'notes', 'timestampIso', 'createdAt'
+        ])
+        && isValidId(data.companyId) && data.companyId == parentCompanyId
+        && isValidCode(data.companyCode)
+        && data.ownerUid is string && data.ownerUid.size() <= 128
+        && isValidId(data.employeeId)
+        && data.employeeName is string && data.employeeName.size() >= 2 && data.employeeName.size() <= 120
+        && isValidId(data.workerUid)
+        && data.eventType in ['check_in', 'check_out']
+        && data.lat is number && data.lat >= -90 && data.lat <= 90
+        && data.lng is number && data.lng >= -180 && data.lng <= 180
+        && (!('accuracyMeters' in data) || (data.accuracyMeters is number && data.accuracyMeters >= 0 && data.accuracyMeters <= 50000))
+        && data.distanceFromSiteMeters is number && data.distanceFromSiteMeters >= 0 && data.distanceFromSiteMeters <= 20000000
+        && data.geofenceRadiusMeters is number && data.geofenceRadiusMeters >= 50 && data.geofenceRadiusMeters <= 50000
+        && data.geofenceStatus in ['inside_geofence', 'outside_geofence']
+        && data.faceVerified is bool
+        && (!('faceSnapshotHash' in data) || (data.faceSnapshotHash is string && data.faceSnapshotHash.size() <= 128))
+        && data.verificationMethod in ['face_gps', 'gps_only', 'manual_override']
+        && (!('deviceLabel' in data) || (data.deviceLabel is string && data.deviceLabel.size() <= 120))
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 500))
+        && data.timestampIso is string && data.timestampIso.size() >= 10 && data.timestampIso.size() <= 40
+        && data.createdAt is timestamp;
+    }
+
+    function isValidCommunityWorkspace(data, userId) {
+      return data.keys().hasAll([
+          'uid', 'displayName', 'organizationName', 'sector',
+          'companiesManaged', 'isPublished', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'uid', 'displayName', 'organizationName', 'sector', 'city',
+          'companyCode', 'specialtyTrades', 'bio', 'companiesManaged',
+          'isPublished', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.uid) && data.uid == userId
+        && data.displayName is string && data.displayName.size() >= 2 && data.displayName.size() <= 120
+        && data.organizationName is string && data.organizationName.size() >= 2 && data.organizationName.size() <= 160
+        && data.sector is string && data.sector.size() >= 2 && data.sector.size() <= 100
+        && (!('city' in data) || (data.city is string && data.city.size() <= 100))
+        && (!('companyCode' in data) || (data.companyCode is string && data.companyCode.size() <= 32))
+        && (!('specialtyTrades' in data) || (data.specialtyTrades is string && data.specialtyTrades.size() <= 300))
+        && (!('bio' in data) || (data.bio is string && data.bio.size() <= 600))
+        && data.companiesManaged is number && data.companiesManaged >= 0 && data.companiesManaged <= 10000
+        && data.isPublished is bool
         && data.createdAt is timestamp
         && data.updatedAt is timestamp;
     }
@@ -277,6 +370,31 @@ service cloud.firestore {
     }
 
     // -------------------------------------------------------------------------
+    // Opt-In Public Community Business Directory (Zero PII)
+    // -------------------------------------------------------------------------
+    match /community_workspaces/{userId} {
+      allow get: if isValidId(userId) && isVerifiedUser() && (existing().isPublished == true || isOwner(userId) || isAdmin());
+      allow list: if isAdminEmail() || (isVerifiedUser() && existing().isPublished == true);
+
+      allow create: if isVerifiedUser()
+        && isValidId(userId)
+        && isOwner(userId)
+        && isValidCommunityWorkspace(incoming(), userId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isVerifiedUser()
+        && isValidId(userId)
+        && isOwner(userId)
+        && isValidCommunityWorkspace(incoming(), userId)
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+
+      allow delete: if isValidId(userId) && (isOwner(userId) || isAdmin());
+    }
+
+    // -------------------------------------------------------------------------
     // Client Requests Intake
     // -------------------------------------------------------------------------
     match /client_requests/{requestId} {
@@ -323,9 +441,9 @@ service cloud.firestore {
     // Unique Company Code Reservation Index
     // -------------------------------------------------------------------------
     match /company_codes/{companyCode} {
-      allow get: if isAdmin() && isValidCode(companyCode);
-      allow list: if isAdminEmail();
-      allow create: if isAdmin()
+      allow get: if isValidCode(companyCode) && (isAdmin() || (isVerifiedUser() && existing().createdByUid == request.auth.uid));
+      allow list: if isAdminEmail() || (isVerifiedUser() && existing().createdByUid == request.auth.uid);
+      allow create: if isVerifiedUser()
         && isValidCompanyCodeReservation(incoming(), companyCode)
         && incoming().createdByUid == request.auth.uid
         && incoming().createdAt == request.time
@@ -335,7 +453,7 @@ service cloud.firestore {
     }
 
     // -------------------------------------------------------------------------
-    // Companies Archive & Active Testing Directory
+    // Companies Archive & Self-Service Business Workspaces
     // -------------------------------------------------------------------------
     match /companies/{companyId} {
       allow get: if isValidId(companyId)
@@ -343,34 +461,49 @@ service cloud.firestore {
       allow list: if isAdminEmail()
         || (isVerifiedUser() && existing().assignedClientUid != '' && existing().assignedClientUid == request.auth.uid);
 
-      allow create: if isAdmin()
+      allow create: if isVerifiedUser()
         && isValidId(companyId)
         && isValidCompanyRecord(incoming())
         && incoming().createdByUid == request.auth.uid
         && incoming().reportsCount == 0
         && incoming().createdAt == request.time
         && incoming().updatedAt == request.time
-        && existsAfter(/databases/$(database)/documents/company_codes/$(incoming().companyCode));
+        && existsAfter(/databases/$(database)/documents/company_codes/$(incoming().companyCode))
+        && (isAdmin() || incoming().assignedClientUid == request.auth.uid);
 
-      allow update: if isAdmin()
+      allow update: if isVerifiedUser()
         && isValidId(companyId)
         && isValidCompanyRecord(incoming())
         && incoming().createdByUid == existing().createdByUid
         && incoming().createdAt == existing().createdAt
         && incoming().companyCode == existing().companyCode
         && incoming().updatedAt == request.time
-        && incoming().diff(existing()).affectedKeys().hasOnly([
-          'nameAr', 'nameEn', 'archiveCategory', 'hasActiveTestingDossier',
-          'sector', 'commercialRegNo', 'contactPerson', 'contactEmail',
-          'contactPhone', 'projectLocation', 'activeScope',
-          'assignedClientUid', 'legacySinceYear', 'reportsCount', 'updatedAt'
-        ]);
+        && (
+          (isAdmin() && incoming().diff(existing()).affectedKeys().hasOnly([
+            'nameAr', 'nameEn', 'archiveCategory', 'hasActiveTestingDossier',
+            'sector', 'commercialRegNo', 'contactPerson', 'contactEmail',
+            'contactPhone', 'projectLocation', 'activeScope',
+            'assignedClientUid', 'legacySinceYear', 'reportsCount',
+            'siteLat', 'siteLng', 'geofenceRadiusMeters', 'updatedAt'
+          ]))
+          || (
+            existing().assignedClientUid == request.auth.uid
+            && incoming().assignedClientUid == existing().assignedClientUid
+            && incoming().diff(existing()).affectedKeys().hasOnly([
+              'nameAr', 'nameEn', 'archiveCategory', 'hasActiveTestingDossier',
+              'sector', 'commercialRegNo', 'contactPerson', 'contactEmail',
+              'contactPhone', 'projectLocation', 'activeScope',
+              'legacySinceYear', 'reportsCount',
+              'siteLat', 'siteLng', 'geofenceRadiusMeters', 'updatedAt'
+            ])
+          )
+        );
 
       allow delete: if isValidId(companyId) && isAdmin();
 
       // -----------------------------------------------------------------------
       // Dedicated Company File / Dossier: Inspection Reports Subcollection
-      // Master Gate: enforces parent company existence & client alignment
+      // Master Gate: enforces parent company existence & owner/client alignment
       // -----------------------------------------------------------------------
       match /reports/{reportId} {
         allow get: if isValidId(companyId) && isValidId(reportId) && (
@@ -384,7 +517,7 @@ service cloud.firestore {
         allow list: if isAdminEmail()
           || (isVerifiedUser() && existing().assignedClientUid != '' && existing().assignedClientUid == request.auth.uid);
 
-        allow create: if isAdmin()
+        allow create: if isVerifiedUser()
           && isValidId(companyId)
           && isValidId(reportId)
           && isValidInspectionReport(incoming(), companyId)
@@ -393,9 +526,13 @@ service cloud.firestore {
           && incoming().updatedAt == request.time
           && exists(/databases/$(database)/documents/companies/$(companyId))
           && incoming().companyCode == get(/databases/$(database)/documents/companies/$(companyId)).data.companyCode
-          && incoming().assignedClientUid == get(/databases/$(database)/documents/companies/$(companyId)).data.assignedClientUid;
+          && incoming().assignedClientUid == get(/databases/$(database)/documents/companies/$(companyId)).data.assignedClientUid
+          && (
+            isAdmin()
+            || get(/databases/$(database)/documents/companies/$(companyId)).data.assignedClientUid == request.auth.uid
+          );
 
-        allow update: if isAdmin()
+        allow update: if isVerifiedUser()
           && isValidId(companyId)
           && isValidId(reportId)
           && isValidInspectionReport(incoming(), companyId)
@@ -404,6 +541,14 @@ service cloud.firestore {
           && incoming().createdByUid == existing().createdByUid
           && incoming().createdAt == existing().createdAt
           && incoming().updatedAt == request.time
+          && (
+            isAdmin()
+            || (
+              existing().assignedClientUid == request.auth.uid
+              && existing().status != 'archived'
+              && incoming().assignedClientUid == existing().assignedClientUid
+            )
+          )
           && incoming().diff(existing()).affectedKeys().hasOnly([
             'assignedClientUid', 'reportNumber', 'templateKey', 'method',
             'isLegacyArchive', 'projectName', 'clientPoNumber',
@@ -412,7 +557,102 @@ service cloud.firestore {
             'verdict', 'status', 'technicalData', 'notes', 'updatedAt'
           ]);
 
-        allow delete: if isValidId(companyId) && isValidId(reportId) && isAdmin();
+        allow delete: if isValidId(companyId) && isValidId(reportId)
+          && (isAdmin() || (isVerifiedUser() && existing().assignedClientUid == request.auth.uid));
+      }
+
+      // -----------------------------------------------------------------------
+      // Field Technicians / Employees Subcollection
+      // -----------------------------------------------------------------------
+      match /employees/{employeeId} {
+        allow get: if isValidId(companyId) && isValidId(employeeId) && (
+          isAdmin()
+          || (isVerifiedUser() && (
+            existing().ownerUid == request.auth.uid
+            || (existing().workerUid != '' && existing().workerUid == request.auth.uid)
+          ))
+        );
+        allow list: if isAdminEmail()
+          || (isVerifiedUser() && (
+            existing().ownerUid == request.auth.uid
+            || (existing().workerUid != '' && existing().workerUid == request.auth.uid)
+          ));
+
+        allow create: if isVerifiedUser()
+          && isValidId(companyId)
+          && isValidId(employeeId)
+          && isValidCompanyEmployee(incoming(), companyId)
+          && exists(/databases/$(database)/documents/companies/$(companyId))
+          && incoming().companyCode == get(/databases/$(database)/documents/companies/$(companyId)).data.companyCode
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && (
+            isAdmin()
+            || (
+              get(/databases/$(database)/documents/companies/$(companyId)).data.assignedClientUid == request.auth.uid
+              && incoming().ownerUid == request.auth.uid
+            )
+          );
+
+        allow update: if isVerifiedUser()
+          && isValidId(companyId)
+          && isValidId(employeeId)
+          && isValidCompanyEmployee(incoming(), companyId)
+          && incoming().companyId == existing().companyId
+          && incoming().companyCode == existing().companyCode
+          && incoming().ownerUid == existing().ownerUid
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && (
+            isAdmin()
+            || existing().ownerUid == request.auth.uid
+            || (
+              existing().workerUid != ''
+              && existing().workerUid == request.auth.uid
+              && incoming().diff(existing()).affectedKeys().hasOnly([
+                'lastLat', 'lastLng', 'lastSeenAt', 'onlineStatus',
+                'faceEnrolled', 'faceDigest', 'updatedAt'
+              ])
+            )
+          );
+
+        allow delete: if isValidId(companyId) && isValidId(employeeId)
+          && (isAdmin() || (isVerifiedUser() && existing().ownerUid == request.auth.uid));
+      }
+
+      // -----------------------------------------------------------------------
+      // Immutable Geofenced Attendance Check-In / Check-Out Timeline Logs
+      // -----------------------------------------------------------------------
+      match /attendance/{logId} {
+        allow get: if isValidId(companyId) && isValidId(logId) && (
+          isAdmin()
+          || (isVerifiedUser() && (
+            existing().ownerUid == request.auth.uid
+            || existing().workerUid == request.auth.uid
+          ))
+        );
+        allow list: if isAdminEmail()
+          || (isVerifiedUser() && (
+            existing().ownerUid == request.auth.uid
+            || existing().workerUid == request.auth.uid
+          ));
+
+        allow create: if isVerifiedUser()
+          && isValidId(companyId)
+          && isValidId(logId)
+          && isValidAttendanceLog(incoming(), companyId)
+          && exists(/databases/$(database)/documents/companies/$(companyId))
+          && incoming().companyCode == get(/databases/$(database)/documents/companies/$(companyId)).data.companyCode
+          && incoming().workerUid == request.auth.uid
+          && incoming().createdAt == request.time
+          && (
+            isAdmin()
+            || get(/databases/$(database)/documents/companies/$(companyId)).data.assignedClientUid == request.auth.uid
+            || incoming().ownerUid == request.auth.uid
+          );
+
+        allow update: if false;
+        allow delete: if isValidId(companyId) && isValidId(logId) && isAdmin();
       }
     }
 

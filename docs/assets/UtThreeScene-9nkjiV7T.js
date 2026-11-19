@@ -1,7 +1,7 @@
 import { a as __toESM } from "./rolldown-runtime-oLLnCvco.js";
-import { a as require_react, n as Layers, r as Eye, t as require_jsx_runtime } from "./jsx-runtime-BdKgb6Yj.js";
-import { B as QuadraticBezierCurve3, C as LineCurve3, D as MathUtils, E as LineSegments, F as PerspectiveCamera, G as Sprite, H as SRGBColorSpace, J as Vector3, K as SpriteMaterial, L as PointLight, M as MeshStandardMaterial, O as Mesh, R as Points, S as LineBasicMaterial, T as LineLoop, U as Scene, V as RingGeometry, _ as GridHelper, a as BufferAttribute, c as CatmullRomCurve3, f as CylinderGeometry, g as FogExp2, i as BoxGeometry, k as MeshBasicMaterial, l as Clock, m as EdgesGeometry, n as WebGLRenderer, o as BufferGeometry, p as DirectionalLight, q as TubeGeometry, s as CanvasTexture, t as PMREMGenerator, u as Color, v as Group, x as Line, y as HemisphereLight, z as PointsMaterial } from "./three.module-DZ1WiPWM.js";
-import { n as Box, t as RoomEnvironment } from "./AcademyContent-CHpvuKOs.js";
+import { Gt as require_jsx_runtime, Mn as Eye, Sn as Layers, ir as require_react } from "./index-CgqKVYxh.js";
+import { B as QuadraticBezierCurve3, C as LineCurve3, D as MathUtils, E as LineSegments, F as PerspectiveCamera, G as ShaderMaterial, H as RingGeometry, J as Sprite, L as PointLight, M as MeshStandardMaterial, O as Mesh, Q as Vector3, R as Points, S as LineBasicMaterial, T as LineLoop, U as SRGBColorSpace, V as Quaternion, W as Scene, X as TorusGeometry, Y as SpriteMaterial, Z as TubeGeometry, _ as GridHelper, a as BufferAttribute, c as CatmullRomCurve3, f as CylinderGeometry, g as FogExp2, i as BoxGeometry, k as MeshBasicMaterial, l as Clock, m as EdgesGeometry, n as WebGLRenderer, o as BufferGeometry, p as DirectionalLight, q as SphereGeometry, s as CanvasTexture, t as PMREMGenerator, u as Color, v as Group, x as Line, y as HemisphereLight, z as PointsMaterial } from "./three.module-5482Nant.js";
+import { n as Box, t as RoomEnvironment } from "./AcademyContent-BBfCepQU.js";
 //#region src/components/academy/virtuallab/UtThreeScene.tsx
 var import_react = /* @__PURE__ */ __toESM(require_react(), 1);
 var import_jsx_runtime = require_jsx_runtime();
@@ -63,6 +63,99 @@ function createDimensionCalloutSprite(primaryText, secondaryText, accentCss, max
 	return sprite;
 }
 /**
+* Generates an animated GLSL 1.0 ShaderMaterial for 3D ultrasonic beam cones & Fresnel near-field zones.
+* Renders traveling compressional/shear wavefront crests, near-field interference ripples, and Fresnel rim glow.
+*/
+function createUltrasonicBeamShaderMaterial(options) {
+	const { coreColor, outerColor, nearFieldColor = 11032055, freqMHz, nearFieldFrac, baseOpacity, phaseOffset = 0, isDetected = false, isNearFieldZone = false, xrayActive = false } = options;
+	return new ShaderMaterial({
+		transparent: true,
+		depthWrite: false,
+		depthTest: false,
+		side: 2,
+		uniforms: {
+			uTime: { value: 0 },
+			uFreqMHz: { value: freqMHz },
+			uNearFieldFrac: { value: MathUtils.clamp(nearFieldFrac, .05, .95) },
+			uBaseOpacity: { value: baseOpacity * (xrayActive ? 1.25 : .92) },
+			uPhaseOffset: { value: phaseOffset },
+			uIsDetected: { value: isDetected ? 1 : 0 },
+			uIsNearFieldZone: { value: isNearFieldZone ? 1 : 0 },
+			uCoreColor: { value: new Color(coreColor) },
+			uOuterColor: { value: new Color(outerColor) },
+			uNearFieldColor: { value: new Color(nearFieldColor) },
+			uEchoColor: { value: new Color(1096065) }
+		},
+		vertexShader: `
+      varying vec2 vUv;
+      varying vec3 vNormal;
+      varying vec3 vViewPos;
+      void main() {
+        vUv = uv;
+        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+        vViewPos = -mvPosition.xyz;
+        vNormal = normalize(normalMatrix * normal);
+        gl_Position = projectionMatrix * mvPosition;
+      }
+    `,
+		fragmentShader: `
+      uniform float uTime;
+      uniform float uFreqMHz;
+      uniform float uNearFieldFrac;
+      uniform float uBaseOpacity;
+      uniform float uPhaseOffset;
+      uniform float uIsDetected;
+      uniform float uIsNearFieldZone;
+      uniform vec3 uCoreColor;
+      uniform vec3 uOuterColor;
+      uniform vec3 uNearFieldColor;
+      uniform vec3 uEchoColor;
+
+      varying vec2 vUv;
+      varying vec3 vNormal;
+      varying vec3 vViewPos;
+
+      void main() {
+        // CylinderGeometry maps uv.y = 1.0 at entry (start) -> 0.0 at far end
+        float axial = clamp(1.0 - vUv.y, 0.0, 1.0);
+        float waveDensity = 5.0 + uFreqMHz * 1.9;
+        float speed = 1.85 + uFreqMHz * 0.22;
+
+        // Forward-traveling acoustic wave crests & burst packet envelope
+        float phase = (axial * waveDensity - uTime * speed) * 6.2831853 + uPhaseOffset;
+        float crest = pow(0.5 + 0.5 * cos(phase), 2.6);
+        float packet = 0.55 + 0.45 * sin((axial * 2.1 - uTime * (speed * 0.44)) * 6.2831853 + uPhaseOffset);
+
+        // Fresnel Near-Field interference fringes (0 -> N_eff)
+        float nfMask = 1.0 - smoothstep(uNearFieldFrac - 0.06, uNearFieldFrac + 0.08, axial);
+        float interference = 0.5 + 0.5 * sin(vUv.x * 18.84955 + axial * 16.0 - uTime * 3.4);
+        float nfMix = clamp(nfMask * (0.55 + 0.45 * uIsNearFieldZone), 0.0, 1.0);
+
+        // Returning defect echo wave (when defect is intersected)
+        float echoCrest = pow(0.5 + 0.5 * cos((axial * waveDensity * 0.9 + uTime * speed * 1.15) * 6.2831853), 3.0);
+        float echoMask = uIsDetected * 0.42 * echoCrest;
+
+        // Soft Fresnel rim glow so cone borders read as acoustic energy rather than hard polygons
+        vec3 n = normalize(vNormal);
+        vec3 v = normalize(vViewPos);
+        float ndotv = abs(dot(n, v));
+        float rim = pow(1.0 - ndotv, 1.35);
+        float centerGlow = smoothstep(0.0, 0.65, ndotv);
+
+        vec3 baseCol = mix(uOuterColor, uCoreColor, clamp(crest * 0.75 + centerGlow * 0.35, 0.0, 1.0));
+        baseCol = mix(baseCol, uNearFieldColor, nfMix * (0.45 + 0.45 * interference));
+        baseCol = mix(baseCol, uEchoColor, clamp(echoMask, 0.0, 0.65));
+
+        float endFade = smoothstep(0.0, 0.04, axial) * (1.0 - smoothstep(0.94, 1.0, axial) * 0.45);
+        float energy = (0.34 + 0.66 * crest * packet + nfMix * interference * 0.22 + echoMask * 0.35);
+        float alpha = clamp(uBaseOpacity * energy * (0.58 + 0.55 * rim) * endFade, 0.04, 0.88);
+
+        gl_FragColor = vec4(baseCol, alpha);
+      }
+    `
+	});
+}
+/**
 * Recursively disposes geometries, materials, and procedural textures inside a Three.js Object3D tree.
 */
 function disposeObjectTree(obj) {
@@ -113,6 +206,7 @@ var UtThreeScene = ({ language = "ar", blockType, probePositionMm, probeAngleDeg
 	freqRef.current = transducerFreqMHz;
 	const magFieldRef = (0, import_react.useRef)(magneticFieldKaM);
 	magFieldRef.current = magneticFieldKaM;
+	const reducedMotionRef = (0, import_react.useRef)(typeof window !== "undefined" && typeof window.matchMedia === "function" ? window.matchMedia("(prefers-reduced-motion: reduce)").matches : false);
 	const isDraggingRef = (0, import_react.useRef)(false);
 	const previousMousePositionRef = (0, import_react.useRef)({
 		x: 0,
@@ -229,14 +323,45 @@ var UtThreeScene = ({ language = "ar", blockType, probePositionMm, probeAngleDeg
 		const tick = () => {
 			if (isDisposed) return;
 			const elapsedTime = clock.getElapsedTime();
+			const animTime = reducedMotionRef.current ? .35 : elapsedTime;
 			if (soundBeamRef.current) {
 				const pulseRate = 3.5 + freqRef.current * 1.15;
-				soundBeamRef.current.children.forEach((child, idx) => {
-					if (child instanceof Mesh && child.material instanceof MeshStandardMaterial) {
-						const baseOpacity = child.userData.baseOpacity || .55;
-						child.material.opacity = baseOpacity + Math.sin(elapsedTime * pulseRate + idx) * .14;
+				const children = soundBeamRef.current.children;
+				for (let idx = 0; idx < children.length; idx++) {
+					const child = children[idx];
+					if (!(child instanceof Mesh)) continue;
+					if (child.material instanceof ShaderMaterial && child.userData.isUtBeamShader) {
+						child.material.uniforms.uTime.value = animTime;
+						continue;
 					}
-				});
+					const travelCfg = child.userData.utTravelWave;
+					if (travelCfg) {
+						const rawT = animTime * travelCfg.speed + travelCfg.phaseOffset;
+						const t = rawT - Math.floor(rawT);
+						child.position.set(travelCfg.startX + (travelCfg.endX - travelCfg.startX) * t, travelCfg.startY + (travelCfg.endY - travelCfg.startY) * t, travelCfg.startZ + (travelCfg.endZ - travelCfg.startZ) * t);
+						const r = travelCfg.rStart + (travelCfg.rEnd - travelCfg.rStart) * t;
+						if (travelCfg.isBead) {
+							const beadScale = .72 + .45 * Math.sin(t * Math.PI);
+							child.scale.set(beadScale, beadScale, beadScale);
+						} else child.scale.set(r, r, Math.max(.15, r * .65));
+						if (child.material instanceof MeshBasicMaterial) {
+							const fade = Math.sin(t * Math.PI);
+							child.material.opacity = travelCfg.baseOpacity * (.2 + .8 * fade);
+						}
+						continue;
+					}
+					if (child.userData.utBouncePulse) {
+						const pulse = .5 + .5 * Math.sin(animTime * pulseRate * 1.15);
+						const s = .85 + .35 * pulse;
+						child.scale.set(s, s, s);
+						if (child.material instanceof MeshBasicMaterial) child.material.opacity = .35 + .55 * pulse;
+						continue;
+					}
+					if (child.material instanceof MeshStandardMaterial) {
+						const baseOpacity = child.userData.baseOpacity || .55;
+						child.material.opacity = baseOpacity + Math.sin(animTime * pulseRate + idx) * .14;
+					}
+				}
 			}
 			if (fluxLinesGroupRef.current && energizedRef.current) {
 				const fluxPulseSpeed = 6 + magFieldRef.current * 2.4;
@@ -470,59 +595,90 @@ var UtThreeScene = ({ language = "ar", blockType, probePositionMm, probeAngleDeg
 			const farEndR = MathUtils.clamp(nearStartR + Math.tan(halfSpreadRad) * beamLen * 2.2, nearStartR + .08, 2.15);
 			const beamGeo = new CylinderGeometry(nearStartR, farEndR, beamLen, 24, 1, true);
 			beamGeo.translate(0, -4.4 / 2, 0);
-			const beamMat = new MeshStandardMaterial({
-				color: 3718648,
-				transparent: true,
-				opacity: .45,
-				emissive: 165063,
-				emissiveIntensity: .8,
-				side: 2
+			const nfSceneLen = MathUtils.clamp(nearFieldMm / 100 * beamLen, .35, beamLen * .85);
+			const beamMat = createUltrasonicBeamShaderMaterial({
+				coreColor: 3718648,
+				outerColor: 165063,
+				nearFieldColor: 11032055,
+				freqMHz: clampedFreq,
+				nearFieldFrac: MathUtils.clamp(nfSceneLen / beamLen, .08, .88),
+				baseOpacity: .52,
+				xrayActive
 			});
 			const beamMesh = new Mesh(beamGeo, beamMat);
-			beamMesh.userData = { baseOpacity: .45 };
+			beamMesh.userData = { isUtBeamShader: true };
+			beamMesh.renderOrder = 6;
 			beamGroup.add(beamMesh);
-			const nfSceneLen = MathUtils.clamp(nearFieldMm / 100 * beamLen, .35, beamLen * .85);
 			const nfGeo = new CylinderGeometry(nearStartR * .88, nearStartR * .95, nfSceneLen, 20, 1, true);
 			nfGeo.translate(0, -nfSceneLen / 2, 0);
-			const nfMat = new MeshStandardMaterial({
-				color: 11032055,
-				emissive: 8266446,
-				emissiveIntensity: .9,
-				transparent: true,
-				opacity: .52,
-				side: 2
+			const nfMat = createUltrasonicBeamShaderMaterial({
+				coreColor: 12616956,
+				outerColor: 8266446,
+				nearFieldColor: 15235577,
+				freqMHz: clampedFreq,
+				nearFieldFrac: 1,
+				baseOpacity: .42,
+				isNearFieldZone: true,
+				xrayActive
 			});
 			const nfMesh = new Mesh(nfGeo, nfMat);
-			nfMesh.userData = { baseOpacity: .52 };
+			nfMesh.userData = { isUtBeamShader: true };
+			nfMesh.renderOrder = 7;
 			beamGroup.add(nfMesh);
-			const wavefrontRingCount = Math.min(10, Math.max(3, Math.round(clampedFreq * 1.1)));
-			for (let wIdx = 1; wIdx <= wavefrontRingCount; wIdx++) {
-				const frac = wIdx / (wavefrontRingCount + 1);
-				const ringR = MathUtils.lerp(nearStartR, farEndR, frac);
-				const wfGeo = new RingGeometry(Math.max(.05, ringR * .82), ringR, 20);
-				wfGeo.rotateX(-Math.PI / 2);
-				const wfMesh = new Mesh(wfGeo, new MeshBasicMaterial({
+			const wfTorusGeo = new TorusGeometry(1, .035, 8, 28);
+			wfTorusGeo.rotateX(-Math.PI / 2);
+			const wavefrontRingCount = Math.min(8, Math.max(4, Math.round(clampedFreq * 1.1)));
+			const wfSpeed = .55 + clampedFreq * .07;
+			for (let wIdx = 0; wIdx < wavefrontRingCount; wIdx++) {
+				const wfMesh = new Mesh(wfTorusGeo, new MeshBasicMaterial({
 					color: 6809849,
 					transparent: true,
-					opacity: .45,
-					side: 2
+					opacity: .72,
+					depthTest: false,
+					depthWrite: false
 				}));
-				wfMesh.position.y = -frac * beamLen;
+				wfMesh.renderOrder = 8;
+				wfMesh.userData = { utTravelWave: {
+					startX: 0,
+					startY: -.05,
+					startZ: 0,
+					endX: 0,
+					endY: -4.4,
+					endZ: 0,
+					rStart: nearStartR * .92,
+					rEnd: farEndR * .95,
+					phaseOffset: wIdx / wavefrontRingCount,
+					speed: wfSpeed,
+					baseOpacity: .78
+				} };
 				beamGroup.add(wfMesh);
 			}
-			const rayGeo = new CylinderGeometry(.04, .04, beamLen, 8);
+			const rayGeo = new CylinderGeometry(.032, .032, beamLen, 8);
 			rayGeo.translate(0, -4.4 / 2, 0);
-			const rayMat = new MeshBasicMaterial({ color: 14742270 });
+			const rayMat = new MeshBasicMaterial({
+				color: 14742270,
+				transparent: true,
+				opacity: .55,
+				depthTest: false,
+				depthWrite: false
+			});
 			const rayMesh = new Mesh(rayGeo, rayMat);
+			rayMesh.renderOrder = 7;
 			beamGroup.add(rayMesh);
 			const impactRingGeo = new RingGeometry(.18, farEndR * .72, 24);
 			impactRingGeo.rotateX(-Math.PI / 2);
 			const impactRingMat = new MeshBasicMaterial({
 				color: 3718648,
-				side: 2
+				transparent: true,
+				opacity: .7,
+				side: 2,
+				depthTest: false,
+				depthWrite: false
 			});
 			const impactRingMesh = new Mesh(impactRingGeo, impactRingMat);
 			impactRingMesh.position.y = -4.4;
+			impactRingMesh.renderOrder = 8;
+			impactRingMesh.userData = { utBouncePulse: true };
 			beamGroup.add(impactRingMesh);
 			if (probePreset === "C") beamGroup.rotation.z = -probeAngleDeg * Math.PI / 180 * .45;
 			probeGroup.add(beamGroup);
@@ -581,21 +737,60 @@ var UtThreeScene = ({ language = "ar", blockType, probePositionMm, probeAngleDeg
 			const botR = MathUtils.clamp(topR + Math.tan(halfSpreadRad) * currentH * 2, topR + .04, 1.35);
 			const beamGeo = new CylinderGeometry(topR, botR, currentH, 16);
 			beamGeo.translate(0, -currentH / 2 - .66, 0);
-			const beamMat = new MeshStandardMaterial({
-				color: 3718648,
-				transparent: true,
-				opacity: .5,
-				emissive: 165063,
-				emissiveIntensity: .7
+			const beamMat = createUltrasonicBeamShaderMaterial({
+				coreColor: 3718648,
+				outerColor: 165063,
+				nearFieldColor: 11032055,
+				freqMHz: clampedFreq,
+				nearFieldFrac: .35,
+				baseOpacity: .56,
+				xrayActive
 			});
 			const beamMesh = new Mesh(beamGeo, beamMat);
-			beamMesh.userData = { baseOpacity: .5 };
+			beamMesh.userData = { isUtBeamShader: true };
+			beamMesh.renderOrder = 6;
 			beamGroup.add(beamMesh);
+			const stepWfGeo = new TorusGeometry(1, .032, 8, 24);
+			stepWfGeo.rotateX(-Math.PI / 2);
+			const stepRingCount = Math.max(3, Math.round(currentH * 1.4));
+			for (let wIdx = 0; wIdx < stepRingCount; wIdx++) {
+				const ringMesh = new Mesh(stepWfGeo, new MeshBasicMaterial({
+					color: 6809849,
+					transparent: true,
+					opacity: .72,
+					depthTest: false,
+					depthWrite: false
+				}));
+				ringMesh.renderOrder = 8;
+				ringMesh.userData = { utTravelWave: {
+					startX: 0,
+					startY: -.68,
+					startZ: 0,
+					endX: 0,
+					endY: -currentH - .66,
+					endZ: 0,
+					rStart: topR * .9,
+					rEnd: botR * .96,
+					phaseOffset: wIdx / stepRingCount,
+					speed: .65 + clampedFreq * .06,
+					baseOpacity: .78
+				} };
+				beamGroup.add(ringMesh);
+			}
 			const echoGeo = new RingGeometry(.1, botR * 1.05, 16);
 			echoGeo.rotateX(-Math.PI / 2);
-			const echoMat = new MeshBasicMaterial({ color: 6809849 });
+			const echoMat = new MeshBasicMaterial({
+				color: 6809849,
+				transparent: true,
+				opacity: .75,
+				side: 2,
+				depthTest: false,
+				depthWrite: false
+			});
 			const echoMesh = new Mesh(echoGeo, echoMat);
 			echoMesh.position.y = -currentH - .66;
+			echoMesh.renderOrder = 8;
+			echoMesh.userData = { utBouncePulse: true };
 			beamGroup.add(echoMesh);
 			probeGroup.add(beamGroup);
 			root.add(probeGroup);
@@ -838,77 +1033,292 @@ var UtThreeScene = ({ language = "ar", blockType, probePositionMm, probeAngleDeg
 			const coreRadiusStart = Math.max(.06, .09 * probeScaleRatio);
 			const coneRadiusBounce = MathUtils.clamp(coreRadiusStart + Math.tan(halfSpreadRad) * leg1Length * 1.85, coreRadiusStart + .04, .95);
 			const coneRadiusFullSkip = MathUtils.clamp(coneRadiusBounce + Math.tan(halfSpreadRad) * leg1Length * 1.65, coneRadiusBounce + .04, 1.45);
-			const leg1Path = new LineCurve3(startVec, bounceVec);
-			const leg1Geo = new TubeGeometry(leg1Path, 10, .055, 8, false);
-			const beamMat = new MeshStandardMaterial({
-				color: defectDetected ? 16096779 : 3718648,
-				emissive: defectDetected ? 16096779 : 165063,
-				emissiveIntensity: .95,
+			const wedgeStartVec = new Vector3(-.28, 1.12, 0);
+			const wedgeRayPath = new LineCurve3(wedgeStartVec, startVec);
+			const wedgeRayGeo = new TubeGeometry(wedgeRayPath, 6, .032, 8, false);
+			const wedgeRayMat = new MeshBasicMaterial({
+				color: 6809849,
 				transparent: true,
-				opacity: .88
+				opacity: .72,
+				depthTest: false,
+				depthWrite: false
+			});
+			const wedgeRayMesh = new Mesh(wedgeRayGeo, wedgeRayMat);
+			wedgeRayMesh.renderOrder = 7;
+			beamGroup.add(wedgeRayMesh);
+			const leg1Path = new LineCurve3(startVec, bounceVec);
+			const leg1Geo = new TubeGeometry(leg1Path, 10, .04, 8, false);
+			const beamMat = new MeshBasicMaterial({
+				color: defectDetected ? 16498468 : 8246268,
+				transparent: true,
+				opacity: .68,
+				depthTest: false,
+				depthWrite: false
 			});
 			const leg1Mesh = new Mesh(leg1Geo, beamMat);
-			leg1Mesh.userData = { baseOpacity: .86 };
+			leg1Mesh.renderOrder = 7;
 			beamGroup.add(leg1Mesh);
 			const leg1Mid = startVec.clone().add(bounceVec).multiplyScalar(.5);
 			const leg1Dir = bounceVec.clone().sub(startVec).normalize();
-			const leg1ConeGeo = new CylinderGeometry(coreRadiusStart, coneRadiusBounce, Math.max(.2, leg1Length), 20, 1, true);
-			const coneEnvelopeMat = new MeshStandardMaterial({
-				color: defectDetected ? 16498468 : 2282478,
-				emissive: defectDetected ? 14251782 : 561586,
-				emissiveIntensity: .7,
-				transparent: true,
-				opacity: .34,
-				side: 2,
-				depthWrite: false
+			const nfRatioOnLeg1 = MathUtils.clamp(nearFieldMm / Math.max(12, plateThicknessMm * 2.2), .12, .85);
+			const leg1ConeGeo = new CylinderGeometry(coreRadiusStart, coneRadiusBounce, Math.max(.2, leg1Length), 24, 1, true);
+			const coneEnvelopeMat = createUltrasonicBeamShaderMaterial({
+				coreColor: defectDetected ? 16498468 : 3718648,
+				outerColor: defectDetected ? 14251782 : 165063,
+				nearFieldColor: 11032055,
+				freqMHz: clampedFreq,
+				nearFieldFrac: nfRatioOnLeg1,
+				baseOpacity: .56,
+				phaseOffset: 0,
+				isDetected: defectDetected,
+				xrayActive
 			});
 			const leg1ConeMesh = new Mesh(leg1ConeGeo, coneEnvelopeMat);
 			leg1ConeMesh.position.copy(leg1Mid);
 			leg1ConeMesh.quaternion.setFromUnitVectors(new Vector3(0, -1, 0), leg1Dir);
-			leg1ConeMesh.userData = { baseOpacity: .34 };
+			leg1ConeMesh.userData = { isUtBeamShader: true };
+			leg1ConeMesh.renderOrder = 6;
 			beamGroup.add(leg1ConeMesh);
-			const nfRatioOnLeg1 = MathUtils.clamp(nearFieldMm / Math.max(12, plateThicknessMm * 2.2), .12, .85);
 			const nfLen3D = leg1Length * nfRatioOnLeg1;
 			const nfEndVec = startVec.clone().add(leg1Dir.clone().multiplyScalar(nfLen3D));
 			const nfMidVec = startVec.clone().add(nfEndVec).multiplyScalar(.5);
-			const nfAngleGeo = new CylinderGeometry(coreRadiusStart * .95, MathUtils.lerp(coreRadiusStart, coneRadiusBounce, nfRatioOnLeg1), Math.max(.15, nfLen3D), 18, 1, true);
-			const nfAngleMat = new MeshStandardMaterial({
-				color: 11032055,
-				emissive: 8266446,
-				emissiveIntensity: .9,
-				transparent: true,
-				opacity: .52,
-				side: 2,
-				depthWrite: false
+			const nfAngleGeo = new CylinderGeometry(coreRadiusStart * .95, MathUtils.lerp(coreRadiusStart, coneRadiusBounce, nfRatioOnLeg1), Math.max(.15, nfLen3D), 20, 1, true);
+			const nfAngleMat = createUltrasonicBeamShaderMaterial({
+				coreColor: 12616956,
+				outerColor: 8266446,
+				nearFieldColor: 15235577,
+				freqMHz: clampedFreq,
+				nearFieldFrac: 1,
+				baseOpacity: .42,
+				isNearFieldZone: true,
+				isDetected: defectDetected,
+				xrayActive
 			});
 			const nfAngleMesh = new Mesh(nfAngleGeo, nfAngleMat);
 			nfAngleMesh.position.copy(nfMidVec);
 			nfAngleMesh.quaternion.setFromUnitVectors(new Vector3(0, -1, 0), leg1Dir);
-			nfAngleMesh.userData = { baseOpacity: .52 };
+			nfAngleMesh.userData = { isUtBeamShader: true };
+			nfAngleMesh.renderOrder = 7;
 			beamGroup.add(nfAngleMesh);
-			const bottomBounceGeo = new RingGeometry(.08, Math.max(.28, coneRadiusBounce * 1.15), 20);
+			const zAxisUnit = new Vector3(0, 0, 1);
+			const leg1RingQuat = new Quaternion().setFromUnitVectors(zAxisUnit, leg1Dir);
+			const angleWfTorusGeo = new TorusGeometry(1, .042, 8, 28);
+			const anglePulseBeadGeo = new SphereGeometry(.085, 10, 10);
+			const legWaveCount = Math.min(7, Math.max(4, Math.round(clampedFreq * .9)));
+			const angleWaveSpeed = .58 + clampedFreq * .065;
+			for (let wIdx = 0; wIdx < legWaveCount; wIdx++) {
+				const ringMesh = new Mesh(angleWfTorusGeo, new MeshBasicMaterial({
+					color: defectDetected ? 16639626 : 6809849,
+					transparent: true,
+					opacity: .82,
+					depthTest: false,
+					depthWrite: false
+				}));
+				ringMesh.quaternion.copy(leg1RingQuat);
+				ringMesh.renderOrder = 8;
+				ringMesh.userData = { utTravelWave: {
+					startX: startVec.x,
+					startY: startVec.y,
+					startZ: startVec.z,
+					endX: bounceVec.x,
+					endY: bounceVec.y,
+					endZ: bounceVec.z,
+					rStart: coreRadiusStart * .9,
+					rEnd: coneRadiusBounce * .94,
+					phaseOffset: wIdx / legWaveCount,
+					speed: angleWaveSpeed,
+					baseOpacity: .85
+				} };
+				beamGroup.add(ringMesh);
+			}
+			for (let bIdx = 0; bIdx < 2; bIdx++) {
+				const bead = new Mesh(anglePulseBeadGeo, new MeshBasicMaterial({
+					color: 16317180,
+					transparent: true,
+					opacity: .92,
+					depthTest: false,
+					depthWrite: false
+				}));
+				bead.renderOrder = 9;
+				bead.userData = { utTravelWave: {
+					startX: startVec.x,
+					startY: startVec.y,
+					startZ: startVec.z,
+					endX: bounceVec.x,
+					endY: bounceVec.y,
+					endZ: bounceVec.z,
+					rStart: 1,
+					rEnd: 1,
+					phaseOffset: bIdx * .5,
+					speed: angleWaveSpeed,
+					baseOpacity: .94,
+					isBead: true
+				} };
+				beamGroup.add(bead);
+			}
+			const wedgeBead = new Mesh(anglePulseBeadGeo, new MeshBasicMaterial({
+				color: 6809849,
+				transparent: true,
+				opacity: .9,
+				depthTest: false,
+				depthWrite: false
+			}));
+			wedgeBead.renderOrder = 9;
+			wedgeBead.userData = { utTravelWave: {
+				startX: wedgeStartVec.x,
+				startY: wedgeStartVec.y,
+				startZ: wedgeStartVec.z,
+				endX: startVec.x,
+				endY: startVec.y,
+				endZ: startVec.z,
+				rStart: 1,
+				rEnd: 1,
+				phaseOffset: .15,
+				speed: angleWaveSpeed * 1.4,
+				baseOpacity: .9,
+				isBead: true
+			} };
+			beamGroup.add(wedgeBead);
+			const bottomBounceGeo = new RingGeometry(.08, Math.max(.28, coneRadiusBounce * 1.15), 24);
 			bottomBounceGeo.rotateX(-Math.PI / 2);
 			const bottomBounceMat = new MeshBasicMaterial({
 				color: defectDetected ? 16498468 : 3718648,
-				side: 2
+				transparent: true,
+				opacity: .78,
+				side: 2,
+				depthTest: false,
+				depthWrite: false
 			});
 			const bottomBounceMesh = new Mesh(bottomBounceGeo, bottomBounceMat);
 			bottomBounceMesh.position.copy(bounceVec);
+			bottomBounceMesh.renderOrder = 8;
+			bottomBounceMesh.userData = { utBouncePulse: true };
 			beamGroup.add(bottomBounceMesh);
 			if (refractedClampedDeg > 5) {
 				const leg2Path = new LineCurve3(bounceVec, fullSkipVec);
-				const leg2Geo = new TubeGeometry(leg2Path, 10, .048, 8, false);
+				const leg2Geo = new TubeGeometry(leg2Path, 10, .036, 8, false);
 				const leg2Mesh = new Mesh(leg2Geo, beamMat);
-				leg2Mesh.userData = { baseOpacity: .8 };
+				leg2Mesh.renderOrder = 7;
 				beamGroup.add(leg2Mesh);
 				const leg2Mid = bounceVec.clone().add(fullSkipVec).multiplyScalar(.5);
 				const leg2Dir = fullSkipVec.clone().sub(bounceVec).normalize();
-				const leg2ConeGeo = new CylinderGeometry(coneRadiusBounce, coneRadiusFullSkip, Math.max(.2, leg1Length), 20, 1, true);
-				const leg2ConeMesh = new Mesh(leg2ConeGeo, coneEnvelopeMat);
+				const leg2ConeGeo = new CylinderGeometry(coneRadiusBounce, coneRadiusFullSkip, Math.max(.2, leg1Length), 24, 1, true);
+				const leg2ConeMat = createUltrasonicBeamShaderMaterial({
+					coreColor: defectDetected ? 16096779 : 3718648,
+					outerColor: defectDetected ? 11817737 : 223649,
+					nearFieldColor: 8490232,
+					freqMHz: clampedFreq,
+					nearFieldFrac: .05,
+					baseOpacity: .44,
+					phaseOffset: Math.PI * .75,
+					isDetected: defectDetected,
+					xrayActive
+				});
+				const leg2ConeMesh = new Mesh(leg2ConeGeo, leg2ConeMat);
 				leg2ConeMesh.position.copy(leg2Mid);
 				leg2ConeMesh.quaternion.setFromUnitVectors(new Vector3(0, -1, 0), leg2Dir);
-				leg2ConeMesh.userData = { baseOpacity: .28 };
+				leg2ConeMesh.userData = { isUtBeamShader: true };
+				leg2ConeMesh.renderOrder = 6;
 				beamGroup.add(leg2ConeMesh);
+				const leg2RingQuat = new Quaternion().setFromUnitVectors(zAxisUnit, leg2Dir);
+				for (let wIdx = 0; wIdx < legWaveCount; wIdx++) {
+					const ringMesh2 = new Mesh(angleWfTorusGeo, new MeshBasicMaterial({
+						color: defectDetected ? 16498468 : 3718648,
+						transparent: true,
+						opacity: .68,
+						depthTest: false,
+						depthWrite: false
+					}));
+					ringMesh2.quaternion.copy(leg2RingQuat);
+					ringMesh2.renderOrder = 8;
+					ringMesh2.userData = { utTravelWave: {
+						startX: bounceVec.x,
+						startY: bounceVec.y,
+						startZ: bounceVec.z,
+						endX: fullSkipVec.x,
+						endY: fullSkipVec.y,
+						endZ: fullSkipVec.z,
+						rStart: coneRadiusBounce * .92,
+						rEnd: coneRadiusFullSkip * .95,
+						phaseOffset: (wIdx + .5) / legWaveCount,
+						speed: angleWaveSpeed,
+						baseOpacity: .68
+					} };
+					beamGroup.add(ringMesh2);
+				}
+				const leg2Bead = new Mesh(anglePulseBeadGeo, new MeshBasicMaterial({
+					color: 16707722,
+					transparent: true,
+					opacity: .85,
+					depthTest: false,
+					depthWrite: false
+				}));
+				leg2Bead.renderOrder = 9;
+				leg2Bead.userData = { utTravelWave: {
+					startX: bounceVec.x,
+					startY: bounceVec.y,
+					startZ: bounceVec.z,
+					endX: fullSkipVec.x,
+					endY: fullSkipVec.y,
+					endZ: fullSkipVec.z,
+					rStart: 1,
+					rEnd: 1,
+					phaseOffset: .25,
+					speed: angleWaveSpeed,
+					baseOpacity: .85,
+					isBead: true
+				} };
+				beamGroup.add(leg2Bead);
+			}
+			if (defectDetected) {
+				for (let eIdx = 0; eIdx < 3; eIdx++) {
+					const echoRing = new Mesh(angleWfTorusGeo, new MeshBasicMaterial({
+						color: 1096065,
+						transparent: true,
+						opacity: .88,
+						depthTest: false,
+						depthWrite: false
+					}));
+					echoRing.quaternion.copy(leg1RingQuat);
+					echoRing.renderOrder = 9;
+					echoRing.userData = { utTravelWave: {
+						startX: bounceVec.x,
+						startY: bounceVec.y,
+						startZ: bounceVec.z,
+						endX: startVec.x,
+						endY: startVec.y,
+						endZ: startVec.z,
+						rStart: coneRadiusBounce * .68,
+						rEnd: coreRadiusStart * 1.15,
+						phaseOffset: eIdx / 3,
+						speed: angleWaveSpeed * 1.15,
+						baseOpacity: .88
+					} };
+					beamGroup.add(echoRing);
+				}
+				const scatterRing = new Mesh(angleWfTorusGeo, new MeshBasicMaterial({
+					color: 3462041,
+					transparent: true,
+					opacity: .9,
+					depthTest: false,
+					depthWrite: false
+				}));
+				scatterRing.rotation.x = Math.PI / 2;
+				scatterRing.renderOrder = 9;
+				scatterRing.userData = { utTravelWave: {
+					startX: bounceVec.x,
+					startY: bounceVec.y + .18,
+					startZ: bounceVec.z,
+					endX: bounceVec.x,
+					endY: bounceVec.y + .18,
+					endZ: bounceVec.z,
+					rStart: .18,
+					rEnd: Math.max(.65, coneRadiusBounce * 1.25),
+					phaseOffset: 0,
+					speed: angleWaveSpeed * 1.35,
+					baseOpacity: .9
+				} };
+				beamGroup.add(scatterRing);
 			}
 			probeGroup.add(beamGroup);
 			soundBeamRef.current = beamGroup;

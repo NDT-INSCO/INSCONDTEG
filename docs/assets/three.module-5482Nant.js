@@ -21114,6 +21114,211 @@ var RingGeometry = class RingGeometry extends BufferGeometry {
 	}
 };
 /**
+* A class for generating a sphere geometry.
+*
+* ```js
+* const geometry = new THREE.SphereGeometry( 15, 32, 16 );
+* const material = new THREE.MeshBasicMaterial( { color: 0xffff00 } );
+* const sphere = new THREE.Mesh( geometry, material );
+* scene.add( sphere );
+* ```
+*
+* @augments BufferGeometry
+* @demo scenes/geometry-browser.html#SphereGeometry
+*/
+var SphereGeometry = class SphereGeometry extends BufferGeometry {
+	/**
+	* Constructs a new sphere geometry.
+	*
+	* @param {number} [radius=1] - The sphere radius.
+	* @param {number} [widthSegments=32] - The number of horizontal segments. Minimum value is `3`.
+	* @param {number} [heightSegments=16] - The number of vertical segments. Minimum value is `2`.
+	* @param {number} [phiStart=0] - The horizontal starting angle in radians.
+	* @param {number} [phiLength=Math.PI*2] - The horizontal sweep angle size.
+	* @param {number} [thetaStart=0] - The vertical starting angle in radians.
+	* @param {number} [thetaLength=Math.PI] - The vertical sweep angle size.
+	*/
+	constructor(radius = 1, widthSegments = 32, heightSegments = 16, phiStart = 0, phiLength = Math.PI * 2, thetaStart = 0, thetaLength = Math.PI) {
+		super();
+		this.type = "SphereGeometry";
+		/**
+		* Holds the constructor parameters that have been
+		* used to generate the geometry. Any modification
+		* after instantiation does not change the geometry.
+		*
+		* @type {Object}
+		*/
+		this.parameters = {
+			radius,
+			widthSegments,
+			heightSegments,
+			phiStart,
+			phiLength,
+			thetaStart,
+			thetaLength
+		};
+		widthSegments = Math.max(3, Math.floor(widthSegments));
+		heightSegments = Math.max(2, Math.floor(heightSegments));
+		const thetaEnd = Math.min(thetaStart + thetaLength, Math.PI);
+		let index = 0;
+		const grid = [];
+		const vertex = new Vector3();
+		const normal = new Vector3();
+		const indices = [];
+		const vertices = [];
+		const normals = [];
+		const uvs = [];
+		for (let iy = 0; iy <= heightSegments; iy++) {
+			const verticesRow = [];
+			const v = iy / heightSegments;
+			const theta = thetaStart + v * thetaLength;
+			const y = radius * Math.cos(theta);
+			const ringRadius = Math.sqrt(radius * radius - y * y);
+			let uOffset = 0;
+			if (iy === 0 && thetaStart === 0) uOffset = .5 / widthSegments;
+			else if (iy === heightSegments && thetaEnd === Math.PI) uOffset = -.5 / widthSegments;
+			for (let ix = 0; ix <= widthSegments; ix++) {
+				const u = ix / widthSegments;
+				const phi = phiStart + u * phiLength;
+				vertex.x = -ringRadius * Math.cos(phi);
+				vertex.y = y;
+				vertex.z = ringRadius * Math.sin(phi);
+				vertices.push(vertex.x, vertex.y, vertex.z);
+				normal.copy(vertex).normalize();
+				normals.push(normal.x, normal.y, normal.z);
+				uvs.push(u + uOffset, 1 - v);
+				verticesRow.push(index++);
+			}
+			grid.push(verticesRow);
+		}
+		for (let iy = 0; iy < heightSegments; iy++) for (let ix = 0; ix < widthSegments; ix++) {
+			const a = grid[iy][ix + 1];
+			const b = grid[iy][ix];
+			const c = grid[iy + 1][ix];
+			const d = grid[iy + 1][ix + 1];
+			if (iy !== 0 || thetaStart > 0) indices.push(a, b, d);
+			if (iy !== heightSegments - 1 || thetaEnd < Math.PI) indices.push(b, c, d);
+		}
+		this.setIndex(indices);
+		this.setAttribute("position", new Float32BufferAttribute(vertices, 3));
+		this.setAttribute("normal", new Float32BufferAttribute(normals, 3));
+		this.setAttribute("uv", new Float32BufferAttribute(uvs, 2));
+	}
+	copy(source) {
+		super.copy(source);
+		this.parameters = Object.assign({}, source.parameters);
+		return this;
+	}
+	/**
+	* Factory method for creating an instance of this class from the given
+	* JSON object.
+	*
+	* @param {Object} data - A JSON object representing the serialized geometry.
+	* @return {SphereGeometry} A new instance.
+	*/
+	static fromJSON(data) {
+		return new SphereGeometry(data.radius, data.widthSegments, data.heightSegments, data.phiStart, data.phiLength, data.thetaStart, data.thetaLength);
+	}
+};
+/**
+* A geometry class for representing an torus.
+*
+* ```js
+* const geometry = new THREE.TorusGeometry( 10, 3, 16, 100 );
+* const material = new THREE.MeshBasicMaterial( { color: 0xffff00 } );
+* const torus = new THREE.Mesh( geometry, material );
+* scene.add( torus );
+* ```
+*
+* @augments BufferGeometry
+* @demo scenes/geometry-browser.html#TorusGeometry
+*/
+var TorusGeometry = class TorusGeometry extends BufferGeometry {
+	/**
+	* Constructs a new torus geometry.
+	*
+	* @param {number} [radius=1] - Radius of the torus, from the center of the torus to the center of the tube.
+	* @param {number} [tube=0.4] - Radius of the tube. Must be smaller than `radius`.
+	* @param {number} [radialSegments=12] - The number of radial segments.
+	* @param {number} [tubularSegments=48] - The number of tubular segments.
+	* @param {number} [arc=Math.PI*2] - Central angle in radians.
+	* @param {number} [thetaStart=0] - Start of the tubular sweep in radians.
+	* @param {number} [thetaLength=Math.PI*2] - Length of the tubular sweep in radians.
+	*/
+	constructor(radius = 1, tube = .4, radialSegments = 12, tubularSegments = 48, arc = Math.PI * 2, thetaStart = 0, thetaLength = Math.PI * 2) {
+		super();
+		this.type = "TorusGeometry";
+		/**
+		* Holds the constructor parameters that have been
+		* used to generate the geometry. Any modification
+		* after instantiation does not change the geometry.
+		*
+		* @type {Object}
+		*/
+		this.parameters = {
+			radius,
+			tube,
+			radialSegments,
+			tubularSegments,
+			arc,
+			thetaStart,
+			thetaLength
+		};
+		radialSegments = Math.floor(radialSegments);
+		tubularSegments = Math.floor(tubularSegments);
+		const indices = [];
+		const vertices = [];
+		const normals = [];
+		const uvs = [];
+		const center = new Vector3();
+		const vertex = new Vector3();
+		const normal = new Vector3();
+		for (let j = 0; j <= radialSegments; j++) {
+			const v = thetaStart + j / radialSegments * thetaLength;
+			for (let i = 0; i <= tubularSegments; i++) {
+				const u = i / tubularSegments * arc;
+				vertex.x = (radius + tube * Math.cos(v)) * Math.cos(u);
+				vertex.y = (radius + tube * Math.cos(v)) * Math.sin(u);
+				vertex.z = tube * Math.sin(v);
+				vertices.push(vertex.x, vertex.y, vertex.z);
+				center.x = radius * Math.cos(u);
+				center.y = radius * Math.sin(u);
+				normal.subVectors(vertex, center).normalize();
+				normals.push(normal.x, normal.y, normal.z);
+				uvs.push(i / tubularSegments);
+				uvs.push(j / radialSegments);
+			}
+		}
+		for (let j = 1; j <= radialSegments; j++) for (let i = 1; i <= tubularSegments; i++) {
+			const a = (tubularSegments + 1) * j + i - 1;
+			const b = (tubularSegments + 1) * (j - 1) + i - 1;
+			const c = (tubularSegments + 1) * (j - 1) + i;
+			const d = (tubularSegments + 1) * j + i;
+			indices.push(a, b, d);
+			indices.push(b, c, d);
+		}
+		this.setIndex(indices);
+		this.setAttribute("position", new Float32BufferAttribute(vertices, 3));
+		this.setAttribute("normal", new Float32BufferAttribute(normals, 3));
+		this.setAttribute("uv", new Float32BufferAttribute(uvs, 2));
+	}
+	copy(source) {
+		super.copy(source);
+		this.parameters = Object.assign({}, source.parameters);
+		return this;
+	}
+	/**
+	* Factory method for creating an instance of this class from the given
+	* JSON object.
+	*
+	* @param {Object} data - A JSON object representing the serialized geometry.
+	* @return {TorusGeometry} A new instance.
+	*/
+	static fromJSON(data) {
+		return new TorusGeometry(data.radius, data.tube, data.radialSegments, data.tubularSegments, data.arc, data.thetaStart, data.thetaLength);
+	}
+};
+/**
 * Creates a tube that extrudes along a 3D curve.
 *
 * ```js
@@ -37728,4 +37933,4 @@ var WebGLRenderer = class {
 	}
 };
 //#endregion
-export { MeshLambertMaterial as A, QuadraticBezierCurve3 as B, LineCurve3 as C, MathUtils as D, LineSegments as E, PerspectiveCamera as F, Sprite as G, SRGBColorSpace as H, PlaneGeometry as I, Vector3 as J, SpriteMaterial as K, PointLight as L, MeshStandardMaterial as M, Object3D as N, Mesh as O, Path as P, Points as R, LineBasicMaterial as S, LineLoop as T, Scene as U, RingGeometry as V, Shape as W, GridHelper as _, BufferAttribute as a, InstancedMesh as b, CatmullRomCurve3 as c, ConeGeometry as d, CylinderGeometry as f, FogExp2 as g, ExtrudeGeometry as h, BoxGeometry as i, MeshPhysicalMaterial as j, MeshBasicMaterial as k, Clock as l, EdgesGeometry as m, WebGLRenderer as n, BufferGeometry as o, DirectionalLight as p, TubeGeometry as q, AmbientLight as r, CanvasTexture as s, PMREMGenerator as t, Color as u, Group as v, LineDashedMaterial as w, Line as x, HemisphereLight as y, PointsMaterial as z };
+export { MeshLambertMaterial as A, QuadraticBezierCurve3 as B, LineCurve3 as C, MathUtils as D, LineSegments as E, PerspectiveCamera as F, ShaderMaterial as G, RingGeometry as H, PlaneGeometry as I, Sprite as J, Shape as K, PointLight as L, MeshStandardMaterial as M, Object3D as N, Mesh as O, Path as P, Vector3 as Q, Points as R, LineBasicMaterial as S, LineLoop as T, SRGBColorSpace as U, Quaternion as V, Scene as W, TorusGeometry as X, SpriteMaterial as Y, TubeGeometry as Z, GridHelper as _, BufferAttribute as a, InstancedMesh as b, CatmullRomCurve3 as c, ConeGeometry as d, CylinderGeometry as f, FogExp2 as g, ExtrudeGeometry as h, BoxGeometry as i, MeshPhysicalMaterial as j, MeshBasicMaterial as k, Clock as l, EdgesGeometry as m, WebGLRenderer as n, BufferGeometry as o, DirectionalLight as p, SphereGeometry as q, AmbientLight as r, CanvasTexture as s, PMREMGenerator as t, Color as u, Group as v, LineDashedMaterial as w, Line as x, HemisphereLight as y, PointsMaterial as z };

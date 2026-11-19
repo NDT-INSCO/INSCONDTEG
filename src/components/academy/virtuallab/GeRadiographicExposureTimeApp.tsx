@@ -29,7 +29,9 @@ import {
   ArrowLeftRight,
   Trash2,
   Copy,
-  Check
+  Check,
+  Activity,
+  Crosshair
 } from 'lucide-react';
 import {
   DEFAULT_UNIT_SYSTEM_CHANGE_EVENT,
@@ -121,6 +123,316 @@ export const buildConversionLogCsv = (entries: GeConversionLogEntry[]): string =
   return [headers, ...rows]
     .map((row) => row.map(escapeCsvField).join(','))
     .join('\n');
+};
+
+export interface BeamDecayPoint {
+  normX: number;
+  physicalDepthMm: number;
+  effectiveSteelDepthMm: number;
+  intensityPct: number;
+  hvlAtDepth: number;
+  inCavity: boolean;
+}
+
+export interface BeamDecayWallSegment {
+  id: 'wall_1' | 'cavity' | 'wall_2' | 'weld_cap';
+  labelEn: string;
+  labelAr: string;
+  startNorm: number;
+  endNorm: number;
+  physicalThicknessMm: number;
+  effectiveSteelThicknessMm: number;
+  entryIntensityPct: number;
+  exitIntensityPct: number;
+}
+
+export interface BeamDecayHvlMarker {
+  hvlIndex: number;
+  normX: number;
+  intensityPct: number;
+  steelDepthMm: number;
+}
+
+export interface BeamDecayProfile {
+  sourceType: GeSourceType;
+  materialId: GeMaterialId;
+  technique: GeTechniqueGeometry;
+  wallsPenetrated: 1 | 2;
+  rFactor: number;
+  effectiveHvlMm: number;
+  materialPhysicalHvlMm: number;
+  muSteelPerMm: number;
+  muMaterialPerMm: number;
+  wallThicknessMm: number;
+  weldReinforcementMm: number;
+  totalPhysicalThicknessMm: number;
+  effectiveSteelThicknessMm: number;
+  totalHvlCount: number;
+  exitIntensityPct: number;
+  attenuationFactor: number;
+  wallSegments: BeamDecayWallSegment[];
+  hvlMarkers: BeamDecayHvlMarker[];
+  points: BeamDecayPoint[];
+}
+
+export interface ComputeBeamDecayProfileInput {
+  sourceType: GeSourceType;
+  materialId: GeMaterialId;
+  technique: GeTechniqueGeometry;
+  materialThicknessMm: number;
+  weldReinforcementMm: number;
+  samples?: number;
+}
+
+export const computeBeamDecayProfile = ({
+  sourceType,
+  materialId,
+  technique,
+  materialThicknessMm,
+  weldReinforcementMm,
+  samples = 72
+}: ComputeBeamDecayProfileInput): BeamDecayProfile => {
+  const isotope = GE_ISOTOPES[sourceType];
+  const material = GE_MATERIALS[materialId];
+  const techSpec = GE_TECHNIQUES[technique];
+
+  const safeThickness = Math.max(0.5, materialThicknessMm);
+  const safeWeld = Math.max(0, weldReinforcementMm);
+
+  const rFactor =
+    sourceType === 'ir192'
+      ? material.rFactorIr192
+      : sourceType === 'se75'
+        ? material.rFactorSe75
+        : sourceType === 'co60'
+          ? material.rFactorCo60
+          : material.rFactorXray;
+
+  const effectiveHvlMm = isotope.steelHvlMm;
+  const materialPhysicalHvlMm = Number((effectiveHvlMm / Math.max(0.05, rFactor)).toFixed(2));
+  const muSteelPerMm = Number((Math.LN2 / effectiveHvlMm).toFixed(4));
+  const muMaterialPerMm = Number((Math.LN2 / Math.max(0.1, materialPhysicalHvlMm)).toFixed(4));
+
+  const wallsPenetrated = techSpec.wallsPenetrated;
+  const wallEqSteel = safeThickness * rFactor;
+  const totalPhysicalThicknessMm = Number((safeThickness * wallsPenetrated + safeWeld).toFixed(2));
+  const effectiveSteelThicknessMm = Number((wallEqSteel * wallsPenetrated + safeWeld).toFixed(2));
+  const totalHvlCount = Number((effectiveSteelThicknessMm / effectiveHvlMm).toFixed(2));
+  const exitIntensityPct = Number((100 * Math.pow(0.5, effectiveSteelThicknessMm / effectiveHvlMm)).toFixed(2));
+  const attenuationFactor = Number(Math.pow(2, totalHvlCount).toFixed(1));
+
+  const rawSegments: Array<{
+    id: BeamDecayWallSegment['id'];
+    labelEn: string;
+    labelAr: string;
+    startNorm: number;
+    endNorm: number;
+    physicalThicknessMm: number;
+    effectiveSteelThicknessMm: number;
+  }> = [];
+
+  if (wallsPenetrated === 2) {
+    const weldFrac = safeWeld > 0 ? Math.min(0.14, Math.max(0.05, (safeWeld / Math.max(1, effectiveSteelThicknessMm)) * 0.74)) : 0;
+    const wallSpan = (0.74 - weldFrac) / 2;
+    const cavityStart = wallSpan;
+    const cavityEnd = cavityStart + 0.26;
+    const wall2End = cavityEnd + wallSpan;
+
+    rawSegments.push({
+      id: 'wall_1',
+      labelEn: 'Near Wall',
+      labelAr: 'الجدار القريب',
+      startNorm: 0,
+      endNorm: cavityStart,
+      physicalThicknessMm: safeThickness,
+      effectiveSteelThicknessMm: wallEqSteel
+    });
+    rawSegments.push({
+      id: 'cavity',
+      labelEn: 'Pipe Bore (Air)',
+      labelAr: 'تجويف الماسورة',
+      startNorm: cavityStart,
+      endNorm: cavityEnd,
+      physicalThicknessMm: 0,
+      effectiveSteelThicknessMm: 0
+    });
+    rawSegments.push({
+      id: 'wall_2',
+      labelEn: 'Far Wall',
+      labelAr: 'الجدار البعيد',
+      startNorm: cavityEnd,
+      endNorm: wall2End,
+      physicalThicknessMm: safeThickness,
+      effectiveSteelThicknessMm: wallEqSteel
+    });
+    if (safeWeld > 0) {
+      rawSegments.push({
+        id: 'weld_cap',
+        labelEn: 'Weld Cap',
+        labelAr: 'تاج اللحام',
+        startNorm: wall2End,
+        endNorm: 1,
+        physicalThicknessMm: safeWeld,
+        effectiveSteelThicknessMm: safeWeld
+      });
+    }
+  } else {
+    const wallFrac = safeWeld > 0 ? Math.max(0.72, wallEqSteel / Math.max(0.01, wallEqSteel + safeWeld)) : 1;
+    rawSegments.push({
+      id: 'wall_1',
+      labelEn: 'Specimen Wall',
+      labelAr: 'جدار العينة',
+      startNorm: 0,
+      endNorm: wallFrac,
+      physicalThicknessMm: safeThickness,
+      effectiveSteelThicknessMm: wallEqSteel
+    });
+    if (safeWeld > 0) {
+      rawSegments.push({
+        id: 'weld_cap',
+        labelEn: 'Weld Cap',
+        labelAr: 'تاج اللحام',
+        startNorm: wallFrac,
+        endNorm: 1,
+        physicalThicknessMm: safeWeld,
+        effectiveSteelThicknessMm: safeWeld
+      });
+    }
+  }
+
+  let runningPhys = 0;
+  let runningSteel = 0;
+  const wallSegments: BeamDecayWallSegment[] = rawSegments.map((seg) => {
+    const entryIntensityPct = Number((100 * Math.pow(0.5, runningSteel / effectiveHvlMm)).toFixed(2));
+    runningPhys += seg.physicalThicknessMm;
+    runningSteel += seg.effectiveSteelThicknessMm;
+    const segExitIntensityPct = Number((100 * Math.pow(0.5, runningSteel / effectiveHvlMm)).toFixed(2));
+    return {
+      ...seg,
+      entryIntensityPct,
+      exitIntensityPct: segExitIntensityPct
+    };
+  });
+
+  const evaluateAtNorm = (normX: number): BeamDecayPoint => {
+    const clamped = Math.max(0, Math.min(1, normX));
+    let cumPhys = 0;
+    let cumSteel = 0;
+    let inCavity = false;
+
+    for (const seg of wallSegments) {
+      if (clamped <= seg.endNorm || seg === wallSegments[wallSegments.length - 1]) {
+        const span = Math.max(1e-6, seg.endNorm - seg.startNorm);
+        const localT = Math.max(0, Math.min(1, (clamped - seg.startNorm) / span));
+        cumPhys += seg.physicalThicknessMm * localT;
+        cumSteel += seg.effectiveSteelThicknessMm * localT;
+        inCavity = seg.id === 'cavity' && clamped > seg.startNorm && clamped < seg.endNorm;
+        break;
+      }
+      cumPhys += seg.physicalThicknessMm;
+      cumSteel += seg.effectiveSteelThicknessMm;
+    }
+
+    const hvlAtDepth = cumSteel / effectiveHvlMm;
+    const intensityPct = 100 * Math.pow(0.5, hvlAtDepth);
+    return {
+      normX: Number(clamped.toFixed(4)),
+      physicalDepthMm: Number(cumPhys.toFixed(2)),
+      effectiveSteelDepthMm: Number(cumSteel.toFixed(2)),
+      intensityPct: Number(intensityPct.toFixed(2)),
+      hvlAtDepth: Number(hvlAtDepth.toFixed(2)),
+      inCavity
+    };
+  };
+
+  // Sample curve densely plus exact segment boundary vertices for crisp corners across pipe bore
+  const normSet = new Set<number>();
+  for (let i = 0; i <= samples; i++) {
+    normSet.add(Number((i / samples).toFixed(4)));
+  }
+  wallSegments.forEach((seg) => {
+    normSet.add(Number(seg.startNorm.toFixed(4)));
+    normSet.add(Number(seg.endNorm.toFixed(4)));
+  });
+
+  const sortedNorms = Array.from(normSet).sort((a, b) => a - b);
+  const points: BeamDecayPoint[] = sortedNorms.map(evaluateAtNorm);
+
+  // Locate exact HVL crossing coordinates along solid segments
+  const hvlMarkers: BeamDecayHvlMarker[] = [];
+  const maxMarkerCount = Math.min(8, Math.floor(totalHvlCount));
+  for (let h = 1; h <= maxMarkerCount; h++) {
+    const targetSteel = h * effectiveHvlMm;
+    let steelBefore = 0;
+    for (const seg of wallSegments) {
+      const steelAfter = steelBefore + seg.effectiveSteelThicknessMm;
+      if (seg.effectiveSteelThicknessMm > 0 && targetSteel >= steelBefore - 1e-6 && targetSteel <= steelAfter + 1e-6) {
+        const frac = (targetSteel - steelBefore) / seg.effectiveSteelThicknessMm;
+        const markerNormX = seg.startNorm + frac * (seg.endNorm - seg.startNorm);
+        hvlMarkers.push({
+          hvlIndex: h,
+          normX: Number(markerNormX.toFixed(4)),
+          intensityPct: Number((100 * Math.pow(0.5, h)).toFixed(2)),
+          steelDepthMm: Number(targetSteel.toFixed(1))
+        });
+        break;
+      }
+      steelBefore = steelAfter;
+    }
+  }
+
+  return {
+    sourceType,
+    materialId,
+    technique,
+    wallsPenetrated,
+    rFactor,
+    effectiveHvlMm,
+    materialPhysicalHvlMm,
+    muSteelPerMm,
+    muMaterialPerMm,
+    wallThicknessMm: safeThickness,
+    weldReinforcementMm: safeWeld,
+    totalPhysicalThicknessMm,
+    effectiveSteelThicknessMm,
+    totalHvlCount,
+    exitIntensityPct,
+    attenuationFactor,
+    wallSegments,
+    hvlMarkers,
+    points
+  };
+};
+
+export const interpolateBeamDecayAtNorm = (profile: BeamDecayProfile, normX: number): BeamDecayPoint => {
+  const clamped = Math.max(0, Math.min(1, normX));
+  let cumPhys = 0;
+  let cumSteel = 0;
+  let inCavity = false;
+
+  for (const seg of profile.wallSegments) {
+    if (clamped <= seg.endNorm || seg === profile.wallSegments[profile.wallSegments.length - 1]) {
+      const span = Math.max(1e-6, seg.endNorm - seg.startNorm);
+      const localT = Math.max(0, Math.min(1, (clamped - seg.startNorm) / span));
+      cumPhys += seg.physicalThicknessMm * localT;
+      cumSteel += seg.effectiveSteelThicknessMm * localT;
+      inCavity = seg.id === 'cavity' && clamped > seg.startNorm && clamped < seg.endNorm;
+      break;
+    }
+    cumPhys += seg.physicalThicknessMm;
+    cumSteel += seg.effectiveSteelThicknessMm;
+  }
+
+  const hvlAtDepth = cumSteel / profile.effectiveHvlMm;
+  const intensityPct = 100 * Math.pow(0.5, hvlAtDepth);
+  return {
+    normX: Number(clamped.toFixed(4)),
+    physicalDepthMm: Number(cumPhys.toFixed(2)),
+    effectiveSteelDepthMm: Number(cumSteel.toFixed(2)),
+    intensityPct: Number(intensityPct.toFixed(2)),
+    hvlAtDepth: Number(hvlAtDepth.toFixed(2)),
+    inCavity
+  };
 };
 
 export type GeConversionFormulaKind =
@@ -621,6 +933,9 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
   const [isExportingPdf, setIsExportingPdf] = useState<boolean>(false);
   const [pdfSuccessMessage, setPdfSuccessMessage] = useState<string | null>(null);
 
+  // Interactive Scrub Probe along Live Beam Intensity Decay Overlay
+  const [beamHoverNormX, setBeamHoverNormX] = useState<number | null>(null);
+
   // Audio tone helper
   const playBeep = (freq: number = 880, durationMs: number = 180) => {
     if (!soundEnabled) return;
@@ -699,6 +1014,22 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
     hasInterleafScreen,
     wideLatitudeGov
   ]);
+
+  // Live Beer-Lambert / HVL Beam Intensity Decay Profile along the Exposure Path
+  const beamDecayProfile: BeamDecayProfile = useMemo(() => {
+    return computeBeamDecayProfile({
+      sourceType,
+      materialId,
+      technique,
+      materialThicknessMm,
+      weldReinforcementMm
+    });
+  }, [sourceType, materialId, technique, materialThicknessMm, weldReinforcementMm]);
+
+  const beamDecayProbePoint: BeamDecayPoint | null = useMemo(() => {
+    if (beamHoverNormX === null) return null;
+    return interpolateBeamDecayAtNorm(beamDecayProfile, beamHoverNormX);
+  }, [beamDecayProfile, beamHoverNormX]);
 
   const toggleUnitSystem = (targetUnit: GeUnitSystem) => {
     if (targetUnit !== unitSystem) {
@@ -3018,6 +3349,561 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
           </div>
         </div>
       </div>
+
+      {/* -------------------------------------------------------------------
+          LIVE EXPOSURE PATH & BEAM INTENSITY DECAY OVERLAY
+      ------------------------------------------------------------------- */}
+      {(() => {
+        const pathLeft = 196;
+        const pathWidth = 396;
+        const plotTop = 46;
+        const plotBottom = 226;
+        const plotHeight = plotBottom - plotTop;
+        const sourceCenterX = 46;
+        const sourceCenterY = 136;
+        const filmPlaneX = pathLeft + pathWidth + 14;
+
+        const normToX = (normX: number) => pathLeft + normX * pathWidth;
+        const intensityToY = (pct: number) => plotBottom - (Math.max(0, Math.min(100, pct)) / 100) * plotHeight;
+
+        const curveD = beamDecayProfile.points
+          .map((pt, idx) => `${idx === 0 ? 'M' : 'L'} ${normToX(pt.normX).toFixed(1)} ${intensityToY(pt.intensityPct).toFixed(1)}`)
+          .join(' ');
+        const areaD = `${curveD} L ${normToX(1).toFixed(1)} ${plotBottom} L ${normToX(0).toFixed(1)} ${plotBottom} Z`;
+
+        const activePoint = beamDecayProbePoint ?? beamDecayProfile.points[beamDecayProfile.points.length - 1];
+        const probeSvgX = beamDecayProbePoint ? normToX(beamDecayProbePoint.normX) : null;
+        const probeSvgY = beamDecayProbePoint ? intensityToY(beamDecayProbePoint.intensityPct) : null;
+
+        const handlePointerInspect = (e: React.MouseEvent<SVGRectElement>) => {
+          const rect = e.currentTarget.getBoundingClientRect();
+          if (rect.width > 0) {
+            const relX = (e.clientX - rect.left) / rect.width;
+            setBeamHoverNormX(Math.max(0, Math.min(1, relX)));
+          } else {
+            // Deterministic fallback in headless/JSDOM layouts without layout geometry
+            const fallbackNorm = e.clientX > 0 ? Math.max(0, Math.min(1, (e.clientX - pathLeft) / pathWidth)) : 0.5;
+            setBeamHoverNormX(fallbackNorm);
+          }
+        };
+
+        const matBaseFill =
+          materialId === 'copper_brass'
+            ? 'rgba(217, 119, 6, 0.22)'
+            : materialId === 'aluminum'
+              ? 'rgba(148, 163, 184, 0.22)'
+              : materialId === 'titanium'
+                ? 'rgba(167, 139, 250, 0.20)'
+                : 'rgba(56, 189, 248, 0.16)';
+
+        const formatLen = (mmVal: number) =>
+          unitSystem === 'imperial' ? `${(mmVal / 25.4).toFixed(3)}"` : `${mmVal.toFixed(1)} mm`;
+
+        return (
+          <div
+            data-testid="ge-beam-intensity-decay-overlay"
+            className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-5 sm:p-6 space-y-4"
+          >
+            {/* Header & Quantitative Telemetry Strip */}
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-slate-100">
+                  <Activity className="w-4 h-4 text-amber-500 shrink-0" />
+                  <span>
+                    {isAr
+                      ? 'المحاكاة الحية لمسار الإشعاع وتوهين شدة الحزمة عبر سُمك المعدن'
+                      : 'Live Exposure Path & Beam Intensity Decay Overlay'}
+                  </span>
+                  {isTimerRunning && (
+                    <span className="px-2 py-0.5 rounded bg-red-500/15 border border-red-500/40 text-red-500 dark:text-red-400 font-mono text-[10px] font-bold uppercase tracking-wider">
+                      {isAr ? 'بث حي' : 'Beam Active'}
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                  I(x) = I₀ · 0.5^(x_eq / HVL) · {selectedIsotope.chemicalSymbol} (HVL {formatLen(beamDecayProfile.effectiveHvlMm)}) ·{' '}
+                  {selectedMaterial.nameEn.split('(')[0].trim()} (R={beamDecayProfile.rFactor.toFixed(2)}) ·{' '}
+                  {beamDecayProfile.wallsPenetrated === 2 ? (isAr ? 'جدار مزدوج' : '2-Wall Path') : isAr ? 'جدار مفرد' : '1-Wall Path'}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 text-[11px] font-mono">
+                <div className="px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                  <span className="block text-[9px] uppercase tracking-wider text-slate-500">
+                    {isAr ? 'معامل التوهين μ' : 'Linear μ (Steel)'}
+                  </span>
+                  <strong data-testid="ge-beam-decay-mu" className="text-sky-600 dark:text-sky-400 tabular-nums">
+                    {beamDecayProfile.muSteelPerMm.toFixed(4)} mm⁻¹
+                  </strong>
+                </div>
+                <div className="px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                  <span className="block text-[9px] uppercase tracking-wider text-slate-500">
+                    {isAr ? 'طبقات النصف (HVL)' : 'Penetrated HVLs'}
+                  </span>
+                  <strong data-testid="ge-beam-decay-hvl-count" className="text-amber-600 dark:text-amber-400 tabular-nums">
+                    {beamDecayProfile.totalHvlCount.toFixed(2)} HVL
+                  </strong>
+                </div>
+                <div className="px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                  <span className="block text-[9px] uppercase tracking-wider text-slate-500">
+                    {isAr ? 'الشدة الخارجة للفيلم' : 'Exit Intensity I/I₀'}
+                  </span>
+                  <strong data-testid="ge-beam-decay-exit-pct" className="text-emerald-600 dark:text-emerald-400 tabular-nums">
+                    {beamDecayProfile.exitIntensityPct.toFixed(2)}%
+                  </strong>
+                </div>
+              </div>
+            </div>
+
+            {/* Interactive SVG Exposure Path + Overlaid Decay Curve */}
+            <div className="relative overflow-x-auto rounded-2xl bg-slate-950 border border-slate-800 p-3 sm:p-4">
+              {/* Live Scrubbing / Exit Probe HUD */}
+              <div
+                data-testid="ge-beam-decay-probe-hud"
+                className="flex flex-wrap items-center justify-between gap-2 mb-2 px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800 text-[11px] font-mono"
+              >
+                <div className="flex items-center gap-1.5 text-slate-300">
+                  <Crosshair className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="text-slate-400">
+                    {beamDecayProbePoint
+                      ? isAr
+                        ? 'فحص العمق المباشر:'
+                        : 'Cursor Depth Probe:'
+                      : isAr
+                        ? 'ملخص الخروج عند الفيلم (مرر المؤشر على المسار للفحص):'
+                        : 'Exit Plane Readout (hover path to scrub depth):'}
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-3 tabular-nums">
+                  <span className="text-slate-300">
+                    {isAr ? 'العمق:' : 'Depth:'}{' '}
+                    <strong className="text-white">{formatLen(activePoint.physicalDepthMm)}</strong>
+                  </span>
+                  <span className="text-slate-300">
+                    {isAr ? 'مكافئ الصلب:' : 'Eq. Steel:'}{' '}
+                    <strong className="text-sky-400">{formatLen(activePoint.effectiveSteelDepthMm)}</strong>
+                  </span>
+                  <span className="text-slate-300">
+                    HVL: <strong className="text-amber-400">{activePoint.hvlAtDepth.toFixed(2)}</strong>
+                  </span>
+                  <span className="text-slate-300">
+                    I(x)/I₀: <strong className="text-emerald-400">{activePoint.intensityPct.toFixed(2)}%</strong>
+                  </span>
+                  {activePoint.inCavity && (
+                    <span className="px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 text-[10px]">
+                      {isAr ? 'تجويف هوائي (لا توهين)' : 'Pipe Bore (0 attenuation)'}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <svg
+                data-testid="ge-beam-decay-svg"
+                viewBox="0 0 780 282"
+                className="w-full h-auto min-w-[600px] select-none"
+                role="img"
+                aria-label={isAr ? 'مخطط مسار الإشعاع وتوهين شدة الحزمة' : 'Radiographic exposure path and beam intensity decay graph'}
+              >
+                <defs>
+                  {/* Exponential beam brightness attenuation gradient mapped cleanly to curve points */}
+                  <linearGradient id="geBeamPathAttenuationGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    {beamDecayProfile.points
+                      .filter((_, i, arr) => i === 0 || i === arr.length - 1 || i % 6 === 0)
+                      .map((pt, idx) => (
+                        <stop
+                          key={`${pt.normX}-${idx}`}
+                          offset={`${(pt.normX * 100).toFixed(1)}%`}
+                          stopColor="#f59e0b"
+                          stopOpacity={Math.max(0.06, Math.min(0.52, (pt.intensityPct / 100) * 0.52)).toFixed(3)}
+                        />
+                      ))}
+                  </linearGradient>
+
+                  {/* SFD air-gap beam cone gradient */}
+                  <linearGradient id="geSfdConeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#fbbf24" stopOpacity={isTimerRunning ? '0.68' : '0.45'} />
+                    <stop offset="100%" stopColor="#f59e0b" stopOpacity={isTimerRunning ? '0.38' : '0.24'} />
+                  </linearGradient>
+
+                  {/* Under-curve exponential area fill */}
+                  <linearGradient id="geDecayAreaGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.34" />
+                    <stop offset="65%" stopColor="#0ea5e9" stopOpacity="0.14" />
+                    <stop offset="100%" stopColor="#020617" stopOpacity="0.02" />
+                  </linearGradient>
+                </defs>
+
+                {/* Zone Headers */}
+                <text x="95" y="18" fill="#94a3b8" fontSize="10" fontFamily="monospace" textAnchor="middle">
+                  {sourceType.startsWith('xray') ? 'X-RAY TUBE & SFD' : 'ISOTOPE SOURCE & SFD'}
+                </text>
+                <text x={pathLeft + pathWidth / 2} y="18" fill="#e2e8f0" fontSize="10.5" fontWeight="bold" fontFamily="monospace" textAnchor="middle">
+                  {isAr ? 'مقطع المعدن + منحنى توهين شدة الحزمة' : 'MATERIAL CROSS-SECTION + BEAM DECAY OVERLAY'}
+                </text>
+                <text x="688" y="18" fill="#94a3b8" fontSize="10" fontFamily="monospace" textAnchor="middle">
+                  {hasLeadScreens ? 'Pb + FILM' : 'FILM CASSETTE'}
+                </text>
+
+                {/* LEFT ZONE: Source Focal Spot, Tungsten Collimator, & SFD Beam Fan */}
+                <polygon
+                  points={
+                    hasCollimator
+                      ? `${sourceCenterX},${sourceCenterY} ${pathLeft},${plotTop + 6} ${pathLeft},${plotBottom - 6}`
+                      : `${sourceCenterX},${sourceCenterY} ${pathLeft},${plotTop - 10} ${pathLeft},${plotBottom + 10}`
+                  }
+                  fill="url(#geSfdConeGrad)"
+                />
+
+                {/* Animated Radiation Photon Stream Lines inside SFD cone */}
+                <g data-testid="ge-beam-photon-stream">
+                  {[-0.65, 0, 0.65].map((rayOffset, idx) => {
+                    const targetY = sourceCenterY + rayOffset * (hasCollimator ? 64 : 84);
+                    return (
+                      <line
+                        key={idx}
+                        x1={sourceCenterX + 10}
+                        y1={sourceCenterY}
+                        x2={pathLeft}
+                        y2={targetY}
+                        stroke="#fbbf24"
+                        strokeWidth={idx === 1 ? '1.8' : '1.1'}
+                        strokeDasharray="6 6"
+                        opacity={isTimerRunning ? 0.95 : 0.65}
+                        className={idx === 1 ? 'ut-beam-flow' : 'ut-beam-flow-delayed'}
+                      />
+                    );
+                  })}
+                </g>
+
+                {/* Tungsten Collimator Jaws (when enabled) */}
+                {hasCollimator && (
+                  <g data-testid="ge-beam-collimator-jaws">
+                    <rect x="68" y={plotTop - 4} width="14" height="58" rx="2" fill="#334155" stroke="#64748b" strokeWidth="1" />
+                    <rect x="68" y={plotBottom - 54} width="14" height="58" rx="2" fill="#334155" stroke="#64748b" strokeWidth="1" />
+                    <text x="75" y={plotTop - 9} fill="#cbd5e1" fontSize="8.5" fontFamily="monospace" textAnchor="middle">
+                      W-Coll
+                    </text>
+                  </g>
+                )}
+
+                {/* Focal Spot Emitter Housing */}
+                <circle
+                  cx={sourceCenterX}
+                  cy={sourceCenterY}
+                  r={isTimerRunning ? '18' : '14'}
+                  fill="#f59e0b"
+                  opacity={isTimerRunning ? '0.28' : '0.16'}
+                  className={isTimerRunning ? 'ut-beam-cone-pulse' : undefined}
+                />
+                <circle cx={sourceCenterX} cy={sourceCenterY} r="10" fill="#0f172a" stroke="#f59e0b" strokeWidth="2" />
+                <circle cx={sourceCenterX} cy={sourceCenterY} r="3.5" fill="#fbbf24" />
+                <text x={sourceCenterX} y={sourceCenterY + 26} fill="#fbbf24" fontSize="10" fontWeight="bold" fontFamily="monospace" textAnchor="middle">
+                  {selectedIsotope.chemicalSymbol}
+                </text>
+                <text x={sourceCenterX} y={sourceCenterY + 38} fill="#94a3b8" fontSize="8.5" fontFamily="monospace" textAnchor="middle">
+                  {sourceType.startsWith('xray') ? `${tubeKv}kV` : `${calcResult.currentLiveActivityCi}Ci`}
+                </text>
+
+                {/* SFD Dimension Span */}
+                <line x1={sourceCenterX} y1="252" x2={filmPlaneX} y2="252" stroke="#475569" strokeWidth="1" strokeDasharray="3 3" />
+                <line x1={sourceCenterX} y1="246" x2={sourceCenterX} y2="258" stroke="#64748b" strokeWidth="1.5" />
+                <line x1={filmPlaneX} y1="246" x2={filmPlaneX} y2="258" stroke="#64748b" strokeWidth="1.5" />
+                <rect x="290" y="243" width="146" height="16" rx="4" fill="#0f172a" stroke="#334155" strokeWidth="1" />
+                <text x="363" y="254" fill="#e2e8f0" fontSize="9.5" fontFamily="monospace" textAnchor="middle">
+                  SFD: {unitSystem === 'imperial' ? `${sfdInches}"` : `${sfdCm} cm`} · t_eq: {formatLen(beamDecayProfile.effectiveSteelThicknessMm)}
+                </text>
+
+                {/* CENTER ZONE: Material Cross-Section Segments + Pipe Bore + Weld Cap */}
+                {beamDecayProfile.wallSegments.map((seg) => {
+                  const segX = normToX(seg.startNorm);
+                  const segW = (seg.endNorm - seg.startNorm) * pathWidth;
+                  const isCavity = seg.id === 'cavity';
+                  const isWeld = seg.id === 'weld_cap';
+                  return (
+                    <g key={seg.id} data-testid={`ge-beam-segment-${seg.id}`}>
+                      <rect
+                        x={segX}
+                        y={plotTop}
+                        width={segW}
+                        height={plotHeight}
+                        fill={isCavity ? 'rgba(15, 23, 42, 0.72)' : isWeld ? 'rgba(245, 158, 11, 0.16)' : matBaseFill}
+                        stroke={isCavity ? '#334155' : isWeld ? '#d97706' : '#475569'}
+                        strokeWidth="1"
+                        strokeDasharray={isCavity ? '4 3' : undefined}
+                      />
+                      {/* Weld crown profile indicator on exit face */}
+                      {isWeld && (
+                        <path
+                          d={`M ${segX} ${plotTop + 18} Q ${segX + segW + 6} ${sourceCenterY} ${segX} ${plotBottom - 18}`}
+                          fill="rgba(245, 158, 11, 0.18)"
+                          stroke="#f59e0b"
+                          strokeWidth="1.2"
+                          opacity="0.7"
+                        />
+                      )}
+                      {segW >= 36 && (
+                        <text
+                          x={segX + segW / 2}
+                          y={plotTop - 7}
+                          fill={isCavity ? '#38bdf8' : isWeld ? '#fbbf24' : '#cbd5e1'}
+                          fontSize="8.5"
+                          fontFamily="monospace"
+                          textAnchor="middle"
+                        >
+                          {isAr ? seg.labelAr : seg.labelEn}
+                        </text>
+                      )}
+                      {segW >= 42 && (
+                        <text
+                          x={segX + segW / 2}
+                          y={plotBottom + 13}
+                          fill="#94a3b8"
+                          fontSize="8"
+                          fontFamily="monospace"
+                          textAnchor="middle"
+                        >
+                          {isCavity ? 'Air Gap' : formatLen(seg.physicalThicknessMm)}
+                        </text>
+                      )}
+                    </g>
+                  );
+                })}
+
+                {/* Overlaid Beam Attenuation Gradient Beam inside Material */}
+                <rect
+                  data-testid="ge-beam-attenuation-cone"
+                  x={pathLeft}
+                  y={plotTop + 10}
+                  width={pathWidth}
+                  height={plotHeight - 20}
+                  fill="url(#geBeamPathAttenuationGrad)"
+                  pointerEvents="none"
+                />
+
+                {/* Animated Traveling Photon Stream Across Material */}
+                <line
+                  x1={pathLeft}
+                  y1={sourceCenterY}
+                  x2={filmPlaneX}
+                  y2={sourceCenterY}
+                  stroke="#fbbf24"
+                  strokeWidth="1.5"
+                  strokeDasharray="5 7"
+                  opacity={Math.max(0.28, Math.min(0.85, beamDecayProfile.exitIntensityPct / 100 + 0.25))}
+                  className="ut-beam-flow"
+                  pointerEvents="none"
+                />
+
+                {/* Intensity Horizontal Reference Grid (100%, 50%, 25%, 10%, 0%) */}
+                {[
+                  { pct: 100, label: '100%' },
+                  { pct: 50, label: '50% (1 HVL)' },
+                  { pct: 25, label: '25%' },
+                  { pct: 10, label: '10% (TVL)' },
+                  { pct: 0, label: '0%' }
+                ].map((tick) => {
+                  const yPos = intensityToY(tick.pct);
+                  return (
+                    <g key={tick.pct}>
+                      <line
+                        x1={pathLeft}
+                        y1={yPos}
+                        x2={pathLeft + pathWidth}
+                        y2={yPos}
+                        stroke={tick.pct === 50 ? '#38bdf8' : '#334155'}
+                        strokeWidth={tick.pct === 50 ? '1' : '0.8'}
+                        strokeDasharray={tick.pct === 0 || tick.pct === 100 ? undefined : '3 3'}
+                        opacity={tick.pct === 50 ? 0.55 : 0.45}
+                      />
+                      <text
+                        x={pathLeft - 5}
+                        y={yPos + 3}
+                        fill={tick.pct === 50 ? '#38bdf8' : '#94a3b8'}
+                        fontSize="8.5"
+                        fontFamily="monospace"
+                        textAnchor="end"
+                      >
+                        {tick.label}
+                      </text>
+                    </g>
+                  );
+                })}
+
+                {/* HVL Milestone Vertical Markers */}
+                {beamDecayProfile.hvlMarkers.map((marker) => {
+                  const mx = normToX(marker.normX);
+                  const my = intensityToY(marker.intensityPct);
+                  return (
+                    <g key={marker.hvlIndex} data-testid={`ge-beam-hvl-marker-${marker.hvlIndex}`}>
+                      <line x1={mx} y1={plotTop} x2={mx} y2={plotBottom} stroke="#38bdf8" strokeWidth="1" strokeDasharray="3 3" opacity="0.6" />
+                      <circle cx={mx} cy={my} r="3" fill="#38bdf8" stroke="#020617" strokeWidth="1.2" />
+                      <text x={mx} y={plotBottom - 5} fill="#38bdf8" fontSize="8" fontWeight="bold" fontFamily="monospace" textAnchor="middle">
+                        {marker.hvlIndex}HVL
+                      </text>
+                    </g>
+                  );
+                })}
+
+                {/* Overlaid Exponential Beam Intensity Decay Curve + Area Fill */}
+                <path d={areaD} fill="url(#geDecayAreaGrad)" pointerEvents="none" />
+                <path
+                  data-testid="ge-beam-decay-curve-path"
+                  d={curveD}
+                  fill="none"
+                  stroke="#fbbf24"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  pointerEvents="none"
+                />
+
+                {/* Entry (100%) and Exit Dots */}
+                <circle cx={normToX(0)} cy={intensityToY(100)} r="4" fill="#fbbf24" stroke="#020617" strokeWidth="1.5" />
+                <circle
+                  data-testid="ge-beam-decay-exit-dot"
+                  cx={normToX(1)}
+                  cy={intensityToY(beamDecayProfile.exitIntensityPct)}
+                  r="4.5"
+                  fill="#10b981"
+                  stroke="#020617"
+                  strokeWidth="1.5"
+                />
+
+                {/* Interactive Crosshair Probe when Hovering/Scrubbing */}
+                {probeSvgX !== null && probeSvgY !== null && beamDecayProbePoint && (
+                  <g pointerEvents="none">
+                    <line
+                      data-testid="ge-beam-decay-hover-line"
+                      x1={probeSvgX}
+                      y1={plotTop}
+                      x2={probeSvgX}
+                      y2={plotBottom}
+                      stroke="#e2e8f0"
+                      strokeWidth="1.2"
+                      strokeDasharray="4 2"
+                    />
+                    <circle cx={probeSvgX} cy={probeSvgY} r="5" fill="#fbbf24" stroke="#ffffff" strokeWidth="1.8" />
+                    <rect
+                      x={Math.min(pathLeft + pathWidth - 110, Math.max(pathLeft + 4, probeSvgX + 8))}
+                      y={Math.max(plotTop + 4, probeSvgY - 26)}
+                      width="106"
+                      height="22"
+                      rx="4"
+                      fill="#0f172a"
+                      stroke="#fbbf24"
+                      strokeWidth="1"
+                    />
+                    <text
+                      x={Math.min(pathLeft + pathWidth - 110, Math.max(pathLeft + 4, probeSvgX + 8)) + 53}
+                      y={Math.max(plotTop + 4, probeSvgY - 26) + 14}
+                      fill="#fbbf24"
+                      fontSize="9"
+                      fontWeight="bold"
+                      fontFamily="monospace"
+                      textAnchor="middle"
+                    >
+                      {beamDecayProbePoint.intensityPct.toFixed(1)}% · {beamDecayProbePoint.hvlAtDepth.toFixed(2)} HVL
+                    </text>
+                  </g>
+                )}
+
+                {/* Transparent Scrubbing Interaction Layer */}
+                <rect
+                  data-testid="ge-beam-decay-interaction-layer"
+                  x={pathLeft}
+                  y={plotTop}
+                  width={pathWidth}
+                  height={plotHeight}
+                  fill="transparent"
+                  className="cursor-crosshair"
+                  onMouseMove={handlePointerInspect}
+                  onClick={handlePointerInspect}
+                  onMouseLeave={() => setBeamHoverNormX(null)}
+                />
+
+                {/* RIGHT ZONE: Lead Screens & Film Cassette Stack + Exit Telemetry */}
+                <g>
+                  {hasLeadScreens && (
+                    <rect x={filmPlaneX} y={plotTop + 8} width="6" height={plotHeight - 16} rx="1" fill="#64748b" stroke="#94a3b8" strokeWidth="0.8" />
+                  )}
+                  <rect
+                    x={filmPlaneX + (hasLeadScreens ? 8 : 0)}
+                    y={plotTop + 8}
+                    width="9"
+                    height={plotHeight - 16}
+                    rx="1.5"
+                    fill="#10b981"
+                    fillOpacity="0.32"
+                    stroke="#10b981"
+                    strokeWidth="1.2"
+                  />
+                  {calcResult.isMultiFilm && (
+                    <>
+                      {hasInterleafScreen && (
+                        <rect
+                          x={filmPlaneX + (hasLeadScreens ? 19 : 11)}
+                          y={plotTop + 8}
+                          width="3.5"
+                          height={plotHeight - 16}
+                          fill="#94a3b8"
+                        />
+                      )}
+                      <rect
+                        x={filmPlaneX + (hasLeadScreens ? (hasInterleafScreen ? 24 : 19) : hasInterleafScreen ? 16 : 11)}
+                        y={plotTop + 8}
+                        width="8"
+                        height={plotHeight - 16}
+                        rx="1.5"
+                        fill="#38bdf8"
+                        fillOpacity="0.32"
+                        stroke="#38bdf8"
+                        strokeWidth="1.2"
+                      />
+                    </>
+                  )}
+                  {hasLeadScreens && (
+                    <rect
+                      x={filmPlaneX + (calcResult.isMultiFilm ? (hasInterleafScreen ? 34 : 29) : 19)}
+                      y={plotTop + 8}
+                      width="6"
+                      height={plotHeight - 16}
+                      rx="1"
+                      fill="#64748b"
+                      stroke="#94a3b8"
+                      strokeWidth="0.8"
+                    />
+                  )}
+
+                  {/* Exit Readout Box */}
+                  <rect x="656" y="72" width="112" height="128" rx="8" fill="#0f172a" stroke="#1e293b" strokeWidth="1.2" />
+                  <text x="712" y="92" fill="#94a3b8" fontSize="9" fontFamily="monospace" textAnchor="middle">
+                    {isAr ? 'الشدة الواصلة للفيلم' : 'TRANSMITTED'}
+                  </text>
+                  <text x="712" y="114" fill="#10b981" fontSize="16" fontWeight="bold" fontFamily="monospace" textAnchor="middle">
+                    {beamDecayProfile.exitIntensityPct.toFixed(1)}%
+                  </text>
+                  <line x1="668" y1="124" x2="756" y2="124" stroke="#1e293b" strokeWidth="1" />
+                  <text x="712" y="140" fill="#cbd5e1" fontSize="9" fontFamily="monospace" textAnchor="middle">
+                    1 / {calcResult.attenuationFactor}× Beam
+                  </text>
+                  <text x="712" y="156" fill="#38bdf8" fontSize="9.5" fontWeight="bold" fontFamily="monospace" textAnchor="middle">
+                    {selectedFilm.code.replace('Structurix ', '')}
+                    {calcResult.isMultiFilm && calcResult.secondaryFilmSpec
+                      ? ` + ${calcResult.secondaryFilmSpec.code.replace('Structurix ', '')}`
+                      : ''}
+                  </text>
+                  <text x="712" y="172" fill="#fbbf24" fontSize="9.5" fontFamily="monospace" textAnchor="middle">
+                    Target {targetOpticalDensity.toFixed(1)} H&D
+                  </text>
+                  <text x="712" y="188" fill={calcResult.passesAsmeUg ? '#34d399' : '#f87171'} fontSize="8.5" fontFamily="monospace" textAnchor="middle">
+                    Ug {calcResult.calculatedUgMm}mm {calcResult.passesAsmeUg ? 'PASS' : 'FAIL'}
+                  </text>
+                </g>
+              </svg>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* -------------------------------------------------------------------
           INTERACTIVE D3 ISOTOPE DECAY CURVE & SHOT DATE MARKER

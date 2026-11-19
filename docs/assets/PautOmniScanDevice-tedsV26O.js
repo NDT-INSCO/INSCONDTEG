@@ -1,7 +1,7 @@
 import { a as __toESM } from "./rolldown-runtime-oLLnCvco.js";
-import { a as require_react, i as createLucideIcon, n as Layers, r as Eye, t as require_jsx_runtime } from "./jsx-runtime-BdKgb6Yj.js";
-import { t as Bell } from "./bell-DtoFU6P5.js";
-import { $t as RotateCcw, Bt as X, Jt as ShieldCheck, Rn as BookOpen, Un as Activity, Wt as TriangleAlert, Yt as ShieldAlert, h as clickableRow, kn as CircleCheck } from "./index-C-V-0xqz.js";
+import { t as Bell } from "./bell-DvVNupS8.js";
+import { t as ClipboardCheck } from "./clipboard-check-Cd5inpU1.js";
+import { Bn as CircleCheck, Gt as require_jsx_runtime, Mn as Eye, Sn as Layers, Yn as BookOpen, Zt as TriangleAlert, er as Activity, h as clickableRow, ir as require_react, nn as ShieldAlert, on as RotateCcw, qt as X, tn as ShieldCheck, tr as createLucideIcon } from "./index-CgqKVYxh.js";
 /**
 * @license lucide-react v0.546.0 - ISC
 *
@@ -46,31 +46,6 @@ var CircleX = createLucideIcon("circle-x", [
 	["path", {
 		d: "m9 9 6 6",
 		key: "z0biqf"
-	}]
-]);
-/**
-* @license lucide-react v0.546.0 - ISC
-*
-* This source code is licensed under the ISC license.
-* See the LICENSE file in the root directory of this source tree.
-*/
-var ClipboardCheck = createLucideIcon("clipboard-check", [
-	["rect", {
-		width: "8",
-		height: "4",
-		x: "8",
-		y: "2",
-		rx: "1",
-		ry: "1",
-		key: "tgr4d6"
-	}],
-	["path", {
-		d: "M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2",
-		key: "116196"
-	}],
-	["path", {
-		d: "m9 14 2 2 4-4",
-		key: "df797q"
 	}]
 ]);
 /**
@@ -1433,14 +1408,16 @@ function drawComprehensiveDefectMorphology(ctx, flawId, x, y, topY, bottomY, sca
 	ctx.restore();
 }
 /**
-* Renders the full 2D Ultrasonic Radiation Cone ("كوم الأشعة"):
-* - -20 dB Outer Beam Divergence Cone
-* - -6 dB Sizing Core Energy Cone
-* - Near-Field (Fresnel Zone `NF`) boundary marker
-* - Propagating curved ultrasonic wavefront arcs along Leg 1 & Leg 2
+* Renders the full 2D Ultrasonic Radiation Cone ("كوم الأشعة") with real-time animated waves:
+* - -20 dB Outer Beam Divergence Cone & -6 dB Sizing Core Energy Cone
+* - Fresnel Near-Field (NF) Interference Maxima/Minima Fringes & Far-Field Transition Gate
+* - Propagating curved ultrasonic wavefront crests along Leg 1 & specular-reflected Leg 2
+* - Multi-ray acoustic vectors with traveling energy packets & bottom-wall bounce flash
+* - Physical defect scattering (planar specular/corner-trap vs volumetric omnidirectional scatter)
+*   and returning echo wavelets propagating back to the transducer crystal
 */
 function drawUltrasonicBeamCone2D(params) {
-	const { ctx, entryX, entryY, bounceX, bounceY, leg2EndX, leg2EndY, scalePxPerMm, coneMetrics, isPaut = false, showWavefronts = true, showNearField = true, isHit = false } = params;
+	const { ctx, entryX, entryY, bounceX, bounceY, leg2EndX, leg2EndY, scalePxPerMm, coneMetrics, isPaut = false, showWavefronts = true, showNearField = true, isHit = false, animationPhase = 0, defectImpact } = params;
 	ctx.save();
 	const dx1 = bounceX - entryX;
 	const dy1 = bounceY - entryY;
@@ -1454,8 +1431,42 @@ function drawUltrasonicBeamCone2D(params) {
 	const w0_20Px = coneMetrics.effectiveApertureMm * .65 * scalePxPerMm / 2;
 	const w1_6Px = coneMetrics.width6dBAtDepthMm(leg1LenMm) * scalePxPerMm / 2;
 	const w1_20Px = coneMetrics.width20dBAtDepthMm(leg1LenMm) * scalePxPerMm / 2;
-	ctx.fillStyle = isPaut ? "rgba(245, 158, 11, 0.09)" : "rgba(56, 189, 248, 0.09)";
-	ctx.strokeStyle = isPaut ? "rgba(245, 158, 11, 0.32)" : "rgba(56, 189, 248, 0.32)";
+	const hasLeg2 = leg2EndX !== void 0 && leg2EndY !== void 0;
+	const dx2 = hasLeg2 ? leg2EndX - bounceX : 0;
+	const dy2 = hasLeg2 ? leg2EndY - bounceY : 0;
+	const leg2LenPx = hasLeg2 ? Math.max(1, Math.hypot(dx2, dy2)) : 0;
+	const totalLenMm = leg1LenMm + (hasLeg2 ? leg2LenPx / Math.max(.1, scalePxPerMm) : 0);
+	const ux2 = hasLeg2 ? dx2 / leg2LenPx : 0;
+	const uy2 = hasLeg2 ? dy2 / leg2LenPx : 0;
+	const nx2 = -uy2;
+	const ny2 = ux2;
+	const w2_6Px = hasLeg2 ? coneMetrics.width6dBAtDepthMm(totalLenMm) * scalePxPerMm / 2 : w1_6Px;
+	const w2_20Px = hasLeg2 ? coneMetrics.width20dBAtDepthMm(totalLenMm) * scalePxPerMm / 2 : w1_20Px;
+	const effectiveHit = Boolean(isHit || defectImpact?.hit);
+	const phase = Number.isFinite(animationPhase) ? animationPhase : 0;
+	const waveSpacingPx = Math.max(6.5, Math.min(18, coneMetrics.wavelengthMm * 10.5 * (scalePxPerMm / 4.2)));
+	const travelOffsetPx = (phase * 36 % waveSpacingPx + waveSpacingPx) % waveSpacingPx;
+	const drawClippedWavefrontArc = (cx, cy, ux, uy, nx, ny, distAlongPx, halfConeWidthPx, curvatureSagPx, strokeStyle, lineWidth) => {
+		const px = cx + ux * distAlongPx;
+		const py = cy + uy * distAlongPx;
+		const span = Math.max(2, halfConeWidthPx);
+		const segments = 8;
+		ctx.strokeStyle = strokeStyle;
+		ctx.lineWidth = lineWidth;
+		ctx.beginPath();
+		for (let s = 0; s <= segments; s++) {
+			const tNorm = s / segments * 2 - 1;
+			const lat = tNorm * span;
+			const sag = (1 - tNorm * tNorm) * curvatureSagPx;
+			const wx = px + nx * lat + ux * sag;
+			const wy = py + ny * lat + uy * sag;
+			if (s === 0) ctx.moveTo(wx, wy);
+			else ctx.lineTo(wx, wy);
+		}
+		ctx.stroke();
+	};
+	ctx.fillStyle = isPaut ? "rgba(245, 158, 11, 0.08)" : "rgba(56, 189, 248, 0.08)";
+	ctx.strokeStyle = isPaut ? "rgba(245, 158, 11, 0.30)" : "rgba(56, 189, 248, 0.30)";
 	ctx.lineWidth = 1;
 	ctx.setLineDash([3, 3]);
 	ctx.beginPath();
@@ -1468,18 +1479,19 @@ function drawUltrasonicBeamCone2D(params) {
 	ctx.stroke();
 	ctx.setLineDash([]);
 	const coreGrad = ctx.createLinearGradient(entryX, entryY, bounceX, bounceY);
-	if (isHit) {
-		coreGrad.addColorStop(0, "rgba(244, 63, 94, 0.38)");
-		coreGrad.addColorStop(1, "rgba(245, 158, 11, 0.22)");
+	if (effectiveHit) {
+		coreGrad.addColorStop(0, "rgba(244, 63, 94, 0.34)");
+		coreGrad.addColorStop(.55, "rgba(245, 158, 11, 0.24)");
+		coreGrad.addColorStop(1, "rgba(244, 63, 94, 0.14)");
 	} else if (isPaut) {
-		coreGrad.addColorStop(0, "rgba(251, 191, 36, 0.36)");
-		coreGrad.addColorStop(1, "rgba(245, 158, 11, 0.16)");
+		coreGrad.addColorStop(0, "rgba(251, 191, 36, 0.34)");
+		coreGrad.addColorStop(1, "rgba(245, 158, 11, 0.14)");
 	} else {
-		coreGrad.addColorStop(0, "rgba(34, 211, 238, 0.36)");
-		coreGrad.addColorStop(1, "rgba(14, 165, 233, 0.15)");
+		coreGrad.addColorStop(0, "rgba(34, 211, 238, 0.34)");
+		coreGrad.addColorStop(1, "rgba(14, 165, 233, 0.12)");
 	}
 	ctx.fillStyle = coreGrad;
-	ctx.strokeStyle = isPaut ? "rgba(251, 191, 36, 0.65)" : "rgba(34, 211, 238, 0.65)";
+	ctx.strokeStyle = isPaut ? "rgba(251, 191, 36, 0.62)" : "rgba(34, 211, 238, 0.62)";
 	ctx.lineWidth = 1.2;
 	ctx.beginPath();
 	ctx.moveTo(entryX + nx1 * w0_6Px, entryY + ny1 * w0_6Px);
@@ -1489,17 +1501,8 @@ function drawUltrasonicBeamCone2D(params) {
 	ctx.closePath();
 	ctx.fill();
 	ctx.stroke();
-	if (leg2EndX !== void 0 && leg2EndY !== void 0) {
-		const dx2 = leg2EndX - bounceX;
-		const dy2 = leg2EndY - bounceY;
-		const leg2LenPx = Math.max(1, Math.hypot(dx2, dy2));
-		const totalLenMm = leg1LenMm + leg2LenPx / Math.max(.1, scalePxPerMm);
-		const ux2 = dx2 / leg2LenPx;
-		const nx2 = -(dy2 / leg2LenPx);
-		const ny2 = ux2;
-		const w2_6Px = coneMetrics.width6dBAtDepthMm(totalLenMm) * scalePxPerMm / 2;
-		const w2_20Px = coneMetrics.width20dBAtDepthMm(totalLenMm) * scalePxPerMm / 2;
-		ctx.fillStyle = "rgba(245, 158, 11, 0.06)";
+	if (hasLeg2 && leg2EndX !== void 0 && leg2EndY !== void 0) {
+		ctx.fillStyle = "rgba(245, 158, 11, 0.055)";
 		ctx.strokeStyle = "rgba(245, 158, 11, 0.24)";
 		ctx.setLineDash([3, 3]);
 		ctx.beginPath();
@@ -1511,7 +1514,12 @@ function drawUltrasonicBeamCone2D(params) {
 		ctx.fill();
 		ctx.stroke();
 		ctx.setLineDash([]);
-		ctx.fillStyle = "rgba(245, 158, 11, 0.14)";
+		const leg2Grad = ctx.createLinearGradient(bounceX, bounceY, leg2EndX, leg2EndY);
+		leg2Grad.addColorStop(0, effectiveHit ? "rgba(245, 158, 11, 0.24)" : "rgba(245, 158, 11, 0.17)");
+		leg2Grad.addColorStop(1, "rgba(245, 158, 11, 0.05)");
+		ctx.fillStyle = leg2Grad;
+		ctx.strokeStyle = "rgba(245, 158, 11, 0.42)";
+		ctx.lineWidth = 1;
 		ctx.beginPath();
 		ctx.moveTo(bounceX + nx2 * w1_6Px, bounceY + ny2 * w1_6Px);
 		ctx.lineTo(leg2EndX + nx2 * w2_6Px, leg2EndY + ny2 * w2_6Px);
@@ -1519,9 +1527,10 @@ function drawUltrasonicBeamCone2D(params) {
 		ctx.lineTo(bounceX - nx2 * w1_6Px, bounceY - ny2 * w1_6Px);
 		ctx.closePath();
 		ctx.fill();
+		ctx.stroke();
 	}
+	const effectiveNfMm = coneMetrics.effectiveNearFieldInSpecimenMm > 0 ? coneMetrics.effectiveNearFieldInSpecimenMm : coneMetrics.nearFieldLengthMm;
 	if (showNearField) {
-		const effectiveNfMm = coneMetrics.effectiveNearFieldInSpecimenMm > 0 ? coneMetrics.effectiveNearFieldInSpecimenMm : coneMetrics.nearFieldLengthMm;
 		const nfLeg1Mm = Math.min(leg1LenMm, effectiveNfMm);
 		const nfPx = nfLeg1Mm * scalePxPerMm;
 		if (nfPx > 5) {
@@ -1530,12 +1539,12 @@ function drawUltrasonicBeamCone2D(params) {
 			const nfHalfW0 = w0_6Px * 1.08;
 			const nfHalfWEnd = coneMetrics.width6dBAtDepthMm(nfLeg1Mm) * scalePxPerMm / 2;
 			const nfGrad = ctx.createLinearGradient(entryX, entryY, nfX, nfY);
-			nfGrad.addColorStop(0, "rgba(168, 85, 247, 0.34)");
-			nfGrad.addColorStop(.6, "rgba(192, 132, 252, 0.22)");
-			nfGrad.addColorStop(1, "rgba(168, 85, 247, 0.14)");
+			nfGrad.addColorStop(0, "rgba(168, 85, 247, 0.30)");
+			nfGrad.addColorStop(.6, "rgba(192, 132, 252, 0.18)");
+			nfGrad.addColorStop(1, "rgba(168, 85, 247, 0.10)");
 			ctx.fillStyle = nfGrad;
-			ctx.strokeStyle = "rgba(192, 132, 252, 0.78)";
-			ctx.lineWidth = 1.25;
+			ctx.strokeStyle = "rgba(192, 132, 252, 0.72)";
+			ctx.lineWidth = 1.15;
 			ctx.beginPath();
 			ctx.moveTo(entryX + nx1 * nfHalfW0, entryY + ny1 * nfHalfW0);
 			ctx.lineTo(nfX + nx1 * nfHalfWEnd, nfY + ny1 * nfHalfWEnd);
@@ -1544,23 +1553,24 @@ function drawUltrasonicBeamCone2D(params) {
 			ctx.closePath();
 			ctx.fill();
 			ctx.stroke();
-			ctx.strokeStyle = "rgba(216, 180, 254, 0.45)";
-			ctx.lineWidth = 1;
-			for (const frac of [
-				.33,
-				.55,
-				.78
-			]) {
-				const ringPx = nfPx * frac;
-				if (ringPx > 6) {
-					const rx = entryX + ux1 * ringPx;
-					const ry = entryY + uy1 * ringPx;
-					const rw = nfHalfW0 * (1 - .22 * frac);
-					ctx.beginPath();
-					ctx.moveTo(rx - nx1 * rw, ry - ny1 * rw);
-					ctx.lineTo(rx + nx1 * rw, ry + ny1 * rw);
-					ctx.stroke();
-				}
+			const nfCrossCount = Math.max(3, Math.min(7, Math.floor(nfPx / 12)));
+			for (let i = 1; i <= nfCrossCount; i++) {
+				const frac = i / (nfCrossCount + 1);
+				const distPx = nfPx * frac;
+				const rw = nfHalfW0 * (1 - .18 * frac);
+				const rx = entryX + ux1 * distPx;
+				const ry = entryY + uy1 * distPx;
+				const pulse = .5 + .5 * Math.sin(phase * 5.2 - i * 1.35);
+				ctx.strokeStyle = `rgba(216, 180, 254, ${(.22 + pulse * .38).toFixed(2)})`;
+				ctx.lineWidth = 1.05;
+				ctx.beginPath();
+				ctx.moveTo(rx - nx1 * rw, ry - ny1 * rw);
+				ctx.quadraticCurveTo(rx + ux1 * (3 + pulse * 3), ry + uy1 * (3 + pulse * 3), rx + nx1 * rw, ry + ny1 * rw);
+				ctx.stroke();
+				ctx.fillStyle = pulse > .55 ? "rgba(233, 213, 255, 0.78)" : "rgba(126, 34, 206, 0.45)";
+				ctx.beginPath();
+				ctx.arc(rx, ry, 1.4 + pulse * 1.4, 0, Math.PI * 2);
+				ctx.fill();
 			}
 			if (effectiveNfMm <= leg1LenMm) {
 				ctx.strokeStyle = "#c084fc";
@@ -1575,14 +1585,7 @@ function drawUltrasonicBeamCone2D(params) {
 				ctx.fillStyle = "rgba(56, 189, 248, 0.85)";
 				ctx.font = "8px monospace";
 				ctx.fillText("Far Field →", nfX + 6, nfY + 6);
-			} else if (leg2EndX !== void 0 && leg2EndY !== void 0) {
-				const dx2 = leg2EndX - bounceX;
-				const dy2 = leg2EndY - bounceY;
-				const leg2LenPx = Math.max(1, Math.hypot(dx2, dy2));
-				const ux2 = dx2 / leg2LenPx;
-				const uy2 = dy2 / leg2LenPx;
-				const nx2 = -uy2;
-				const ny2 = ux2;
+			} else if (hasLeg2 && leg2EndX !== void 0 && leg2EndY !== void 0) {
 				const remNfPx = Math.min(leg2LenPx * .92, (effectiveNfMm - leg1LenMm) * scalePxPerMm);
 				const nf2X = bounceX + ux2 * remNfPx;
 				const nf2Y = bounceY + uy2 * remNfPx;
@@ -1608,15 +1611,171 @@ function drawUltrasonicBeamCone2D(params) {
 		}
 	}
 	if (showWavefronts) {
-		const rayAngle = Math.atan2(dy1, dx1);
-		const halfSpreadRad = Math.max(.08, coneMetrics.halfAngleMinus6dBDeg * Math.PI / 180);
-		ctx.strokeStyle = isHit ? "rgba(254, 202, 202, 0.55)" : "rgba(224, 242, 254, 0.45)";
-		ctx.lineWidth = 1.1;
-		const stepPx = Math.max(12, leg1LenPx / 5);
-		for (let r = stepPx; r < leg1LenPx; r += stepPx) {
+		for (const frac of [
+			-.88,
+			-.44,
+			.44,
+			.88
+		]) {
+			ctx.strokeStyle = isPaut ? "rgba(251, 191, 36, 0.26)" : "rgba(125, 211, 252, 0.24)";
+			ctx.lineWidth = .85;
 			ctx.beginPath();
-			ctx.arc(entryX, entryY, r, rayAngle - halfSpreadRad * 1.35, rayAngle + halfSpreadRad * 1.35);
+			ctx.moveTo(entryX + nx1 * w0_6Px * frac, entryY + ny1 * w0_6Px * frac);
+			ctx.lineTo(bounceX + nx1 * w1_6Px * frac, bounceY + ny1 * w1_6Px * frac);
+			if (hasLeg2 && leg2EndX !== void 0 && leg2EndY !== void 0) ctx.lineTo(leg2EndX + nx2 * w2_6Px * frac, leg2EndY + ny2 * w2_6Px * frac);
 			ctx.stroke();
+		}
+		for (let r = Math.max(3.5, travelOffsetPx); r < leg1LenPx - 1; r += waveSpacingPx) {
+			const tLeg1 = r / leg1LenPx;
+			const inFresnel = r / Math.max(.1, scalePxPerMm) <= effectiveNfMm;
+			const halfW6 = w0_6Px + (w1_6Px - w0_6Px) * tLeg1;
+			const halfW20 = w0_20Px + (w1_20Px - w0_20Px) * tLeg1;
+			const sagPx = inFresnel ? 1.4 : Math.min(6.5, 1.8 + tLeg1 * 4.5);
+			const isStrongPacket = Math.floor((r - travelOffsetPx + phase * 36) / waveSpacingPx) % 3 === 0;
+			const attenuation = 1 - tLeg1 * .28;
+			drawClippedWavefrontArc(entryX, entryY, ux1, uy1, nx1, ny1, r, halfW20 * .96, sagPx * 1.15, isPaut ? `rgba(251, 191, 36, ${(.18 * attenuation).toFixed(2)})` : `rgba(56, 189, 248, ${(.2 * attenuation).toFixed(2)})`, .9);
+			const coreAlpha = (isStrongPacket ? .88 : .48) * attenuation;
+			const coreStroke = effectiveHit ? `rgba(254, 215, 170, ${coreAlpha.toFixed(2)})` : inFresnel ? `rgba(233, 213, 255, ${coreAlpha.toFixed(2)})` : isPaut ? `rgba(254, 240, 138, ${coreAlpha.toFixed(2)})` : `rgba(186, 230, 253, ${coreAlpha.toFixed(2)})`;
+			drawClippedWavefrontArc(entryX, entryY, ux1, uy1, nx1, ny1, r, halfW6 * .98, sagPx, coreStroke, isStrongPacket ? 2 : 1.15);
+		}
+		if (hasLeg2 && leg2EndX !== void 0 && leg2EndY !== void 0 && leg2LenPx > 4) {
+			const bounceOffsetPx = ((phase * 36 - leg1LenPx) % waveSpacingPx + waveSpacingPx) % waveSpacingPx;
+			for (let r2 = Math.max(3.5, bounceOffsetPx); r2 < leg2LenPx - 1; r2 += waveSpacingPx) {
+				const tLeg2 = r2 / leg2LenPx;
+				const halfW6_2 = w1_6Px + (w2_6Px - w1_6Px) * tLeg2;
+				const halfW20_2 = w1_20Px + (w2_20Px - w1_20Px) * tLeg2;
+				const sagPx2 = Math.min(7.5, 4.2 + tLeg2 * 3);
+				const atten2 = .72 * (1 - tLeg2 * .38);
+				drawClippedWavefrontArc(bounceX, bounceY, ux2, uy2, nx2, ny2, r2, halfW20_2 * .94, sagPx2 * 1.1, `rgba(251, 191, 36, ${(.16 * atten2).toFixed(2)})`, .85);
+				drawClippedWavefrontArc(bounceX, bounceY, ux2, uy2, nx2, ny2, r2, halfW6_2 * .96, sagPx2, effectiveHit ? `rgba(253, 186, 116, ${(.78 * atten2).toFixed(2)})` : `rgba(253, 224, 71, ${(.62 * atten2).toFixed(2)})`, 1.45);
+			}
+			const bouncePulse = .5 + .5 * Math.sin(phase * 7.5);
+			const bounceRadius = Math.max(3.5, w1_6Px * (.45 + bouncePulse * .35));
+			ctx.strokeStyle = `rgba(251, 191, 36, ${(.35 + bouncePulse * .45).toFixed(2)})`;
+			ctx.lineWidth = 1.6;
+			ctx.beginPath();
+			ctx.arc(bounceX, bounceY, bounceRadius, Math.PI, Math.PI * 2);
+			ctx.stroke();
+		}
+		const totalPathPx = leg1LenPx + leg2LenPx;
+		for (let pIdx = 0; pIdx < 3; pIdx++) {
+			const distTotal = ((phase * .65 + pIdx / 3) % 1 + 1) % 1 * totalPathPx;
+			let bx = entryX;
+			let by = entryY;
+			let bux = ux1;
+			let buy = uy1;
+			if (distTotal <= leg1LenPx || !hasLeg2) {
+				const d = Math.min(distTotal, leg1LenPx);
+				bx = entryX + ux1 * d;
+				by = entryY + uy1 * d;
+			} else {
+				const d2 = distTotal - leg1LenPx;
+				bx = bounceX + ux2 * d2;
+				by = bounceY + uy2 * d2;
+				bux = ux2;
+				buy = uy2;
+			}
+			const glow = ctx.createRadialGradient(bx, by, .5, bx, by, 7.5);
+			glow.addColorStop(0, effectiveHit ? "rgba(254, 240, 138, 0.95)" : "rgba(224, 242, 254, 0.95)");
+			glow.addColorStop(.45, isPaut ? "rgba(245, 158, 11, 0.55)" : "rgba(34, 211, 238, 0.55)");
+			glow.addColorStop(1, "rgba(34, 211, 238, 0)");
+			ctx.fillStyle = glow;
+			ctx.beginPath();
+			ctx.arc(bx, by, 7.5, 0, Math.PI * 2);
+			ctx.fill();
+			ctx.strokeStyle = "#ffffff";
+			ctx.lineWidth = 1.4;
+			ctx.beginPath();
+			ctx.moveTo(bx - bux * 4 - buy * 3, by - buy * 4 + bux * 3);
+			ctx.lineTo(bx + bux * 2, by + buy * 2);
+			ctx.lineTo(bx - bux * 4 + buy * 3, by - buy * 4 - bux * 3);
+			ctx.stroke();
+		}
+	}
+	if (defectImpact?.hit) {
+		const defX = defectImpact.x;
+		const defY = defectImpact.y;
+		const scatterMode = defectImpact.scatterMode || "specular_planar";
+		for (let ringIdx = 0; ringIdx < 3; ringIdx++) {
+			const ringProgress = ((phase * 1.15 + ringIdx / 3) % 1 + 1) % 1;
+			const scatterR = 3 + ringProgress * (scatterMode === "volumetric_scatter" ? 24 : 20);
+			const alpha = (1 - ringProgress) * .78;
+			if (scatterMode === "volumetric_scatter") {
+				ctx.strokeStyle = `rgba(56, 189, 248, ${alpha.toFixed(2)})`;
+				ctx.lineWidth = 1.4;
+				ctx.beginPath();
+				ctx.arc(defX, defY, scatterR, 0, Math.PI * 2);
+				ctx.stroke();
+			} else {
+				const backAng = Math.atan2(entryY - defY, entryX - defX);
+				ctx.strokeStyle = scatterMode === "corner_trap" ? `rgba(244, 63, 94, ${alpha.toFixed(2)})` : `rgba(251, 146, 60, ${alpha.toFixed(2)})`;
+				ctx.lineWidth = 1.8;
+				ctx.beginPath();
+				ctx.arc(defX, defY, scatterR, backAng - .85, backAng + .85);
+				ctx.stroke();
+			}
+		}
+		const returnWaypoints = defectImpact.leg === 2 && hasLeg2 ? [
+			{
+				x: defX,
+				y: defY
+			},
+			{
+				x: bounceX,
+				y: bounceY
+			},
+			{
+				x: entryX,
+				y: entryY
+			}
+		] : [{
+			x: defX,
+			y: defY
+		}, {
+			x: entryX,
+			y: entryY
+		}];
+		let totalRetPx = 0;
+		const retSegments = [];
+		for (let i = 0; i < returnWaypoints.length - 1; i++) {
+			const p0 = returnWaypoints[i];
+			const p1 = returnWaypoints[i + 1];
+			const ddx = p1.x - p0.x;
+			const ddy = p1.y - p0.y;
+			const len = Math.max(1, Math.hypot(ddx, ddy));
+			retSegments.push({
+				x0: p0.x,
+				y0: p0.y,
+				x1: p1.x,
+				y1: p1.y,
+				len,
+				ux: ddx / len,
+				uy: ddy / len
+			});
+			totalRetPx += len;
+		}
+		for (let echoIdx = 0; echoIdx < 3; echoIdx++) {
+			const retNorm = ((phase * .85 + echoIdx / 3) % 1 + 1) % 1;
+			let rem = retNorm * totalRetPx;
+			for (const seg of retSegments) {
+				if (rem <= seg.len) {
+					const ex = seg.x0 + seg.ux * rem;
+					const ey = seg.y0 + seg.uy * rem;
+					const enx = -seg.uy;
+					const eny = seg.ux;
+					drawClippedWavefrontArc(seg.x0, seg.y0, seg.ux, seg.uy, enx, eny, rem, 7 + rem / Math.max(1, totalRetPx) * 5, 2.2, `rgba(52, 211, 153, ${(.92 * (1 - retNorm * .25)).toFixed(2)})`, 2);
+					const retGlow = ctx.createRadialGradient(ex, ey, .5, ex, ey, 6.5);
+					retGlow.addColorStop(0, "rgba(167, 243, 208, 0.98)");
+					retGlow.addColorStop(.5, "rgba(16, 185, 129, 0.65)");
+					retGlow.addColorStop(1, "rgba(16, 185, 129, 0)");
+					ctx.fillStyle = retGlow;
+					ctx.beginPath();
+					ctx.arc(ex, ey, 6.5, 0, Math.PI * 2);
+					ctx.fill();
+					break;
+				}
+				rem -= seg.len;
+			}
 		}
 	}
 	ctx.restore();
@@ -3667,231 +3826,288 @@ var UtFlawDetectorDevice = ({ language }) => {
 		if (!canvas) return;
 		const ctx = canvas.getContext("2d");
 		if (!ctx) return;
-		const w = canvas.width;
-		const h = canvas.height;
-		ctx.fillStyle = "#040814";
-		ctx.fillRect(0, 0, w, h);
-		if (activeSpecimen === "weld_butt" || activeSpecimen === "weld_curved_pipe") {
-			const originX = w * .38;
-			const scale = 4.3;
-			const topY = 58;
-			const bottomY = 144;
-			const flawDepthMm = currentDefect.nominalDepthRatio * plateThicknessMm;
-			if (activeSpecimen === "weld_butt") {
-				ctx.fillStyle = "#131c36";
-				ctx.strokeStyle = "#334155";
-				ctx.lineWidth = 1.5;
-				ctx.fillRect(16, topY, w - 32, plateThicknessMm * scale);
-				ctx.strokeRect(16, topY, w - 32, plateThicknessMm * scale);
-				ctx.fillStyle = "#1e293b";
-				ctx.strokeStyle = "#f59e0b";
-				ctx.lineWidth = 1.3;
-				ctx.beginPath();
-				ctx.moveTo(originX - 8.5 * scale, topY);
-				ctx.quadraticCurveTo(originX, topY - 3 * scale, originX + 8.5 * scale, topY);
-				ctx.lineTo(originX + 1.5 * scale, bottomY);
-				ctx.lineTo(originX - 1.5 * scale, bottomY);
-				ctx.closePath();
-				ctx.fill();
-				ctx.stroke();
-				const defX = originX + currentDefect.distanceFromWeldCenterMm * scale;
-				const defY = topY + flawDepthMm * scale;
-				drawComprehensiveDefectMorphology(ctx, currentDefect.id, defX, defY, topY, bottomY, scale, gateAMaxAmp >= gateAThresholdPct);
-				const entryX = originX + weldProbeStandoffMm * scale;
-				const radA = probeAngleDeg * Math.PI / 180;
-				const halfSkipPx = probeAngleDeg === 0 ? 0 : plateThicknessMm * Math.tan(radA) * scale;
-				const bounceX = probeAngleDeg === 0 ? entryX : entryX - halfSkipPx;
-				const leg2X = probeAngleDeg === 0 ? void 0 : bounceX - halfSkipPx;
-				if (showBeamCone) drawUltrasonicBeamCone2D({
-					ctx,
-					entryX,
-					entryY: topY,
-					bounceX,
-					bounceY: bottomY,
-					leg2EndX: leg2X,
-					leg2EndY: probeAngleDeg === 0 ? void 0 : topY,
-					scalePxPerMm: scale,
-					coneMetrics,
-					showWavefronts,
-					showNearField: true,
-					isHit: gateAMaxAmp >= gateAThresholdPct
-				});
-				ctx.strokeStyle = gateAMaxAmp >= gateAThresholdPct ? "#ef4444" : "#38bdf8";
-				ctx.lineWidth = 2;
-				ctx.beginPath();
-				ctx.moveTo(entryX, topY);
-				ctx.lineTo(bounceX, bottomY);
-				if (leg2X !== void 0) ctx.lineTo(leg2X, topY);
-				ctx.stroke();
-				ctx.fillStyle = "#0284c7";
-				ctx.strokeStyle = "#7dd3fc";
-				ctx.fillRect(entryX - 4, 40, 28, 18);
-				ctx.strokeRect(entryX - 4, 40, 28, 18);
-				ctx.fillStyle = "#f59e0b";
-				ctx.fillRect(entryX + 6, 33, 6, 7);
-				ctx.fillStyle = "#ffffff";
-				ctx.font = "bold 8.5px monospace";
-				ctx.fillText(`${probeAngleDeg}°`, entryX + 2, 52);
-			} else {
-				const visOuterR = 210;
-				const thkPx = plateThicknessMm * scale * .92;
-				const visInnerR = 130.88;
-				const cx = originX;
-				const cy = 264;
-				ctx.fillStyle = "#131c36";
-				ctx.strokeStyle = "#334155";
-				ctx.lineWidth = 1.6;
-				ctx.beginPath();
-				ctx.arc(cx, cy, visOuterR, -Math.PI / 2 - .65, -Math.PI / 2 + .78);
-				ctx.arc(cx, cy, visInnerR, -Math.PI / 2 + .78, -Math.PI / 2 - .65, true);
-				ctx.closePath();
-				ctx.fill();
-				ctx.stroke();
-				ctx.fillStyle = "#1e293b";
-				ctx.strokeStyle = "#f59e0b";
-				ctx.beginPath();
-				ctx.moveTo(cx - 32, 56);
-				ctx.lineTo(cx + 32, 56);
-				ctx.lineTo(cx + 6, 133.12);
-				ctx.lineTo(cx - 6, 133.12);
-				ctx.closePath();
-				ctx.fill();
-				ctx.stroke();
-				const defX = cx + currentDefect.distanceFromWeldCenterMm * scale * .85;
-				const defY = 54 + flawDepthMm / plateThicknessMm * thkPx;
-				drawComprehensiveDefectMorphology(ctx, currentDefect.id, defX, defY, 54, 133.12, scale * .9, gateAMaxAmp >= gateAThresholdPct);
-				const gamma = weldProbeStandoffMm * scale / visOuterR;
-				const pAng = -Math.PI / 2 + gamma;
-				const entryX = cx + visOuterR * Math.cos(pAng);
-				const entryY = cy + visOuterR * Math.sin(pAng);
-				const radA = probeAngleDeg * Math.PI / 180;
-				const idAng = pAng - plateThicknessMm * Math.tan(radA) * scale / visOuterR;
-				const bounceX = cx + visInnerR * Math.cos(idAng);
-				const bounceY = cy + visInnerR * Math.sin(idAng);
-				const odAng2 = idAng - plateThicknessMm * Math.tan(radA) * scale / visOuterR;
-				const leg2X = cx + visOuterR * Math.cos(odAng2);
-				const leg2Y = cy + visOuterR * Math.sin(odAng2);
-				if (showBeamCone) drawUltrasonicBeamCone2D({
-					ctx,
-					entryX,
-					entryY,
-					bounceX,
-					bounceY,
-					leg2EndX: probeAngleDeg > 0 ? leg2X : void 0,
-					leg2EndY: probeAngleDeg > 0 ? leg2Y : void 0,
-					scalePxPerMm: scale * .9,
-					coneMetrics,
-					showWavefronts,
-					showNearField: true,
-					isHit: gateAMaxAmp >= gateAThresholdPct
-				});
-				ctx.fillStyle = "#0284c7";
-				ctx.beginPath();
-				ctx.arc(entryX, entryY - 5, 9, 0, Math.PI * 2);
-				ctx.fill();
-			}
-			const stripY = h - 42;
-			ctx.fillStyle = "#090f20";
-			ctx.strokeStyle = "#1e293b";
-			ctx.fillRect(16, stripY, w - 32, 30);
-			ctx.strokeRect(16, stripY, w - 32, 30);
-			const seamStartPx = 16 + (currentDefect.centerYmm - currentDefect.lengthMm / 2) / 100 * (w - 32);
-			const seamLenPx = Math.max(8, currentDefect.lengthMm / 100 * (w - 32));
-			ctx.fillStyle = currentDefect.category === "Planar" ? "rgba(239, 68, 68, 0.8)" : "rgba(245, 158, 11, 0.8)";
-			ctx.fillRect(seamStartPx, stripY + 9, seamLenPx, 12);
-			const probeYPx = 16 + weldSeamYmm / 100 * (w - 32);
-			ctx.strokeStyle = "#22d3ee";
-			ctx.lineWidth = 2;
-			ctx.beginPath();
-			ctx.moveTo(probeYPx, stripY);
-			ctx.lineTo(probeYPx, stripY + 30);
-			ctx.stroke();
-			ctx.fillStyle = "#94a3b8";
-			ctx.font = "9px monospace";
-			ctx.fillText(`TOP SEAM SCAN: Y=${weldSeamYmm}mm · Defect [${currentDefect.codeSymbol}]`, 22, stripY - 5);
-		} else if (activeSpecimen === "iiw_v1" || activeSpecimen === "iiw_v2") {
-			const bx = 42;
-			const by = 52;
-			const bw = w - 84;
-			const bh = h - 92;
-			ctx.fillStyle = "#16213e";
-			ctx.strokeStyle = "#38bdf8";
-			ctx.lineWidth = 1.8;
-			ctx.beginPath();
-			ctx.moveTo(bx, by);
-			ctx.lineTo(bx + bw * .72, by);
-			ctx.arc(bx + bw * .35, by, bw * .37, 0, Math.PI * .44);
-			ctx.lineTo(bx, by + bh);
-			ctx.closePath();
-			ctx.fill();
-			ctx.stroke();
-			ctx.fillStyle = "rgba(56, 189, 248, 0.25)";
-			ctx.beginPath();
-			ctx.arc(bx + bw * .34, by + bh * .55, 18, 0, Math.PI * 2);
-			ctx.fill();
-			ctx.stroke();
-			ctx.fillStyle = "#f59e0b";
-			ctx.beginPath();
-			ctx.arc(bx + bw * .58, 80, 4.5, 0, Math.PI * 2);
-			ctx.fill();
-			const entryX = iiwPosition === "A" ? 97 : iiwPosition === "C" ? bx + bw * .58 : bx + bw * .35;
-			const targetX = iiwPosition === "A" ? 97 : iiwPosition === "C" ? bx + bw * .58 : bx + bw * .68;
-			const targetY = iiwPosition === "A" ? by + bh : iiwPosition === "C" ? 80 : by + bh * .62;
-			if (showBeamCone) drawUltrasonicBeamCone2D({
-				ctx,
-				entryX,
-				entryY: by,
-				bounceX: targetX,
-				bounceY: targetY,
-				scalePxPerMm: 2.2,
-				coneMetrics,
-				showWavefronts,
-				showNearField: true
-			});
-			ctx.fillStyle = "#0284c7";
-			ctx.fillRect(entryX - 15, 36, 30, 16);
-			ctx.fillStyle = "#e2e8f0";
-			ctx.font = "bold 10px monospace";
-			ctx.fillText(activeSpecimen === "iiw_v1" ? `IIW V1 BLOCK (Pos ${iiwPosition}) · Cone NF=${coneMetrics.nearFieldLengthMm.toFixed(0)}mm` : "IIW V2 MINI CALIBRATION BLOCK (R25 / R50mm)", 24, 26);
-		} else {
-			const steps = [
-				2.5,
-				5,
-				7.5,
-				10,
-				12.5
-			];
-			const stepW = (w - 60) / 5;
-			const baseBottom = h - 38;
-			steps.forEach((thk, idx) => {
-				const sh = thk * 11;
-				const sx = 30 + idx * stepW;
-				const sy = baseBottom - sh;
-				ctx.fillStyle = idx === corrosionStepIndex ? "#1e3a5f" : "#131c36";
-				ctx.strokeStyle = idx === corrosionStepIndex ? "#38bdf8" : "#334155";
-				ctx.fillRect(sx, sy, stepW - 4, sh);
-				ctx.strokeRect(sx, sy, stepW - 4, sh);
-				ctx.fillStyle = "#94a3b8";
-				ctx.font = "9px monospace";
-				ctx.fillText(`${thk}mm`, sx + 10, baseBottom + 14);
-				if (idx === corrosionStepIndex) {
-					const cx = sx + (stepW - 4) / 2;
+		const prefersReducedMotion = typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+		const shouldAnimate = showBeamCone && showWavefronts && !isFrozen && !prefersReducedMotion;
+		let rafId = 0;
+		const startMs = Date.now();
+		const scatterMode = currentDefect.id === "base_lamination" ? "lamination" : currentDefect.echoWaveformType === "sharp_spike_tip" ? "tip_diffraction" : currentDefect.id === "root_crack" || currentDefect.id === "root_lof" || currentDefect.id === "incomplete_penetration" ? "corner_trap" : currentDefect.category === "Volumetric" ? "volumetric_scatter" : "specular_planar";
+		const renderFrame = (phaseSec) => {
+			const w = canvas.width;
+			const h = canvas.height;
+			ctx.fillStyle = "#040814";
+			ctx.fillRect(0, 0, w, h);
+			if (activeSpecimen === "weld_butt" || activeSpecimen === "weld_curved_pipe") {
+				const originX = w * .38;
+				const scale = 4.3;
+				const topY = 58;
+				const bottomY = 144;
+				const flawDepthMm = currentDefect.nominalDepthRatio * plateThicknessMm;
+				const isFlawHit = gateAMaxAmp >= gateAThresholdPct;
+				if (activeSpecimen === "weld_butt") {
+					ctx.fillStyle = "#131c36";
+					ctx.strokeStyle = "#334155";
+					ctx.lineWidth = 1.5;
+					ctx.fillRect(16, topY, w - 32, plateThicknessMm * scale);
+					ctx.strokeRect(16, topY, w - 32, plateThicknessMm * scale);
+					ctx.fillStyle = "#1e293b";
+					ctx.strokeStyle = "#f59e0b";
+					ctx.lineWidth = 1.3;
+					ctx.beginPath();
+					ctx.moveTo(originX - 8.5 * scale, topY);
+					ctx.quadraticCurveTo(originX, topY - 3 * scale, originX + 8.5 * scale, topY);
+					ctx.lineTo(originX + 1.5 * scale, bottomY);
+					ctx.lineTo(originX - 1.5 * scale, bottomY);
+					ctx.closePath();
+					ctx.fill();
+					ctx.stroke();
+					const defX = originX + currentDefect.distanceFromWeldCenterMm * scale;
+					const defY = topY + flawDepthMm * scale;
+					drawComprehensiveDefectMorphology(ctx, currentDefect.id, defX, defY, topY, bottomY, scale, isFlawHit);
+					const entryX = originX + weldProbeStandoffMm * scale;
+					const radA = probeAngleDeg * Math.PI / 180;
+					const halfSkipPx = probeAngleDeg === 0 ? 0 : plateThicknessMm * Math.tan(radA) * scale;
+					const bounceX = probeAngleDeg === 0 ? entryX : entryX - halfSkipPx;
+					const leg2X = probeAngleDeg === 0 ? void 0 : bounceX - halfSkipPx;
 					if (showBeamCone) drawUltrasonicBeamCone2D({
 						ctx,
-						entryX: cx,
-						entryY: sy,
-						bounceX: cx,
-						bounceY: baseBottom,
-						scalePxPerMm: 8,
+						entryX,
+						entryY: topY,
+						bounceX,
+						bounceY: bottomY,
+						leg2EndX: leg2X,
+						leg2EndY: probeAngleDeg === 0 ? void 0 : topY,
+						scalePxPerMm: scale,
 						coneMetrics,
 						showWavefronts,
-						showNearField: false
+						showNearField: true,
+						isHit: isFlawHit,
+						animationPhase: phaseSec,
+						defectImpact: {
+							x: defX,
+							y: defY,
+							hit: isFlawHit,
+							scatterMode,
+							leg: legNumber === 2 ? 2 : 1
+						}
+					});
+					ctx.strokeStyle = isFlawHit ? "rgba(239, 68, 68, 0.72)" : "rgba(56, 189, 248, 0.75)";
+					ctx.lineWidth = 1.6;
+					ctx.beginPath();
+					ctx.moveTo(entryX, topY);
+					ctx.lineTo(bounceX, bottomY);
+					if (leg2X !== void 0) ctx.lineTo(leg2X, topY);
+					ctx.stroke();
+					ctx.fillStyle = "#0284c7";
+					ctx.strokeStyle = "#7dd3fc";
+					ctx.fillRect(entryX - 4, 40, 28, 18);
+					ctx.strokeRect(entryX - 4, 40, 28, 18);
+					if (probeAngleDeg > 0 && showWavefronts) {
+						ctx.strokeStyle = "rgba(186, 230, 253, 0.75)";
+						ctx.lineWidth = 1.2;
+						ctx.beginPath();
+						ctx.moveTo(entryX + 12, 44);
+						ctx.lineTo(entryX, topY);
+						ctx.stroke();
+					}
+					ctx.fillStyle = "#f59e0b";
+					ctx.fillRect(entryX + 6, 33, 6, 7);
+					ctx.fillStyle = "#ffffff";
+					ctx.font = "bold 8.5px monospace";
+					ctx.fillText(`${probeAngleDeg}°`, entryX + 2, 52);
+				} else {
+					const visOuterR = 210;
+					const thkPx = plateThicknessMm * scale * .92;
+					const visInnerR = 130.88;
+					const cx = originX;
+					const cy = 264;
+					ctx.fillStyle = "#131c36";
+					ctx.strokeStyle = "#334155";
+					ctx.lineWidth = 1.6;
+					ctx.beginPath();
+					ctx.arc(cx, cy, visOuterR, -Math.PI / 2 - .65, -Math.PI / 2 + .78);
+					ctx.arc(cx, cy, visInnerR, -Math.PI / 2 + .78, -Math.PI / 2 - .65, true);
+					ctx.closePath();
+					ctx.fill();
+					ctx.stroke();
+					ctx.fillStyle = "#1e293b";
+					ctx.strokeStyle = "#f59e0b";
+					ctx.beginPath();
+					ctx.moveTo(cx - 32, 56);
+					ctx.lineTo(cx + 32, 56);
+					ctx.lineTo(cx + 6, 133.12);
+					ctx.lineTo(cx - 6, 133.12);
+					ctx.closePath();
+					ctx.fill();
+					ctx.stroke();
+					const defX = cx + currentDefect.distanceFromWeldCenterMm * scale * .85;
+					const defY = 54 + flawDepthMm / plateThicknessMm * thkPx;
+					drawComprehensiveDefectMorphology(ctx, currentDefect.id, defX, defY, 54, 133.12, scale * .9, isFlawHit);
+					const gamma = weldProbeStandoffMm * scale / visOuterR;
+					const pAng = -Math.PI / 2 + gamma;
+					const entryX = cx + visOuterR * Math.cos(pAng);
+					const entryY = cy + visOuterR * Math.sin(pAng);
+					const radA = probeAngleDeg * Math.PI / 180;
+					const idAng = pAng - plateThicknessMm * Math.tan(radA) * scale / visOuterR;
+					const bounceX = cx + visInnerR * Math.cos(idAng);
+					const bounceY = cy + visInnerR * Math.sin(idAng);
+					const odAng2 = idAng - plateThicknessMm * Math.tan(radA) * scale / visOuterR;
+					const leg2X = cx + visOuterR * Math.cos(odAng2);
+					const leg2Y = cy + visOuterR * Math.sin(odAng2);
+					if (showBeamCone) drawUltrasonicBeamCone2D({
+						ctx,
+						entryX,
+						entryY,
+						bounceX,
+						bounceY,
+						leg2EndX: probeAngleDeg > 0 ? leg2X : void 0,
+						leg2EndY: probeAngleDeg > 0 ? leg2Y : void 0,
+						scalePxPerMm: scale * .9,
+						coneMetrics,
+						showWavefronts,
+						showNearField: true,
+						isHit: isFlawHit,
+						animationPhase: phaseSec,
+						defectImpact: {
+							x: defX,
+							y: defY,
+							hit: isFlawHit,
+							scatterMode,
+							leg: legNumber === 2 ? 2 : 1
+						}
 					});
 					ctx.fillStyle = "#0284c7";
-					ctx.fillRect(cx - 12, sy - 14, 24, 14);
+					ctx.beginPath();
+					ctx.arc(entryX, entryY - 5, 9, 0, Math.PI * 2);
+					ctx.fill();
 				}
-			});
-		}
+				const stripY = h - 42;
+				ctx.fillStyle = "#090f20";
+				ctx.strokeStyle = "#1e293b";
+				ctx.fillRect(16, stripY, w - 32, 30);
+				ctx.strokeRect(16, stripY, w - 32, 30);
+				const seamStartPx = 16 + (currentDefect.centerYmm - currentDefect.lengthMm / 2) / 100 * (w - 32);
+				const seamLenPx = Math.max(8, currentDefect.lengthMm / 100 * (w - 32));
+				ctx.fillStyle = currentDefect.category === "Planar" ? "rgba(239, 68, 68, 0.8)" : "rgba(245, 158, 11, 0.8)";
+				ctx.fillRect(seamStartPx, stripY + 9, seamLenPx, 12);
+				const probeYPx = 16 + weldSeamYmm / 100 * (w - 32);
+				ctx.strokeStyle = "#22d3ee";
+				ctx.lineWidth = 2;
+				ctx.beginPath();
+				ctx.moveTo(probeYPx, stripY);
+				ctx.lineTo(probeYPx, stripY + 30);
+				ctx.stroke();
+				ctx.fillStyle = "#94a3b8";
+				ctx.font = "9px monospace";
+				ctx.fillText(`TOP SEAM SCAN: Y=${weldSeamYmm}mm · Defect [${currentDefect.codeSymbol}]`, 22, stripY - 5);
+			} else if (activeSpecimen === "iiw_v1" || activeSpecimen === "iiw_v2") {
+				const bx = 42;
+				const by = 52;
+				const bw = w - 84;
+				const bh = h - 92;
+				ctx.fillStyle = "#16213e";
+				ctx.strokeStyle = "#38bdf8";
+				ctx.lineWidth = 1.8;
+				ctx.beginPath();
+				ctx.moveTo(bx, by);
+				ctx.lineTo(bx + bw * .72, by);
+				ctx.arc(bx + bw * .35, by, bw * .37, 0, Math.PI * .44);
+				ctx.lineTo(bx, by + bh);
+				ctx.closePath();
+				ctx.fill();
+				ctx.stroke();
+				ctx.fillStyle = "rgba(56, 189, 248, 0.25)";
+				ctx.beginPath();
+				ctx.arc(bx + bw * .34, by + bh * .55, 18, 0, Math.PI * 2);
+				ctx.fill();
+				ctx.stroke();
+				ctx.fillStyle = "#f59e0b";
+				ctx.beginPath();
+				ctx.arc(bx + bw * .58, 80, 4.5, 0, Math.PI * 2);
+				ctx.fill();
+				const entryX = iiwPosition === "A" ? 97 : iiwPosition === "C" ? bx + bw * .58 : bx + bw * .35;
+				const targetX = iiwPosition === "A" ? 97 : iiwPosition === "C" ? bx + bw * .58 : bx + bw * .68;
+				const targetY = iiwPosition === "A" ? by + bh : iiwPosition === "C" ? 80 : by + bh * .62;
+				if (showBeamCone) drawUltrasonicBeamCone2D({
+					ctx,
+					entryX,
+					entryY: by,
+					bounceX: targetX,
+					bounceY: targetY,
+					scalePxPerMm: 2.2,
+					coneMetrics,
+					showWavefronts,
+					showNearField: true,
+					animationPhase: phaseSec,
+					defectImpact: iiwPosition === "C" ? {
+						x: targetX,
+						y: targetY,
+						hit: true,
+						scatterMode: "volumetric_scatter",
+						leg: 1
+					} : void 0
+				});
+				ctx.fillStyle = "#0284c7";
+				ctx.fillRect(entryX - 15, 36, 30, 16);
+				ctx.fillStyle = "#e2e8f0";
+				ctx.font = "bold 10px monospace";
+				ctx.fillText(activeSpecimen === "iiw_v1" ? `IIW V1 BLOCK (Pos ${iiwPosition}) · Cone NF=${coneMetrics.nearFieldLengthMm.toFixed(0)}mm` : "IIW V2 MINI CALIBRATION BLOCK (R25 / R50mm)", 24, 26);
+			} else {
+				const steps = [
+					2.5,
+					5,
+					7.5,
+					10,
+					12.5
+				];
+				const stepW = (w - 60) / 5;
+				const baseBottom = h - 38;
+				steps.forEach((thk, idx) => {
+					const sh = thk * 11;
+					const sx = 30 + idx * stepW;
+					const sy = baseBottom - sh;
+					ctx.fillStyle = idx === corrosionStepIndex ? "#1e3a5f" : "#131c36";
+					ctx.strokeStyle = idx === corrosionStepIndex ? "#38bdf8" : "#334155";
+					ctx.fillRect(sx, sy, stepW - 4, sh);
+					ctx.strokeRect(sx, sy, stepW - 4, sh);
+					ctx.fillStyle = "#94a3b8";
+					ctx.font = "9px monospace";
+					ctx.fillText(`${thk}mm`, sx + 10, baseBottom + 14);
+					if (idx === corrosionStepIndex) {
+						const cx = sx + (stepW - 4) / 2;
+						if (showBeamCone) drawUltrasonicBeamCone2D({
+							ctx,
+							entryX: cx,
+							entryY: sy,
+							bounceX: cx,
+							bounceY: baseBottom,
+							scalePxPerMm: 8,
+							coneMetrics,
+							showWavefronts,
+							showNearField: false,
+							animationPhase: phaseSec,
+							defectImpact: {
+								x: cx,
+								y: baseBottom,
+								hit: true,
+								scatterMode: "lamination",
+								leg: 1
+							}
+						});
+						ctx.fillStyle = "#0284c7";
+						ctx.fillRect(cx - 12, sy - 14, 24, 14);
+					}
+				});
+			}
+		};
+		const tick = () => {
+			const elapsedSec = (Date.now() - startMs) / 1e3;
+			renderFrame(elapsedSec);
+			if (shouldAnimate) rafId = requestAnimationFrame(tick);
+		};
+		tick();
+		return () => {
+			if (rafId) cancelAnimationFrame(rafId);
+		};
 	}, [
 		activeSpecimen,
 		iiwPosition,
@@ -3905,7 +4121,9 @@ var UtFlawDetectorDevice = ({ language }) => {
 		showBeamCone,
 		showWavefronts,
 		gateAMaxAmp,
-		gateAThresholdPct
+		gateAThresholdPct,
+		isFrozen,
+		legNumber
 	]);
 	const handleWorkCanvasPointer = (clientX) => {
 		if (activeSpecimen !== "weld_butt" && activeSpecimen !== "weld_curved_pipe") return;
@@ -6676,4 +6894,4 @@ var PautOmniScanDevice = ({ language }) => {
 	});
 };
 //#endregion
-export { Cpu as A, getDefectCodeTolerance as C, Maximize2 as D, Volume2 as E, CircleX as M, Info as O, getAllDefectsCodeToleranceSchedule as S, VolumeX as T, ALL_WELD_DEFECTS_CATALOG as _, gradeAndRecordWorkshopAttempt as a, drawComprehensiveDefectMorphology as b, SIMULATION_XP_MILESTONES as c, useSimulationHistory as d, useSimulationLevelUp as f, mapEducationalDefectToCatalogId as g, DefectToleranceTriggerBar as h, getWorkshopTrainingAttempts as i, ClipboardCheck as j, Gauge as k, calculateSimulationAttemptXp as l, DefectToleranceTooltip as m, renderModernPautSectorialScan as n, resetWorkshopTrainingAttempts as o, DefectToleranceModal as p, UtFlawDetectorDevice as r, subscribeWorkshopTrainingUpdates as s, PautOmniScanDevice as t, recordSimulationAttempt as u, INSPECTION_CODES_META as v, ZoomIn as w, drawUltrasonicBeamCone2D as x, computeUltrasonicBeamCone as y };
+export { Cpu as A, getDefectCodeTolerance as C, Maximize2 as D, Volume2 as E, Info as O, getAllDefectsCodeToleranceSchedule as S, VolumeX as T, ALL_WELD_DEFECTS_CATALOG as _, gradeAndRecordWorkshopAttempt as a, drawComprehensiveDefectMorphology as b, SIMULATION_XP_MILESTONES as c, useSimulationHistory as d, useSimulationLevelUp as f, mapEducationalDefectToCatalogId as g, DefectToleranceTriggerBar as h, getWorkshopTrainingAttempts as i, CircleX as j, Gauge as k, calculateSimulationAttemptXp as l, DefectToleranceTooltip as m, renderModernPautSectorialScan as n, resetWorkshopTrainingAttempts as o, DefectToleranceModal as p, UtFlawDetectorDevice as r, subscribeWorkshopTrainingUpdates as s, PautOmniScanDevice as t, recordSimulationAttempt as u, INSPECTION_CODES_META as v, ZoomIn as w, drawUltrasonicBeamCone2D as x, computeUltrasonicBeamCone as y };

@@ -1,8 +1,9 @@
 import { a as __toESM } from "./rolldown-runtime-oLLnCvco.js";
-import { a as require_react, i as createLucideIcon, n as Layers, r as Eye, t as require_jsx_runtime } from "./jsx-runtime-BdKgb6Yj.js";
-import { t as Bell } from "./bell-DtoFU6P5.js";
-import { a as Radar, i as RefreshCw, n as UserCheck, o as ChevronUp, r as Trash2, s as ChevronDown, t as UserPlus } from "./user-plus-CNuueEFA.js";
-import { $ as updateCompanyRecord, $t as RotateCcw, A as isVerifiedAdminUser, B as signInClientPortalWithEmail, Bt as X, C as createCompanyWithUniqueCode, Cn as Earth, D as formatFirebaseAuthError, Dn as Compass, E as detectUserAuthMethod, En as Copy, F as resendClientVerificationEmail, G as subscribeClientRequests, Gn as require_react_dom, H as signOutClientPortal, Hn as ArrowLeft, Ht as Users, I as saveClientRegistration, In as Building2, J as subscribeCompanyAttendance, Jt as ShieldCheck, K as subscribeCommunityWorkspaces, L as savePendingRegistrationDraft, Ln as BriefcaseBusiness, M as loadPendingRegistrationDraft, Mn as Check, N as observeClientPortalAuth, Nn as Camera, O as initializeStarterCompaniesArchive, On as Clock, P as recordEmployeeAttendance, Pn as Calendar, Q as subscribeMyCommunityWorkspace, R as sendClientPasswordReset, S as createCompanyReport, T as deleteCompanyReport, U as signUpClientPortalWithEmail, V as signInClientPortalWithGoogle, Vn as ArrowRight, W as subscribeAllClientAccounts, Wt as TriangleAlert, X as subscribeCompanyReports, Xt as Send, Y as subscribeCompanyEmployees, Yt as ShieldAlert, Z as subscribeMyClientAccount, Zt as Search, _ as adminApproveAndLinkClientAccount, _t as sanitizeReportNumber, an as Navigation, at as formatCoordinates, b as createClientRequest, dn as LogOut, dt as drawVectorQrOnPdf, en as QrCode, et as updateCompanyReportStatus, f as EmployeeAttendanceTimeline, fn as LogIn, ft as exportCompanyQrPassPdf, g as CompanyQrBadge, gt as generateNextReportNumber, hn as FolderOpen, ht as generateNextCompanyCode, it as evaluateGeofence, j as isVerifiedPortalUser, k as isPortalFirestoreReady, kn as CircleCheck, ln as MapPin, mt as generateNextBadgeCode, nt as upsertCommunityWorkspace, ot as formatDistanceMeters, p as CompanyQrModal, pn as KeyRound, pt as generateCompanyQrPngDataUrl, q as subscribeCompanies, qt as Sparkles, rn as Phone, rt as DEFAULT_SITE_COORDS, st as resolveSiteCoordinates, tn as Plus, tt as updateEmployeeLiveLocation, un as Mail, ut as buildCompanyDossierUrl, v as adminUpdateClientRequest, vt as sanitizeUpperCode, w as createInitialCompanyFromRegistration, wn as Download, x as createCompanyEmployee, y as clearPendingRegistrationDraft, yn as FileText, yt as E, z as sendClientPhoneOtp } from "./index-C-V-0xqz.js";
+import { t as Bell } from "./bell-DvVNupS8.js";
+import { a as ChevronUp, i as Radar, n as UserCheck, o as ChevronDown, r as RefreshCw, t as UserPlus } from "./user-plus-iLOUjAYd.js";
+import { n as LayoutDashboard, r as ClipboardList, t as Save } from "./save-ljqf60QX.js";
+import { t as Trash2 } from "./trash-2-B20G7FEr.js";
+import { $ as updateCompanyRecord, $n as ArrowLeft, A as isVerifiedAdminUser, B as signInClientPortalWithEmail, Bn as CircleCheck, C as createCompanyWithUniqueCode, Cn as KeyRound, D as formatFirebaseAuthError, E as detectUserAuthMethod, F as resendClientVerificationEmail, Fn as Download, G as subscribeClientRequests, Gn as Calendar, Gt as require_jsx_runtime, H as signOutClientPortal, I as saveClientRegistration, J as subscribeCompanyAttendance, Jn as BriefcaseBusiness, K as subscribeCommunityWorkspaces, L as savePendingRegistrationDraft, Ln as Copy, M as loadPendingRegistrationDraft, Mn as Eye, N as observeClientPortalAuth, O as initializeStarterCompaniesArchive, P as recordEmployeeAttendance, Pn as Earth, Q as subscribeMyCommunityWorkspace, Qn as ArrowRight, R as sendClientPasswordReset, Rn as Compass, S as createCompanyReport, Sn as Layers, T as deleteCompanyReport, Tn as FolderOpen, U as signUpClientPortalWithEmail, Un as Check, V as signInClientPortalWithGoogle, W as subscribeAllClientAccounts, Wn as Camera, X as subscribeCompanyReports, Y as subscribeCompanyEmployees, Yt as Users, Z as subscribeMyClientAccount, Zt as TriangleAlert, _ as adminApproveAndLinkClientAccount, _n as MapPin, _t as sanitizeReportNumber, at as formatCoordinates, b as createClientRequest, bn as LogIn, cn as Plus, dt as drawVectorQrOnPdf, en as Sparkles, et as updateCompanyReportStatus, f as EmployeeAttendanceTimeline, fn as Navigation, ft as exportCompanyQrPassPdf, g as CompanyQrBadge, gt as generateNextReportNumber, ht as generateNextCompanyCode, in as Search, ir as require_react, it as evaluateGeofence, j as isVerifiedPortalUser, k as isPortalFirestoreReady, kn as FileText, mt as generateNextBadgeCode, nn as ShieldAlert, nt as upsertCommunityWorkspace, on as RotateCcw, ot as formatDistanceMeters, p as CompanyQrModal, pt as generateCompanyQrPngDataUrl, q as subscribeCompanies, qn as Building2, qt as X, rn as Send, rr as require_react_dom, rt as DEFAULT_SITE_COORDS, sn as QrCode, st as resolveSiteCoordinates, tn as ShieldCheck, tr as createLucideIcon, tt as updateEmployeeLiveLocation, un as Phone, ut as buildCompanyDossierUrl, v as adminUpdateClientRequest, vn as Mail, vt as sanitizeUpperCode, w as createInitialCompanyFromRegistration, x as createCompanyEmployee, y as clearPendingRegistrationDraft, yn as LogOut, yt as E, z as sendClientPhoneOtp, zn as Clock } from "./index-CgqKVYxh.js";
 /**
 * @license lucide-react v0.546.0 - ISC
 *
@@ -49,43 +50,6 @@ var ArrowDownUp = createLucideIcon("arrow-down-up", [
 	["path", {
 		d: "M17 4v16",
 		key: "7dpous"
-	}]
-]);
-/**
-* @license lucide-react v0.546.0 - ISC
-*
-* This source code is licensed under the ISC license.
-* See the LICENSE file in the root directory of this source tree.
-*/
-var ClipboardList = createLucideIcon("clipboard-list", [
-	["rect", {
-		width: "8",
-		height: "4",
-		x: "8",
-		y: "2",
-		rx: "1",
-		ry: "1",
-		key: "tgr4d6"
-	}],
-	["path", {
-		d: "M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2",
-		key: "116196"
-	}],
-	["path", {
-		d: "M12 11h4",
-		key: "1jrz19"
-	}],
-	["path", {
-		d: "M12 16h4",
-		key: "n85exb"
-	}],
-	["path", {
-		d: "M8 11h.01",
-		key: "1dfujw"
-	}],
-	["path", {
-		d: "M8 16h.01",
-		key: "18s6g9"
 	}]
 ]);
 /**
@@ -193,46 +157,6 @@ var FolderPlus = createLucideIcon("folder-plus", [
 * This source code is licensed under the ISC license.
 * See the LICENSE file in the root directory of this source tree.
 */
-var LayoutDashboard = createLucideIcon("layout-dashboard", [
-	["rect", {
-		width: "7",
-		height: "9",
-		x: "3",
-		y: "3",
-		rx: "1",
-		key: "10lvy0"
-	}],
-	["rect", {
-		width: "7",
-		height: "5",
-		x: "14",
-		y: "3",
-		rx: "1",
-		key: "16une8"
-	}],
-	["rect", {
-		width: "7",
-		height: "9",
-		x: "14",
-		y: "12",
-		rx: "1",
-		key: "1hutg5"
-	}],
-	["rect", {
-		width: "7",
-		height: "5",
-		x: "3",
-		y: "16",
-		rx: "1",
-		key: "ldoo1y"
-	}]
-]);
-/**
-* @license lucide-react v0.546.0 - ISC
-*
-* This source code is licensed under the ISC license.
-* See the LICENSE file in the root directory of this source tree.
-*/
 var Link2 = createLucideIcon("link-2", [
 	["path", {
 		d: "M9 17H7A5 5 0 0 1 7 7h2",
@@ -268,26 +192,6 @@ var MailCheck = createLucideIcon("mail-check", [
 	["path", {
 		d: "m16 19 2 2 4-4",
 		key: "1b14m6"
-	}]
-]);
-/**
-* @license lucide-react v0.546.0 - ISC
-*
-* This source code is licensed under the ISC license.
-* See the LICENSE file in the root directory of this source tree.
-*/
-var Save = createLucideIcon("save", [
-	["path", {
-		d: "M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z",
-		key: "1c8476"
-	}],
-	["path", {
-		d: "M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7",
-		key: "1ydtos"
-	}],
-	["path", {
-		d: "M7 3v4a1 1 0 0 0 1 1h7",
-		key: "t51u73"
 	}]
 ]);
 /**

@@ -1258,6 +1258,10 @@
     height: 0;
   }
 
+  .h-0\.5 {
+    height: calc(var(--spacing) * .5);
+  }
+
   .h-1 {
     height: var(--spacing);
   }
@@ -1824,6 +1828,14 @@
 
   .min-w-\[500px\] {
     min-width: 500px;
+  }
+
+  .min-w-\[540px\] {
+    min-width: 540px;
+  }
+
+  .min-w-\[600px\] {
+    min-width: 600px;
   }
 
   .min-w-\[640px\] {
@@ -3327,6 +3339,16 @@
 
   .border-cyan-300 {
     border-color: var(--color-cyan-300);
+  }
+
+  .border-cyan-300\/90 {
+    border-color: #53eafde6;
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .border-cyan-300\/90 {
+      border-color: color-mix(in oklab, var(--color-cyan-300) 90%, transparent);
+    }
   }
 
   .border-cyan-400 {
@@ -12514,6 +12536,108 @@ body {
 
 :root[data-theme="light"] :where([role="button"], [role="link"], tr[tabindex="0"]):focus-visible {
   outline-color: #b45309;
+}
+
+@keyframes utBeamFlow {
+  from {
+    stroke-dashoffset: 32px;
+  }
+
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes utBeamPulse {
+  0%, 100% {
+    opacity: .55;
+  }
+
+  50% {
+    opacity: .95;
+  }
+}
+
+@keyframes utInterfaceRipple {
+  0% {
+    opacity: .92;
+    transform: scale(.45);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(2.5);
+  }
+}
+
+@keyframes utWavePacketTravel {
+  0% {
+    opacity: 0;
+    transform: translate(0) scale(.7);
+  }
+
+  14% {
+    opacity: 1;
+  }
+
+  84% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translate(var(--beam-dx, 0px), var(--beam-dy, 80px)) scale(1.08);
+    opacity: 0;
+  }
+}
+
+@keyframes utPautWaveSweep {
+  0% {
+    opacity: .85;
+    transform: translateY(0) scaleX(.45);
+  }
+
+  100% {
+    transform: translateY(var(--paut-depth, 96px)) scaleX(1.3);
+    opacity: 0;
+  }
+}
+
+.ut-beam-flow {
+  animation: 1.15s linear infinite utBeamFlow;
+}
+
+.ut-beam-flow-fast {
+  animation: .68s linear infinite utBeamFlow;
+}
+
+.ut-beam-flow-delayed {
+  animation: 1.15s linear -.57s infinite utBeamFlow;
+}
+
+.ut-beam-cone-pulse {
+  animation: 1.8s ease-in-out infinite utBeamPulse;
+}
+
+.ut-interface-ripple {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: 1.6s cubic-bezier(.16, 1, .3, 1) infinite utInterfaceRipple;
+}
+
+.ut-interface-ripple-delayed {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: 1.6s cubic-bezier(.16, 1, .3, 1) .8s infinite utInterfaceRipple;
+}
+
+.ut-wave-packet {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: utWavePacketTravel var(--beam-duration, 1.45s) linear var(--beam-delay, 0s) infinite;
+}
+
+.ut-paut-wavefront {
+  animation: utPautWaveSweep 1.35s cubic-bezier(.22, 1, .36, 1) var(--paut-delay, 0s) infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {

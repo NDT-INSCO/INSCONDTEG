@@ -1,6 +1,5 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/InteractiveInspectionHologram-Bog1xYz-.js","assets/rolldown-runtime-oLLnCvco.js","assets/jsx-runtime-BdKgb6Yj.js","assets/three.module-DZ1WiPWM.js","assets/html2canvas-DhbxtboP.js","assets/index.es-GCxZI1ui.js","assets/AcademyContent-CHpvuKOs.js","assets/PautOmniScanDevice-B5zQp4S1.js","assets/bell-DtoFU6P5.js","assets/user-plus-CNuueEFA.js","assets/index.esm-DiiqkTPp.js","assets/CompanyDemoPortal-CMzXFdGj.js","assets/ClientPortal-Bnq0gWiQ.js"])))=>i.map(i=>d[i]);
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/InteractiveInspectionHologram-BbyaU5S2.js","assets/rolldown-runtime-oLLnCvco.js","assets/three.module-5482Nant.js","assets/html2canvas-DhbxtboP.js","assets/index.es-7DeNCa4C.js","assets/AcademyContent-BBfCepQU.js","assets/PautOmniScanDevice-tedsV26O.js","assets/bell-DvVNupS8.js","assets/clipboard-check-Cd5inpU1.js","assets/user-plus-iLOUjAYd.js","assets/rotate-cw-DnNs5hC0.js","assets/trash-2-B20G7FEr.js","assets/index.esm-DiiqkTPp.js","assets/CompanyDemoPortal-CXoUUiRc.js","assets/ClientPortal-CL1ci0fT.js","assets/save-ljqf60QX.js","assets/AdminPortal-BOF8nCj_.js"])))=>i.map(i=>d[i]);
 import { a as __toESM, i as __toCommonJS, n as __esmMin, r as __exportAll, t as __commonJSMin } from "./rolldown-runtime-oLLnCvco.js";
-import { a as require_react, i as createLucideIcon, n as Layers, r as Eye, t as require_jsx_runtime } from "./jsx-runtime-BdKgb6Yj.js";
 import { A as FirebaseError, B as isCloudWorkstation, C as initializeApp, D as Component$1, E as Logger, F as getDefaultEmulatorHost, G as isReactNative, H as isEmpty, I as getExperimentalSetting, J as querystringDecode, K as pingServer, L as getModularInstance, M as createSubscribe, N as deepEqual, O as Deferred, P as extractQuerystring, R as getUA, S as getApps, T as LogLevel, U as isIE, V as isCloudflareWorker, W as isMobileCordova, _ as SDK_VERSION, a as onSnapshot, b as _registerComponent, c as setDoc, d as writeBatch, f as collection, g as serverTimestamp, h as increment, i as getDocs, j as base64Decode, k as ErrorFactory, l as updateDoc, m as getFirestore, n as addDoc, o as orderBy, p as doc, q as querystring, r as getDocFromServer, s as query, u as where, v as _getProvider, w as registerVersion, x as getApp, y as _isFirebaseServerApp, z as isBrowserExtension } from "./index.esm-DiiqkTPp.js";
 //#region \0vite/modulepreload-polyfill.js
 (function polyfill() {
@@ -32,6 +31,398 @@ import { A as FirebaseError, B as isCloudWorkstation, C as initializeApp, D as C
 		fetch(link.href, fetchOpts);
 	}
 })();
+//#endregion
+//#region node_modules/react/cjs/react.production.js
+/**
+* @license React
+* react.production.js
+*
+* Copyright (c) Meta Platforms, Inc. and affiliates.
+*
+* This source code is licensed under the MIT license found in the
+* LICENSE file in the root directory of this source tree.
+*/
+var require_react_production = /* @__PURE__ */ __commonJSMin(((exports) => {
+	var REACT_ELEMENT_TYPE = Symbol.for("react.transitional.element");
+	var REACT_PORTAL_TYPE = Symbol.for("react.portal");
+	var REACT_FRAGMENT_TYPE = Symbol.for("react.fragment");
+	var REACT_STRICT_MODE_TYPE = Symbol.for("react.strict_mode");
+	var REACT_PROFILER_TYPE = Symbol.for("react.profiler");
+	var REACT_CONSUMER_TYPE = Symbol.for("react.consumer");
+	var REACT_CONTEXT_TYPE = Symbol.for("react.context");
+	var REACT_FORWARD_REF_TYPE = Symbol.for("react.forward_ref");
+	var REACT_SUSPENSE_TYPE = Symbol.for("react.suspense");
+	var REACT_MEMO_TYPE = Symbol.for("react.memo");
+	var REACT_LAZY_TYPE = Symbol.for("react.lazy");
+	var REACT_ACTIVITY_TYPE = Symbol.for("react.activity");
+	var REACT_VIEW_TRANSITION_TYPE = Symbol.for("react.view_transition");
+	var MAYBE_ITERATOR_SYMBOL = Symbol.iterator;
+	function getIteratorFn(maybeIterable) {
+		if (null === maybeIterable || "object" !== typeof maybeIterable) return null;
+		maybeIterable = MAYBE_ITERATOR_SYMBOL && maybeIterable[MAYBE_ITERATOR_SYMBOL] || maybeIterable["@@iterator"];
+		return "function" === typeof maybeIterable ? maybeIterable : null;
+	}
+	var ReactNoopUpdateQueue = {
+		isMounted: function() {
+			return !1;
+		},
+		enqueueForceUpdate: function() {},
+		enqueueReplaceState: function() {},
+		enqueueSetState: function() {}
+	};
+	var assign = Object.assign;
+	var emptyObject = {};
+	function Component(props, context, updater) {
+		this.props = props;
+		this.context = context;
+		this.refs = emptyObject;
+		this.updater = updater || ReactNoopUpdateQueue;
+	}
+	Component.prototype.isReactComponent = {};
+	Component.prototype.setState = function(partialState, callback) {
+		if ("object" !== typeof partialState && "function" !== typeof partialState && null != partialState) throw Error("takes an object of state variables to update or a function which returns an object of state variables.");
+		this.updater.enqueueSetState(this, partialState, callback, "setState");
+	};
+	Component.prototype.forceUpdate = function(callback) {
+		this.updater.enqueueForceUpdate(this, callback, "forceUpdate");
+	};
+	function ComponentDummy() {}
+	ComponentDummy.prototype = Component.prototype;
+	function PureComponent(props, context, updater) {
+		this.props = props;
+		this.context = context;
+		this.refs = emptyObject;
+		this.updater = updater || ReactNoopUpdateQueue;
+	}
+	var pureComponentPrototype = PureComponent.prototype = new ComponentDummy();
+	pureComponentPrototype.constructor = PureComponent;
+	assign(pureComponentPrototype, Component.prototype);
+	pureComponentPrototype.isPureReactComponent = !0;
+	var isArrayImpl = Array.isArray;
+	function noop() {}
+	var ReactSharedInternals = {
+		H: null,
+		A: null,
+		T: null,
+		S: null
+	};
+	var hasOwnProperty = Object.prototype.hasOwnProperty;
+	function ReactElement(type, key, props) {
+		var refProp = props.ref;
+		return {
+			$$typeof: REACT_ELEMENT_TYPE,
+			type,
+			key,
+			ref: void 0 !== refProp ? refProp : null,
+			props
+		};
+	}
+	function cloneAndReplaceKey(oldElement, newKey) {
+		return ReactElement(oldElement.type, newKey, oldElement.props);
+	}
+	function isValidElement(object) {
+		return "object" === typeof object && null !== object && object.$$typeof === REACT_ELEMENT_TYPE;
+	}
+	function escape(key) {
+		var escaperLookup = {
+			"=": "=0",
+			":": "=2"
+		};
+		return "$" + key.replace(/[=:]/g, function(match) {
+			return escaperLookup[match];
+		});
+	}
+	var userProvidedKeyEscapeRegex = /\/+/g;
+	function getElementKey(element, index) {
+		return "object" === typeof element && null !== element && null != element.key ? escape("" + element.key) : index.toString(36);
+	}
+	function resolveThenable(thenable) {
+		switch (thenable.status) {
+			case "fulfilled": return thenable.value;
+			case "rejected": throw thenable.reason;
+			default: switch ("string" === typeof thenable.status ? thenable.then(noop, noop) : (thenable.status = "pending", thenable.then(function(fulfilledValue) {
+				"pending" === thenable.status && (thenable.status = "fulfilled", thenable.value = fulfilledValue);
+			}, function(error) {
+				"pending" === thenable.status && (thenable.status = "rejected", thenable.reason = error);
+			})), thenable.status) {
+				case "fulfilled": return thenable.value;
+				case "rejected": throw thenable.reason;
+			}
+		}
+		throw thenable;
+	}
+	function mapIntoArray(children, array, escapedPrefix, nameSoFar, callback) {
+		var type = typeof children;
+		if ("undefined" === type || "boolean" === type) children = null;
+		var invokeCallback = !1;
+		if (null === children) invokeCallback = !0;
+		else switch (type) {
+			case "bigint":
+			case "string":
+			case "number":
+				invokeCallback = !0;
+				break;
+			case "object": switch (children.$$typeof) {
+				case REACT_ELEMENT_TYPE:
+				case REACT_PORTAL_TYPE:
+					invokeCallback = !0;
+					break;
+				case REACT_LAZY_TYPE: return invokeCallback = children._init, mapIntoArray(invokeCallback(children._payload), array, escapedPrefix, nameSoFar, callback);
+			}
+		}
+		if (invokeCallback) return callback = callback(children), invokeCallback = "" === nameSoFar ? "." + getElementKey(children, 0) : nameSoFar, isArrayImpl(callback) ? (escapedPrefix = "", null != invokeCallback && (escapedPrefix = invokeCallback.replace(userProvidedKeyEscapeRegex, "$&/") + "/"), mapIntoArray(callback, array, escapedPrefix, "", function(c) {
+			return c;
+		})) : null != callback && (isValidElement(callback) && (callback = cloneAndReplaceKey(callback, escapedPrefix + (null == callback.key || children && children.key === callback.key ? "" : ("" + callback.key).replace(userProvidedKeyEscapeRegex, "$&/") + "/") + invokeCallback)), array.push(callback)), 1;
+		invokeCallback = 0;
+		var nextNamePrefix = "" === nameSoFar ? "." : nameSoFar + ":";
+		if (isArrayImpl(children)) for (var i = 0; i < children.length; i++) nameSoFar = children[i], type = nextNamePrefix + getElementKey(nameSoFar, i), invokeCallback += mapIntoArray(nameSoFar, array, escapedPrefix, type, callback);
+		else if (i = getIteratorFn(children), "function" === typeof i) for (children = i.call(children), i = 0; !(nameSoFar = children.next()).done;) nameSoFar = nameSoFar.value, type = nextNamePrefix + getElementKey(nameSoFar, i++), invokeCallback += mapIntoArray(nameSoFar, array, escapedPrefix, type, callback);
+		else if ("object" === type) {
+			if ("function" === typeof children.then) return mapIntoArray(resolveThenable(children), array, escapedPrefix, nameSoFar, callback);
+			array = String(children);
+			throw Error("Objects are not valid as a React child (found: " + ("[object Object]" === array ? "object with keys {" + Object.keys(children).join(", ") + "}" : array) + "). If you meant to render a collection of children, use an array instead.");
+		}
+		return invokeCallback;
+	}
+	function mapChildren(children, func, context) {
+		if (null == children) return children;
+		var result = [], count = 0;
+		mapIntoArray(children, result, "", "", function(child) {
+			return func.call(context, child, count++);
+		});
+		return result;
+	}
+	function lazyInitializer(payload) {
+		if (-1 === payload._status) {
+			var ctor = payload._result, thenable = ctor();
+			thenable.then(function(moduleObject) {
+				if (0 === payload._status || -1 === payload._status) payload._status = 1, payload._result = moduleObject, void 0 === thenable.status && (thenable.status = "fulfilled", thenable.value = moduleObject);
+			}, function(error) {
+				if (0 === payload._status || -1 === payload._status) payload._status = 2, payload._result = error, void 0 === thenable.status && (thenable.status = "rejected", thenable.reason = error);
+			});
+			-1 === payload._status && (payload._status = 0, payload._result = thenable);
+		}
+		if (1 === payload._status) return payload._result.default;
+		throw payload._result;
+	}
+	var reportGlobalError = "function" === typeof reportError ? reportError : function(error) {
+		if ("object" === typeof window && "function" === typeof window.ErrorEvent) {
+			var event = new window.ErrorEvent("error", {
+				bubbles: !0,
+				cancelable: !0,
+				message: "object" === typeof error && null !== error && "string" === typeof error.message ? String(error.message) : String(error),
+				error
+			});
+			if (!window.dispatchEvent(event)) return;
+		} else if ("object" === typeof process && "function" === typeof process.emit) {
+			process.emit("uncaughtException", error);
+			return;
+		}
+		console.error(error);
+	};
+	function startTransition(scope) {
+		var prevTransition = ReactSharedInternals.T, currentTransition = {};
+		currentTransition.types = null !== prevTransition ? prevTransition.types : null;
+		ReactSharedInternals.T = currentTransition;
+		try {
+			var returnValue = scope(), onStartTransitionFinish = ReactSharedInternals.S;
+			null !== onStartTransitionFinish && onStartTransitionFinish(currentTransition, returnValue);
+			"object" === typeof returnValue && null !== returnValue && "function" === typeof returnValue.then && returnValue.then(noop, reportGlobalError);
+		} catch (error) {
+			reportGlobalError(error);
+		} finally {
+			null !== prevTransition && null !== currentTransition.types && (prevTransition.types = currentTransition.types), ReactSharedInternals.T = prevTransition;
+		}
+	}
+	function addTransitionType(type) {
+		var transition = ReactSharedInternals.T;
+		if (null !== transition) {
+			var transitionTypes = transition.types;
+			null === transitionTypes ? transition.types = [type] : -1 === transitionTypes.indexOf(type) && transitionTypes.push(type);
+		} else startTransition(addTransitionType.bind(null, type));
+	}
+	var Children = {
+		map: mapChildren,
+		forEach: function(children, forEachFunc, forEachContext) {
+			mapChildren(children, function() {
+				forEachFunc.apply(this, arguments);
+			}, forEachContext);
+		},
+		count: function(children) {
+			var n = 0;
+			mapChildren(children, function() {
+				n++;
+			});
+			return n;
+		},
+		toArray: function(children) {
+			return mapChildren(children, function(child) {
+				return child;
+			}) || [];
+		},
+		only: function(children) {
+			if (!isValidElement(children)) throw Error("React.Children.only expected to receive a single React element child.");
+			return children;
+		}
+	};
+	exports.Activity = REACT_ACTIVITY_TYPE;
+	exports.Children = Children;
+	exports.Component = Component;
+	exports.Fragment = REACT_FRAGMENT_TYPE;
+	exports.Profiler = REACT_PROFILER_TYPE;
+	exports.PureComponent = PureComponent;
+	exports.StrictMode = REACT_STRICT_MODE_TYPE;
+	exports.Suspense = REACT_SUSPENSE_TYPE;
+	exports.ViewTransition = REACT_VIEW_TRANSITION_TYPE;
+	exports.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE = ReactSharedInternals;
+	exports.__COMPILER_RUNTIME = {
+		__proto__: null,
+		c: function(size) {
+			return ReactSharedInternals.H.useMemoCache(size);
+		}
+	};
+	exports.addTransitionType = addTransitionType;
+	exports.cache = function(fn) {
+		return function() {
+			return fn.apply(null, arguments);
+		};
+	};
+	exports.cacheSignal = function() {
+		return null;
+	};
+	exports.cloneElement = function(element, config, children) {
+		if (null === element || void 0 === element) throw Error("The argument must be a React element, but you passed " + element + ".");
+		var props = assign({}, element.props), key = element.key;
+		if (null != config) for (propName in void 0 !== config.key && (key = "" + config.key), config) !hasOwnProperty.call(config, propName) || "key" === propName || "__self" === propName || "__source" === propName || "ref" === propName && void 0 === config.ref || (props[propName] = config[propName]);
+		var propName = arguments.length - 2;
+		if (1 === propName) props.children = children;
+		else if (1 < propName) {
+			for (var childArray = Array(propName), i = 0; i < propName; i++) childArray[i] = arguments[i + 2];
+			props.children = childArray;
+		}
+		return ReactElement(element.type, key, props);
+	};
+	exports.createContext = function(defaultValue) {
+		defaultValue = {
+			$$typeof: REACT_CONTEXT_TYPE,
+			_currentValue: defaultValue,
+			_currentValue2: defaultValue,
+			_threadCount: 0,
+			Provider: null,
+			Consumer: null
+		};
+		defaultValue.Provider = defaultValue;
+		defaultValue.Consumer = {
+			$$typeof: REACT_CONSUMER_TYPE,
+			_context: defaultValue
+		};
+		return defaultValue;
+	};
+	exports.createElement = function(type, config, children) {
+		var propName, props = {}, key = null;
+		if (null != config) for (propName in void 0 !== config.key && (key = "" + config.key), config) hasOwnProperty.call(config, propName) && "key" !== propName && "__self" !== propName && "__source" !== propName && (props[propName] = config[propName]);
+		var childrenLength = arguments.length - 2;
+		if (1 === childrenLength) props.children = children;
+		else if (1 < childrenLength) {
+			for (var childArray = Array(childrenLength), i = 0; i < childrenLength; i++) childArray[i] = arguments[i + 2];
+			props.children = childArray;
+		}
+		if (type && type.defaultProps) for (propName in childrenLength = type.defaultProps, childrenLength) void 0 === props[propName] && (props[propName] = childrenLength[propName]);
+		return ReactElement(type, key, props);
+	};
+	exports.createRef = function() {
+		return { current: null };
+	};
+	exports.forwardRef = function(render) {
+		return {
+			$$typeof: REACT_FORWARD_REF_TYPE,
+			render
+		};
+	};
+	exports.isValidElement = isValidElement;
+	exports.lazy = function(ctor) {
+		return {
+			$$typeof: REACT_LAZY_TYPE,
+			_payload: {
+				_status: -1,
+				_result: ctor
+			},
+			_init: lazyInitializer
+		};
+	};
+	exports.memo = function(type, compare) {
+		return {
+			$$typeof: REACT_MEMO_TYPE,
+			type,
+			compare: void 0 === compare ? null : compare
+		};
+	};
+	exports.startTransition = startTransition;
+	exports.unstable_useCacheRefresh = function() {
+		return ReactSharedInternals.H.useCacheRefresh();
+	};
+	exports.use = function(usable) {
+		return ReactSharedInternals.H.use(usable);
+	};
+	exports.useActionState = function(action, initialState, permalink) {
+		return ReactSharedInternals.H.useActionState(action, initialState, permalink);
+	};
+	exports.useCallback = function(callback, deps) {
+		return ReactSharedInternals.H.useCallback(callback, deps);
+	};
+	exports.useContext = function(Context) {
+		return ReactSharedInternals.H.useContext(Context);
+	};
+	exports.useDebugValue = function() {};
+	exports.useDeferredValue = function(value, initialValue) {
+		return ReactSharedInternals.H.useDeferredValue(value, initialValue);
+	};
+	exports.useEffect = function(create, deps) {
+		return ReactSharedInternals.H.useEffect(create, deps);
+	};
+	exports.useEffectEvent = function(callback) {
+		return ReactSharedInternals.H.useEffectEvent(callback);
+	};
+	exports.useId = function() {
+		return ReactSharedInternals.H.useId();
+	};
+	exports.useImperativeHandle = function(ref, create, deps) {
+		return ReactSharedInternals.H.useImperativeHandle(ref, create, deps);
+	};
+	exports.useInsertionEffect = function(create, deps) {
+		return ReactSharedInternals.H.useInsertionEffect(create, deps);
+	};
+	exports.useLayoutEffect = function(create, deps) {
+		return ReactSharedInternals.H.useLayoutEffect(create, deps);
+	};
+	exports.useMemo = function(create, deps) {
+		return ReactSharedInternals.H.useMemo(create, deps);
+	};
+	exports.useOptimistic = function(passthrough, reducer) {
+		return ReactSharedInternals.H.useOptimistic(passthrough, reducer);
+	};
+	exports.useReducer = function(reducer, initialArg, init) {
+		return ReactSharedInternals.H.useReducer(reducer, initialArg, init);
+	};
+	exports.useRef = function(initialValue) {
+		return ReactSharedInternals.H.useRef(initialValue);
+	};
+	exports.useState = function(initialState) {
+		return ReactSharedInternals.H.useState(initialState);
+	};
+	exports.useSyncExternalStore = function(subscribe, getSnapshot, getServerSnapshot) {
+		return ReactSharedInternals.H.useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+	};
+	exports.useTransition = function() {
+		return ReactSharedInternals.H.useTransition();
+	};
+	exports.version = "19.3.1";
+}));
+//#endregion
+//#region node_modules/react/index.js
+var require_react = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	module.exports = require_react_production();
+}));
 //#endregion
 //#region node_modules/scheduler/cjs/scheduler.production.js
 /**
@@ -11050,7 +11441,7 @@ var require_client = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 }));
 //#endregion
 //#region src/utils/publicUrl.ts
-var import_react = /* @__PURE__ */ __toESM(require_react(), 1);
+var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_client = require_client();
 /**
 * Absolute URL for a file shipped in `public/`.
@@ -12123,6 +12514,82 @@ var COMPANY_MEDIA = {
 	radiographyGammaScan: publicUrl("images/radiography_gamma_scan_1792692355717.jpg"),
 	pautFlawDetector: publicUrl("images/paut_flaw_detector_1792692369481.jpg")
 };
+//#endregion
+//#region node_modules/lucide-react/dist/esm/shared/src/utils.js
+/**
+* @license lucide-react v0.546.0 - ISC
+*
+* This source code is licensed under the ISC license.
+* See the LICENSE file in the root directory of this source tree.
+*/
+var toKebabCase = (string) => string.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+var toCamelCase = (string) => string.replace(/^([A-Z])|[\s-_]+(\w)/g, (match, p1, p2) => p2 ? p2.toUpperCase() : p1.toLowerCase());
+var toPascalCase = (string) => {
+	const camelCase = toCamelCase(string);
+	return camelCase.charAt(0).toUpperCase() + camelCase.slice(1);
+};
+var mergeClasses = (...classes) => classes.filter((className, index, array) => {
+	return Boolean(className) && className.trim() !== "" && array.indexOf(className) === index;
+}).join(" ").trim();
+var hasA11yProp = (props) => {
+	for (const prop in props) if (prop.startsWith("aria-") || prop === "role" || prop === "title") return true;
+};
+//#endregion
+//#region node_modules/lucide-react/dist/esm/defaultAttributes.js
+/**
+* @license lucide-react v0.546.0 - ISC
+*
+* This source code is licensed under the ISC license.
+* See the LICENSE file in the root directory of this source tree.
+*/
+var defaultAttributes = {
+	xmlns: "http://www.w3.org/2000/svg",
+	width: 24,
+	height: 24,
+	viewBox: "0 0 24 24",
+	fill: "none",
+	stroke: "currentColor",
+	strokeWidth: 2,
+	strokeLinecap: "round",
+	strokeLinejoin: "round"
+};
+//#endregion
+//#region node_modules/lucide-react/dist/esm/Icon.js
+/**
+* @license lucide-react v0.546.0 - ISC
+*
+* This source code is licensed under the ISC license.
+* See the LICENSE file in the root directory of this source tree.
+*/
+var Icon = (0, import_react.forwardRef)(({ color = "currentColor", size = 24, strokeWidth = 2, absoluteStrokeWidth, className = "", children, iconNode, ...rest }, ref) => (0, import_react.createElement)("svg", {
+	ref,
+	...defaultAttributes,
+	width: size,
+	height: size,
+	stroke: color,
+	strokeWidth: absoluteStrokeWidth ? Number(strokeWidth) * 24 / Number(size) : strokeWidth,
+	className: mergeClasses("lucide", className),
+	...!children && !hasA11yProp(rest) && { "aria-hidden": "true" },
+	...rest
+}, [...iconNode.map(([tag, attrs]) => (0, import_react.createElement)(tag, attrs)), ...Array.isArray(children) ? children : [children]]));
+//#endregion
+//#region node_modules/lucide-react/dist/esm/createLucideIcon.js
+/**
+* @license lucide-react v0.546.0 - ISC
+*
+* This source code is licensed under the ISC license.
+* See the LICENSE file in the root directory of this source tree.
+*/
+var createLucideIcon = (iconName, iconNode) => {
+	const Component = (0, import_react.forwardRef)(({ className, ...props }, ref) => (0, import_react.createElement)(Icon, {
+		ref,
+		iconNode,
+		className: mergeClasses(`lucide-${toKebabCase(toPascalCase(iconName))}`, `lucide-${iconName}`, className),
+		...props
+	}));
+	Component.displayName = toPascalCase(iconName);
+	return Component;
+};
 /**
 * @license lucide-react v0.546.0 - ISC
 *
@@ -12624,6 +13091,21 @@ var ExternalLink = createLucideIcon("external-link", [
 * This source code is licensed under the ISC license.
 * See the LICENSE file in the root directory of this source tree.
 */
+var Eye = createLucideIcon("eye", [["path", {
+	d: "M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0",
+	key: "1nclc0"
+}], ["circle", {
+	cx: "12",
+	cy: "12",
+	r: "3",
+	key: "1v7zrd"
+}]]);
+/**
+* @license lucide-react v0.546.0 - ISC
+*
+* This source code is licensed under the ISC license.
+* See the LICENSE file in the root directory of this source tree.
+*/
 var FileCheck2 = createLucideIcon("file-check-2", [
 	["path", {
 		d: "M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v4",
@@ -12828,6 +13310,26 @@ var KeyRound = createLucideIcon("key-round", [["path", {
 	fill: "currentColor",
 	key: "w0ekpg"
 }]]);
+/**
+* @license lucide-react v0.546.0 - ISC
+*
+* This source code is licensed under the ISC license.
+* See the LICENSE file in the root directory of this source tree.
+*/
+var Layers = createLucideIcon("layers", [
+	["path", {
+		d: "M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z",
+		key: "zw3jo"
+	}],
+	["path", {
+		d: "M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12",
+		key: "1wduqc"
+	}],
+	["path", {
+		d: "M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17",
+		key: "kqbvx6"
+	}]
+]);
 /**
 * @license lucide-react v0.546.0 - ISC
 *
@@ -13510,6 +14012,46 @@ var Zap = createLucideIcon("zap", [["path", {
 	key: "1xq2db"
 }]]);
 //#endregion
+//#region node_modules/react/cjs/react-jsx-runtime.production.js
+/**
+* @license React
+* react-jsx-runtime.production.js
+*
+* Copyright (c) Meta Platforms, Inc. and affiliates.
+*
+* This source code is licensed under the MIT license found in the
+* LICENSE file in the root directory of this source tree.
+*/
+var require_react_jsx_runtime_production = /* @__PURE__ */ __commonJSMin(((exports) => {
+	var REACT_ELEMENT_TYPE = Symbol.for("react.transitional.element");
+	var REACT_FRAGMENT_TYPE = Symbol.for("react.fragment");
+	function jsxProd(type, config, maybeKey) {
+		var key = null;
+		void 0 !== maybeKey && (key = "" + maybeKey);
+		void 0 !== config.key && (key = "" + config.key);
+		if ("key" in config) {
+			maybeKey = {};
+			for (var propName in config) "key" !== propName && (maybeKey[propName] = config[propName]);
+		} else maybeKey = config;
+		config = maybeKey.ref;
+		return {
+			$$typeof: REACT_ELEMENT_TYPE,
+			type,
+			key,
+			ref: void 0 !== config ? config : null,
+			props: maybeKey
+		};
+	}
+	exports.Fragment = REACT_FRAGMENT_TYPE;
+	exports.jsx = jsxProd;
+	exports.jsxs = jsxProd;
+}));
+//#endregion
+//#region node_modules/react/jsx-runtime.js
+var require_jsx_runtime = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	module.exports = require_react_jsx_runtime_production();
+}));
+//#endregion
 //#region \0vite/preload-helper.js
 var import_jsx_runtime = require_jsx_runtime();
 var scriptRel = "modulepreload";
@@ -13607,7 +14149,7 @@ var __vitePreload = function preload(baseModule, deps, importerUrl) {
 };
 //#endregion
 //#region src/components/company/CompanyHero.tsx
-var InteractiveInspectionHologram = import_react.lazy(() => __vitePreload(() => import("./InteractiveInspectionHologram-Bog1xYz-.js").then((module) => ({ default: module.InteractiveInspectionHologram })), __vite__mapDeps([0,1,2,3])));
+var InteractiveInspectionHologram = import_react.lazy(() => __vitePreload(() => import("./InteractiveInspectionHologram-BbyaU5S2.js").then((module) => ({ default: module.InteractiveInspectionHologram })), __vite__mapDeps([0,1,2])));
 var CompanyHero = ({ language, onNavigateToAcademy, onNavigateToClient, onNavigateToSection, onOpenDemo }) => {
 	const isAr = language === "ar";
 	const ArrowIcon = isAr ? ArrowLeft : ArrowRight;
@@ -13892,7 +14434,20 @@ var CompanyHero = ({ language, onNavigateToAcademy, onNavigateToClient, onNaviga
 //#endregion
 //#region src/admin/contract.ts
 var ADMIN_HASH = "#admin";
+var ADMIN_API = "/api/admin";
 var ANNOUNCEMENT_API = "/api/site/announcement";
+/** Prompts and API share the limits, without altering the characters entered. */
+function isAdminPassword(value) {
+	return typeof value === "string" && value.length >= 8 && value.length <= 128 && /\S/.test(value) && !/[\u0000-\u001f\u007f]/.test(value);
+}
+var QUOTE_STATUSES = [
+	"new",
+	"in_progress",
+	"closed"
+];
+function isQuoteStatus(value) {
+	return QUOTE_STATUSES.some((status) => status === value);
+}
 //#endregion
 //#region src/admin/public.ts
 /** A Pages build may send staff to a trusted Node host instead of crossing origins with a PIN. */
@@ -56659,7 +57214,7 @@ function le() {
 	}, t.allowFsRead = void 0, t.loadImageFile = t.loadFile;
 }(E.API), function(e) {
 	function r() {
-		return (i.html2canvas ? Promise.resolve(i.html2canvas) : __vitePreload(() => import("./html2canvas-DhbxtboP.js").then((m) => /* @__PURE__ */ __toESM(m.default)), __vite__mapDeps([4,1]))).catch(function(t) {
+		return (i.html2canvas ? Promise.resolve(i.html2canvas) : __vitePreload(() => import("./html2canvas-DhbxtboP.js").then((m) => /* @__PURE__ */ __toESM(m.default)), __vite__mapDeps([3,1]))).catch(function(t) {
 			return Promise.reject(/* @__PURE__ */ new Error("Could not load html2canvas: " + t));
 		}).then(function(t) {
 			return t.default ? t.default : t;
@@ -57826,7 +58381,7 @@ function le() {
 		ignoreAnimation: !0,
 		ignoreDimensions: !0
 	}, d = this;
-	return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-GCxZI1ui.js"), __vite__mapDeps([5,1]))).catch(function(t) {
+	return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-7DeNCa4C.js"), __vite__mapDeps([4,1]))).catch(function(t) {
 		return Promise.reject(/* @__PURE__ */ new Error("Could not load canvg: " + t));
 	}).then(function(t) {
 		return t.default ? t.default : t;
@@ -77796,9 +78351,10 @@ function shouldOfferPortalChooser({ choice, hasAcademyHash, hasClientHash = fals
 }
 //#endregion
 //#region src/App.tsx
-var AcademyContent = import_react.lazy(() => __vitePreload(() => import("./AcademyContent-CHpvuKOs.js").then((module) => ({ default: module.AcademyContent })), __vite__mapDeps([6,1,2,7,8,9,10,3])));
-var CompanyDemoPortal = import_react.lazy(() => __vitePreload(() => import("./CompanyDemoPortal-CMzXFdGj.js").then((module) => ({ default: module.CompanyDemoPortal })), __vite__mapDeps([11,1,2,7,8])));
-var ClientPortal = import_react.lazy(() => __vitePreload(() => import("./ClientPortal-Bnq0gWiQ.js").then((module) => ({ default: module.ClientPortal })), __vite__mapDeps([12,1,2,8,9])));
+var AcademyContent = import_react.lazy(() => __vitePreload(() => import("./AcademyContent-BBfCepQU.js").then((module) => ({ default: module.AcademyContent })), __vite__mapDeps([5,1,6,7,8,9,10,11,12,2])));
+var CompanyDemoPortal = import_react.lazy(() => __vitePreload(() => import("./CompanyDemoPortal-CXoUUiRc.js").then((module) => ({ default: module.CompanyDemoPortal })), __vite__mapDeps([13,1,6,7,8])));
+var ClientPortal = import_react.lazy(() => __vitePreload(() => import("./ClientPortal-CL1ci0fT.js").then((module) => ({ default: module.ClientPortal })), __vite__mapDeps([14,1,7,9,15,11])));
+var AdminPortal = import_react.lazy(() => __vitePreload(() => import("./AdminPortal-BOF8nCj_.js"), __vite__mapDeps([16,1,10,8,15,11])));
 function AcademyLoading({ isAr }) {
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 		role: "status",
@@ -77862,11 +78418,13 @@ var App = () => {
 			hasAcademyHash: initial.portal === "academy",
 			hasClientHash: initial.portal === "client",
 			hasDemoHash: initial.portal === "company" && initial.page !== "home",
+			hasAnchorHash: window.location.hash !== "" && initial.portal === "company",
 			view: chooserViewOf(initial)
 		});
 	});
 	const [menuOpen, setMenuOpen] = (0, import_react.useState)(false);
 	const [mapsQuotaExceeded, setMapsQuotaExceeded] = (0, import_react.useState)(false);
+	const [adminOpen, setAdminOpen] = (0, import_react.useState)(() => window.location.hash === ADMIN_HASH);
 	(0, import_react.useEffect)(() => {
 		const onQuotaExceeded = () => setMapsQuotaExceeded(true);
 		window.addEventListener("gmp-quota-exceeded", onQuotaExceeded);
@@ -78022,7 +78580,10 @@ var App = () => {
 		}
 	}, []);
 	(0, import_react.useEffect)(() => {
-		const onHashChange = () => setRoute(parseRoute(window.location.hash));
+		const onHashChange = () => {
+			setRoute(parseRoute(window.location.hash));
+			setAdminOpen(window.location.hash === ADMIN_HASH);
+		};
 		window.addEventListener("hashchange", onHashChange);
 		window.addEventListener("popstate", onHashChange);
 		return () => {
@@ -78185,8 +78746,38 @@ var App = () => {
 		openClient,
 		openAcademyHash
 	]);
+	/** Stand-alone admin page: the site chrome is replaced, not covered. */
+	const openAdmin = (0, import_react.useCallback)(() => {
+		setMenuOpen(false);
+		setAdminOpen(true);
+		window.history.pushState(null, "", `${window.location.pathname}${window.location.search}${ADMIN_HASH}`);
+	}, []);
+	/** Back to the site, with the address bar no longer claiming `#admin`. */
+	const closeAdmin = (0, import_react.useCallback)(() => {
+		setAdminOpen(false);
+		window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+	}, []);
 	const academyRoute = route.portal === "academy" ? route : null;
 	const clientRoute = route.portal === "client" ? route : null;
+	if (adminOpen) return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+		dir: isAr ? "rtl" : "ltr",
+		"data-theme": theme,
+		"data-portal": "admin",
+		className: `min-h-screen font-sans ${isLight ? "bg-slate-50 text-slate-900" : "bg-slate-950 text-slate-100"}`,
+		children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_react.Suspense, {
+			fallback: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+				role: "status",
+				"aria-live": "polite",
+				className: "p-8 text-sm text-slate-400",
+				children: isAr ? "جارٍ فتح بوابة الإدارة…" : "Opening the admin portal…"
+			}),
+			children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AdminPortal, {
+				language,
+				onBack: closeAdmin,
+				onToggleLanguage: () => setLanguage(isAr ? "en" : "ar")
+			})
+		})
+	});
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 		dir: isAr ? "rtl" : "ltr",
 		"data-theme": theme,
@@ -78418,7 +79009,8 @@ var App = () => {
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AcademyFooter, {
 								language,
 								onOpenHash: openAcademyHash,
-								onOpenCompany: () => openCompany()
+								onOpenCompany: () => openCompany(),
+								onOpenAdmin: openAdmin
 							})
 						]
 					})
@@ -78462,7 +79054,8 @@ var App = () => {
 				onOpenSection: openCompany,
 				onOpenDemo: () => openDemo(),
 				onOpenAcademy: () => openAcademyHash("#academy"),
-				onOpenClient: () => openClient("overview")
+				onOpenClient: () => openClient("overview"),
+				onOpenAdmin: openAdmin
 			}),
 			route.portal === "client" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("footer", {
 				className: "border-t border-emerald-500/20 bg-slate-950 py-6 text-xs text-slate-400",
@@ -78509,4 +79102,4 @@ if (typeof window !== "undefined") {
 var container = document.getElementById("root");
 if (container) (0, import_client.createRoot)(container).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_react.StrictMode, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(App, {}) }));
 //#endregion
-export { updateCompanyRecord as $, RotateCcw as $t, isVerifiedAdminUser as A, ChevronRight as An, string_default as At, signInClientPortalWithEmail as B, ArrowUpRight as Bn, X$2 as Bt, createCompanyWithUniqueCode as C, Earth as Cn, normalizeUnitSystem as Ct, formatFirebaseAuthError as D, Compass as Dn, ENGINEERING_DISCIPLINES as Dt, detectUserAuthMethod as E, Copy as En, useDefaultUnitSystem as Et, resendClientVerificationEmail as F, Calculator as Fn, Selection$1 as Ft, subscribeClientRequests as G, require_react_dom as Gn, Thermometer as Gt, signOutClientPortal as H, ArrowLeft as Hn, Users as Ht, saveClientRegistration as I, Building2 as In, root as It, subscribeCompanyAttendance as J, ShieldCheck as Jt, subscribeCommunityWorkspaces as K, Sun as Kt, savePendingRegistrationDraft as L, BriefcaseBusiness as Ln, range as Lt, loadPendingRegistrationDraft as M, Check as Mn, rgb_default as Mt, observeClientPortalAuth as N, Camera as Nn, constant_default as Nt, initializeStarterCompaniesArchive as O, Clock as On, WORKSHOP_LABS as Ot, recordEmployeeAttendance as P, Calendar as Pn, color$1 as Pt, subscribeMyCommunityWorkspace as Q, Ruler as Qt, sendClientPasswordReset as R, BookOpen as Rn, __vitePreload as Rt, createCompanyReport as S, ExternalLink as Sn, GE_APP_UNIT_OVERRIDE_KEY as St, deleteCompanyReport as T, Crosshair as Tn, resolveCalculatorInitialUnitSystem as Tt, signUpClientPortalWithEmail as U, Activity as Un, Trophy as Ut, signInClientPortalWithGoogle as V, ArrowRight as Vn, Wrench as Vt, subscribeAllClientAccounts as W, COMPANY_MEDIA as Wn, TriangleAlert as Wt, subscribeCompanyReports as X, Send as Xt, subscribeCompanyEmployees as Y, ShieldAlert as Yt, subscribeMyClientAccount as Z, Search as Zt, adminApproveAndLinkClientAccount as _, Flame as _n, sanitizeReportNumber as _t, ACADEMY_SECTION_TABS as a, Navigation as an, formatCoordinates as at, createClientRequest as b, FileCheck as bn, _typeof as bt, ACADEMY_TABS as c, Map$1 as cn, config_exports as ct, CtaButton as d, LogOut as dn, drawVectorQrOnPdf as dt, QrCode as en, updateCompanyReportStatus as et, EmployeeAttendanceTimeline as f, LogIn as fn, exportCompanyQrPassPdf as ft, CompanyQrBadge as g, FlaskConical as gn, generateNextReportNumber as gt, clickableRow as h, FolderOpen as hn, generateNextCompanyCode as ht, ACADEMY_SECTION_DEFAULT_TAB as i, Pause as in, evaluateGeofence as it, isVerifiedPortalUser as j, ChevronLeft as jn, number_default as jt, isPortalFirestoreReady as k, CircleCheck as kn, useTheme as kt, readAcademyTab as l, MapPin as ln, db as lt, clickable as m, GraduationCap as mn, generateNextBadgeCode as mt, ACADEMY_SECTIONS as n, Play as nn, upsertCommunityWorkspace as nt, academySectionLabel as o, Moon as on, formatDistanceMeters as ot, CompanyQrModal as p, KeyRound as pn, generateCompanyQrPngDataUrl as pt, subscribeCompanies as q, Sparkles as qt, ACADEMY_SECTION_COPY as r, Phone as rn, DEFAULT_SITE_COORDS as rt, disciplineHash as s, Menu as sn, resolveSiteCoordinates as st, AcademyPageHeader as t, Plus as tn, updateEmployeeLiveLocation as tt, NDT_TEXTBOOKS as u, Mail as un, buildCompanyDossierUrl as ut, adminUpdateClientRequest as v, Film as vn, sanitizeUpperCode as vt, createInitialCompanyFromRegistration as w, Download as wn, readDefaultUnitSystem as wt, createCompanyEmployee as x, FileCheck2 as xn, DEFAULT_UNIT_SYSTEM_CHANGE_EVENT as xt, clearPendingRegistrationDraft as y, FileText as yn, E as yt, sendClientPhoneOtp as z, Award as zn, Zap as zt };
+export { updateCompanyRecord as $, ArrowLeft as $n, Sun as $t, isVerifiedAdminUser as A, FileCheck as An, string_default as At, signInClientPortalWithEmail as B, CircleCheck as Bn, ADMIN_HASH as Bt, createCompanyWithUniqueCode as C, KeyRound as Cn, normalizeUnitSystem as Ct, formatFirebaseAuthError as D, Flame as Dn, ENGINEERING_DISCIPLINES as Dt, detectUserAuthMethod as E, FlaskConical as En, useDefaultUnitSystem as Et, resendClientVerificationEmail as F, Download as Fn, Selection$1 as Ft, subscribeClientRequests as G, Calendar as Gn, require_jsx_runtime as Gt, signOutClientPortal as H, ChevronLeft as Hn, isAdminPassword as Ht, saveClientRegistration as I, Crosshair as In, root as It, subscribeCompanyAttendance as J, BriefcaseBusiness as Jn, Wrench as Jt, subscribeCommunityWorkspaces as K, Calculator as Kn, Zap as Kt, savePendingRegistrationDraft as L, Copy as Ln, range as Lt, loadPendingRegistrationDraft as M, Eye as Mn, rgb_default as Mt, observeClientPortalAuth as N, ExternalLink as Nn, constant_default as Nt, initializeStarterCompaniesArchive as O, Film as On, WORKSHOP_LABS as Ot, recordEmployeeAttendance as P, Earth as Pn, color$1 as Pt, subscribeMyCommunityWorkspace as Q, ArrowRight as Qn, Thermometer as Qt, sendClientPasswordReset as R, Compass as Rn, externalAdminLink as Rt, createCompanyReport as S, Layers as Sn, GE_APP_UNIT_OVERRIDE_KEY as St, deleteCompanyReport as T, FolderOpen as Tn, resolveCalculatorInitialUnitSystem as Tt, signUpClientPortalWithEmail as U, Check as Un, isQuoteStatus as Ut, signInClientPortalWithGoogle as V, ChevronRight as Vn, QUOTE_STATUSES as Vt, subscribeAllClientAccounts as W, Camera as Wn, __vitePreload as Wt, subscribeCompanyReports as X, Award as Xn, Trophy as Xt, subscribeCompanyEmployees as Y, BookOpen as Yn, Users as Yt, subscribeMyClientAccount as Z, ArrowUpRight as Zn, TriangleAlert as Zt, adminApproveAndLinkClientAccount as _, MapPin as _n, sanitizeReportNumber as _t, ACADEMY_SECTION_TABS as a, Ruler as an, formatCoordinates as at, createClientRequest as b, LogIn as bn, _typeof as bt, ACADEMY_TABS as c, Plus as cn, config_exports as ct, CtaButton as d, Pause as dn, drawVectorQrOnPdf as dt, Sparkles as en, Activity as er, updateCompanyReportStatus as et, EmployeeAttendanceTimeline as f, Navigation as fn, exportCompanyQrPassPdf as ft, CompanyQrBadge as g, Map$1 as gn, generateNextReportNumber as gt, clickableRow as h, Megaphone as hn, generateNextCompanyCode as ht, ACADEMY_SECTION_DEFAULT_TAB as i, Search as in, require_react as ir, evaluateGeofence as it, isVerifiedPortalUser as j, FileCheck2 as jn, number_default as jt, isPortalFirestoreReady as k, FileText as kn, useTheme as kt, readAcademyTab as l, Play as ln, db as lt, clickable as m, Menu as mn, generateNextBadgeCode as mt, ACADEMY_SECTIONS as n, ShieldAlert as nn, COMPANY_MEDIA as nr, upsertCommunityWorkspace as nt, academySectionLabel as o, RotateCcw as on, formatDistanceMeters as ot, CompanyQrModal as p, Moon as pn, generateCompanyQrPngDataUrl as pt, subscribeCompanies as q, Building2 as qn, X$2 as qt, ACADEMY_SECTION_COPY as r, Send as rn, require_react_dom as rr, DEFAULT_SITE_COORDS as rt, disciplineHash as s, QrCode as sn, resolveSiteCoordinates as st, AcademyPageHeader as t, ShieldCheck as tn, createLucideIcon as tr, updateEmployeeLiveLocation as tt, NDT_TEXTBOOKS as u, Phone as un, buildCompanyDossierUrl as ut, adminUpdateClientRequest as v, Mail as vn, sanitizeUpperCode as vt, createInitialCompanyFromRegistration as w, GraduationCap as wn, readDefaultUnitSystem as wt, createCompanyEmployee as x, LoaderCircle as xn, DEFAULT_UNIT_SYSTEM_CHANGE_EVENT as xt, clearPendingRegistrationDraft as y, LogOut as yn, E as yt, sendClientPhoneOtp as z, Clock as zn, ADMIN_API as zt };

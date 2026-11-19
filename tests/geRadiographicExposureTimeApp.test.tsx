@@ -13,7 +13,9 @@ import {
 import {
   GeRadiographicExposureTimeApp,
   buildConversionLogCsv,
-  getUnitConversionFormula
+  getUnitConversionFormula,
+  computeBeamDecayProfile,
+  interpolateBeamDecayAtNorm
 } from '../src/components/academy/virtuallab/GeRadiographicExposureTimeApp';
 import { NdtVirtualLabWorkbench } from '../src/components/academy/virtuallab/NdtVirtualLabWorkbench';
 import { RadiographicTestingLab } from '../src/components/academy/virtuallab/RadiographicTestingLab';
@@ -1308,6 +1310,127 @@ test('IsotopeDecayCurveChart supports hover crosshair, horizon toggle, and click
   const horizon5X = Number(ui.getByTestId('isotope-decay-shot-line').getAttribute('x1'));
   assert.ok(horizon5X > 58 && horizon5X < 704, `Shot line x=${horizon5X} must remain inside plot`);
 });
+
+test('computeBeamDecayProfile accurately models Beer-Lambert attenuation, HVL markers, and pipe bore plateaus', () => {
+  // 1. Default Double-Wall (dwsi_contact), 12mm Carbon Steel + 2.5mm weld cap, Ir-192 (HVL = 12.7mm)
+  const dwsiProfile = computeBeamDecayProfile({
+    sourceType: 'ir192',
+    materialId: 'carbon_steel',
+    technique: 'dwsi_contact',
+    materialThicknessMm: 12.0,
+    weldReinforcementMm: 2.5
+  });
+
+  assert.equal(dwsiProfile.wallsPenetrated, 2);
+  assert.equal(dwsiProfile.effectiveSteelThicknessMm, 26.5);
+  assert.equal(dwsiProfile.totalHvlCount, 2.09);
+  const expectedExitPct = Number((100 * Math.pow(0.5, 26.5 / 12.7)).toFixed(2));
+  assert.equal(dwsiProfile.exitIntensityPct, expectedExitPct);
+  assert.equal(dwsiProfile.hvlMarkers.length, 2);
+  assert.equal(dwsiProfile.hvlMarkers[0].intensityPct, 50);
+  assert.equal(dwsiProfile.hvlMarkers[1].intensityPct, 25);
+
+  // Air-filled pipe bore segment must produce zero attenuation plateau
+  const cavitySeg = dwsiProfile.wallSegments.find((s) => s.id === 'cavity');
+  assert.ok(cavitySeg, 'Expected internal pipe bore cavity segment for 2-wall technique');
+  assert.equal(cavitySeg.entryIntensityPct, cavitySeg.exitIntensityPct);
+  const midCavity = interpolateBeamDecayAtNorm(dwsiProfile, (cavitySeg.startNorm + cavitySeg.endNorm) / 2);
+  assert.equal(midCavity.inCavity, true);
+  assert.equal(midCavity.intensityPct, cavitySeg.entryIntensityPct);
+
+  // 2. Single-Wall (swsi_plate) has no cavity and substantially higher exit intensity
+  const swsiProfile = computeBeamDecayProfile({
+    sourceType: 'ir192',
+    materialId: 'carbon_steel',
+    technique: 'swsi_plate',
+    materialThicknessMm: 12.0,
+    weldReinforcementMm: 2.5
+  });
+  assert.equal(swsiProfile.wallsPenetrated, 1);
+  assert.equal(swsiProfile.wallSegments.some((s) => s.id === 'cavity'), false);
+  assert.ok(swsiProfile.exitIntensityPct > dwsiProfile.exitIntensityPct);
+
+  // 3. Aluminum (low R-factor = 0.22 for Ir-192) transmits much more beam than Carbon Steel (R = 1.0)
+  const aluProfile = computeBeamDecayProfile({
+    sourceType: 'ir192',
+    materialId: 'aluminum',
+    technique: 'swsi_plate',
+    materialThicknessMm: 12.0,
+    weldReinforcementMm: 2.5
+  });
+  assert.equal(aluProfile.rFactor, 0.22);
+  assert.ok(aluProfile.exitIntensityPct > swsiProfile.exitIntensityPct);
+
+  // 4. Co-60 (HVL = 21.8mm) penetrates far better than Se-75 (HVL = 8.0mm)
+  const coProfile = computeBeamDecayProfile({
+    sourceType: 'co60',
+    materialId: 'carbon_steel',
+    technique: 'swsi_plate',
+    materialThicknessMm: 20.0,
+    weldReinforcementMm: 2.0
+  });
+  const seProfile = computeBeamDecayProfile({
+    sourceType: 'se75',
+    materialId: 'carbon_steel',
+    technique: 'swsi_plate',
+    materialThicknessMm: 20.0,
+    weldReinforcementMm: 2.0
+  });
+  assert.ok(coProfile.exitIntensityPct > seProfile.exitIntensityPct);
+  assert.ok(coProfile.muSteelPerMm < seProfile.muSteelPerMm);
+});
+
+test('GeRadiographicExposureTimeApp renders live beam intensity decay overlay on exposure path with reactive updates & depth scrub probe', () => {
+  localStorage.removeItem('ge_app_unit_system');
+  const ui = render(<GeRadiographicExposureTimeApp language="en" />);
+
+  const overlayCard = ui.getByTestId('ge-beam-intensity-decay-overlay');
+  const svg = ui.getByTestId('ge-beam-decay-svg');
+  const curvePath = ui.getByTestId('ge-beam-decay-curve-path');
+  const muLabel = ui.getByTestId('ge-beam-decay-mu');
+  const exitPctLabel = ui.getByTestId('ge-beam-decay-exit-pct');
+  const probeHud = ui.getByTestId('ge-beam-decay-probe-hud');
+
+  assert.ok(overlayCard);
+  assert.ok(svg);
+  assert.ok(ui.getByTestId('ge-beam-attenuation-cone'));
+  assert.ok(ui.getByTestId('ge-beam-photon-stream'));
+  assert.ok(ui.getByTestId('ge-beam-decay-exit-dot'));
+  assert.ok(ui.getByTestId('ge-beam-collimator-jaws'));
+  assert.ok(ui.getByTestId('ge-beam-segment-cavity'));
+  assert.ok(ui.getByTestId('ge-beam-hvl-marker-1'));
+  assert.ok(ui.getByTestId('ge-beam-hvl-marker-2'));
+
+  const initialCurveD = curvePath.getAttribute('d') || '';
+  assert.ok(initialCurveD.startsWith('M') && !initialCurveD.includes('NaN'));
+  const initialExitText = exitPctLabel.textContent || '';
+  const initialMuText = muLabel.textContent || '';
+
+  // Switch technique to Single-Wall Plate -> cavity disappears & exit intensity rises
+  fireEvent.change(ui.getByTestId('ge-select-technique'), { target: { value: 'swsi_plate' } });
+  assert.equal(ui.queryByTestId('ge-beam-segment-cavity'), null);
+  assert.notEqual(exitPctLabel.textContent, initialExitText);
+  assert.notEqual(ui.getByTestId('ge-beam-decay-curve-path').getAttribute('d'), initialCurveD);
+
+  // Switch source to Se-75 -> linear attenuation coefficient μ changes
+  fireEvent.change(ui.getByTestId('ge-select-source-type'), { target: { value: 'se75' } });
+  assert.notEqual(muLabel.textContent, initialMuText);
+
+  // Toggle collimator off -> jaws removed from SVG schematic
+  fireEvent.click(ui.getByTestId('ge-collimator-toggle'));
+  assert.equal(ui.queryByTestId('ge-beam-collimator-jaws'), null);
+
+  // Scrub pointer along exposure path -> vertical crosshair appears & probe HUD activates
+  const interactionLayer = ui.getByTestId('ge-beam-decay-interaction-layer');
+  fireEvent.mouseMove(interactionLayer, { clientX: 394, clientY: 120 });
+  assert.ok(ui.getByTestId('ge-beam-decay-hover-line'));
+  assert.ok((probeHud.textContent || '').includes('Cursor Depth Probe:'));
+
+  fireEvent.mouseLeave(interactionLayer);
+  assert.equal(ui.queryByTestId('ge-beam-decay-hover-line'), null);
+  assert.ok((probeHud.textContent || '').includes('Exit Plane Readout'));
+});
+
 
 
 

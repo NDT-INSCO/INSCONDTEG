@@ -1,11 +1,13 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/index-C-V-0xqz.js","assets/rolldown-runtime-oLLnCvco.js","assets/jsx-runtime-BdKgb6Yj.js","assets/index.esm-DiiqkTPp.js","assets/index-Bshme-PD.css","assets/UtThreeScene-BPAX7bHi.js","assets/three.module-DZ1WiPWM.js"])))=>i.map(i=>d[i]);
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/index-CgqKVYxh.js","assets/rolldown-runtime-oLLnCvco.js","assets/index.esm-DiiqkTPp.js","assets/index-P3uareFm.css","assets/UtThreeScene-9nkjiV7T.js","assets/three.module-5482Nant.js"])))=>i.map(i=>d[i]);
 import { a as __toESM } from "./rolldown-runtime-oLLnCvco.js";
-import { a as require_react, i as createLucideIcon, n as Layers, r as Eye, t as require_jsx_runtime } from "./jsx-runtime-BdKgb6Yj.js";
-import { A as Cpu, C as getDefectCodeTolerance, D as Maximize2, E as Volume2, M as CircleX, O as Info, S as getAllDefectsCodeToleranceSchedule, T as VolumeX, _ as ALL_WELD_DEFECTS_CATALOG, a as gradeAndRecordWorkshopAttempt, b as drawComprehensiveDefectMorphology, c as SIMULATION_XP_MILESTONES, d as useSimulationHistory, f as useSimulationLevelUp, g as mapEducationalDefectToCatalogId, h as DefectToleranceTriggerBar, i as getWorkshopTrainingAttempts, j as ClipboardCheck, k as Gauge, l as calculateSimulationAttemptXp, m as DefectToleranceTooltip, n as renderModernPautSectorialScan, o as resetWorkshopTrainingAttempts, p as DefectToleranceModal, r as UtFlawDetectorDevice, s as subscribeWorkshopTrainingUpdates, t as PautOmniScanDevice, u as recordSimulationAttempt, v as INSPECTION_CODES_META, w as ZoomIn, x as drawUltrasonicBeamCone2D, y as computeUltrasonicBeamCone } from "./PautOmniScanDevice-B5zQp4S1.js";
-import { a as Radar, i as RefreshCw, n as UserCheck, o as ChevronUp, r as Trash2, s as ChevronDown, t as UserPlus } from "./user-plus-CNuueEFA.js";
+import { A as Cpu, C as getDefectCodeTolerance, D as Maximize2, E as Volume2, O as Info, S as getAllDefectsCodeToleranceSchedule, T as VolumeX, _ as ALL_WELD_DEFECTS_CATALOG, a as gradeAndRecordWorkshopAttempt, b as drawComprehensiveDefectMorphology, c as SIMULATION_XP_MILESTONES, d as useSimulationHistory, f as useSimulationLevelUp, g as mapEducationalDefectToCatalogId, h as DefectToleranceTriggerBar, i as getWorkshopTrainingAttempts, j as CircleX, k as Gauge, l as calculateSimulationAttemptXp, m as DefectToleranceTooltip, n as renderModernPautSectorialScan, o as resetWorkshopTrainingAttempts, p as DefectToleranceModal, r as UtFlawDetectorDevice, s as subscribeWorkshopTrainingUpdates, t as PautOmniScanDevice, u as recordSimulationAttempt, v as INSPECTION_CODES_META, w as ZoomIn, x as drawUltrasonicBeamCone2D, y as computeUltrasonicBeamCone } from "./PautOmniScanDevice-tedsV26O.js";
+import { a as ChevronUp, i as Radar, n as UserCheck, o as ChevronDown, r as RefreshCw, t as UserPlus } from "./user-plus-iLOUjAYd.js";
+import { n as EyeOff, r as CircleAlert, t as RotateCw } from "./rotate-cw-DnNs5hC0.js";
+import { t as ClipboardCheck } from "./clipboard-check-Cd5inpU1.js";
+import { t as Trash2 } from "./trash-2-B20G7FEr.js";
 import { f as collection, g as serverTimestamp, n as addDoc } from "./index.esm-DiiqkTPp.js";
-import { $t as RotateCcw, An as ChevronRight, At as string_default, Bt as X, Ct as normalizeUnitSystem, Dn as Compass, Dt as ENGINEERING_DISCIPLINES, En as Copy, Et as useDefaultUnitSystem, Fn as Calculator, Ft as Selection, Gt as Thermometer, Hn as ArrowLeft, Ht as Users, In as Building2, It as root, Jt as ShieldCheck, Kt as Sun, Lt as range, Mn as Check, Mt as rgb_default, Nn as Camera, Nt as constant_default$1, On as Clock, Ot as WORKSHOP_LABS, Pn as Calendar, Pt as color, Qt as Ruler, Rn as BookOpen, Rt as __vitePreload, Sn as ExternalLink, St as GE_APP_UNIT_OVERRIDE_KEY, Tn as Crosshair, Tt as resolveCalculatorInitialUnitSystem, Un as Activity, Ut as Trophy, Vn as ArrowRight, Vt as Wrench, Wt as TriangleAlert, Yt as ShieldAlert, Zt as Search, _n as Flame, a as ACADEMY_SECTION_TABS, bn as FileCheck, c as ACADEMY_TABS, cn as Map$1, gn as FlaskConical, h as clickableRow, i as ACADEMY_SECTION_DEFAULT_TAB, in as Pause, jn as ChevronLeft, jt as number_default, kn as CircleCheck, kt as useTheme, l as readAcademyTab, ln as MapPin, lt as db, m as clickable, mn as GraduationCap, n as ACADEMY_SECTIONS, nn as Play, o as academySectionLabel, on as Moon, qt as Sparkles, r as ACADEMY_SECTION_COPY, s as disciplineHash, sn as Menu, t as AcademyPageHeader, tn as Plus, u as NDT_TEXTBOOKS, vn as Film, wn as Download, wt as readDefaultUnitSystem, xn as FileCheck2, xt as DEFAULT_UNIT_SYSTEM_CHANGE_EVENT, yn as FileText, yt as E, zn as Award, zt as Zap } from "./index-C-V-0xqz.js";
-import { A as MeshLambertMaterial, E as LineSegments, F as PerspectiveCamera, G as Sprite, H as SRGBColorSpace, I as PlaneGeometry, J as Vector3, K as SpriteMaterial, L as PointLight, M as MeshStandardMaterial, N as Object3D, O as Mesh, P as Path$1, S as LineBasicMaterial, U as Scene, V as RingGeometry, W as Shape, _ as GridHelper, b as InstancedMesh, d as ConeGeometry, f as CylinderGeometry, g as FogExp2, h as ExtrudeGeometry, i as BoxGeometry, j as MeshPhysicalMaterial, k as MeshBasicMaterial, l as Clock$1, m as EdgesGeometry, n as WebGLRenderer, o as BufferGeometry, p as DirectionalLight, s as CanvasTexture, t as PMREMGenerator, u as Color, v as Group, w as LineDashedMaterial, x as Line, y as HemisphereLight } from "./three.module-DZ1WiPWM.js";
+import { $n as ArrowLeft, $t as Sun, An as FileCheck, At as string_default, Bn as CircleCheck, Ct as normalizeUnitSystem, Dn as Flame, Dt as ENGINEERING_DISCIPLINES, En as FlaskConical, Et as useDefaultUnitSystem, Fn as Download, Ft as Selection, Gn as Calendar, Gt as require_jsx_runtime, Hn as ChevronLeft, In as Crosshair, It as root, Jt as Wrench, Kn as Calculator, Kt as Zap, Ln as Copy, Lt as range, Mn as Eye, Mt as rgb_default, Nn as ExternalLink, Nt as constant_default$1, On as Film, Ot as WORKSHOP_LABS, Pt as color, Qn as ArrowRight, Qt as Thermometer, Rn as Compass, Sn as Layers, St as GE_APP_UNIT_OVERRIDE_KEY, Tt as resolveCalculatorInitialUnitSystem, Un as Check, Vn as ChevronRight, Wn as Camera, Wt as __vitePreload, Xn as Award, Xt as Trophy, Yn as BookOpen, Yt as Users, Zt as TriangleAlert, _n as MapPin, a as ACADEMY_SECTION_TABS, an as Ruler, c as ACADEMY_TABS, cn as Plus, dn as Pause, en as Sparkles, er as Activity, gn as Map$1, h as clickableRow, i as ACADEMY_SECTION_DEFAULT_TAB, in as Search, ir as require_react, jn as FileCheck2, jt as number_default, kn as FileText, kt as useTheme, l as readAcademyTab, ln as Play, lt as db, m as clickable, mn as Menu, n as ACADEMY_SECTIONS, nn as ShieldAlert, o as academySectionLabel, on as RotateCcw, pn as Moon, qn as Building2, qt as X, r as ACADEMY_SECTION_COPY, s as disciplineHash, t as AcademyPageHeader, tn as ShieldCheck, tr as createLucideIcon, u as NDT_TEXTBOOKS, wn as GraduationCap, wt as readDefaultUnitSystem, xt as DEFAULT_UNIT_SYSTEM_CHANGE_EVENT, yt as E, zn as Clock } from "./index-CgqKVYxh.js";
+import { A as MeshLambertMaterial, E as LineSegments, F as PerspectiveCamera, H as RingGeometry, I as PlaneGeometry, J as Sprite, K as Shape, L as PointLight, M as MeshStandardMaterial, N as Object3D, O as Mesh, P as Path$1, Q as Vector3, S as LineBasicMaterial, U as SRGBColorSpace, W as Scene, Y as SpriteMaterial, _ as GridHelper, b as InstancedMesh, d as ConeGeometry, f as CylinderGeometry, g as FogExp2, h as ExtrudeGeometry, i as BoxGeometry, j as MeshPhysicalMaterial, k as MeshBasicMaterial, l as Clock$1, m as EdgesGeometry, n as WebGLRenderer, o as BufferGeometry, p as DirectionalLight, s as CanvasTexture, t as PMREMGenerator, u as Color, v as Group, w as LineDashedMaterial, x as Line, y as HemisphereLight } from "./three.module-5482Nant.js";
 /**
 * @license lucide-react v0.546.0 - ISC
 *
@@ -241,34 +243,6 @@ var ChartColumn = createLucideIcon("chart-column", [
 * This source code is licensed under the ISC license.
 * See the LICENSE file in the root directory of this source tree.
 */
-var CircleAlert = createLucideIcon("circle-alert", [
-	["circle", {
-		cx: "12",
-		cy: "12",
-		r: "10",
-		key: "1mglay"
-	}],
-	["line", {
-		x1: "12",
-		x2: "12",
-		y1: "8",
-		y2: "12",
-		key: "1pkeuh"
-	}],
-	["line", {
-		x1: "12",
-		x2: "12.01",
-		y1: "16",
-		y2: "16",
-		key: "4dfq90"
-	}]
-]);
-/**
-* @license lucide-react v0.546.0 - ISC
-*
-* This source code is licensed under the ISC license.
-* See the LICENSE file in the root directory of this source tree.
-*/
 var CirclePlus = createLucideIcon("circle-plus", [
 	["circle", {
 		cx: "12",
@@ -396,30 +370,6 @@ var Eraser = createLucideIcon("eraser", [["path", {
 	d: "m5.082 11.09 8.828 8.828",
 	key: "1wx5vj"
 }]]);
-/**
-* @license lucide-react v0.546.0 - ISC
-*
-* This source code is licensed under the ISC license.
-* See the LICENSE file in the root directory of this source tree.
-*/
-var EyeOff = createLucideIcon("eye-off", [
-	["path", {
-		d: "M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49",
-		key: "ct8e1f"
-	}],
-	["path", {
-		d: "M14.084 14.158a3 3 0 0 1-4.242-4.242",
-		key: "151rxh"
-	}],
-	["path", {
-		d: "M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143",
-		key: "13bj9a"
-	}],
-	["path", {
-		d: "m2 2 20 20",
-		key: "1ooewy"
-	}]
-]);
 /**
 * @license lucide-react v0.546.0 - ISC
 *
@@ -967,19 +917,6 @@ var Radio = createLucideIcon("radio", [
 * This source code is licensed under the ISC license.
 * See the LICENSE file in the root directory of this source tree.
 */
-var RotateCw = createLucideIcon("rotate-cw", [["path", {
-	d: "M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8",
-	key: "1p45f6"
-}], ["path", {
-	d: "M21 3v5h-5",
-	key: "1q7to0"
-}]]);
-/**
-* @license lucide-react v0.546.0 - ISC
-*
-* This source code is licensed under the ISC license.
-* See the LICENSE file in the root directory of this source tree.
-*/
 var Route = createLucideIcon("route", [
 	["circle", {
 		cx: "6",
@@ -1273,7 +1210,7 @@ function zero() {
 }
 //#endregion
 //#region node_modules/d3-array/src/number.js
-function number$2(x) {
+function number$3(x) {
 	return x === null ? NaN : +x;
 }
 //#endregion
@@ -1281,7 +1218,7 @@ function number$2(x) {
 var ascendingBisect = bisector(ascending);
 var bisectRight = ascendingBisect.right;
 ascendingBisect.left;
-bisector(number$2).center;
+bisector(number$3).center;
 //#endregion
 //#region node_modules/internmap/src/index.js
 var InternMap = class extends Map {
@@ -1409,7 +1346,7 @@ function translateX(x) {
 function translateY(y) {
 	return "translate(0," + y + ")";
 }
-function number$1(scale) {
+function number$2(scale) {
 	return (d) => +scale(d);
 }
 function center(scale, offset) {
@@ -1423,7 +1360,7 @@ function entering() {
 function axis(orient, scale) {
 	var tickArguments = [], tickValues = null, tickFormat = null, tickSizeInner = 6, tickSizeOuter = 6, tickPadding = 3, offset = typeof window !== "undefined" && window.devicePixelRatio > 1 ? 0 : .5, k = orient === top || orient === left ? -1 : 1, x = orient === left || orient === right ? "x" : "y", transform = orient === top || orient === bottom ? translateX : translateY;
 	function axis(context) {
-		var values = tickValues == null ? scale.ticks ? scale.ticks.apply(scale, tickArguments) : scale.domain() : tickValues, format = tickFormat == null ? scale.tickFormat ? scale.tickFormat.apply(scale, tickArguments) : identity_default$1 : tickFormat, spacing = Math.max(tickSizeInner, 0) + tickPadding, range = scale.range(), range0 = +range[0] + offset, range1 = +range[range.length - 1] + offset, position = (scale.bandwidth ? center : number$1)(scale.copy(), offset), selection = context.selection ? context.selection() : context, path = selection.selectAll(".domain").data([null]), tick = selection.selectAll(".tick").data(values, scale).order(), tickExit = tick.exit(), tickEnter = tick.enter().append("g").attr("class", "tick"), line = tick.select("line"), text = tick.select("text");
+		var values = tickValues == null ? scale.ticks ? scale.ticks.apply(scale, tickArguments) : scale.domain() : tickValues, format = tickFormat == null ? scale.tickFormat ? scale.tickFormat.apply(scale, tickArguments) : identity_default$1 : tickFormat, spacing = Math.max(tickSizeInner, 0) + tickPadding, range = scale.range(), range0 = +range[0] + offset, range1 = +range[range.length - 1] + offset, position = (scale.bandwidth ? center : number$2)(scale.copy(), offset), selection = context.selection ? context.selection() : context, path = selection.selectAll(".domain").data([null]), tick = selection.selectAll(".tick").data(values, scale).order(), tickExit = tick.exit(), tickEnter = tick.enter().append("g").attr("class", "tick"), line = tick.select("line"), text = tick.select("text");
 		path = path.merge(path.enter().insert("path", ".tick").attr("class", "domain").attr("stroke", "currentColor"));
 		tick = tick.merge(tickEnter);
 		line = line.merge(tickEnter.append("line").attr("stroke", "currentColor").attr(x + "2", k * tickSizeInner));
@@ -1852,19 +1789,19 @@ function locale_default(locale) {
 }
 //#endregion
 //#region node_modules/d3-format/src/defaultLocale.js
-var locale;
+var locale$1;
 var format;
 var formatPrefix;
-defaultLocale({
+defaultLocale$1({
 	thousands: ",",
 	grouping: [3],
 	currency: ["$", ""]
 });
-function defaultLocale(definition) {
-	locale = locale_default(definition);
-	format = locale.format;
-	formatPrefix = locale.formatPrefix;
-	return locale;
+function defaultLocale$1(definition) {
+	locale$1 = locale_default(definition);
+	format = locale$1.format;
+	formatPrefix = locale$1.formatPrefix;
+	return locale$1;
 }
 //#endregion
 //#region node_modules/d3-format/src/precisionFixed.js
@@ -2002,7 +1939,7 @@ function constants(x) {
 }
 //#endregion
 //#region node_modules/d3-scale/src/number.js
-function number(x) {
+function number$1(x) {
 	return +x;
 }
 //#endregion
@@ -2065,7 +2002,7 @@ function transformer() {
 		return clamp(untransform((input || (input = piecewise(range, domain.map(transform), number_default)))(y)));
 	};
 	scale.domain = function(_) {
-		return arguments.length ? (domain = Array.from(_, number), rescale()) : domain.slice();
+		return arguments.length ? (domain = Array.from(_, number$1), rescale()) : domain.slice();
 	};
 	scale.range = function(_) {
 		return arguments.length ? (range = Array.from(_), rescale()) : range.slice();
@@ -2164,6 +2101,1068 @@ function linear() {
 	};
 	initRange.apply(scale, arguments);
 	return linearish(scale);
+}
+//#endregion
+//#region node_modules/d3-scale/src/nice.js
+function nice(domain, interval) {
+	domain = domain.slice();
+	var i0 = 0, i1 = domain.length - 1, x0 = domain[i0], x1 = domain[i1], t;
+	if (x1 < x0) {
+		t = i0, i0 = i1, i1 = t;
+		t = x0, x0 = x1, x1 = t;
+	}
+	domain[i0] = interval.floor(x0);
+	domain[i1] = interval.ceil(x1);
+	return domain;
+}
+//#endregion
+//#region node_modules/d3-time/src/interval.js
+var t0 = /* @__PURE__ */ new Date();
+var t1 = /* @__PURE__ */ new Date();
+function timeInterval(floori, offseti, count, field) {
+	function interval(date) {
+		return floori(date = arguments.length === 0 ? /* @__PURE__ */ new Date() : /* @__PURE__ */ new Date(+date)), date;
+	}
+	interval.floor = (date) => {
+		return floori(date = /* @__PURE__ */ new Date(+date)), date;
+	};
+	interval.ceil = (date) => {
+		return floori(date = /* @__PURE__ */ new Date(date - 1)), offseti(date, 1), floori(date), date;
+	};
+	interval.round = (date) => {
+		const d0 = interval(date), d1 = interval.ceil(date);
+		return date - d0 < d1 - date ? d0 : d1;
+	};
+	interval.offset = (date, step) => {
+		return offseti(date = /* @__PURE__ */ new Date(+date), step == null ? 1 : Math.floor(step)), date;
+	};
+	interval.range = (start, stop, step) => {
+		const range = [];
+		start = interval.ceil(start);
+		step = step == null ? 1 : Math.floor(step);
+		if (!(start < stop) || !(step > 0)) return range;
+		let previous;
+		do
+			range.push(previous = /* @__PURE__ */ new Date(+start)), offseti(start, step), floori(start);
+		while (previous < start && start < stop);
+		return range;
+	};
+	interval.filter = (test) => {
+		return timeInterval((date) => {
+			if (date >= date) while (floori(date), !test(date)) date.setTime(date - 1);
+		}, (date, step) => {
+			if (date >= date) {
+				if (step < 0) while (++step <= 0) while (offseti(date, -1), !test(date));
+				else while (--step >= 0) while (offseti(date, 1), !test(date));
+			}
+		});
+	};
+	if (count) {
+		interval.count = (start, end) => {
+			t0.setTime(+start), t1.setTime(+end);
+			floori(t0), floori(t1);
+			return Math.floor(count(t0, t1));
+		};
+		interval.every = (step) => {
+			step = Math.floor(step);
+			return !isFinite(step) || !(step > 0) ? null : !(step > 1) ? interval : interval.filter(field ? (d) => field(d) % step === 0 : (d) => interval.count(0, d) % step === 0);
+		};
+	}
+	return interval;
+}
+//#endregion
+//#region node_modules/d3-time/src/millisecond.js
+var millisecond = timeInterval(() => {}, (date, step) => {
+	date.setTime(+date + step);
+}, (start, end) => {
+	return end - start;
+});
+millisecond.every = (k) => {
+	k = Math.floor(k);
+	if (!isFinite(k) || !(k > 0)) return null;
+	if (!(k > 1)) return millisecond;
+	return timeInterval((date) => {
+		date.setTime(Math.floor(date / k) * k);
+	}, (date, step) => {
+		date.setTime(+date + step * k);
+	}, (start, end) => {
+		return (end - start) / k;
+	});
+};
+millisecond.range;
+//#endregion
+//#region node_modules/d3-time/src/duration.js
+var durationSecond = 1e3;
+var durationMinute = durationSecond * 60;
+var durationHour = durationMinute * 60;
+var durationDay = durationHour * 24;
+var durationWeek = durationDay * 7;
+var durationMonth = durationDay * 30;
+var durationYear = durationDay * 365;
+//#endregion
+//#region node_modules/d3-time/src/second.js
+var second = timeInterval((date) => {
+	date.setTime(date - date.getMilliseconds());
+}, (date, step) => {
+	date.setTime(+date + step * durationSecond);
+}, (start, end) => {
+	return (end - start) / durationSecond;
+}, (date) => {
+	return date.getUTCSeconds();
+});
+second.range;
+//#endregion
+//#region node_modules/d3-time/src/minute.js
+var timeMinute = timeInterval((date) => {
+	date.setTime(date - date.getMilliseconds() - date.getSeconds() * durationSecond);
+}, (date, step) => {
+	date.setTime(+date + step * durationMinute);
+}, (start, end) => {
+	return (end - start) / durationMinute;
+}, (date) => {
+	return date.getMinutes();
+});
+timeMinute.range;
+var utcMinute = timeInterval((date) => {
+	date.setUTCSeconds(0, 0);
+}, (date, step) => {
+	date.setTime(+date + step * durationMinute);
+}, (start, end) => {
+	return (end - start) / durationMinute;
+}, (date) => {
+	return date.getUTCMinutes();
+});
+utcMinute.range;
+//#endregion
+//#region node_modules/d3-time/src/hour.js
+var timeHour = timeInterval((date) => {
+	date.setTime(date - date.getMilliseconds() - date.getSeconds() * durationSecond - date.getMinutes() * durationMinute);
+}, (date, step) => {
+	date.setTime(+date + step * durationHour);
+}, (start, end) => {
+	return (end - start) / durationHour;
+}, (date) => {
+	return date.getHours();
+});
+timeHour.range;
+var utcHour = timeInterval((date) => {
+	date.setUTCMinutes(0, 0, 0);
+}, (date, step) => {
+	date.setTime(+date + step * durationHour);
+}, (start, end) => {
+	return (end - start) / durationHour;
+}, (date) => {
+	return date.getUTCHours();
+});
+utcHour.range;
+//#endregion
+//#region node_modules/d3-time/src/day.js
+var timeDay = timeInterval((date) => date.setHours(0, 0, 0, 0), (date, step) => date.setDate(date.getDate() + step), (start, end) => (end - start - (end.getTimezoneOffset() - start.getTimezoneOffset()) * durationMinute) / durationDay, (date) => date.getDate() - 1);
+timeDay.range;
+var utcDay = timeInterval((date) => {
+	date.setUTCHours(0, 0, 0, 0);
+}, (date, step) => {
+	date.setUTCDate(date.getUTCDate() + step);
+}, (start, end) => {
+	return (end - start) / durationDay;
+}, (date) => {
+	return date.getUTCDate() - 1;
+});
+utcDay.range;
+var unixDay = timeInterval((date) => {
+	date.setUTCHours(0, 0, 0, 0);
+}, (date, step) => {
+	date.setUTCDate(date.getUTCDate() + step);
+}, (start, end) => {
+	return (end - start) / durationDay;
+}, (date) => {
+	return Math.floor(date / durationDay);
+});
+unixDay.range;
+//#endregion
+//#region node_modules/d3-time/src/week.js
+function timeWeekday(i) {
+	return timeInterval((date) => {
+		date.setDate(date.getDate() - (date.getDay() + 7 - i) % 7);
+		date.setHours(0, 0, 0, 0);
+	}, (date, step) => {
+		date.setDate(date.getDate() + step * 7);
+	}, (start, end) => {
+		return (end - start - (end.getTimezoneOffset() - start.getTimezoneOffset()) * durationMinute) / durationWeek;
+	});
+}
+var timeSunday = timeWeekday(0);
+var timeMonday = timeWeekday(1);
+var timeTuesday = timeWeekday(2);
+var timeWednesday = timeWeekday(3);
+var timeThursday = timeWeekday(4);
+var timeFriday = timeWeekday(5);
+var timeSaturday = timeWeekday(6);
+timeSunday.range;
+timeMonday.range;
+timeTuesday.range;
+timeWednesday.range;
+timeThursday.range;
+timeFriday.range;
+timeSaturday.range;
+function utcWeekday(i) {
+	return timeInterval((date) => {
+		date.setUTCDate(date.getUTCDate() - (date.getUTCDay() + 7 - i) % 7);
+		date.setUTCHours(0, 0, 0, 0);
+	}, (date, step) => {
+		date.setUTCDate(date.getUTCDate() + step * 7);
+	}, (start, end) => {
+		return (end - start) / durationWeek;
+	});
+}
+var utcSunday = utcWeekday(0);
+var utcMonday = utcWeekday(1);
+var utcTuesday = utcWeekday(2);
+var utcWednesday = utcWeekday(3);
+var utcThursday = utcWeekday(4);
+var utcFriday = utcWeekday(5);
+var utcSaturday = utcWeekday(6);
+utcSunday.range;
+utcMonday.range;
+utcTuesday.range;
+utcWednesday.range;
+utcThursday.range;
+utcFriday.range;
+utcSaturday.range;
+//#endregion
+//#region node_modules/d3-time/src/month.js
+var timeMonth = timeInterval((date) => {
+	date.setDate(1);
+	date.setHours(0, 0, 0, 0);
+}, (date, step) => {
+	date.setMonth(date.getMonth() + step);
+}, (start, end) => {
+	return end.getMonth() - start.getMonth() + (end.getFullYear() - start.getFullYear()) * 12;
+}, (date) => {
+	return date.getMonth();
+});
+timeMonth.range;
+var utcMonth = timeInterval((date) => {
+	date.setUTCDate(1);
+	date.setUTCHours(0, 0, 0, 0);
+}, (date, step) => {
+	date.setUTCMonth(date.getUTCMonth() + step);
+}, (start, end) => {
+	return end.getUTCMonth() - start.getUTCMonth() + (end.getUTCFullYear() - start.getUTCFullYear()) * 12;
+}, (date) => {
+	return date.getUTCMonth();
+});
+utcMonth.range;
+//#endregion
+//#region node_modules/d3-time/src/year.js
+var timeYear = timeInterval((date) => {
+	date.setMonth(0, 1);
+	date.setHours(0, 0, 0, 0);
+}, (date, step) => {
+	date.setFullYear(date.getFullYear() + step);
+}, (start, end) => {
+	return end.getFullYear() - start.getFullYear();
+}, (date) => {
+	return date.getFullYear();
+});
+timeYear.every = (k) => {
+	return !isFinite(k = Math.floor(k)) || !(k > 0) ? null : timeInterval((date) => {
+		date.setFullYear(Math.floor(date.getFullYear() / k) * k);
+		date.setMonth(0, 1);
+		date.setHours(0, 0, 0, 0);
+	}, (date, step) => {
+		date.setFullYear(date.getFullYear() + step * k);
+	});
+};
+timeYear.range;
+var utcYear = timeInterval((date) => {
+	date.setUTCMonth(0, 1);
+	date.setUTCHours(0, 0, 0, 0);
+}, (date, step) => {
+	date.setUTCFullYear(date.getUTCFullYear() + step);
+}, (start, end) => {
+	return end.getUTCFullYear() - start.getUTCFullYear();
+}, (date) => {
+	return date.getUTCFullYear();
+});
+utcYear.every = (k) => {
+	return !isFinite(k = Math.floor(k)) || !(k > 0) ? null : timeInterval((date) => {
+		date.setUTCFullYear(Math.floor(date.getUTCFullYear() / k) * k);
+		date.setUTCMonth(0, 1);
+		date.setUTCHours(0, 0, 0, 0);
+	}, (date, step) => {
+		date.setUTCFullYear(date.getUTCFullYear() + step * k);
+	});
+};
+utcYear.range;
+//#endregion
+//#region node_modules/d3-time/src/ticks.js
+function ticker(year, month, week, day, hour, minute) {
+	const tickIntervals = [
+		[
+			second,
+			1,
+			durationSecond
+		],
+		[
+			second,
+			5,
+			5 * durationSecond
+		],
+		[
+			second,
+			15,
+			15 * durationSecond
+		],
+		[
+			second,
+			30,
+			30 * durationSecond
+		],
+		[
+			minute,
+			1,
+			durationMinute
+		],
+		[
+			minute,
+			5,
+			5 * durationMinute
+		],
+		[
+			minute,
+			15,
+			15 * durationMinute
+		],
+		[
+			minute,
+			30,
+			30 * durationMinute
+		],
+		[
+			hour,
+			1,
+			durationHour
+		],
+		[
+			hour,
+			3,
+			3 * durationHour
+		],
+		[
+			hour,
+			6,
+			6 * durationHour
+		],
+		[
+			hour,
+			12,
+			12 * durationHour
+		],
+		[
+			day,
+			1,
+			durationDay
+		],
+		[
+			day,
+			2,
+			2 * durationDay
+		],
+		[
+			week,
+			1,
+			durationWeek
+		],
+		[
+			month,
+			1,
+			durationMonth
+		],
+		[
+			month,
+			3,
+			3 * durationMonth
+		],
+		[
+			year,
+			1,
+			durationYear
+		]
+	];
+	function ticks(start, stop, count) {
+		const reverse = stop < start;
+		if (reverse) [start, stop] = [stop, start];
+		const interval = count && typeof count.range === "function" ? count : tickInterval(start, stop, count);
+		const ticks = interval ? interval.range(start, +stop + 1) : [];
+		return reverse ? ticks.reverse() : ticks;
+	}
+	function tickInterval(start, stop, count) {
+		const target = Math.abs(stop - start) / count;
+		const i = bisector(([, , step]) => step).right(tickIntervals, target);
+		if (i === tickIntervals.length) return year.every(tickStep(start / durationYear, stop / durationYear, count));
+		if (i === 0) return millisecond.every(Math.max(tickStep(start, stop, count), 1));
+		const [t, step] = tickIntervals[target / tickIntervals[i - 1][2] < tickIntervals[i][2] / target ? i - 1 : i];
+		return t.every(step);
+	}
+	return [ticks, tickInterval];
+}
+var [utcTicks, utcTickInterval] = ticker(utcYear, utcMonth, utcSunday, unixDay, utcHour, utcMinute);
+var [timeTicks, timeTickInterval] = ticker(timeYear, timeMonth, timeSunday, timeDay, timeHour, timeMinute);
+//#endregion
+//#region node_modules/d3-time-format/src/locale.js
+function localDate(d) {
+	if (0 <= d.y && d.y < 100) {
+		var date = new Date(-1, d.m, d.d, d.H, d.M, d.S, d.L);
+		date.setFullYear(d.y);
+		return date;
+	}
+	return new Date(d.y, d.m, d.d, d.H, d.M, d.S, d.L);
+}
+function utcDate(d) {
+	if (0 <= d.y && d.y < 100) {
+		var date = new Date(Date.UTC(-1, d.m, d.d, d.H, d.M, d.S, d.L));
+		date.setUTCFullYear(d.y);
+		return date;
+	}
+	return new Date(Date.UTC(d.y, d.m, d.d, d.H, d.M, d.S, d.L));
+}
+function newDate(y, m, d) {
+	return {
+		y,
+		m,
+		d,
+		H: 0,
+		M: 0,
+		S: 0,
+		L: 0
+	};
+}
+function formatLocale(locale) {
+	var locale_dateTime = locale.dateTime, locale_date = locale.date, locale_time = locale.time, locale_periods = locale.periods, locale_weekdays = locale.days, locale_shortWeekdays = locale.shortDays, locale_months = locale.months, locale_shortMonths = locale.shortMonths;
+	var periodRe = formatRe(locale_periods), periodLookup = formatLookup(locale_periods), weekdayRe = formatRe(locale_weekdays), weekdayLookup = formatLookup(locale_weekdays), shortWeekdayRe = formatRe(locale_shortWeekdays), shortWeekdayLookup = formatLookup(locale_shortWeekdays), monthRe = formatRe(locale_months), monthLookup = formatLookup(locale_months), shortMonthRe = formatRe(locale_shortMonths), shortMonthLookup = formatLookup(locale_shortMonths);
+	var formats = {
+		"a": formatShortWeekday,
+		"A": formatWeekday,
+		"b": formatShortMonth,
+		"B": formatMonth,
+		"c": null,
+		"d": formatDayOfMonth,
+		"e": formatDayOfMonth,
+		"f": formatMicroseconds,
+		"g": formatYearISO,
+		"G": formatFullYearISO,
+		"H": formatHour24,
+		"I": formatHour12,
+		"j": formatDayOfYear,
+		"L": formatMilliseconds,
+		"m": formatMonthNumber,
+		"M": formatMinutes,
+		"p": formatPeriod,
+		"q": formatQuarter,
+		"Q": formatUnixTimestamp,
+		"s": formatUnixTimestampSeconds,
+		"S": formatSeconds,
+		"u": formatWeekdayNumberMonday,
+		"U": formatWeekNumberSunday,
+		"V": formatWeekNumberISO,
+		"w": formatWeekdayNumberSunday,
+		"W": formatWeekNumberMonday,
+		"x": null,
+		"X": null,
+		"y": formatYear,
+		"Y": formatFullYear,
+		"Z": formatZone,
+		"%": formatLiteralPercent
+	};
+	var utcFormats = {
+		"a": formatUTCShortWeekday,
+		"A": formatUTCWeekday,
+		"b": formatUTCShortMonth,
+		"B": formatUTCMonth,
+		"c": null,
+		"d": formatUTCDayOfMonth,
+		"e": formatUTCDayOfMonth,
+		"f": formatUTCMicroseconds,
+		"g": formatUTCYearISO,
+		"G": formatUTCFullYearISO,
+		"H": formatUTCHour24,
+		"I": formatUTCHour12,
+		"j": formatUTCDayOfYear,
+		"L": formatUTCMilliseconds,
+		"m": formatUTCMonthNumber,
+		"M": formatUTCMinutes,
+		"p": formatUTCPeriod,
+		"q": formatUTCQuarter,
+		"Q": formatUnixTimestamp,
+		"s": formatUnixTimestampSeconds,
+		"S": formatUTCSeconds,
+		"u": formatUTCWeekdayNumberMonday,
+		"U": formatUTCWeekNumberSunday,
+		"V": formatUTCWeekNumberISO,
+		"w": formatUTCWeekdayNumberSunday,
+		"W": formatUTCWeekNumberMonday,
+		"x": null,
+		"X": null,
+		"y": formatUTCYear,
+		"Y": formatUTCFullYear,
+		"Z": formatUTCZone,
+		"%": formatLiteralPercent
+	};
+	var parses = {
+		"a": parseShortWeekday,
+		"A": parseWeekday,
+		"b": parseShortMonth,
+		"B": parseMonth,
+		"c": parseLocaleDateTime,
+		"d": parseDayOfMonth,
+		"e": parseDayOfMonth,
+		"f": parseMicroseconds,
+		"g": parseYear,
+		"G": parseFullYear,
+		"H": parseHour24,
+		"I": parseHour24,
+		"j": parseDayOfYear,
+		"L": parseMilliseconds,
+		"m": parseMonthNumber,
+		"M": parseMinutes,
+		"p": parsePeriod,
+		"q": parseQuarter,
+		"Q": parseUnixTimestamp,
+		"s": parseUnixTimestampSeconds,
+		"S": parseSeconds,
+		"u": parseWeekdayNumberMonday,
+		"U": parseWeekNumberSunday,
+		"V": parseWeekNumberISO,
+		"w": parseWeekdayNumberSunday,
+		"W": parseWeekNumberMonday,
+		"x": parseLocaleDate,
+		"X": parseLocaleTime,
+		"y": parseYear,
+		"Y": parseFullYear,
+		"Z": parseZone,
+		"%": parseLiteralPercent
+	};
+	formats.x = newFormat(locale_date, formats);
+	formats.X = newFormat(locale_time, formats);
+	formats.c = newFormat(locale_dateTime, formats);
+	utcFormats.x = newFormat(locale_date, utcFormats);
+	utcFormats.X = newFormat(locale_time, utcFormats);
+	utcFormats.c = newFormat(locale_dateTime, utcFormats);
+	function newFormat(specifier, formats) {
+		return function(date) {
+			var string = [], i = -1, j = 0, n = specifier.length, c, pad, format;
+			if (!(date instanceof Date)) date = /* @__PURE__ */ new Date(+date);
+			while (++i < n) if (specifier.charCodeAt(i) === 37) {
+				string.push(specifier.slice(j, i));
+				if ((pad = pads[c = specifier.charAt(++i)]) != null) c = specifier.charAt(++i);
+				else pad = c === "e" ? " " : "0";
+				if (format = formats[c]) c = format(date, pad);
+				string.push(c);
+				j = i + 1;
+			}
+			string.push(specifier.slice(j, i));
+			return string.join("");
+		};
+	}
+	function newParse(specifier, Z) {
+		return function(string) {
+			var d = newDate(1900, void 0, 1), i = parseSpecifier(d, specifier, string += "", 0), week, day;
+			if (i != string.length) return null;
+			if ("Q" in d) return new Date(d.Q);
+			if ("s" in d) return new Date(d.s * 1e3 + ("L" in d ? d.L : 0));
+			if (Z && !("Z" in d)) d.Z = 0;
+			if ("p" in d) d.H = d.H % 12 + d.p * 12;
+			if (d.m === void 0) d.m = "q" in d ? d.q : 0;
+			if ("V" in d) {
+				if (d.V < 1 || d.V > 53) return null;
+				if (!("w" in d)) d.w = 1;
+				if ("Z" in d) {
+					week = utcDate(newDate(d.y, 0, 1)), day = week.getUTCDay();
+					week = day > 4 || day === 0 ? utcMonday.ceil(week) : utcMonday(week);
+					week = utcDay.offset(week, (d.V - 1) * 7);
+					d.y = week.getUTCFullYear();
+					d.m = week.getUTCMonth();
+					d.d = week.getUTCDate() + (d.w + 6) % 7;
+				} else {
+					week = localDate(newDate(d.y, 0, 1)), day = week.getDay();
+					week = day > 4 || day === 0 ? timeMonday.ceil(week) : timeMonday(week);
+					week = timeDay.offset(week, (d.V - 1) * 7);
+					d.y = week.getFullYear();
+					d.m = week.getMonth();
+					d.d = week.getDate() + (d.w + 6) % 7;
+				}
+			} else if ("W" in d || "U" in d) {
+				if (!("w" in d)) d.w = "u" in d ? d.u % 7 : "W" in d ? 1 : 0;
+				day = "Z" in d ? utcDate(newDate(d.y, 0, 1)).getUTCDay() : localDate(newDate(d.y, 0, 1)).getDay();
+				d.m = 0;
+				d.d = "W" in d ? (d.w + 6) % 7 + d.W * 7 - (day + 5) % 7 : d.w + d.U * 7 - (day + 6) % 7;
+			}
+			if ("Z" in d) {
+				d.H += d.Z / 100 | 0;
+				d.M += d.Z % 100;
+				return utcDate(d);
+			}
+			return localDate(d);
+		};
+	}
+	function parseSpecifier(d, specifier, string, j) {
+		var i = 0, n = specifier.length, m = string.length, c, parse;
+		while (i < n) {
+			if (j >= m) return -1;
+			c = specifier.charCodeAt(i++);
+			if (c === 37) {
+				c = specifier.charAt(i++);
+				parse = parses[c in pads ? specifier.charAt(i++) : c];
+				if (!parse || (j = parse(d, string, j)) < 0) return -1;
+			} else if (c != string.charCodeAt(j++)) return -1;
+		}
+		return j;
+	}
+	function parsePeriod(d, string, i) {
+		var n = periodRe.exec(string.slice(i));
+		return n ? (d.p = periodLookup.get(n[0].toLowerCase()), i + n[0].length) : -1;
+	}
+	function parseShortWeekday(d, string, i) {
+		var n = shortWeekdayRe.exec(string.slice(i));
+		return n ? (d.w = shortWeekdayLookup.get(n[0].toLowerCase()), i + n[0].length) : -1;
+	}
+	function parseWeekday(d, string, i) {
+		var n = weekdayRe.exec(string.slice(i));
+		return n ? (d.w = weekdayLookup.get(n[0].toLowerCase()), i + n[0].length) : -1;
+	}
+	function parseShortMonth(d, string, i) {
+		var n = shortMonthRe.exec(string.slice(i));
+		return n ? (d.m = shortMonthLookup.get(n[0].toLowerCase()), i + n[0].length) : -1;
+	}
+	function parseMonth(d, string, i) {
+		var n = monthRe.exec(string.slice(i));
+		return n ? (d.m = monthLookup.get(n[0].toLowerCase()), i + n[0].length) : -1;
+	}
+	function parseLocaleDateTime(d, string, i) {
+		return parseSpecifier(d, locale_dateTime, string, i);
+	}
+	function parseLocaleDate(d, string, i) {
+		return parseSpecifier(d, locale_date, string, i);
+	}
+	function parseLocaleTime(d, string, i) {
+		return parseSpecifier(d, locale_time, string, i);
+	}
+	function formatShortWeekday(d) {
+		return locale_shortWeekdays[d.getDay()];
+	}
+	function formatWeekday(d) {
+		return locale_weekdays[d.getDay()];
+	}
+	function formatShortMonth(d) {
+		return locale_shortMonths[d.getMonth()];
+	}
+	function formatMonth(d) {
+		return locale_months[d.getMonth()];
+	}
+	function formatPeriod(d) {
+		return locale_periods[+(d.getHours() >= 12)];
+	}
+	function formatQuarter(d) {
+		return 1 + ~~(d.getMonth() / 3);
+	}
+	function formatUTCShortWeekday(d) {
+		return locale_shortWeekdays[d.getUTCDay()];
+	}
+	function formatUTCWeekday(d) {
+		return locale_weekdays[d.getUTCDay()];
+	}
+	function formatUTCShortMonth(d) {
+		return locale_shortMonths[d.getUTCMonth()];
+	}
+	function formatUTCMonth(d) {
+		return locale_months[d.getUTCMonth()];
+	}
+	function formatUTCPeriod(d) {
+		return locale_periods[+(d.getUTCHours() >= 12)];
+	}
+	function formatUTCQuarter(d) {
+		return 1 + ~~(d.getUTCMonth() / 3);
+	}
+	return {
+		format: function(specifier) {
+			var f = newFormat(specifier += "", formats);
+			f.toString = function() {
+				return specifier;
+			};
+			return f;
+		},
+		parse: function(specifier) {
+			var p = newParse(specifier += "", false);
+			p.toString = function() {
+				return specifier;
+			};
+			return p;
+		},
+		utcFormat: function(specifier) {
+			var f = newFormat(specifier += "", utcFormats);
+			f.toString = function() {
+				return specifier;
+			};
+			return f;
+		},
+		utcParse: function(specifier) {
+			var p = newParse(specifier += "", true);
+			p.toString = function() {
+				return specifier;
+			};
+			return p;
+		}
+	};
+}
+var pads = {
+	"-": "",
+	"_": " ",
+	"0": "0"
+};
+var numberRe = /^\s*\d+/;
+var percentRe = /^%/;
+var requoteRe = /[\\^$*+?|[\]().{}]/g;
+function pad(value, fill, width) {
+	var sign = value < 0 ? "-" : "", string = (sign ? -value : value) + "", length = string.length;
+	return sign + (length < width ? new Array(width - length + 1).join(fill) + string : string);
+}
+function requote(s) {
+	return s.replace(requoteRe, "\\$&");
+}
+function formatRe(names) {
+	return new RegExp("^(?:" + names.map(requote).join("|") + ")", "i");
+}
+function formatLookup(names) {
+	return new Map(names.map((name, i) => [name.toLowerCase(), i]));
+}
+function parseWeekdayNumberSunday(d, string, i) {
+	var n = numberRe.exec(string.slice(i, i + 1));
+	return n ? (d.w = +n[0], i + n[0].length) : -1;
+}
+function parseWeekdayNumberMonday(d, string, i) {
+	var n = numberRe.exec(string.slice(i, i + 1));
+	return n ? (d.u = +n[0], i + n[0].length) : -1;
+}
+function parseWeekNumberSunday(d, string, i) {
+	var n = numberRe.exec(string.slice(i, i + 2));
+	return n ? (d.U = +n[0], i + n[0].length) : -1;
+}
+function parseWeekNumberISO(d, string, i) {
+	var n = numberRe.exec(string.slice(i, i + 2));
+	return n ? (d.V = +n[0], i + n[0].length) : -1;
+}
+function parseWeekNumberMonday(d, string, i) {
+	var n = numberRe.exec(string.slice(i, i + 2));
+	return n ? (d.W = +n[0], i + n[0].length) : -1;
+}
+function parseFullYear(d, string, i) {
+	var n = numberRe.exec(string.slice(i, i + 4));
+	return n ? (d.y = +n[0], i + n[0].length) : -1;
+}
+function parseYear(d, string, i) {
+	var n = numberRe.exec(string.slice(i, i + 2));
+	return n ? (d.y = +n[0] + (+n[0] > 68 ? 1900 : 2e3), i + n[0].length) : -1;
+}
+function parseZone(d, string, i) {
+	var n = /^(Z)|([+-]\d\d)(?::?(\d\d))?/.exec(string.slice(i, i + 6));
+	return n ? (d.Z = n[1] ? 0 : -(n[2] + (n[3] || "00")), i + n[0].length) : -1;
+}
+function parseQuarter(d, string, i) {
+	var n = numberRe.exec(string.slice(i, i + 1));
+	return n ? (d.q = n[0] * 3 - 3, i + n[0].length) : -1;
+}
+function parseMonthNumber(d, string, i) {
+	var n = numberRe.exec(string.slice(i, i + 2));
+	return n ? (d.m = n[0] - 1, i + n[0].length) : -1;
+}
+function parseDayOfMonth(d, string, i) {
+	var n = numberRe.exec(string.slice(i, i + 2));
+	return n ? (d.d = +n[0], i + n[0].length) : -1;
+}
+function parseDayOfYear(d, string, i) {
+	var n = numberRe.exec(string.slice(i, i + 3));
+	return n ? (d.m = 0, d.d = +n[0], i + n[0].length) : -1;
+}
+function parseHour24(d, string, i) {
+	var n = numberRe.exec(string.slice(i, i + 2));
+	return n ? (d.H = +n[0], i + n[0].length) : -1;
+}
+function parseMinutes(d, string, i) {
+	var n = numberRe.exec(string.slice(i, i + 2));
+	return n ? (d.M = +n[0], i + n[0].length) : -1;
+}
+function parseSeconds(d, string, i) {
+	var n = numberRe.exec(string.slice(i, i + 2));
+	return n ? (d.S = +n[0], i + n[0].length) : -1;
+}
+function parseMilliseconds(d, string, i) {
+	var n = numberRe.exec(string.slice(i, i + 3));
+	return n ? (d.L = +n[0], i + n[0].length) : -1;
+}
+function parseMicroseconds(d, string, i) {
+	var n = numberRe.exec(string.slice(i, i + 6));
+	return n ? (d.L = Math.floor(n[0] / 1e3), i + n[0].length) : -1;
+}
+function parseLiteralPercent(d, string, i) {
+	var n = percentRe.exec(string.slice(i, i + 1));
+	return n ? i + n[0].length : -1;
+}
+function parseUnixTimestamp(d, string, i) {
+	var n = numberRe.exec(string.slice(i));
+	return n ? (d.Q = +n[0], i + n[0].length) : -1;
+}
+function parseUnixTimestampSeconds(d, string, i) {
+	var n = numberRe.exec(string.slice(i));
+	return n ? (d.s = +n[0], i + n[0].length) : -1;
+}
+function formatDayOfMonth(d, p) {
+	return pad(d.getDate(), p, 2);
+}
+function formatHour24(d, p) {
+	return pad(d.getHours(), p, 2);
+}
+function formatHour12(d, p) {
+	return pad(d.getHours() % 12 || 12, p, 2);
+}
+function formatDayOfYear(d, p) {
+	return pad(1 + timeDay.count(timeYear(d), d), p, 3);
+}
+function formatMilliseconds(d, p) {
+	return pad(d.getMilliseconds(), p, 3);
+}
+function formatMicroseconds(d, p) {
+	return formatMilliseconds(d, p) + "000";
+}
+function formatMonthNumber(d, p) {
+	return pad(d.getMonth() + 1, p, 2);
+}
+function formatMinutes(d, p) {
+	return pad(d.getMinutes(), p, 2);
+}
+function formatSeconds(d, p) {
+	return pad(d.getSeconds(), p, 2);
+}
+function formatWeekdayNumberMonday(d) {
+	var day = d.getDay();
+	return day === 0 ? 7 : day;
+}
+function formatWeekNumberSunday(d, p) {
+	return pad(timeSunday.count(timeYear(d) - 1, d), p, 2);
+}
+function dISO(d) {
+	var day = d.getDay();
+	return day >= 4 || day === 0 ? timeThursday(d) : timeThursday.ceil(d);
+}
+function formatWeekNumberISO(d, p) {
+	d = dISO(d);
+	return pad(timeThursday.count(timeYear(d), d) + (timeYear(d).getDay() === 4), p, 2);
+}
+function formatWeekdayNumberSunday(d) {
+	return d.getDay();
+}
+function formatWeekNumberMonday(d, p) {
+	return pad(timeMonday.count(timeYear(d) - 1, d), p, 2);
+}
+function formatYear(d, p) {
+	return pad(d.getFullYear() % 100, p, 2);
+}
+function formatYearISO(d, p) {
+	d = dISO(d);
+	return pad(d.getFullYear() % 100, p, 2);
+}
+function formatFullYear(d, p) {
+	return pad(d.getFullYear() % 1e4, p, 4);
+}
+function formatFullYearISO(d, p) {
+	var day = d.getDay();
+	d = day >= 4 || day === 0 ? timeThursday(d) : timeThursday.ceil(d);
+	return pad(d.getFullYear() % 1e4, p, 4);
+}
+function formatZone(d) {
+	var z = d.getTimezoneOffset();
+	return (z > 0 ? "-" : (z *= -1, "+")) + pad(z / 60 | 0, "0", 2) + pad(z % 60, "0", 2);
+}
+function formatUTCDayOfMonth(d, p) {
+	return pad(d.getUTCDate(), p, 2);
+}
+function formatUTCHour24(d, p) {
+	return pad(d.getUTCHours(), p, 2);
+}
+function formatUTCHour12(d, p) {
+	return pad(d.getUTCHours() % 12 || 12, p, 2);
+}
+function formatUTCDayOfYear(d, p) {
+	return pad(1 + utcDay.count(utcYear(d), d), p, 3);
+}
+function formatUTCMilliseconds(d, p) {
+	return pad(d.getUTCMilliseconds(), p, 3);
+}
+function formatUTCMicroseconds(d, p) {
+	return formatUTCMilliseconds(d, p) + "000";
+}
+function formatUTCMonthNumber(d, p) {
+	return pad(d.getUTCMonth() + 1, p, 2);
+}
+function formatUTCMinutes(d, p) {
+	return pad(d.getUTCMinutes(), p, 2);
+}
+function formatUTCSeconds(d, p) {
+	return pad(d.getUTCSeconds(), p, 2);
+}
+function formatUTCWeekdayNumberMonday(d) {
+	var dow = d.getUTCDay();
+	return dow === 0 ? 7 : dow;
+}
+function formatUTCWeekNumberSunday(d, p) {
+	return pad(utcSunday.count(utcYear(d) - 1, d), p, 2);
+}
+function UTCdISO(d) {
+	var day = d.getUTCDay();
+	return day >= 4 || day === 0 ? utcThursday(d) : utcThursday.ceil(d);
+}
+function formatUTCWeekNumberISO(d, p) {
+	d = UTCdISO(d);
+	return pad(utcThursday.count(utcYear(d), d) + (utcYear(d).getUTCDay() === 4), p, 2);
+}
+function formatUTCWeekdayNumberSunday(d) {
+	return d.getUTCDay();
+}
+function formatUTCWeekNumberMonday(d, p) {
+	return pad(utcMonday.count(utcYear(d) - 1, d), p, 2);
+}
+function formatUTCYear(d, p) {
+	return pad(d.getUTCFullYear() % 100, p, 2);
+}
+function formatUTCYearISO(d, p) {
+	d = UTCdISO(d);
+	return pad(d.getUTCFullYear() % 100, p, 2);
+}
+function formatUTCFullYear(d, p) {
+	return pad(d.getUTCFullYear() % 1e4, p, 4);
+}
+function formatUTCFullYearISO(d, p) {
+	var day = d.getUTCDay();
+	d = day >= 4 || day === 0 ? utcThursday(d) : utcThursday.ceil(d);
+	return pad(d.getUTCFullYear() % 1e4, p, 4);
+}
+function formatUTCZone() {
+	return "+0000";
+}
+function formatLiteralPercent() {
+	return "%";
+}
+function formatUnixTimestamp(d) {
+	return +d;
+}
+function formatUnixTimestampSeconds(d) {
+	return Math.floor(+d / 1e3);
+}
+//#endregion
+//#region node_modules/d3-time-format/src/defaultLocale.js
+var locale;
+var utcFormat;
+defaultLocale({
+	dateTime: "%x, %X",
+	date: "%-m/%-d/%Y",
+	time: "%-I:%M:%S %p",
+	periods: ["AM", "PM"],
+	days: [
+		"Sunday",
+		"Monday",
+		"Tuesday",
+		"Wednesday",
+		"Thursday",
+		"Friday",
+		"Saturday"
+	],
+	shortDays: [
+		"Sun",
+		"Mon",
+		"Tue",
+		"Wed",
+		"Thu",
+		"Fri",
+		"Sat"
+	],
+	months: [
+		"January",
+		"February",
+		"March",
+		"April",
+		"May",
+		"June",
+		"July",
+		"August",
+		"September",
+		"October",
+		"November",
+		"December"
+	],
+	shortMonths: [
+		"Jan",
+		"Feb",
+		"Mar",
+		"Apr",
+		"May",
+		"Jun",
+		"Jul",
+		"Aug",
+		"Sep",
+		"Oct",
+		"Nov",
+		"Dec"
+	]
+});
+function defaultLocale(definition) {
+	locale = formatLocale(definition);
+	locale.format;
+	locale.parse;
+	utcFormat = locale.utcFormat;
+	locale.utcParse;
+	return locale;
+}
+//#endregion
+//#region node_modules/d3-scale/src/time.js
+function date(t) {
+	return new Date(t);
+}
+function number(t) {
+	return t instanceof Date ? +t : +/* @__PURE__ */ new Date(+t);
+}
+function calendar(ticks, tickInterval, year, month, week, day, hour, minute, second, format) {
+	var scale = continuous(), invert = scale.invert, domain = scale.domain;
+	var formatMillisecond = format(".%L"), formatSecond = format(":%S"), formatMinute = format("%I:%M"), formatHour = format("%I %p"), formatDay = format("%a %d"), formatWeek = format("%b %d"), formatMonth = format("%B"), formatYear = format("%Y");
+	function tickFormat(date) {
+		return (second(date) < date ? formatMillisecond : minute(date) < date ? formatSecond : hour(date) < date ? formatMinute : day(date) < date ? formatHour : month(date) < date ? week(date) < date ? formatDay : formatWeek : year(date) < date ? formatMonth : formatYear)(date);
+	}
+	scale.invert = function(y) {
+		return new Date(invert(y));
+	};
+	scale.domain = function(_) {
+		return arguments.length ? domain(Array.from(_, number)) : domain().map(date);
+	};
+	scale.ticks = function(interval) {
+		var d = domain();
+		return ticks(d[0], d[d.length - 1], interval == null ? 10 : interval);
+	};
+	scale.tickFormat = function(count, specifier) {
+		return specifier == null ? tickFormat : format(specifier);
+	};
+	scale.nice = function(interval) {
+		var d = domain();
+		if (!interval || typeof interval.range !== "function") interval = tickInterval(d[0], d[d.length - 1], interval == null ? 10 : interval);
+		return interval ? domain(nice(d, interval)) : scale;
+	};
+	scale.copy = function() {
+		return copy(scale, calendar(ticks, tickInterval, year, month, week, day, hour, minute, second, format));
+	};
+	return scale;
+}
+//#endregion
+//#region node_modules/d3-scale/src/utcTime.js
+function utcTime() {
+	return initRange.apply(calendar(utcTicks, utcTickInterval, utcYear, utcMonth, utcSunday, utcDay, utcHour, utcMinute, second, utcFormat).domain([Date.UTC(2e3, 0, 1), Date.UTC(2e3, 0, 2)]), arguments);
 }
 //#endregion
 //#region node_modules/d3-shape/src/constant.js
@@ -4508,7 +5507,7 @@ var firebaseHandlePromise = null;
 function getFirebase() {
 	if (!firebaseHandlePromise) firebaseHandlePromise = (async () => {
 		try {
-			const config = await __vitePreload(() => import("./index-C-V-0xqz.js").then((n) => n.ct), __vite__mapDeps([0,1,2,3,4]));
+			const config = await __vitePreload(() => import("./index-CgqKVYxh.js").then((n) => n.ct), __vite__mapDeps([0,1,2,3]));
 			const db = config.db;
 			if (!config.isFirebaseConfigured || !db) return null;
 			return {
@@ -4614,7 +5613,7 @@ async function syncTopicsToFirestore(moduleId, topics, disciplineId) {
 				setDoc,
 				serverTimestamp
 			};
-		}, __vite__mapDeps([3,1]));
+		}, __vite__mapDeps([2,1]));
 		const userId = firebase.auth?.currentUser?.uid || getLocalUserId();
 		await setDoc(doc(firebase.db, "user_module_progress", `${userId}_${moduleId}`), {
 			userId,
@@ -4648,7 +5647,7 @@ async function syncModuleToFirestore(moduleId, score) {
 				setDoc,
 				serverTimestamp
 			};
-		}, __vite__mapDeps([3,1]));
+		}, __vite__mapDeps([2,1]));
 		const userId = firebase.auth?.currentUser?.uid || getLocalUserId();
 		await setDoc(doc(firebase.db, "user_module_progress", `${userId}_${moduleId}`), {
 			userId,
@@ -12050,6 +13049,15 @@ var V1V2CalibrationLab = ({ language, onCompleteAndProceedToWeld }) => {
 															fontWeight: "bold",
 															children: "0°"
 														}),
+														/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+															cx: v1ZeroSpot === "thk_25" ? 691 : probeSvgX,
+															cy: oy,
+															r: "4.5",
+															fill: "none",
+															stroke: "#34d399",
+															strokeWidth: "1.2",
+															className: "ut-interface-ripple"
+														}),
 														v1ZeroSpot === "thk_25" ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
 															x1: "691",
 															y1: "68",
@@ -12057,7 +13065,8 @@ var V1V2CalibrationLab = ({ language, onCompleteAndProceedToWeld }) => {
 															y2: "268",
 															stroke: "#34d399",
 															strokeWidth: "2.2",
-															strokeDasharray: "5 3"
+															strokeDasharray: "8 5",
+															className: "ut-beam-flow"
 														}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
 															x1: probeSvgX,
 															y1: oy,
@@ -12065,7 +13074,8 @@ var V1V2CalibrationLab = ({ language, onCompleteAndProceedToWeld }) => {
 															y2: v1ZeroSpot === "res_steps" ? 238 : 268,
 															stroke: "#34d399",
 															strokeWidth: "2.2",
-															strokeDasharray: "5 3"
+															strokeDasharray: "8 5",
+															className: "ut-beam-flow"
 														}), v1ZeroSpot === "res_steps" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
 															x1: probeSvgX - 5,
 															y1: oy,
@@ -12073,6 +13083,8 @@ var V1V2CalibrationLab = ({ language, onCompleteAndProceedToWeld }) => {
 															y2: 268,
 															stroke: "#34d399",
 															strokeWidth: "1.2",
+															strokeDasharray: "6 4",
+															className: "ut-beam-flow-delayed",
 															opacity: "0.7"
 														}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
 															x1: probeSvgX + 5,
@@ -12081,6 +13093,8 @@ var V1V2CalibrationLab = ({ language, onCompleteAndProceedToWeld }) => {
 															y2: 250,
 															stroke: "#34d399",
 															strokeWidth: "1.2",
+															strokeDasharray: "6 4",
+															className: "ut-beam-flow",
 															opacity: "0.7"
 														})] })] })
 													] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("g", { children: [
@@ -12114,7 +13128,17 @@ var V1V2CalibrationLab = ({ language, onCompleteAndProceedToWeld }) => {
 														}),
 														/* @__PURE__ */ (0, import_jsx_runtime.jsx)("polygon", {
 															points: `${probeSvgX},${oy} ${rayEndX - 10},${Math.min(266, rayEndY)} ${rayEndX + 10},${Math.min(266, rayEndY)}`,
-															fill: "rgba(56, 189, 248, 0.16)"
+															fill: "rgba(56, 189, 248, 0.18)",
+															className: "ut-beam-cone-pulse"
+														}),
+														/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+															cx: probeSvgX,
+															cy: oy,
+															r: "5",
+															fill: "none",
+															stroke: "#38bdf8",
+															strokeWidth: "1.3",
+															className: "ut-interface-ripple"
 														}),
 														/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
 															x1: probeSvgX,
@@ -12122,8 +13146,9 @@ var V1V2CalibrationLab = ({ language, onCompleteAndProceedToWeld }) => {
 															x2: rayEndX,
 															y2: Math.min(266, rayEndY),
 															stroke: "#38bdf8",
-															strokeWidth: "2.2",
-															strokeDasharray: "6 3"
+															strokeWidth: "2.4",
+															strokeDasharray: "10 6",
+															className: "ut-beam-flow"
 														})
 													] })
 												] });
@@ -12355,7 +13380,8 @@ var V1V2CalibrationLab = ({ language, onCompleteAndProceedToWeld }) => {
 															y2: 259.79999999999995,
 															stroke: "#34d399",
 															strokeWidth: "2.2",
-															strokeDasharray: "5 3"
+															strokeDasharray: "8 5",
+															className: "ut-beam-flow"
 														})
 													] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("g", { children: [
 														/* @__PURE__ */ (0, import_jsx_runtime.jsx)("polygon", {
@@ -12386,6 +13412,15 @@ var V1V2CalibrationLab = ({ language, onCompleteAndProceedToWeld }) => {
 																")"
 															]
 														}),
+														/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+															cx: probeSvgX,
+															cy: oy,
+															r: "5",
+															fill: "none",
+															stroke: "#38bdf8",
+															strokeWidth: "1.3",
+															className: "ut-interface-ripple"
+														}),
 														/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
 															x1: probeSvgX,
 															y1: oy,
@@ -12393,7 +13428,8 @@ var V1V2CalibrationLab = ({ language, onCompleteAndProceedToWeld }) => {
 															y2: Math.min(259.79999999999995, rayEndY),
 															stroke: "#38bdf8",
 															strokeWidth: "2.4",
-															strokeDasharray: "6 3"
+															strokeDasharray: "10 6",
+															className: "ut-beam-flow"
 														}),
 														Math.abs(probePositionXmm - 25) <= 4 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
 															x1: probeSvgX,
@@ -12401,9 +13437,10 @@ var V1V2CalibrationLab = ({ language, onCompleteAndProceedToWeld }) => {
 															x2: probeSvgX - dirSign * (beamDirection === "left" ? 50 : 25) * Math.sin(trueAngleRad) * sc,
 															y2: Math.min(259.79999999999995, oy + (beamDirection === "left" ? 50 : 25) * Math.cos(trueAngleRad) * sc),
 															stroke: "#fbbf24",
-															strokeWidth: "1.4",
-															strokeDasharray: "3 3",
-															opacity: "0.75"
+															strokeWidth: "1.6",
+															strokeDasharray: "8 5",
+															className: "ut-beam-flow-delayed",
+															opacity: "0.8"
 														})
 													] })
 												] });
@@ -12592,6 +13629,15 @@ var V1V2CalibrationLab = ({ language, onCompleteAndProceedToWeld }) => {
 																"mm"
 															]
 														}),
+														/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+															cx: probeSvgX,
+															cy: topY,
+															r: "5",
+															fill: "none",
+															stroke: "#fbbf24",
+															strokeWidth: "1.3",
+															className: "ut-interface-ripple"
+														}),
 														/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
 															x1: probeSvgX,
 															y1: topY,
@@ -12599,7 +13645,8 @@ var V1V2CalibrationLab = ({ language, onCompleteAndProceedToWeld }) => {
 															y2: botY,
 															stroke: "#fbbf24",
 															strokeWidth: "2.4",
-															strokeDasharray: "6 3"
+															strokeDasharray: "10 6",
+															className: "ut-beam-flow"
 														}),
 														leg1BounceX > 45 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
 															x1: leg1BounceX,
@@ -12608,7 +13655,8 @@ var V1V2CalibrationLab = ({ language, onCompleteAndProceedToWeld }) => {
 															y2: topY,
 															stroke: "#38bdf8",
 															strokeWidth: "2.0",
-															strokeDasharray: "4 3"
+															strokeDasharray: "10 6",
+															className: "ut-beam-flow-delayed"
 														})
 													] }),
 													/* @__PURE__ */ (0, import_jsx_runtime.jsx)("text", {
@@ -15577,508 +16625,589 @@ var BeamConeAndDefectExplorer = ({ language, selectedDefectId = "lack_of_fusion"
 		if (!canvas) return;
 		const ctx = canvas.getContext("2d");
 		if (!ctx) return;
-		const w = canvas.width;
-		const h = canvas.height;
-		ctx.fillStyle = "#040814";
-		ctx.fillRect(0, 0, w, h);
-		const yaw = yawDeg * Math.PI / 180;
-		const pitch = pitchDeg * Math.PI / 180;
-		const scale3D = 3.55;
-		const cx = w * .5;
-		const cy = h * .54;
-		const project = (x, y, z) => {
-			const rx = x * Math.cos(yaw) - y * Math.sin(yaw);
-			const ry = x * Math.sin(yaw) + y * Math.cos(yaw);
-			return [cx + rx * scale3D, cy - z * Math.cos(pitch) * scale3D + ry * Math.sin(pitch) * scale3D * .72];
-		};
-		const drawPoly3D = (pts, stroke, fill, lineW = 1.2, dashed = false) => {
-			ctx.save();
-			if (dashed) ctx.setLineDash([4, 3]);
-			ctx.beginPath();
-			pts.forEach(([px, py, pz], idx) => {
-				const [sx, sy] = project(px, py, pz);
-				if (idx === 0) ctx.moveTo(sx, sy);
-				else ctx.lineTo(sx, sy);
-			});
-			ctx.closePath();
-			if (fill) {
-				ctx.fillStyle = fill;
-				ctx.fill();
-			}
-			ctx.strokeStyle = stroke;
-			ctx.lineWidth = lineW;
-			ctx.stroke();
-			ctx.restore();
-		};
-		drawPoly3D([
-			[
-				-52,
-				-34,
-				-plateThicknessMm
-			],
-			[
-				62,
-				-34,
-				-plateThicknessMm
-			],
-			[
-				62,
-				34,
-				-plateThicknessMm
-			],
-			[
-				-52,
-				34,
-				-plateThicknessMm
-			]
-		], "rgba(51, 65, 85, 0.85)", "rgba(15, 23, 42, 0.65)");
-		drawPoly3D([
-			[
-				-52,
-				-34,
-				0
-			],
-			[
-				62,
-				-34,
-				0
-			],
-			[
-				62,
-				34,
-				0
-			],
-			[
-				-52,
-				34,
-				0
-			]
-		], "rgba(71, 85, 105, 0.9)", "rgba(30, 41, 59, 0.32)");
-		drawPoly3D([
-			[
-				-52,
-				34,
-				0
-			],
-			[
-				62,
-				34,
-				0
-			],
-			[
-				62,
-				34,
-				-plateThicknessMm
-			],
-			[
-				-52,
-				34,
-				-plateThicknessMm
-			]
-		], "#334155", "rgba(15, 23, 42, 0.25)");
-		for (const yPlane of [
-			-34,
-			0,
-			34
-		]) drawPoly3D([
-			[
-				-9,
-				yPlane,
-				0
-			],
-			[
-				9,
-				yPlane,
-				0
-			],
-			[
-				1.6,
-				yPlane,
-				-plateThicknessMm
-			],
-			[
-				-1.6,
-				yPlane,
-				-plateThicknessMm
-			]
-		], yPlane === 34 ? "rgba(245, 158, 11, 0.7)" : "rgba(245, 158, 11, 0.28)", yPlane === 34 ? "rgba(245, 158, 11, 0.10)" : void 0);
-		ctx.strokeStyle = "rgba(245, 158, 11, 0.55)";
-		ctx.lineWidth = 1.3;
-		for (const xEdge of [-9, 9]) {
-			const [x1, y1] = project(xEdge, -34, 0);
-			const [x2, y2] = project(xEdge, 34, 0);
-			ctx.beginPath();
-			ctx.moveTo(x1, y1);
-			ctx.lineTo(x2, y2);
-			ctx.stroke();
-		}
-		const defX = currentDefect.distanceFromWeldCenterMm;
-		const defZ = -flawDepthMm;
-		const halfDefL = Math.min(24, currentDefect.lengthMm * .75);
-		const halfDefH = Math.max(1.2, currentDefect.heightMm * .55);
-		const defColor = currentDefect.category === "Planar" ? "rgba(239, 68, 68, 0.88)" : "rgba(245, 158, 11, 0.85)";
-		if (currentDefect.id === "porosity_cluster" || currentDefect.id === "isolated_pore" || currentDefect.id === "tungsten_inclusion") {
-			const count = currentDefect.id === "porosity_cluster" ? 6 : 1;
-			for (let p = 0; p < count; p++) {
-				const py = count === 1 ? 0 : (p - 2.5) * 2.6;
-				const [sx, sy] = project(defX + (p % 2 === 0 ? .6 : -.6), py, defZ + (p % 3 - 1) * .8);
-				ctx.fillStyle = currentDefect.id === "tungsten_inclusion" ? "#f8fafc" : "#38bdf8";
+		const prefersReducedMotion = typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+		const shouldAnimate = showWavefronts && !prefersReducedMotion;
+		let rafId = 0;
+		const startMs = Date.now();
+		const render3DFrame = (phaseSec) => {
+			const w = canvas.width;
+			const h = canvas.height;
+			ctx.fillStyle = "#040814";
+			ctx.fillRect(0, 0, w, h);
+			const yaw = yawDeg * Math.PI / 180;
+			const pitch = pitchDeg * Math.PI / 180;
+			const scale3D = 3.55;
+			const cx = w * .5;
+			const cy = h * .54;
+			const project = (x, y, z) => {
+				const rx = x * Math.cos(yaw) - y * Math.sin(yaw);
+				const ry = x * Math.sin(yaw) + y * Math.cos(yaw);
+				return [cx + rx * scale3D, cy - z * Math.cos(pitch) * scale3D + ry * Math.sin(pitch) * scale3D * .72];
+			};
+			const drawPoly3D = (pts, stroke, fill, lineW = 1.2, dashed = false) => {
+				ctx.save();
+				if (dashed) ctx.setLineDash([4, 3]);
 				ctx.beginPath();
-				ctx.arc(sx, sy, currentDefect.id === "isolated_pore" ? 5.5 : 4.2, 0, Math.PI * 2);
-				ctx.fill();
-			}
-		} else if (currentDefect.id === "base_lamination") drawPoly3D([
-			[
-				defX - 10,
-				-halfDefL,
-				defZ
-			],
-			[
-				defX + 10,
-				-halfDefL,
-				defZ
-			],
-			[
-				defX + 10,
-				halfDefL,
-				defZ
-			],
-			[
-				defX - 10,
-				halfDefL,
-				defZ
-			]
-		], "#f43f5e", "rgba(244, 63, 94, 0.45)", 2);
-		else if (currentDefect.id === "transverse_crack") drawPoly3D([
-			[
-				defX - 5,
-				0,
-				defZ + halfDefH
-			],
-			[
-				defX + 5,
-				0,
-				defZ + halfDefH
-			],
-			[
-				defX + 4,
-				0,
-				defZ - halfDefH
-			],
-			[
-				defX - 4,
-				0,
-				defZ - halfDefH
-			]
-		], "#ef4444", "rgba(239, 68, 68, 0.55)", 2.2);
-		else {
-			const tiltX = currentDefect.id === "lack_of_fusion" ? 1.8 : .4;
+				pts.forEach(([px, py, pz], idx) => {
+					const [sx, sy] = project(px, py, pz);
+					if (idx === 0) ctx.moveTo(sx, sy);
+					else ctx.lineTo(sx, sy);
+				});
+				ctx.closePath();
+				if (fill) {
+					ctx.fillStyle = fill;
+					ctx.fill();
+				}
+				ctx.strokeStyle = stroke;
+				ctx.lineWidth = lineW;
+				ctx.stroke();
+				ctx.restore();
+			};
 			drawPoly3D([
 				[
-					defX - tiltX,
+					-52,
+					-34,
+					-plateThicknessMm
+				],
+				[
+					62,
+					-34,
+					-plateThicknessMm
+				],
+				[
+					62,
+					34,
+					-plateThicknessMm
+				],
+				[
+					-52,
+					34,
+					-plateThicknessMm
+				]
+			], "rgba(51, 65, 85, 0.85)", "rgba(15, 23, 42, 0.65)");
+			drawPoly3D([
+				[
+					-52,
+					-34,
+					0
+				],
+				[
+					62,
+					-34,
+					0
+				],
+				[
+					62,
+					34,
+					0
+				],
+				[
+					-52,
+					34,
+					0
+				]
+			], "rgba(71, 85, 105, 0.9)", "rgba(30, 41, 59, 0.32)");
+			drawPoly3D([
+				[
+					-52,
+					34,
+					0
+				],
+				[
+					62,
+					34,
+					0
+				],
+				[
+					62,
+					34,
+					-plateThicknessMm
+				],
+				[
+					-52,
+					34,
+					-plateThicknessMm
+				]
+			], "#334155", "rgba(15, 23, 42, 0.25)");
+			for (const yPlane of [
+				-34,
+				0,
+				34
+			]) drawPoly3D([
+				[
+					-9,
+					yPlane,
+					0
+				],
+				[
+					9,
+					yPlane,
+					0
+				],
+				[
+					1.6,
+					yPlane,
+					-plateThicknessMm
+				],
+				[
+					-1.6,
+					yPlane,
+					-plateThicknessMm
+				]
+			], yPlane === 34 ? "rgba(245, 158, 11, 0.7)" : "rgba(245, 158, 11, 0.28)", yPlane === 34 ? "rgba(245, 158, 11, 0.10)" : void 0);
+			ctx.strokeStyle = "rgba(245, 158, 11, 0.55)";
+			ctx.lineWidth = 1.3;
+			for (const xEdge of [-9, 9]) {
+				const [x1, y1] = project(xEdge, -34, 0);
+				const [x2, y2] = project(xEdge, 34, 0);
+				ctx.beginPath();
+				ctx.moveTo(x1, y1);
+				ctx.lineTo(x2, y2);
+				ctx.stroke();
+			}
+			const defX = currentDefect.distanceFromWeldCenterMm;
+			const defZ = -flawDepthMm;
+			const halfDefL = Math.min(24, currentDefect.lengthMm * .75);
+			const halfDefH = Math.max(1.2, currentDefect.heightMm * .55);
+			const defColor = currentDefect.category === "Planar" ? "rgba(239, 68, 68, 0.88)" : "rgba(245, 158, 11, 0.85)";
+			if (currentDefect.id === "porosity_cluster" || currentDefect.id === "isolated_pore" || currentDefect.id === "tungsten_inclusion") {
+				const count = currentDefect.id === "porosity_cluster" ? 6 : 1;
+				for (let p = 0; p < count; p++) {
+					const py = count === 1 ? 0 : (p - 2.5) * 2.6;
+					const [sx, sy] = project(defX + (p % 2 === 0 ? .6 : -.6), py, defZ + (p % 3 - 1) * .8);
+					ctx.fillStyle = currentDefect.id === "tungsten_inclusion" ? "#f8fafc" : "#38bdf8";
+					ctx.beginPath();
+					ctx.arc(sx, sy, currentDefect.id === "isolated_pore" ? 5.5 : 4.2, 0, Math.PI * 2);
+					ctx.fill();
+				}
+			} else if (currentDefect.id === "base_lamination") drawPoly3D([
+				[
+					defX - 10,
 					-halfDefL,
+					defZ
+				],
+				[
+					defX + 10,
+					-halfDefL,
+					defZ
+				],
+				[
+					defX + 10,
+					halfDefL,
+					defZ
+				],
+				[
+					defX - 10,
+					halfDefL,
+					defZ
+				]
+			], "#f43f5e", "rgba(244, 63, 94, 0.45)", 2);
+			else if (currentDefect.id === "transverse_crack") drawPoly3D([
+				[
+					defX - 5,
+					0,
 					defZ + halfDefH
 				],
 				[
-					defX - tiltX,
-					halfDefL,
+					defX + 5,
+					0,
 					defZ + halfDefH
 				],
 				[
-					defX + tiltX,
-					halfDefL,
+					defX + 4,
+					0,
 					defZ - halfDefH
 				],
 				[
-					defX + tiltX,
-					-halfDefL,
+					defX - 4,
+					0,
 					defZ - halfDefH
 				]
-			], isIn6dBCore ? "#ffffff" : defColor, isIn6dBCore ? "rgba(239, 68, 68, 0.78)" : "rgba(239, 68, 68, 0.42)", isIn6dBCore ? 2.4 : 1.6);
-		}
-		const probeX = probeStandoffMm;
-		drawPoly3D([
-			[
-				probeX - 3,
-				-7,
-				0
-			],
-			[
-				probeX + 12,
-				-7,
-				0
-			],
-			[
-				probeX + 12,
-				7,
-				0
-			],
-			[
-				probeX - 3,
-				7,
-				0
-			]
-		], beamMode === "paut_focused" ? "#f59e0b" : "#38bdf8", beamMode === "paut_focused" ? "rgba(245, 158, 11, 0.35)" : "rgba(56, 189, 248, 0.35)", 1.8);
-		drawPoly3D([
-			[
-				probeX - 1,
-				-6,
-				6
-			],
-			[
-				probeX + 11,
-				-6,
-				8
-			],
-			[
-				probeX + 11,
-				6,
-				8
-			],
-			[
-				probeX - 1,
-				6,
-				6
-			]
-		], beamMode === "paut_focused" ? "#fbbf24" : "#7dd3fc", "rgba(15, 23, 42, 0.75)", 1.4);
-		const totalSoundPathMm = probeAngleDeg === 0 ? plateThicknessMm : plateThicknessMm / cosT * 1.65;
-		const numSlices = 9;
-		const get3DConeCenter = (sMm) => {
-			if (probeAngleDeg === 0) return [
-				probeX,
-				0,
-				-Math.min(plateThicknessMm, sMm)
-			];
-			const leg1MaxS = plateThicknessMm / cosT;
-			if (sMm <= leg1MaxS) return [
-				probeX - sMm * Math.sin(rad),
-				0,
-				-sMm * cosT
-			];
-			const remS = sMm - leg1MaxS;
-			return [
-				probeX - halfSkipMm - remS * Math.sin(rad),
-				0,
-				-plateThicknessMm + remS * cosT
-			];
-		};
-		const ringSegments = 16;
-		const rings6Screen = [];
-		const rings20Screen = [];
-		for (let sIdx = 0; sIdx <= numSlices; sIdx++) {
-			const sMm = sIdx / numSlices * totalSoundPathMm;
-			const [cx3, cy3, cz3] = get3DConeCenter(sMm);
-			const r6 = coneMetrics.width6dBAtDepthMm(sMm) / 2;
-			const r20 = coneMetrics.width20dBAtDepthMm(sMm) / 2;
-			const cur6 = [];
-			const cur20 = [];
-			for (let k = 0; k <= ringSegments; k++) {
-				const phi = k / ringSegments * Math.PI * 2;
-				const ox6 = Math.cos(phi) * r6 * cosT;
-				const oy6 = Math.sin(phi) * r6;
-				const oz6 = Math.cos(phi) * r6 * Math.sin(rad) * .55;
-				cur6.push(project(cx3 + ox6, cy3 + oy6, Math.min(0, Math.max(-plateThicknessMm, cz3 + oz6))));
-				const ox20 = Math.cos(phi) * r20 * cosT;
-				const oy20 = Math.sin(phi) * r20;
-				const oz20 = Math.cos(phi) * r20 * Math.sin(rad) * .55;
-				cur20.push(project(cx3 + ox20, cy3 + oy20, Math.min(0, Math.max(-plateThicknessMm, cz3 + oz20))));
+			], "#ef4444", "rgba(239, 68, 68, 0.55)", 2.2);
+			else {
+				const tiltX = currentDefect.id === "lack_of_fusion" ? 1.8 : .4;
+				drawPoly3D([
+					[
+						defX - tiltX,
+						-halfDefL,
+						defZ + halfDefH
+					],
+					[
+						defX - tiltX,
+						halfDefL,
+						defZ + halfDefH
+					],
+					[
+						defX + tiltX,
+						halfDefL,
+						defZ - halfDefH
+					],
+					[
+						defX + tiltX,
+						-halfDefL,
+						defZ - halfDefH
+					]
+				], isIn6dBCore ? "#ffffff" : defColor, isIn6dBCore ? "rgba(239, 68, 68, 0.78)" : "rgba(239, 68, 68, 0.42)", isIn6dBCore ? 2.4 : 1.6);
 			}
-			rings6Screen.push(cur6);
-			rings20Screen.push(cur20);
-		}
-		if (showOuter20dBCone) {
-			ctx.strokeStyle = beamMode === "paut_focused" ? "rgba(245, 158, 11, 0.22)" : "rgba(56, 189, 248, 0.22)";
-			ctx.lineWidth = 1;
-			rings20Screen.forEach((ring) => {
+			const probeX = probeStandoffMm;
+			drawPoly3D([
+				[
+					probeX - 3,
+					-7,
+					0
+				],
+				[
+					probeX + 12,
+					-7,
+					0
+				],
+				[
+					probeX + 12,
+					7,
+					0
+				],
+				[
+					probeX - 3,
+					7,
+					0
+				]
+			], beamMode === "paut_focused" ? "#f59e0b" : "#38bdf8", beamMode === "paut_focused" ? "rgba(245, 158, 11, 0.35)" : "rgba(56, 189, 248, 0.35)", 1.8);
+			drawPoly3D([
+				[
+					probeX - 1,
+					-6,
+					6
+				],
+				[
+					probeX + 11,
+					-6,
+					8
+				],
+				[
+					probeX + 11,
+					6,
+					8
+				],
+				[
+					probeX - 1,
+					6,
+					6
+				]
+			], beamMode === "paut_focused" ? "#fbbf24" : "#7dd3fc", "rgba(15, 23, 42, 0.75)", 1.4);
+			const totalSoundPathMm = probeAngleDeg === 0 ? plateThicknessMm : plateThicknessMm / cosT * 1.65;
+			const numSlices = 9;
+			const get3DConeCenter = (sMm) => {
+				if (probeAngleDeg === 0) return [
+					probeX,
+					0,
+					-Math.min(plateThicknessMm, sMm)
+				];
+				const leg1MaxS = plateThicknessMm / cosT;
+				if (sMm <= leg1MaxS) return [
+					probeX - sMm * Math.sin(rad),
+					0,
+					-sMm * cosT
+				];
+				const remS = sMm - leg1MaxS;
+				return [
+					probeX - halfSkipMm - remS * Math.sin(rad),
+					0,
+					-plateThicknessMm + remS * cosT
+				];
+			};
+			const ringSegments = 16;
+			const rings6Screen = [];
+			const rings20Screen = [];
+			for (let sIdx = 0; sIdx <= numSlices; sIdx++) {
+				const sMm = sIdx / numSlices * totalSoundPathMm;
+				const [cx3, cy3, cz3] = get3DConeCenter(sMm);
+				const r6 = coneMetrics.width6dBAtDepthMm(sMm) / 2;
+				const r20 = coneMetrics.width20dBAtDepthMm(sMm) / 2;
+				const cur6 = [];
+				const cur20 = [];
+				for (let k = 0; k <= ringSegments; k++) {
+					const phi = k / ringSegments * Math.PI * 2;
+					const ox6 = Math.cos(phi) * r6 * cosT;
+					const oy6 = Math.sin(phi) * r6;
+					const oz6 = Math.cos(phi) * r6 * Math.sin(rad) * .55;
+					cur6.push(project(cx3 + ox6, cy3 + oy6, Math.min(0, Math.max(-plateThicknessMm, cz3 + oz6))));
+					const ox20 = Math.cos(phi) * r20 * cosT;
+					const oy20 = Math.sin(phi) * r20;
+					const oz20 = Math.cos(phi) * r20 * Math.sin(rad) * .55;
+					cur20.push(project(cx3 + ox20, cy3 + oy20, Math.min(0, Math.max(-plateThicknessMm, cz3 + oz20))));
+				}
+				rings6Screen.push(cur6);
+				rings20Screen.push(cur20);
+			}
+			if (showOuter20dBCone) {
+				ctx.strokeStyle = beamMode === "paut_focused" ? "rgba(245, 158, 11, 0.22)" : "rgba(56, 189, 248, 0.22)";
+				ctx.lineWidth = 1;
+				rings20Screen.forEach((ring) => {
+					ctx.beginPath();
+					ring.forEach(([sx, sy], i) => i === 0 ? ctx.moveTo(sx, sy) : ctx.lineTo(sx, sy));
+					ctx.stroke();
+				});
+				for (let k = 0; k < ringSegments; k += 4) {
+					ctx.beginPath();
+					rings20Screen.forEach((ring, i) => i === 0 ? ctx.moveTo(ring[k][0], ring[k][1]) : ctx.lineTo(ring[k][0], ring[k][1]));
+					ctx.stroke();
+				}
+			}
+			const effectiveNf3D = coneMetrics.effectiveNearFieldInSpecimenMm > 0 ? coneMetrics.effectiveNearFieldInSpecimenMm : coneMetrics.nearFieldLengthMm;
+			rings6Screen.forEach((ring, idx) => {
+				const sMm = idx / numSlices * totalSoundPathMm;
+				const isInsideNearField = showNearField && sMm <= effectiveNf3D;
+				const isNearFieldBoundary = showNearField && Math.abs(sMm - effectiveNf3D) <= totalSoundPathMm / (numSlices * 1.4);
+				ctx.strokeStyle = isNearFieldBoundary ? "#e879f9" : isInsideNearField ? "#c084fc" : isIn6dBCore ? "rgba(248, 113, 113, 0.85)" : beamMode === "paut_focused" ? "rgba(251, 191, 36, 0.72)" : "rgba(34, 211, 238, 0.72)";
+				ctx.fillStyle = isInsideNearField ? "rgba(168, 85, 247, 0.22)" : beamMode === "paut_focused" ? "rgba(245, 158, 11, 0.11)" : "rgba(6, 182, 212, 0.11)";
+				ctx.lineWidth = isNearFieldBoundary ? 2.4 : isInsideNearField ? 1.8 : 1.3;
 				ctx.beginPath();
 				ring.forEach(([sx, sy], i) => i === 0 ? ctx.moveTo(sx, sy) : ctx.lineTo(sx, sy));
+				ctx.fill();
 				ctx.stroke();
 			});
-			for (let k = 0; k < ringSegments; k += 4) {
-				ctx.beginPath();
-				rings20Screen.forEach((ring, i) => i === 0 ? ctx.moveTo(ring[k][0], ring[k][1]) : ctx.lineTo(ring[k][0], ring[k][1]));
-				ctx.stroke();
-			}
-		}
-		const effectiveNf3D = coneMetrics.effectiveNearFieldInSpecimenMm > 0 ? coneMetrics.effectiveNearFieldInSpecimenMm : coneMetrics.nearFieldLengthMm;
-		rings6Screen.forEach((ring, idx) => {
-			const sMm = idx / numSlices * totalSoundPathMm;
-			const isInsideNearField = showNearField && sMm <= effectiveNf3D;
-			const isNearFieldBoundary = showNearField && Math.abs(sMm - effectiveNf3D) <= totalSoundPathMm / (numSlices * 1.4);
-			ctx.strokeStyle = isNearFieldBoundary ? "#e879f9" : isInsideNearField ? "#c084fc" : isIn6dBCore ? "rgba(248, 113, 113, 0.85)" : beamMode === "paut_focused" ? "rgba(251, 191, 36, 0.72)" : "rgba(34, 211, 238, 0.72)";
-			ctx.fillStyle = isInsideNearField ? "rgba(168, 85, 247, 0.22)" : beamMode === "paut_focused" ? "rgba(245, 158, 11, 0.11)" : "rgba(6, 182, 212, 0.11)";
-			ctx.lineWidth = isNearFieldBoundary ? 2.4 : isInsideNearField ? 1.8 : 1.3;
-			ctx.beginPath();
-			ring.forEach(([sx, sy], i) => i === 0 ? ctx.moveTo(sx, sy) : ctx.lineTo(sx, sy));
-			ctx.fill();
-			ctx.stroke();
-		});
-		if (showNearField && effectiveNf3D > 1 && effectiveNf3D <= totalSoundPathMm) {
-			const [nfx, nfy, nfz] = get3DConeCenter(effectiveNf3D);
-			const [nsx, nsy] = project(nfx, nfy, nfz);
-			ctx.fillStyle = "#e9d5ff";
-			ctx.font = "bold 9.5px monospace";
-			ctx.fillText(`NF=${effectiveNf3D.toFixed(1)}mm → Far Field`, nsx + 8, nsy - 6);
-		}
-		for (let k = 0; k < ringSegments; k += 2) {
-			ctx.strokeStyle = beamMode === "paut_focused" ? "rgba(251, 191, 36, 0.42)" : "rgba(56, 189, 248, 0.42)";
-			ctx.lineWidth = 1.1;
-			ctx.beginPath();
-			rings6Screen.forEach((ring, i) => i === 0 ? ctx.moveTo(ring[k][0], ring[k][1]) : ctx.lineTo(ring[k][0], ring[k][1]));
-			ctx.stroke();
-		}
-		if (showSideLobes) for (const sideSign of [-1, 1]) {
-			const [p0x, p0y] = project(probeX, 0, 0);
-			const [p1x, p1y] = project(probeX - 4 * Math.sin(rad), sideSign * 8.5, -5.5);
-			ctx.strokeStyle = "rgba(244, 114, 182, 0.55)";
-			ctx.lineWidth = 1.4;
-			ctx.beginPath();
-			ctx.moveTo(p0x, p0y);
-			ctx.quadraticCurveTo((p0x + p1x) / 2, (p0y + p1y) / 2 + 4, p1x, p1y);
-			ctx.stroke();
-		}
-		ctx.strokeStyle = isIn6dBCore ? "#ef4444" : "#ffffff";
-		ctx.lineWidth = 2.2;
-		ctx.beginPath();
-		for (let sIdx = 0; sIdx <= numSlices; sIdx++) {
-			const [cx3, cy3, cz3] = get3DConeCenter(sIdx / numSlices * totalSoundPathMm);
-			const [sx, sy] = project(cx3, cy3, cz3);
-			if (sIdx === 0) ctx.moveTo(sx, sy);
-			else ctx.lineTo(sx, sy);
-		}
-		ctx.stroke();
-		if (showDefectWireframe && coneSpecimenWireframeOverlays.length > 0) coneSpecimenWireframeOverlays.slice(0, 4).forEach((wf, wfIdx) => {
-			const wx = wf.xMm;
-			const wyCenter = Math.max(-26, Math.min(26, (wf.yMm - 50) * .65));
-			const wzDepth = -Math.max(0, Math.min(plateThicknessMm, wf.calculatedDepthMm));
-			const halfLen3D = Math.max(2.5, Math.min(24, wf.calculatedLengthMm * .5));
-			const halfW3D = Math.max(1.2, wf.transverseWidthMm * .55);
-			const halfH3D = Math.max(1.1, wf.heightMm * .5);
-			const zCenterBox = Math.min(-halfH3D, Math.max(-plateThicknessMm + halfH3D, wzDepth));
-			const strokeCol = wf.isLiveActive ? "#22d3ee" : wf.severity === "Critical" ? "#f87171" : "#fbbf24";
-			const topCorners = [
-				[
-					wx - halfW3D,
-					wyCenter - halfLen3D,
-					zCenterBox + halfH3D
-				],
-				[
-					wx + halfW3D,
-					wyCenter - halfLen3D,
-					zCenterBox + halfH3D
-				],
-				[
-					wx + halfW3D,
-					wyCenter + halfLen3D,
-					zCenterBox + halfH3D
-				],
-				[
-					wx - halfW3D,
-					wyCenter + halfLen3D,
-					zCenterBox + halfH3D
-				]
-			];
-			const botCorners = [
-				[
-					wx - halfW3D,
-					wyCenter - halfLen3D,
-					zCenterBox - halfH3D
-				],
-				[
-					wx + halfW3D,
-					wyCenter - halfLen3D,
-					zCenterBox - halfH3D
-				],
-				[
-					wx + halfW3D,
-					wyCenter + halfLen3D,
-					zCenterBox - halfH3D
-				],
-				[
-					wx - halfW3D,
-					wyCenter + halfLen3D,
-					zCenterBox - halfH3D
-				]
-			];
-			drawPoly3D(topCorners, strokeCol, void 0, wf.isLiveActive ? 1.8 : 1.3);
-			drawPoly3D(botCorners, strokeCol, void 0, wf.isLiveActive ? 1.8 : 1.3);
-			ctx.save();
-			ctx.strokeStyle = strokeCol;
-			ctx.lineWidth = wf.isLiveActive ? 1.6 : 1.2;
-			for (let c = 0; c < 4; c++) {
-				const [tx, ty] = project(...topCorners[c]);
-				const [bx, by] = project(...botCorners[c]);
-				ctx.beginPath();
-				ctx.moveTo(tx, ty);
-				ctx.lineTo(bx, by);
-				ctx.stroke();
-			}
-			ctx.restore();
-			const surfFootprint = [
-				[
-					wx - halfW3D,
-					wyCenter - halfLen3D,
-					0
-				],
-				[
-					wx + halfW3D,
-					wyCenter - halfLen3D,
-					0
-				],
-				[
-					wx + halfW3D,
-					wyCenter + halfLen3D,
-					0
-				],
-				[
-					wx - halfW3D,
-					wyCenter + halfLen3D,
-					0
-				]
-			];
-			drawPoly3D(surfFootprint, "rgba(34, 211, 238, 0.55)", void 0, 1, true);
-			if (wfIdx === 0) {
-				const calX = wx - halfW3D - 4.5;
-				const [zTopSx, zTopSy] = project(calX, wyCenter, 0);
-				const [zBotSx, zBotSy] = project(calX, wyCenter, wzDepth);
-				ctx.save();
-				ctx.strokeStyle = "#38bdf8";
-				ctx.lineWidth = 1.5;
-				ctx.beginPath();
-				ctx.moveTo(zTopSx - 4, zTopSy);
-				ctx.lineTo(zTopSx + 4, zTopSy);
-				ctx.moveTo(zTopSx, zTopSy);
-				ctx.lineTo(zBotSx, zBotSy);
-				ctx.moveTo(zBotSx - 4, zBotSy);
-				ctx.lineTo(zBotSx + 4, zBotSy);
-				ctx.stroke();
-				const [lStartSx, lStartSy] = project(wx, wyCenter - halfLen3D, zCenterBox - halfH3D - 1.6);
-				const [lEndSx, lEndSy] = project(wx, wyCenter + halfLen3D, zCenterBox - halfH3D - 1.6);
-				ctx.strokeStyle = "#fbbf24";
-				ctx.beginPath();
-				ctx.moveTo(lStartSx, lStartSy - 4);
-				ctx.lineTo(lStartSx, lStartSy + 4);
-				ctx.moveTo(lStartSx, lStartSy);
-				ctx.lineTo(lEndSx, lEndSy);
-				ctx.moveTo(lEndSx, lEndSy - 4);
-				ctx.lineTo(lEndSx, lEndSy + 4);
-				ctx.stroke();
-				const labelX = Math.max(12, Math.min(w - 205, zBotSx - 150));
-				const labelY = Math.max(30, Math.min(h - 36, (zTopSy + zBotSy) / 2 - 14));
-				ctx.fillStyle = "rgba(6, 10, 24, 0.92)";
-				ctx.strokeStyle = strokeCol;
-				ctx.lineWidth = 1.2;
-				ctx.fillRect(labelX, labelY, 192, 28);
-				ctx.strokeRect(labelX, labelY, 192, 28);
-				ctx.fillStyle = "#f8fafc";
+			if (showNearField && effectiveNf3D > 1 && effectiveNf3D <= totalSoundPathMm) {
+				const [nfx, nfy, nfz] = get3DConeCenter(effectiveNf3D);
+				const [nsx, nsy] = project(nfx, nfy, nfz);
+				ctx.fillStyle = "#e9d5ff";
 				ctx.font = "bold 9.5px monospace";
-				ctx.fillText(`[${wf.codeSymbol}] Z=${wf.calculatedDepthMm.toFixed(1)}mm · L=${wf.calculatedLengthMm.toFixed(1)}mm`, labelX + 7, labelY + 17);
-				ctx.restore();
+				ctx.fillText(`NF=${effectiveNf3D.toFixed(1)}mm → Far Field`, nsx + 8, nsy - 6);
 			}
-		});
-		ctx.fillStyle = "#e2e8f0";
-		ctx.font = "bold 10px monospace";
-		ctx.fillText(`3D VOLUMETRIC BEAM CONE ("كوم الأشعة") · N=${coneMetrics.nearFieldLengthMm.toFixed(1)}mm · γ(-6dB)=±${coneMetrics.halfAngleMinus6dBDeg.toFixed(1)}° · γ(-20dB)=±${coneMetrics.halfAngleMinus20dBDeg.toFixed(1)}°`, 14, 20);
+			for (let k = 0; k < ringSegments; k += 2) {
+				ctx.strokeStyle = beamMode === "paut_focused" ? "rgba(251, 191, 36, 0.42)" : "rgba(56, 189, 248, 0.42)";
+				ctx.lineWidth = 1.1;
+				ctx.beginPath();
+				rings6Screen.forEach((ring, i) => i === 0 ? ctx.moveTo(ring[k][0], ring[k][1]) : ctx.lineTo(ring[k][0], ring[k][1]));
+				ctx.stroke();
+			}
+			if (showSideLobes) for (const sideSign of [-1, 1]) {
+				const [p0x, p0y] = project(probeX, 0, 0);
+				const [p1x, p1y] = project(probeX - 4 * Math.sin(rad), sideSign * 8.5, -5.5);
+				ctx.strokeStyle = "rgba(244, 114, 182, 0.55)";
+				ctx.lineWidth = 1.4;
+				ctx.beginPath();
+				ctx.moveTo(p0x, p0y);
+				ctx.quadraticCurveTo((p0x + p1x) / 2, (p0y + p1y) / 2 + 4, p1x, p1y);
+				ctx.stroke();
+			}
+			ctx.strokeStyle = isIn6dBCore ? "#ef4444" : "#ffffff";
+			ctx.lineWidth = 2.2;
+			ctx.beginPath();
+			for (let sIdx = 0; sIdx <= numSlices; sIdx++) {
+				const [cx3, cy3, cz3] = get3DConeCenter(sIdx / numSlices * totalSoundPathMm);
+				const [sx, sy] = project(cx3, cy3, cz3);
+				if (sIdx === 0) ctx.moveTo(sx, sy);
+				else ctx.lineTo(sx, sy);
+			}
+			ctx.stroke();
+			if (showDefectWireframe && coneSpecimenWireframeOverlays.length > 0) coneSpecimenWireframeOverlays.slice(0, 4).forEach((wf, wfIdx) => {
+				const wx = wf.xMm;
+				const wyCenter = Math.max(-26, Math.min(26, (wf.yMm - 50) * .65));
+				const wzDepth = -Math.max(0, Math.min(plateThicknessMm, wf.calculatedDepthMm));
+				const halfLen3D = Math.max(2.5, Math.min(24, wf.calculatedLengthMm * .5));
+				const halfW3D = Math.max(1.2, wf.transverseWidthMm * .55);
+				const halfH3D = Math.max(1.1, wf.heightMm * .5);
+				const zCenterBox = Math.min(-halfH3D, Math.max(-plateThicknessMm + halfH3D, wzDepth));
+				const strokeCol = wf.isLiveActive ? "#22d3ee" : wf.severity === "Critical" ? "#f87171" : "#fbbf24";
+				const topCorners = [
+					[
+						wx - halfW3D,
+						wyCenter - halfLen3D,
+						zCenterBox + halfH3D
+					],
+					[
+						wx + halfW3D,
+						wyCenter - halfLen3D,
+						zCenterBox + halfH3D
+					],
+					[
+						wx + halfW3D,
+						wyCenter + halfLen3D,
+						zCenterBox + halfH3D
+					],
+					[
+						wx - halfW3D,
+						wyCenter + halfLen3D,
+						zCenterBox + halfH3D
+					]
+				];
+				const botCorners = [
+					[
+						wx - halfW3D,
+						wyCenter - halfLen3D,
+						zCenterBox - halfH3D
+					],
+					[
+						wx + halfW3D,
+						wyCenter - halfLen3D,
+						zCenterBox - halfH3D
+					],
+					[
+						wx + halfW3D,
+						wyCenter + halfLen3D,
+						zCenterBox - halfH3D
+					],
+					[
+						wx - halfW3D,
+						wyCenter + halfLen3D,
+						zCenterBox - halfH3D
+					]
+				];
+				drawPoly3D(topCorners, strokeCol, void 0, wf.isLiveActive ? 1.8 : 1.3);
+				drawPoly3D(botCorners, strokeCol, void 0, wf.isLiveActive ? 1.8 : 1.3);
+				ctx.save();
+				ctx.strokeStyle = strokeCol;
+				ctx.lineWidth = wf.isLiveActive ? 1.6 : 1.2;
+				for (let c = 0; c < 4; c++) {
+					const [tx, ty] = project(...topCorners[c]);
+					const [bx, by] = project(...botCorners[c]);
+					ctx.beginPath();
+					ctx.moveTo(tx, ty);
+					ctx.lineTo(bx, by);
+					ctx.stroke();
+				}
+				ctx.restore();
+				const surfFootprint = [
+					[
+						wx - halfW3D,
+						wyCenter - halfLen3D,
+						0
+					],
+					[
+						wx + halfW3D,
+						wyCenter - halfLen3D,
+						0
+					],
+					[
+						wx + halfW3D,
+						wyCenter + halfLen3D,
+						0
+					],
+					[
+						wx - halfW3D,
+						wyCenter + halfLen3D,
+						0
+					]
+				];
+				drawPoly3D(surfFootprint, "rgba(34, 211, 238, 0.55)", void 0, 1, true);
+				if (wfIdx === 0) {
+					const calX = wx - halfW3D - 4.5;
+					const [zTopSx, zTopSy] = project(calX, wyCenter, 0);
+					const [zBotSx, zBotSy] = project(calX, wyCenter, wzDepth);
+					ctx.save();
+					ctx.strokeStyle = "#38bdf8";
+					ctx.lineWidth = 1.5;
+					ctx.beginPath();
+					ctx.moveTo(zTopSx - 4, zTopSy);
+					ctx.lineTo(zTopSx + 4, zTopSy);
+					ctx.moveTo(zTopSx, zTopSy);
+					ctx.lineTo(zBotSx, zBotSy);
+					ctx.moveTo(zBotSx - 4, zBotSy);
+					ctx.lineTo(zBotSx + 4, zBotSy);
+					ctx.stroke();
+					const [lStartSx, lStartSy] = project(wx, wyCenter - halfLen3D, zCenterBox - halfH3D - 1.6);
+					const [lEndSx, lEndSy] = project(wx, wyCenter + halfLen3D, zCenterBox - halfH3D - 1.6);
+					ctx.strokeStyle = "#fbbf24";
+					ctx.beginPath();
+					ctx.moveTo(lStartSx, lStartSy - 4);
+					ctx.lineTo(lStartSx, lStartSy + 4);
+					ctx.moveTo(lStartSx, lStartSy);
+					ctx.lineTo(lEndSx, lEndSy);
+					ctx.moveTo(lEndSx, lEndSy - 4);
+					ctx.lineTo(lEndSx, lEndSy + 4);
+					ctx.stroke();
+					const labelX = Math.max(12, Math.min(w - 205, zBotSx - 150));
+					const labelY = Math.max(30, Math.min(h - 36, (zTopSy + zBotSy) / 2 - 14));
+					ctx.fillStyle = "rgba(6, 10, 24, 0.92)";
+					ctx.strokeStyle = strokeCol;
+					ctx.lineWidth = 1.2;
+					ctx.fillRect(labelX, labelY, 192, 28);
+					ctx.strokeRect(labelX, labelY, 192, 28);
+					ctx.fillStyle = "#f8fafc";
+					ctx.font = "bold 9.5px monospace";
+					ctx.fillText(`[${wf.codeSymbol}] Z=${wf.calculatedDepthMm.toFixed(1)}mm · L=${wf.calculatedLengthMm.toFixed(1)}mm`, labelX + 7, labelY + 17);
+					ctx.restore();
+				}
+			});
+			if (showWavefronts) {
+				const waveCount = 7;
+				for (let wIdx = 0; wIdx < waveCount; wIdx++) {
+					const normS = ((phaseSec * .42 + wIdx / waveCount) % 1 + 1) % 1;
+					const sMm = normS * totalSoundPathMm;
+					const [wx3, wy3, wz3] = get3DConeCenter(sMm);
+					const rWave = coneMetrics.width6dBAtDepthMm(sMm) / 2;
+					const inNfWave = showNearField && sMm <= effectiveNf3D;
+					const fade = Math.sin(normS * Math.PI);
+					const alpha = Math.max(.18, .85 * fade);
+					ctx.strokeStyle = isIn6dBCore ? `rgba(253, 186, 116, ${alpha.toFixed(2)})` : inNfWave ? `rgba(233, 213, 255, ${alpha.toFixed(2)})` : beamMode === "paut_focused" ? `rgba(254, 240, 138, ${alpha.toFixed(2)})` : `rgba(165, 243, 252, ${alpha.toFixed(2)})`;
+					ctx.lineWidth = wIdx % 2 === 0 ? 2.1 : 1.3;
+					ctx.beginPath();
+					for (let k = 0; k <= ringSegments; k++) {
+						const phi = k / ringSegments * Math.PI * 2;
+						const ox = Math.cos(phi) * rWave * cosT;
+						const oy = Math.sin(phi) * rWave;
+						const oz = Math.cos(phi) * rWave * Math.sin(rad) * .55;
+						const [sx, sy] = project(wx3 + ox, wy3 + oy, Math.min(0, Math.max(-plateThicknessMm, wz3 + oz)));
+						if (k === 0) ctx.moveTo(sx, sy);
+						else ctx.lineTo(sx, sy);
+					}
+					ctx.stroke();
+					const [cx2d, cy2d] = project(wx3, wy3, wz3);
+					const beadGlow = ctx.createRadialGradient(cx2d, cy2d, .5, cx2d, cy2d, 6);
+					beadGlow.addColorStop(0, "rgba(255, 255, 255, 0.92)");
+					beadGlow.addColorStop(.5, beamMode === "paut_focused" ? "rgba(245, 158, 11, 0.55)" : "rgba(34, 211, 238, 0.55)");
+					beadGlow.addColorStop(1, "rgba(34, 211, 238, 0)");
+					ctx.fillStyle = beadGlow;
+					ctx.beginPath();
+					ctx.arc(cx2d, cy2d, 6, 0, Math.PI * 2);
+					ctx.fill();
+				}
+				if (probeAngleDeg > 0) {
+					const leg1S = plateThicknessMm / cosT;
+					const [bx3, by3, bz3] = get3DConeCenter(leg1S);
+					const bouncePulse = .5 + .5 * Math.sin(phaseSec * 7);
+					const rBounce = coneMetrics.width6dBAtDepthMm(leg1S) * (.35 + bouncePulse * .25);
+					ctx.strokeStyle = `rgba(251, 191, 36, ${(.35 + bouncePulse * .45).toFixed(2)})`;
+					ctx.lineWidth = 1.6;
+					ctx.beginPath();
+					for (let k = 0; k <= 16; k++) {
+						const phi = k / 16 * Math.PI * 2;
+						const [sx, sy] = project(bx3 + Math.cos(phi) * rBounce, by3 + Math.sin(phi) * rBounce, bz3);
+						if (k === 0) ctx.moveTo(sx, sy);
+						else ctx.lineTo(sx, sy);
+					}
+					ctx.stroke();
+				}
+				if (isIn6dBCore || isIn20dBEdge) {
+					const [dfx, dfy] = project(defX, 0, defZ);
+					for (let rIdx = 0; rIdx < 3; rIdx++) {
+						const prog = ((phaseSec * 1.1 + rIdx / 3) % 1 + 1) % 1;
+						ctx.strokeStyle = `rgba(52, 211, 153, ${(.85 * (1 - prog)).toFixed(2)})`;
+						ctx.lineWidth = 1.7;
+						ctx.beginPath();
+						ctx.arc(dfx, dfy, 4 + prog * 22, 0, Math.PI * 2);
+						ctx.stroke();
+						const [rsx, rsy] = project(defX + (probeX - defX) * prog, 0, defZ + (0 - defZ) * prog);
+						ctx.fillStyle = "#34d399";
+						ctx.beginPath();
+						ctx.arc(rsx, rsy, 3.2, 0, Math.PI * 2);
+						ctx.fill();
+					}
+				}
+			}
+			ctx.fillStyle = "#e2e8f0";
+			ctx.font = "bold 10px monospace";
+			ctx.fillText(`3D VOLUMETRIC BEAM CONE ("كوم الأشعة") · N=${coneMetrics.nearFieldLengthMm.toFixed(1)}mm · γ(-6dB)=±${coneMetrics.halfAngleMinus6dBDeg.toFixed(1)}° · γ(-20dB)=±${coneMetrics.halfAngleMinus20dBDeg.toFixed(1)}°`, 14, 20);
+		};
+		const tick3D = () => {
+			const elapsedSec = (Date.now() - startMs) / 1e3;
+			render3DFrame(elapsedSec);
+			if (shouldAnimate) rafId = requestAnimationFrame(tick3D);
+		};
+		tick3D();
+		return () => {
+			if (rafId) cancelAnimationFrame(rafId);
+		};
 	}, [
 		yawDeg,
 		pitchDeg,
@@ -16096,9 +17225,11 @@ var BeamConeAndDefectExplorer = ({ language, selectedDefectId = "lack_of_fusion"
 		rad,
 		halfSkipMm,
 		isIn6dBCore,
+		isIn20dBEdge,
 		showNearField,
 		showOuter20dBCone,
 		showSideLobes,
+		showWavefronts,
 		showDefectWireframe,
 		coneSpecimenWireframeOverlays,
 		plateThicknessMm
@@ -16108,95 +17239,120 @@ var BeamConeAndDefectExplorer = ({ language, selectedDefectId = "lack_of_fusion"
 		if (!canvas) return;
 		const ctx = canvas.getContext("2d");
 		if (!ctx) return;
-		const w = canvas.width;
-		const h = canvas.height;
-		ctx.fillStyle = "#030712";
-		ctx.fillRect(0, 0, w, h);
-		const originX = w * .44;
-		const topY = 46;
-		const scale = 4.6;
-		const bottomY = topY + plateThicknessMm * scale;
-		ctx.fillStyle = "#111827";
-		ctx.strokeStyle = "#334155";
-		ctx.lineWidth = 1.5;
-		ctx.fillRect(18, topY, w - 36, plateThicknessMm * scale);
-		ctx.strokeRect(18, topY, w - 36, plateThicknessMm * scale);
-		ctx.fillStyle = "#1e293b";
-		ctx.strokeStyle = "#f59e0b";
-		ctx.lineWidth = 1.2;
-		ctx.beginPath();
-		ctx.moveTo(originX - 9 * scale, topY);
-		ctx.lineTo(originX + 9 * scale, topY);
-		ctx.lineTo(originX + 1.6 * scale, bottomY);
-		ctx.lineTo(originX - 1.6 * scale, bottomY);
-		ctx.closePath();
-		ctx.fill();
-		ctx.stroke();
-		const entryX = originX + probeStandoffMm * scale;
-		const entryY = topY;
-		const bounceX = probeAngleDeg === 0 ? entryX : entryX - halfSkipMm * scale;
-		const bounceY = bottomY;
-		const leg2EndX = probeAngleDeg === 0 ? void 0 : bounceX - halfSkipMm * scale;
-		drawUltrasonicBeamCone2D({
-			ctx,
-			entryX,
-			entryY,
-			bounceX,
-			bounceY,
-			leg2EndX,
-			leg2EndY: probeAngleDeg === 0 ? void 0 : topY,
-			scalePxPerMm: scale,
-			coneMetrics,
-			isPaut: beamMode === "paut_focused",
-			focalDepthMm: pautFocusMm,
-			showWavefronts,
-			showNearField,
-			isHit: isIn6dBCore
-		});
-		ctx.fillStyle = beamMode === "paut_focused" ? "#f59e0b" : "#0284c7";
-		ctx.fillRect(entryX - 8, 30, 28, 16);
-		ctx.fillStyle = "#ffffff";
-		ctx.font = "bold 8.5px monospace";
-		ctx.fillText(`${probeAngleDeg}°`, entryX - 4, 41);
-		const defCanvasX = originX + currentDefect.distanceFromWeldCenterMm * scale;
-		const defCanvasY = topY + flawDepthMm * scale;
-		drawComprehensiveDefectMorphology(ctx, currentDefect.id, defCanvasX, defCanvasY, topY, bottomY, scale, isIn6dBCore);
-		const stripTop = bottomY + 22;
-		const stripH = h - stripTop - 10;
-		ctx.fillStyle = "#020617";
-		ctx.strokeStyle = "#1e293b";
-		ctx.fillRect(18, stripTop, w - 36, stripH);
-		ctx.strokeRect(18, stripTop, w - 36, stripH);
-		ctx.fillStyle = "#94a3b8";
-		ctx.font = "bold 9px monospace";
-		ctx.fillText(`ECHO ENVELOPE SIGNATURE [${currentDefect.codeSymbol}]: ${currentDefect.directionalSensitivity}`, 26, stripTop + 13);
-		ctx.strokeStyle = isIn6dBCore ? "#22c55e" : isIn20dBEdge ? "#f59e0b" : "#64748b";
-		ctx.lineWidth = 1.8;
-		ctx.beginPath();
-		const baseLine = stripTop + stripH - 6;
-		const ampMult = isIn6dBCore ? .82 : isIn20dBEdge ? .38 : .16;
-		for (let px = 24; px < w - 24; px++) {
-			const norm = (px - 24) / (w - 48);
-			let sig = 0;
-			if (norm < .06) sig = .85 * Math.exp(-Math.pow((norm - .02) / .018, 2));
-			const d = norm - .52;
-			if (currentDefect.echoWaveformType === "sharp_spike_tip") {
-				sig += ampMult * Math.exp(-Math.pow(d / .018, 2));
-				sig += ampMult * .28 * Math.exp(-Math.pow((d + .06) / .012, 2));
-			} else if (currentDefect.echoWaveformType === "clean_specular") sig += ampMult * .95 * Math.exp(-Math.pow(d / .015, 2));
-			else if (currentDefect.echoWaveformType === "jagged_multipeak") sig += ampMult * .72 * Math.exp(-Math.pow(d / .042, 2)) * (.65 + .35 * Math.abs(Math.sin(d * 210)));
-			else if (currentDefect.echoWaveformType === "dense_cluster") for (const off of [
-				-.04,
-				-.015,
-				.01,
-				.035
-			]) sig += ampMult * .52 * Math.exp(-Math.pow((d - off) / .011, 2));
-			else if (currentDefect.echoWaveformType === "backwall_loss") sig += ampMult * .95 * Math.exp(-Math.pow((norm - .36) / .016, 2));
-			const sy = baseLine - Math.min(stripH - 20, sig * (stripH - 18));
-			if (px === 24) ctx.moveTo(px, sy);
-			else ctx.lineTo(px, sy);
-		}
-		ctx.stroke();
+		const prefersReducedMotion = typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+		const shouldAnimate = showWavefronts && !prefersReducedMotion;
+		let rafId = 0;
+		const startMs = Date.now();
+		const scatterMode = currentDefect.id === "base_lamination" ? "lamination" : currentDefect.echoWaveformType === "sharp_spike_tip" ? "tip_diffraction" : currentDefect.id === "root_crack" || currentDefect.id === "root_lof" || currentDefect.id === "incomplete_penetration" ? "corner_trap" : currentDefect.category === "Volumetric" ? "volumetric_scatter" : "specular_planar";
+		const renderCrossFrame = (phaseSec) => {
+			const w = canvas.width;
+			const h = canvas.height;
+			ctx.fillStyle = "#030712";
+			ctx.fillRect(0, 0, w, h);
+			const originX = w * .44;
+			const topY = 46;
+			const scale = 4.6;
+			const bottomY = topY + plateThicknessMm * scale;
+			ctx.fillStyle = "#111827";
+			ctx.strokeStyle = "#334155";
+			ctx.lineWidth = 1.5;
+			ctx.fillRect(18, topY, w - 36, plateThicknessMm * scale);
+			ctx.strokeRect(18, topY, w - 36, plateThicknessMm * scale);
+			ctx.fillStyle = "#1e293b";
+			ctx.strokeStyle = "#f59e0b";
+			ctx.lineWidth = 1.2;
+			ctx.beginPath();
+			ctx.moveTo(originX - 9 * scale, topY);
+			ctx.lineTo(originX + 9 * scale, topY);
+			ctx.lineTo(originX + 1.6 * scale, bottomY);
+			ctx.lineTo(originX - 1.6 * scale, bottomY);
+			ctx.closePath();
+			ctx.fill();
+			ctx.stroke();
+			const defCanvasX = originX + currentDefect.distanceFromWeldCenterMm * scale;
+			const defCanvasY = topY + flawDepthMm * scale;
+			const hitActive = isIn6dBCore || isIn20dBEdge;
+			const entryX = originX + probeStandoffMm * scale;
+			const entryY = topY;
+			const bounceX = probeAngleDeg === 0 ? entryX : entryX - halfSkipMm * scale;
+			const bounceY = bottomY;
+			const leg2EndX = probeAngleDeg === 0 ? void 0 : bounceX - halfSkipMm * scale;
+			drawUltrasonicBeamCone2D({
+				ctx,
+				entryX,
+				entryY,
+				bounceX,
+				bounceY,
+				leg2EndX,
+				leg2EndY: probeAngleDeg === 0 ? void 0 : topY,
+				scalePxPerMm: scale,
+				coneMetrics,
+				isPaut: beamMode === "paut_focused",
+				focalDepthMm: pautFocusMm,
+				showWavefronts,
+				showNearField,
+				isHit: isIn6dBCore,
+				animationPhase: phaseSec,
+				defectImpact: {
+					x: defCanvasX,
+					y: defCanvasY,
+					hit: hitActive,
+					scatterMode,
+					leg: Math.abs(rayXLeg2AtFlaw - currentDefect.distanceFromWeldCenterMm) < Math.abs(rayXAtFlaw - currentDefect.distanceFromWeldCenterMm) ? 2 : 1
+				}
+			});
+			ctx.fillStyle = beamMode === "paut_focused" ? "#f59e0b" : "#0284c7";
+			ctx.fillRect(entryX - 8, 30, 28, 16);
+			ctx.fillStyle = "#ffffff";
+			ctx.font = "bold 8.5px monospace";
+			ctx.fillText(`${probeAngleDeg}°`, entryX - 4, 41);
+			drawComprehensiveDefectMorphology(ctx, currentDefect.id, defCanvasX, defCanvasY, topY, bottomY, scale, isIn6dBCore);
+			const stripTop = bottomY + 22;
+			const stripH = h - stripTop - 10;
+			ctx.fillStyle = "#020617";
+			ctx.strokeStyle = "#1e293b";
+			ctx.fillRect(18, stripTop, w - 36, stripH);
+			ctx.strokeRect(18, stripTop, w - 36, stripH);
+			ctx.fillStyle = "#94a3b8";
+			ctx.font = "bold 9px monospace";
+			ctx.fillText(`ECHO ENVELOPE SIGNATURE [${currentDefect.codeSymbol}]: ${currentDefect.directionalSensitivity}`, 26, stripTop + 13);
+			ctx.strokeStyle = isIn6dBCore ? "#22c55e" : isIn20dBEdge ? "#f59e0b" : "#64748b";
+			ctx.lineWidth = 1.8;
+			ctx.beginPath();
+			const baseLine = stripTop + stripH - 6;
+			const ampMult = isIn6dBCore ? .82 : isIn20dBEdge ? .38 : .16;
+			for (let px = 24; px < w - 24; px++) {
+				const norm = (px - 24) / (w - 48);
+				let sig = 0;
+				if (norm < .06) sig = .85 * Math.exp(-Math.pow((norm - .02) / .018, 2));
+				const d = norm - .52;
+				if (currentDefect.echoWaveformType === "sharp_spike_tip") {
+					sig += ampMult * Math.exp(-Math.pow(d / .018, 2));
+					sig += ampMult * .28 * Math.exp(-Math.pow((d + .06) / .012, 2));
+				} else if (currentDefect.echoWaveformType === "clean_specular") sig += ampMult * .95 * Math.exp(-Math.pow(d / .015, 2));
+				else if (currentDefect.echoWaveformType === "jagged_multipeak") sig += ampMult * .72 * Math.exp(-Math.pow(d / .042, 2)) * (.65 + .35 * Math.abs(Math.sin(d * 210)));
+				else if (currentDefect.echoWaveformType === "dense_cluster") for (const off of [
+					-.04,
+					-.015,
+					.01,
+					.035
+				]) sig += ampMult * .52 * Math.exp(-Math.pow((d - off) / .011, 2));
+				else if (currentDefect.echoWaveformType === "backwall_loss") sig += ampMult * .95 * Math.exp(-Math.pow((norm - .36) / .016, 2));
+				const sy = baseLine - Math.min(stripH - 20, sig * (stripH - 18));
+				if (px === 24) ctx.moveTo(px, sy);
+				else ctx.lineTo(px, sy);
+			}
+			ctx.stroke();
+		};
+		const tickCross = () => {
+			const elapsedSec = (Date.now() - startMs) / 1e3;
+			renderCrossFrame(elapsedSec);
+			if (shouldAnimate) rafId = requestAnimationFrame(tickCross);
+		};
+		tickCross();
+		return () => {
+			if (rafId) cancelAnimationFrame(rafId);
+		};
 	}, [
 		currentDefect,
 		flawDepthMm,
@@ -16210,7 +17366,9 @@ var BeamConeAndDefectExplorer = ({ language, selectedDefectId = "lack_of_fusion"
 		showNearField,
 		isIn6dBCore,
 		isIn20dBEdge,
-		plateThicknessMm
+		plateThicknessMm,
+		rayXAtFlaw,
+		rayXLeg2AtFlaw
 	]);
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 		className: "rounded-2xl border border-slate-800 bg-slate-950 p-5 sm:p-6 space-y-6",
@@ -17653,295 +18811,336 @@ var ComprehensiveWeldUtSimulator = ({ language }) => {
 		if (!canvas) return;
 		const ctx = canvas.getContext("2d");
 		if (!ctx) return;
-		const width = canvas.width;
-		const height = canvas.height;
-		ctx.fillStyle = "#050814";
-		ctx.fillRect(0, 0, width, height);
-		const originX = width / 2;
-		const scale = Math.min(width * .82 / 150, height * .68 / 38);
-		if (specimenGeometry === "flat") {
-			const originY = 58;
-			const bottomY = originY + plateThicknessMm * scale;
-			const halfPlateWidthPx = 70 * scale;
-			ctx.fillStyle = "#131a33";
-			ctx.strokeStyle = "#2b3b6b";
-			ctx.lineWidth = 1.5;
-			ctx.beginPath();
-			ctx.moveTo(originX - halfPlateWidthPx, originY);
-			ctx.lineTo(originX - capWidthMm / 2 * scale, originY);
-			ctx.lineTo(originX - 1.5 * scale, bottomY);
-			ctx.lineTo(originX - halfPlateWidthPx, bottomY);
-			ctx.closePath();
-			ctx.fill();
-			ctx.stroke();
-			ctx.beginPath();
-			ctx.moveTo(originX + halfPlateWidthPx, originY);
-			ctx.lineTo(originX + capWidthMm / 2 * scale, originY);
-			ctx.lineTo(originX + 1.5 * scale, bottomY);
-			ctx.lineTo(originX + halfPlateWidthPx, bottomY);
-			ctx.closePath();
-			ctx.fill();
-			ctx.stroke();
-			ctx.fillStyle = "#1f2b52";
-			ctx.beginPath();
-			ctx.moveTo(originX - capWidthMm / 2 * scale, originY);
-			ctx.quadraticCurveTo(originX, originY - 3.5 * scale, originX + capWidthMm / 2 * scale, originY);
-			ctx.lineTo(originX + 1.5 * scale, bottomY);
-			ctx.quadraticCurveTo(originX, bottomY + 2.5 * scale, originX - 1.5 * scale, bottomY);
-			ctx.closePath();
-			ctx.fill();
-			ctx.strokeStyle = "#435894";
-			ctx.lineWidth = 1;
-			ctx.stroke();
-			ctx.strokeStyle = "rgba(148, 163, 184, 0.35)";
-			ctx.setLineDash([4, 4]);
-			ctx.beginPath();
-			ctx.moveTo(originX, 36);
-			ctx.lineTo(originX, bottomY + 18);
-			ctx.stroke();
-			ctx.setLineDash([]);
-			ctx.fillStyle = "#94a3b8";
-			ctx.font = "10px monospace";
-			ctx.textAlign = "center";
-			ctx.fillText(`FLAT PLATE WELD ℄ (t = ${plateThicknessMm}mm)`, originX, 32);
-			const flawCanvasX = originX + (currentFlaw.id === "base_lamination" ? Math.abs(currentFlaw.distanceFromWeldCenterMm) : currentFlaw.distanceFromWeldCenterMm) * scale;
-			const flawCanvasY = originY + flawNominalDepthMm * scale;
-			drawComprehensiveDefectMorphology(ctx, currentFlaw.id, flawCanvasX, flawCanvasY, originY, bottomY, scale, isHit);
-			const probeX = originX + probeIndexXmm * scale;
-			const wedgeW = (instrumentMode === "paut" ? 22 : 17) * scale;
-			const wedgeH = 13 * scale;
-			ctx.fillStyle = instrumentMode === "paut" ? "rgba(245, 158, 11, 0.22)" : "rgba(56, 189, 248, 0.22)";
-			ctx.strokeStyle = instrumentMode === "paut" ? "#f59e0b" : "#38bdf8";
-			ctx.lineWidth = 1.6;
-			ctx.beginPath();
-			ctx.moveTo(probeX, originY);
-			ctx.lineTo(probeX + wedgeW, originY);
-			ctx.lineTo(probeX + wedgeW, originY - wedgeH);
-			ctx.lineTo(probeX + (isStraightZeroBeam ? 0 : 3 * scale), originY - wedgeH * (isStraightZeroBeam ? 1 : .72));
-			ctx.closePath();
-			ctx.fill();
-			ctx.stroke();
-			if (instrumentMode === "paut") for (let el = 0; el < 8; el++) {
-				ctx.fillStyle = "#fbbf24";
-				ctx.fillRect(probeX + (4 + el * 1.9) * scale, originY - wedgeH * .85, 1.3 * scale, 3.2 * scale);
-			}
-			else {
-				ctx.fillStyle = "#38bdf8";
-				ctx.fillRect(probeX + 4 * scale, originY - wedgeH * .82, 8 * scale, 3.5 * scale);
-			}
-			ctx.fillStyle = "#f43f5e";
-			ctx.beginPath();
-			ctx.arc(probeX, originY, 3.2, 0, Math.PI * 2);
-			ctx.fill();
-			ctx.fillStyle = "#e2e8f0";
-			ctx.font = "bold 9px monospace";
-			ctx.textAlign = "center";
-			ctx.fillText(`${instrumentMode === "paut" ? `${pautApertureElements}E PAUT` : "UT"} ${effectiveBeamAngleDeg}° (X=${probeIndexXmm}mm)`, probeX + wedgeW / 2, originY - wedgeH - 6);
-			const leg1EndX = isStraightZeroBeam ? probeX : probeX - halfSkipSurfaceMm * scale;
-			const leg1EndY = currentFlaw.id === "base_lamination" && isHit ? flawCanvasY : bottomY;
-			const leg2EndX = isStraightZeroBeam ? void 0 : leg1EndX - halfSkipSurfaceMm * scale;
-			const leg2EndY = isStraightZeroBeam ? void 0 : originY;
-			if (showBeamConeOverlay) drawUltrasonicBeamCone2D({
-				ctx,
-				entryX: probeX,
-				entryY: originY,
-				bounceX: leg1EndX,
-				bounceY: leg1EndY,
-				leg2EndX,
-				leg2EndY,
-				scalePxPerMm: scale,
-				coneMetrics: beamConeMetrics,
-				isPaut: instrumentMode === "paut",
-				focalDepthMm: pautFocalDepthMm,
-				showNearField: showNearFieldAndWavefronts,
-				showWavefronts: showNearFieldAndWavefronts,
-				isHit
-			});
-			if (instrumentMode === "paut") for (let fanDeg = 40; fanDeg <= 70; fanDeg += 5) {
-				const fRad = fanDeg * Math.PI / 180;
-				const fEndX = probeX - plateThicknessMm * Math.tan(fRad) * scale;
-				ctx.strokeStyle = "rgba(245, 158, 11, 0.18)";
+		const prefersReducedMotion = typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+		const shouldAnimate = showBeamConeOverlay && showNearFieldAndWavefronts && !isFrozen && !prefersReducedMotion;
+		let rafId = 0;
+		const startMs = Date.now();
+		const flawScatterMode = currentFlaw.id === "base_lamination" ? "lamination" : currentFlaw.echoWaveformType === "sharp_spike_tip" ? "tip_diffraction" : currentFlaw.id === "root_crack" || currentFlaw.id === "root_lof" || currentFlaw.id === "incomplete_penetration" ? "corner_trap" : currentFlaw.category === "Volumetric" ? "volumetric_scatter" : "specular_planar";
+		const renderWeldFrame = (phaseSec) => {
+			const width = canvas.width;
+			const height = canvas.height;
+			ctx.fillStyle = "#050814";
+			ctx.fillRect(0, 0, width, height);
+			const originX = width / 2;
+			const scale = Math.min(width * .82 / 150, height * .68 / 38);
+			if (specimenGeometry === "flat") {
+				const originY = 58;
+				const bottomY = originY + plateThicknessMm * scale;
+				const halfPlateWidthPx = 70 * scale;
+				ctx.fillStyle = "#131a33";
+				ctx.strokeStyle = "#2b3b6b";
+				ctx.lineWidth = 1.5;
+				ctx.beginPath();
+				ctx.moveTo(originX - halfPlateWidthPx, originY);
+				ctx.lineTo(originX - capWidthMm / 2 * scale, originY);
+				ctx.lineTo(originX - 1.5 * scale, bottomY);
+				ctx.lineTo(originX - halfPlateWidthPx, bottomY);
+				ctx.closePath();
+				ctx.fill();
+				ctx.stroke();
+				ctx.beginPath();
+				ctx.moveTo(originX + halfPlateWidthPx, originY);
+				ctx.lineTo(originX + capWidthMm / 2 * scale, originY);
+				ctx.lineTo(originX + 1.5 * scale, bottomY);
+				ctx.lineTo(originX + halfPlateWidthPx, bottomY);
+				ctx.closePath();
+				ctx.fill();
+				ctx.stroke();
+				ctx.fillStyle = "#1f2b52";
+				ctx.beginPath();
+				ctx.moveTo(originX - capWidthMm / 2 * scale, originY);
+				ctx.quadraticCurveTo(originX, originY - 3.5 * scale, originX + capWidthMm / 2 * scale, originY);
+				ctx.lineTo(originX + 1.5 * scale, bottomY);
+				ctx.quadraticCurveTo(originX, bottomY + 2.5 * scale, originX - 1.5 * scale, bottomY);
+				ctx.closePath();
+				ctx.fill();
+				ctx.strokeStyle = "#435894";
 				ctx.lineWidth = 1;
+				ctx.stroke();
+				ctx.strokeStyle = "rgba(148, 163, 184, 0.35)";
+				ctx.setLineDash([4, 4]);
+				ctx.beginPath();
+				ctx.moveTo(originX, 36);
+				ctx.lineTo(originX, bottomY + 18);
+				ctx.stroke();
+				ctx.setLineDash([]);
+				ctx.fillStyle = "#94a3b8";
+				ctx.font = "10px monospace";
+				ctx.textAlign = "center";
+				ctx.fillText(`FLAT PLATE WELD ℄ (t = ${plateThicknessMm}mm)`, originX, 32);
+				const flawCanvasX = originX + (currentFlaw.id === "base_lamination" ? Math.abs(currentFlaw.distanceFromWeldCenterMm) : currentFlaw.distanceFromWeldCenterMm) * scale;
+				const flawCanvasY = originY + flawNominalDepthMm * scale;
+				drawComprehensiveDefectMorphology(ctx, currentFlaw.id, flawCanvasX, flawCanvasY, originY, bottomY, scale, isHit);
+				const probeX = originX + probeIndexXmm * scale;
+				const wedgeW = (instrumentMode === "paut" ? 22 : 17) * scale;
+				const wedgeH = 13 * scale;
+				ctx.fillStyle = instrumentMode === "paut" ? "rgba(245, 158, 11, 0.22)" : "rgba(56, 189, 248, 0.22)";
+				ctx.strokeStyle = instrumentMode === "paut" ? "#f59e0b" : "#38bdf8";
+				ctx.lineWidth = 1.6;
 				ctx.beginPath();
 				ctx.moveTo(probeX, originY);
-				ctx.lineTo(fEndX, bottomY);
+				ctx.lineTo(probeX + wedgeW, originY);
+				ctx.lineTo(probeX + wedgeW, originY - wedgeH);
+				ctx.lineTo(probeX + (isStraightZeroBeam ? 0 : 3 * scale), originY - wedgeH * (isStraightZeroBeam ? 1 : .72));
+				ctx.closePath();
+				ctx.fill();
 				ctx.stroke();
-			}
-			ctx.strokeStyle = activeLeg === 1 && isHit ? "#ef4444" : "#38bdf8";
-			ctx.lineWidth = 2.4;
-			ctx.beginPath();
-			ctx.moveTo(probeX, originY);
-			ctx.lineTo(leg1EndX, leg1EndY);
-			ctx.stroke();
-			if (!isStraightZeroBeam && leg2EndX !== void 0 && leg2EndY !== void 0) {
-				ctx.strokeStyle = activeLeg === 2 && isHit ? "#ef4444" : "#f59e0b";
+				if (instrumentMode === "paut") for (let el = 0; el < 8; el++) {
+					ctx.fillStyle = "#fbbf24";
+					ctx.fillRect(probeX + (4 + el * 1.9) * scale, originY - wedgeH * .85, 1.3 * scale, 3.2 * scale);
+				}
+				else {
+					ctx.fillStyle = "#38bdf8";
+					ctx.fillRect(probeX + 4 * scale, originY - wedgeH * .82, 8 * scale, 3.5 * scale);
+				}
+				if (showNearFieldAndWavefronts) {
+					ctx.strokeStyle = instrumentMode === "paut" ? "rgba(253, 224, 71, 0.75)" : "rgba(186, 230, 253, 0.75)";
+					ctx.lineWidth = 1.3;
+					ctx.beginPath();
+					ctx.moveTo(probeX + 7.5 * scale, originY - wedgeH * .72);
+					ctx.lineTo(probeX, originY);
+					ctx.stroke();
+				}
+				ctx.fillStyle = "#f43f5e";
+				ctx.beginPath();
+				ctx.arc(probeX, originY, 3.2, 0, Math.PI * 2);
+				ctx.fill();
+				ctx.fillStyle = "#e2e8f0";
+				ctx.font = "bold 9px monospace";
+				ctx.textAlign = "center";
+				ctx.fillText(`${instrumentMode === "paut" ? `${pautApertureElements}E PAUT` : "UT"} ${effectiveBeamAngleDeg}° (X=${probeIndexXmm}mm)`, probeX + wedgeW / 2, originY - wedgeH - 6);
+				const leg1EndX = isStraightZeroBeam ? probeX : probeX - halfSkipSurfaceMm * scale;
+				const leg1EndY = currentFlaw.id === "base_lamination" && isHit ? flawCanvasY : bottomY;
+				const leg2EndX = isStraightZeroBeam ? void 0 : leg1EndX - halfSkipSurfaceMm * scale;
+				const leg2EndY = isStraightZeroBeam ? void 0 : originY;
+				if (showBeamConeOverlay) drawUltrasonicBeamCone2D({
+					ctx,
+					entryX: probeX,
+					entryY: originY,
+					bounceX: leg1EndX,
+					bounceY: leg1EndY,
+					leg2EndX,
+					leg2EndY,
+					scalePxPerMm: scale,
+					coneMetrics: beamConeMetrics,
+					isPaut: instrumentMode === "paut",
+					focalDepthMm: pautFocalDepthMm,
+					showNearField: showNearFieldAndWavefronts,
+					showWavefronts: showNearFieldAndWavefronts,
+					isHit,
+					animationPhase: phaseSec,
+					defectImpact: {
+						x: flawCanvasX,
+						y: flawCanvasY,
+						hit: isHit,
+						scatterMode: flawScatterMode,
+						leg: activeLeg === 2 ? 2 : 1
+					}
+				});
+				if (instrumentMode === "paut") for (let fanDeg = 40; fanDeg <= 70; fanDeg += 5) {
+					const fRad = fanDeg * Math.PI / 180;
+					const fEndX = probeX - plateThicknessMm * Math.tan(fRad) * scale;
+					const fanPulse = .14 + .12 * Math.sin(phaseSec * 4.5 - fanDeg * .25);
+					ctx.strokeStyle = `rgba(245, 158, 11, ${fanPulse.toFixed(2)})`;
+					ctx.lineWidth = 1.05;
+					ctx.beginPath();
+					ctx.moveTo(probeX, originY);
+					ctx.lineTo(fEndX, bottomY);
+					ctx.stroke();
+				}
+				ctx.strokeStyle = activeLeg === 1 && isHit ? "rgba(239, 68, 68, 0.85)" : "rgba(56, 189, 248, 0.85)";
 				ctx.lineWidth = 2;
 				ctx.beginPath();
-				ctx.moveTo(leg1EndX, leg1EndY);
-				ctx.lineTo(leg2EndX, leg2EndY);
+				ctx.moveTo(probeX, originY);
+				ctx.lineTo(leg1EndX, leg1EndY);
 				ctx.stroke();
-			}
-			if (isHit) {
-				ctx.strokeStyle = "#22c55e";
-				ctx.setLineDash([4, 3]);
-				ctx.lineWidth = 2.2;
-				ctx.beginPath();
-				if (activeLeg === 1) {
-					ctx.moveTo(flawCanvasX, flawCanvasY);
-					ctx.lineTo(probeX, originY);
-				} else {
-					ctx.moveTo(flawCanvasX, flawCanvasY);
-					ctx.lineTo(leg1EndX, leg1EndY);
-					ctx.lineTo(probeX, originY);
+				if (!isStraightZeroBeam && leg2EndX !== void 0 && leg2EndY !== void 0) {
+					ctx.strokeStyle = activeLeg === 2 && isHit ? "rgba(239, 68, 68, 0.85)" : "rgba(245, 158, 11, 0.85)";
+					ctx.lineWidth = 1.8;
+					ctx.beginPath();
+					ctx.moveTo(leg1EndX, leg1EndY);
+					ctx.lineTo(leg2EndX, leg2EndY);
+					ctx.stroke();
 				}
+				if (isHit) {
+					ctx.strokeStyle = "rgba(34, 197, 94, 0.82)";
+					ctx.setLineDash([4, 3]);
+					ctx.lineWidth = 2;
+					ctx.beginPath();
+					if (activeLeg === 1) {
+						ctx.moveTo(flawCanvasX, flawCanvasY);
+						ctx.lineTo(probeX, originY);
+					} else {
+						ctx.moveTo(flawCanvasX, flawCanvasY);
+						ctx.lineTo(leg1EndX, leg1EndY);
+						ctx.lineTo(probeX, originY);
+					}
+					ctx.stroke();
+					ctx.setLineDash([]);
+				}
+			} else {
+				const visualOuterR = Math.max(150, Math.min(360, outerRadiusMm * scale * .72));
+				const plateThicknessPx = plateThicknessMm * scale * .9;
+				const visualInnerR = Math.max(60, visualOuterR - plateThicknessPx);
+				const pipeCenterX = originX;
+				const pipeCenterY = 58 + visualOuterR;
+				const maxSpanAngle = Math.min(.68, 68 * scale / visualOuterR);
+				ctx.fillStyle = "#131a33";
+				ctx.strokeStyle = "#2b3b6b";
+				ctx.lineWidth = 1.6;
+				ctx.beginPath();
+				ctx.arc(pipeCenterX, pipeCenterY, visualOuterR, -Math.PI / 2 - maxSpanAngle, -Math.PI / 2 + maxSpanAngle);
+				ctx.arc(pipeCenterX, pipeCenterY, visualInnerR, -Math.PI / 2 + maxSpanAngle, -Math.PI / 2 - maxSpanAngle, true);
+				ctx.closePath();
+				ctx.fill();
 				ctx.stroke();
-				ctx.setLineDash([]);
-			}
-		} else {
-			const visualOuterR = Math.max(150, Math.min(360, outerRadiusMm * scale * .72));
-			const plateThicknessPx = plateThicknessMm * scale * .9;
-			const visualInnerR = Math.max(60, visualOuterR - plateThicknessPx);
-			const pipeCenterX = originX;
-			const pipeCenterY = 58 + visualOuterR;
-			const maxSpanAngle = Math.min(.68, 68 * scale / visualOuterR);
-			ctx.fillStyle = "#131a33";
-			ctx.strokeStyle = "#2b3b6b";
-			ctx.lineWidth = 1.6;
-			ctx.beginPath();
-			ctx.arc(pipeCenterX, pipeCenterY, visualOuterR, -Math.PI / 2 - maxSpanAngle, -Math.PI / 2 + maxSpanAngle);
-			ctx.arc(pipeCenterX, pipeCenterY, visualInnerR, -Math.PI / 2 + maxSpanAngle, -Math.PI / 2 - maxSpanAngle, true);
-			ctx.closePath();
-			ctx.fill();
-			ctx.stroke();
-			const capHalfAngle = capWidthMm / 2 * scale / visualOuterR;
-			const rootHalfAngle = 1.6 * scale / visualInnerR;
-			ctx.fillStyle = "#1f2b52";
-			ctx.strokeStyle = "#435894";
-			ctx.beginPath();
-			const capLeftX = pipeCenterX + visualOuterR * Math.cos(-Math.PI / 2 - capHalfAngle);
-			const capLeftY = pipeCenterY + visualOuterR * Math.sin(-Math.PI / 2 - capHalfAngle);
-			const capRightX = pipeCenterX + visualOuterR * Math.cos(-Math.PI / 2 + capHalfAngle);
-			const capRightY = pipeCenterY + visualOuterR * Math.sin(-Math.PI / 2 + capHalfAngle);
-			const rootRightX = pipeCenterX + visualInnerR * Math.cos(-Math.PI / 2 + rootHalfAngle);
-			const rootRightY = pipeCenterY + visualInnerR * Math.sin(-Math.PI / 2 + rootHalfAngle);
-			const rootLeftX = pipeCenterX + visualInnerR * Math.cos(-Math.PI / 2 - rootHalfAngle);
-			const rootLeftY = pipeCenterY + visualInnerR * Math.sin(-Math.PI / 2 - rootHalfAngle);
-			ctx.moveTo(capLeftX, capLeftY);
-			ctx.quadraticCurveTo(pipeCenterX, pipeCenterY - visualOuterR - 4 * scale, capRightX, capRightY);
-			ctx.lineTo(rootRightX, rootRightY);
-			ctx.quadraticCurveTo(pipeCenterX, pipeCenterY - visualInnerR + 2.5 * scale, rootLeftX, rootLeftY);
-			ctx.closePath();
-			ctx.fill();
-			ctx.stroke();
-			ctx.fillStyle = "#38bdf8";
-			ctx.font = "bold 10px monospace";
-			ctx.textAlign = "center";
-			ctx.fillText(`CURVED PIPE SPECIMEN (OD = ${pipeOuterDiameterMm}mm · ID = ${pipeOuterDiameterMm - 2 * plateThicknessMm}mm · t = ${plateThicknessMm}mm)`, originX, 24);
-			const effectiveCurvedFlawX = currentFlaw.id === "base_lamination" ? Math.abs(currentFlaw.distanceFromWeldCenterMm) : currentFlaw.distanceFromWeldCenterMm;
-			const flawArcAngle = -Math.PI / 2 + effectiveCurvedFlawX * scale / visualOuterR;
-			const flawRadialR = visualOuterR - flawNominalDepthMm / plateThicknessMm * plateThicknessPx;
-			const flawCanvasX = pipeCenterX + flawRadialR * Math.cos(flawArcAngle);
-			const flawCanvasY = pipeCenterY + flawRadialR * Math.sin(flawArcAngle);
-			drawComprehensiveDefectMorphology(ctx, currentFlaw.id, flawCanvasX, flawCanvasY, pipeCenterY - visualOuterR, pipeCenterY - visualInnerR, scale, isHit);
-			const probeGamma = Math.min(maxSpanAngle * .92, probeIndexXmm * scale / visualOuterR);
-			const probePolarAngle = -Math.PI / 2 + probeGamma;
-			const probeX = pipeCenterX + visualOuterR * Math.cos(probePolarAngle);
-			const probeY = pipeCenterY + visualOuterR * Math.sin(probePolarAngle);
-			ctx.save();
-			ctx.translate(probeX, probeY);
-			ctx.rotate(probeGamma);
-			const wedgeW = 16 * scale;
-			const wedgeH = 12 * scale;
-			ctx.fillStyle = instrumentMode === "paut" ? "rgba(245, 158, 11, 0.26)" : "rgba(56, 189, 248, 0.26)";
-			ctx.strokeStyle = instrumentMode === "paut" ? "#f59e0b" : "#38bdf8";
-			ctx.lineWidth = 1.6;
-			ctx.beginPath();
-			ctx.moveTo(0, 0);
-			ctx.lineTo(wedgeW, 0);
-			ctx.lineTo(wedgeW, -wedgeH);
-			ctx.lineTo(2 * scale, -wedgeH * .72);
-			ctx.closePath();
-			ctx.fill();
-			ctx.stroke();
-			ctx.fillStyle = "#f43f5e";
-			ctx.beginPath();
-			ctx.arc(0, 0, 3.2, 0, Math.PI * 2);
-			ctx.fill();
-			ctx.fillStyle = "#e2e8f0";
-			ctx.font = "bold 8.5px monospace";
-			ctx.textAlign = "center";
-			ctx.fillText(`${effectiveBeamAngleDeg}° CONTOURED`, wedgeW / 2, -wedgeH - 5);
-			ctx.restore();
-			const leg1IdAngle = isStraightZeroBeam ? probePolarAngle : probePolarAngle - Math.min(probeGamma + .25, halfSkipSurfaceMm * scale / visualOuterR);
-			const idBounceX = pipeCenterX + visualInnerR * Math.cos(leg1IdAngle);
-			const idBounceY = pipeCenterY + visualInnerR * Math.sin(leg1IdAngle);
-			const leg2OdAngle = leg1IdAngle - halfSkipSurfaceMm * scale / visualOuterR;
-			const odBounceX = pipeCenterX + visualOuterR * Math.cos(leg2OdAngle);
-			const odBounceY = pipeCenterY + visualOuterR * Math.sin(leg2OdAngle);
-			if (showBeamConeOverlay) drawUltrasonicBeamCone2D({
-				ctx,
-				entryX: probeX,
-				entryY: probeY,
-				bounceX: idBounceX,
-				bounceY: idBounceY,
-				leg2EndX: isStraightZeroBeam ? void 0 : odBounceX,
-				leg2EndY: isStraightZeroBeam ? void 0 : odBounceY,
-				scalePxPerMm: scale * .9,
-				coneMetrics: beamConeMetrics,
-				isPaut: instrumentMode === "paut",
-				focalDepthMm: pautFocalDepthMm,
-				showNearField: showNearFieldAndWavefronts,
-				showWavefronts: showNearFieldAndWavefronts,
-				isHit
-			});
-			if (instrumentMode === "paut") for (let fan = -3; fan <= 3; fan++) {
-				const fanAngle = leg1IdAngle + fan * .035;
-				const fx = pipeCenterX + visualInnerR * Math.cos(fanAngle);
-				const fy = pipeCenterY + visualInnerR * Math.sin(fanAngle);
-				ctx.strokeStyle = "rgba(245, 158, 11, 0.18)";
-				ctx.lineWidth = 1;
+				const capHalfAngle = capWidthMm / 2 * scale / visualOuterR;
+				const rootHalfAngle = 1.6 * scale / visualInnerR;
+				ctx.fillStyle = "#1f2b52";
+				ctx.strokeStyle = "#435894";
+				ctx.beginPath();
+				const capLeftX = pipeCenterX + visualOuterR * Math.cos(-Math.PI / 2 - capHalfAngle);
+				const capLeftY = pipeCenterY + visualOuterR * Math.sin(-Math.PI / 2 - capHalfAngle);
+				const capRightX = pipeCenterX + visualOuterR * Math.cos(-Math.PI / 2 + capHalfAngle);
+				const capRightY = pipeCenterY + visualOuterR * Math.sin(-Math.PI / 2 + capHalfAngle);
+				const rootRightX = pipeCenterX + visualInnerR * Math.cos(-Math.PI / 2 + rootHalfAngle);
+				const rootRightY = pipeCenterY + visualInnerR * Math.sin(-Math.PI / 2 + rootHalfAngle);
+				const rootLeftX = pipeCenterX + visualInnerR * Math.cos(-Math.PI / 2 - rootHalfAngle);
+				const rootLeftY = pipeCenterY + visualInnerR * Math.sin(-Math.PI / 2 - rootHalfAngle);
+				ctx.moveTo(capLeftX, capLeftY);
+				ctx.quadraticCurveTo(pipeCenterX, pipeCenterY - visualOuterR - 4 * scale, capRightX, capRightY);
+				ctx.lineTo(rootRightX, rootRightY);
+				ctx.quadraticCurveTo(pipeCenterX, pipeCenterY - visualInnerR + 2.5 * scale, rootLeftX, rootLeftY);
+				ctx.closePath();
+				ctx.fill();
+				ctx.stroke();
+				ctx.fillStyle = "#38bdf8";
+				ctx.font = "bold 10px monospace";
+				ctx.textAlign = "center";
+				ctx.fillText(`CURVED PIPE SPECIMEN (OD = ${pipeOuterDiameterMm}mm · ID = ${pipeOuterDiameterMm - 2 * plateThicknessMm}mm · t = ${plateThicknessMm}mm)`, originX, 24);
+				const effectiveCurvedFlawX = currentFlaw.id === "base_lamination" ? Math.abs(currentFlaw.distanceFromWeldCenterMm) : currentFlaw.distanceFromWeldCenterMm;
+				const flawArcAngle = -Math.PI / 2 + effectiveCurvedFlawX * scale / visualOuterR;
+				const flawRadialR = visualOuterR - flawNominalDepthMm / plateThicknessMm * plateThicknessPx;
+				const flawCanvasX = pipeCenterX + flawRadialR * Math.cos(flawArcAngle);
+				const flawCanvasY = pipeCenterY + flawRadialR * Math.sin(flawArcAngle);
+				drawComprehensiveDefectMorphology(ctx, currentFlaw.id, flawCanvasX, flawCanvasY, pipeCenterY - visualOuterR, pipeCenterY - visualInnerR, scale, isHit);
+				const probeGamma = Math.min(maxSpanAngle * .92, probeIndexXmm * scale / visualOuterR);
+				const probePolarAngle = -Math.PI / 2 + probeGamma;
+				const probeX = pipeCenterX + visualOuterR * Math.cos(probePolarAngle);
+				const probeY = pipeCenterY + visualOuterR * Math.sin(probePolarAngle);
+				ctx.save();
+				ctx.translate(probeX, probeY);
+				ctx.rotate(probeGamma);
+				const wedgeW = 16 * scale;
+				const wedgeH = 12 * scale;
+				ctx.fillStyle = instrumentMode === "paut" ? "rgba(245, 158, 11, 0.26)" : "rgba(56, 189, 248, 0.26)";
+				ctx.strokeStyle = instrumentMode === "paut" ? "#f59e0b" : "#38bdf8";
+				ctx.lineWidth = 1.6;
+				ctx.beginPath();
+				ctx.moveTo(0, 0);
+				ctx.lineTo(wedgeW, 0);
+				ctx.lineTo(wedgeW, -wedgeH);
+				ctx.lineTo(2 * scale, -wedgeH * .72);
+				ctx.closePath();
+				ctx.fill();
+				ctx.stroke();
+				ctx.fillStyle = "#f43f5e";
+				ctx.beginPath();
+				ctx.arc(0, 0, 3.2, 0, Math.PI * 2);
+				ctx.fill();
+				ctx.fillStyle = "#e2e8f0";
+				ctx.font = "bold 8.5px monospace";
+				ctx.textAlign = "center";
+				ctx.fillText(`${effectiveBeamAngleDeg}° CONTOURED`, wedgeW / 2, -wedgeH - 5);
+				ctx.restore();
+				const leg1IdAngle = isStraightZeroBeam ? probePolarAngle : probePolarAngle - Math.min(probeGamma + .25, halfSkipSurfaceMm * scale / visualOuterR);
+				const idBounceX = pipeCenterX + visualInnerR * Math.cos(leg1IdAngle);
+				const idBounceY = pipeCenterY + visualInnerR * Math.sin(leg1IdAngle);
+				const leg2OdAngle = leg1IdAngle - halfSkipSurfaceMm * scale / visualOuterR;
+				const odBounceX = pipeCenterX + visualOuterR * Math.cos(leg2OdAngle);
+				const odBounceY = pipeCenterY + visualOuterR * Math.sin(leg2OdAngle);
+				if (showBeamConeOverlay) drawUltrasonicBeamCone2D({
+					ctx,
+					entryX: probeX,
+					entryY: probeY,
+					bounceX: idBounceX,
+					bounceY: idBounceY,
+					leg2EndX: isStraightZeroBeam ? void 0 : odBounceX,
+					leg2EndY: isStraightZeroBeam ? void 0 : odBounceY,
+					scalePxPerMm: scale * .9,
+					coneMetrics: beamConeMetrics,
+					isPaut: instrumentMode === "paut",
+					focalDepthMm: pautFocalDepthMm,
+					showNearField: showNearFieldAndWavefronts,
+					showWavefronts: showNearFieldAndWavefronts,
+					isHit,
+					animationPhase: phaseSec,
+					defectImpact: {
+						x: flawCanvasX,
+						y: flawCanvasY,
+						hit: isHit,
+						scatterMode: flawScatterMode,
+						leg: activeLeg === 2 ? 2 : 1
+					}
+				});
+				if (instrumentMode === "paut") for (let fan = -3; fan <= 3; fan++) {
+					const fanAngle = leg1IdAngle + fan * .035;
+					const fx = pipeCenterX + visualInnerR * Math.cos(fanAngle);
+					const fy = pipeCenterY + visualInnerR * Math.sin(fanAngle);
+					ctx.strokeStyle = "rgba(245, 158, 11, 0.18)";
+					ctx.lineWidth = 1;
+					ctx.beginPath();
+					ctx.moveTo(probeX, probeY);
+					ctx.lineTo(fx, fy);
+					ctx.stroke();
+				}
+				ctx.strokeStyle = activeLeg === 1 && isHit ? "rgba(239, 68, 68, 0.85)" : "rgba(56, 189, 248, 0.85)";
+				ctx.lineWidth = 2;
 				ctx.beginPath();
 				ctx.moveTo(probeX, probeY);
-				ctx.lineTo(fx, fy);
+				ctx.lineTo(idBounceX, idBounceY);
 				ctx.stroke();
-			}
-			ctx.strokeStyle = activeLeg === 1 && isHit ? "#ef4444" : "#38bdf8";
-			ctx.lineWidth = 2.4;
-			ctx.beginPath();
-			ctx.moveTo(probeX, probeY);
-			ctx.lineTo(idBounceX, idBounceY);
-			ctx.stroke();
-			if (!isStraightZeroBeam) {
-				ctx.strokeStyle = activeLeg === 2 && isHit ? "#ef4444" : "#f59e0b";
-				ctx.lineWidth = 2;
-				ctx.beginPath();
-				ctx.moveTo(idBounceX, idBounceY);
-				ctx.lineTo(odBounceX, odBounceY);
-				ctx.stroke();
-			}
-			if (isHit) {
-				ctx.strokeStyle = "#22c55e";
-				ctx.setLineDash([4, 3]);
-				ctx.lineWidth = 2.2;
-				ctx.beginPath();
-				if (activeLeg === 1) {
-					ctx.moveTo(flawCanvasX, flawCanvasY);
-					ctx.lineTo(probeX, probeY);
-				} else {
-					ctx.moveTo(flawCanvasX, flawCanvasY);
-					ctx.lineTo(idBounceX, idBounceY);
-					ctx.lineTo(probeX, probeY);
+				if (!isStraightZeroBeam) {
+					ctx.strokeStyle = activeLeg === 2 && isHit ? "rgba(239, 68, 68, 0.85)" : "rgba(245, 158, 11, 0.85)";
+					ctx.lineWidth = 1.8;
+					ctx.beginPath();
+					ctx.moveTo(idBounceX, idBounceY);
+					ctx.lineTo(odBounceX, odBounceY);
+					ctx.stroke();
 				}
-				ctx.stroke();
-				ctx.setLineDash([]);
+				if (isHit) {
+					ctx.strokeStyle = "rgba(34, 197, 94, 0.82)";
+					ctx.setLineDash([4, 3]);
+					ctx.lineWidth = 2;
+					ctx.beginPath();
+					if (activeLeg === 1) {
+						ctx.moveTo(flawCanvasX, flawCanvasY);
+						ctx.lineTo(probeX, probeY);
+					} else {
+						ctx.moveTo(flawCanvasX, flawCanvasY);
+						ctx.lineTo(idBounceX, idBounceY);
+						ctx.lineTo(probeX, probeY);
+					}
+					ctx.stroke();
+					ctx.setLineDash([]);
+				}
 			}
-		}
-		ctx.fillStyle = "rgba(15, 23, 42, 0.88)";
-		ctx.fillRect(10, height - 26, width - 20, 20);
-		ctx.fillStyle = "#94a3b8";
-		ctx.font = "10px monospace";
-		ctx.textAlign = "left";
-		ctx.fillText(`N_total=${beamConeMetrics.nearFieldLengthMm.toFixed(1)}mm · N_eff=${beamConeMetrics.effectiveNearFieldInSpecimenMm.toFixed(1)}mm · -6dB=±${beamConeMetrics.halfAngleMinus6dBDeg.toFixed(1)}° · Skip/2=${halfSkipSurfaceMm.toFixed(1)}mm`, 18, height - 13);
+			ctx.fillStyle = "rgba(15, 23, 42, 0.88)";
+			ctx.fillRect(10, height - 26, width - 20, 20);
+			ctx.fillStyle = "#94a3b8";
+			ctx.font = "10px monospace";
+			ctx.textAlign = "left";
+			ctx.fillText(`N_total=${beamConeMetrics.nearFieldLengthMm.toFixed(1)}mm · N_eff=${beamConeMetrics.effectiveNearFieldInSpecimenMm.toFixed(1)}mm · -6dB=±${beamConeMetrics.halfAngleMinus6dBDeg.toFixed(1)}° · Skip/2=${halfSkipSurfaceMm.toFixed(1)}mm`, 18, height - 13);
+		};
+		const tick = () => {
+			const elapsedSec = (Date.now() - startMs) / 1e3;
+			renderWeldFrame(elapsedSec);
+			if (shouldAnimate) rafId = requestAnimationFrame(tick);
+		};
+		tick();
+		return () => {
+			if (rafId) cancelAnimationFrame(rafId);
+		};
 	}, [
 		specimenGeometry,
 		pipeOuterDiameterMm,
@@ -17962,7 +19161,8 @@ var ComprehensiveWeldUtSimulator = ({ language }) => {
 		isHit,
 		activeLeg,
 		halfSkipSurfaceMm,
-		fullSkipSurfaceMm
+		fullSkipSurfaceMm,
+		isFrozen
 	]);
 	(0, import_react.useEffect)(() => {
 		const canvas = aScanCanvasRef.current;
@@ -24734,6 +25934,735 @@ function generateGeRadiographicExposurePdf(data) {
 	return doc;
 }
 //#endregion
+//#region src/components/academy/virtuallab/IsotopeDecayCurveChart.tsx
+var MS_PER_DAY = 864e5;
+function parseIsoDateUtc(dateStr) {
+	const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec((dateStr || "").trim());
+	if (match) {
+		const year = Number(match[1]);
+		const month = Number(match[2]) - 1;
+		const day = Number(match[3]);
+		return new Date(Date.UTC(year, month, day));
+	}
+	const parsed = new Date(dateStr);
+	if (!Number.isNaN(parsed.getTime())) return new Date(Date.UTC(parsed.getUTCFullYear(), parsed.getUTCMonth(), parsed.getUTCDate()));
+	const now = /* @__PURE__ */ new Date();
+	return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+}
+function formatUtcDateIso(date) {
+	return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`;
+}
+function addUtcDays(baseDate, days) {
+	return new Date(baseDate.getTime() + Math.round(days) * MS_PER_DAY);
+}
+var COMPARISON_COLORS = {
+	ir192: "#f59e0b",
+	se75: "#06b6d4",
+	co60: "#8b5cf6",
+	yb169: "#10b981"
+};
+var IsotopeDecayCurveChart = ({ isotope, initialActivityCi, initialCalibrationDate, measurementDate, onChangeMeasurementDate, language }) => {
+	const isAr = language === "ar";
+	const [horizonHalfLives, setHorizonHalfLives] = (0, import_react.useState)(3);
+	const [showCompareIsotopes, setShowCompareIsotopes] = (0, import_react.useState)(false);
+	const [hoverDayOffset, setHoverDayOffset] = (0, import_react.useState)(null);
+	const safeInitialCi = Math.max(1, Number.isFinite(initialActivityCi) ? initialActivityCi : 45);
+	const isGamma = isotope.category === "gamma" && isotope.halfLifeDays > 0;
+	const calibDateUtc = (0, import_react.useMemo)(() => parseIsoDateUtc(initialCalibrationDate), [initialCalibrationDate]);
+	const shotDateUtc = (0, import_react.useMemo)(() => parseIsoDateUtc(measurementDate), [measurementDate]);
+	const rawSignedDays = (0, import_react.useMemo)(() => Math.round((shotDateUtc.getTime() - calibDateUtc.getTime()) / MS_PER_DAY), [calibDateUtc, shotDateUtc]);
+	const liveDecay = (0, import_react.useMemo)(() => calculateIsotopeDecay(safeInitialCi, initialCalibrationDate, measurementDate, isotope.halfLifeDays), [
+		safeInitialCi,
+		initialCalibrationDate,
+		measurementDate,
+		isotope.halfLifeDays
+	]);
+	const svgWidth = 760;
+	const svgHeight = 300;
+	const margin = {
+		top: 32,
+		right: 56,
+		bottom: 48,
+		left: 58
+	};
+	const plotWidth = svgWidth - margin.left - margin.right;
+	const plotHeight = svgHeight - margin.top - margin.bottom;
+	const domainMaxDays = (0, import_react.useMemo)(() => {
+		if (!isGamma) return 180;
+		const baseSpan = Math.ceil(isotope.halfLifeDays * horizonHalfLives);
+		const shotBound = Math.max(0, liveDecay.daysElapsed);
+		if (shotBound > baseSpan * .92) return Math.ceil(Math.max(shotBound * 1.15, shotBound + isotope.halfLifeDays * .25));
+		return Math.max(30, baseSpan);
+	}, [
+		isGamma,
+		isotope.halfLifeDays,
+		horizonHalfLives,
+		liveDecay.daysElapsed
+	]);
+	const domainEndDate = (0, import_react.useMemo)(() => addUtcDays(calibDateUtc, domainMaxDays), [calibDateUtc, domainMaxDays]);
+	const xTimeScale = (0, import_react.useMemo)(() => utcTime().domain([calibDateUtc, domainEndDate]).range([margin.left, svgWidth - margin.right]), [
+		calibDateUtc,
+		domainEndDate,
+		margin.left,
+		margin.right,
+		svgWidth
+	]);
+	const xDayScale = (0, import_react.useMemo)(() => linear().domain([0, domainMaxDays]).range([margin.left, svgWidth - margin.right]).clamp(true), [
+		domainMaxDays,
+		margin.left,
+		margin.right,
+		svgWidth
+	]);
+	const yScale = (0, import_react.useMemo)(() => linear().domain([0, safeInitialCi]).range([svgHeight - margin.bottom, margin.top]), [
+		safeInitialCi,
+		svgHeight,
+		margin.bottom,
+		margin.top
+	]);
+	const curvePoints = (0, import_react.useMemo)(() => {
+		const sampleCount = 120;
+		const pts = [];
+		for (let i = 0; i <= sampleCount; i++) {
+			const dayOffset = i / sampleCount * domainMaxDays;
+			const date = new Date(calibDateUtc.getTime() + dayOffset * MS_PER_DAY);
+			const fraction = isGamma ? Math.pow(.5, dayOffset / isotope.halfLifeDays) : 1;
+			const activityCi = safeInitialCi * fraction;
+			pts.push({
+				dayOffset,
+				date,
+				isoDate: formatUtcDateIso(date),
+				activityCi,
+				fractionRemaining: fraction,
+				percentRemaining: fraction * 100
+			});
+		}
+		return pts;
+	}, [
+		calibDateUtc,
+		domainMaxDays,
+		isGamma,
+		isotope.halfLifeDays,
+		safeInitialCi
+	]);
+	const linePath = (0, import_react.useMemo)(() => {
+		return line_default().x((d) => xDayScale(d.dayOffset)).y((d) => yScale(d.activityCi)).curve(monotoneX)(curvePoints) || "";
+	}, [
+		curvePoints,
+		xDayScale,
+		yScale
+	]);
+	const areaPath = (0, import_react.useMemo)(() => {
+		return area_default().x((d) => xDayScale(d.dayOffset)).y0(yScale(0)).y1((d) => yScale(d.activityCi)).curve(monotoneX)(curvePoints) || "";
+	}, [
+		curvePoints,
+		xDayScale,
+		yScale
+	]);
+	const comparisonCurves = (0, import_react.useMemo)(() => {
+		if (!isGamma || !showCompareIsotopes) return [];
+		return [
+			"ir192",
+			"se75",
+			"co60",
+			"yb169"
+		].filter((k) => k !== isotope.id).map((k) => {
+			const spec = GE_ISOTOPES[k];
+			const pts = [];
+			const steps = 80;
+			for (let i = 0; i <= steps; i++) {
+				const dayOffset = i / steps * domainMaxDays;
+				const frac = Math.pow(.5, dayOffset / spec.halfLifeDays);
+				pts.push({
+					dayOffset,
+					activityCi: safeInitialCi * frac
+				});
+			}
+			const path = line_default().x((d) => xDayScale(d.dayOffset)).y((d) => yScale(d.activityCi)).curve(monotoneX)(pts) || "";
+			return {
+				spec,
+				color: COMPARISON_COLORS[k] || "#94a3b8",
+				path
+			};
+		});
+	}, [
+		isGamma,
+		showCompareIsotopes,
+		isotope.id,
+		domainMaxDays,
+		safeInitialCi,
+		xDayScale,
+		yScale
+	]);
+	const halfLifeMilestones = (0, import_react.useMemo)(() => {
+		if (!isGamma) return [];
+		const milestones = [];
+		const maxN = Math.floor(domainMaxDays / isotope.halfLifeDays);
+		for (let n = 1; n <= Math.min(maxN, 5); n++) {
+			const dayOffset = n * isotope.halfLifeDays;
+			const fraction = Math.pow(.5, n);
+			const activityCi = safeInitialCi * fraction;
+			milestones.push({
+				index: n,
+				dayOffset,
+				x: xDayScale(dayOffset),
+				y: yScale(activityCi),
+				activityCi,
+				percent: fraction * 100,
+				isoDate: formatUtcDateIso(addUtcDays(calibDateUtc, dayOffset))
+			});
+		}
+		return milestones;
+	}, [
+		isGamma,
+		domainMaxDays,
+		isotope.halfLifeDays,
+		safeInitialCi,
+		xDayScale,
+		yScale,
+		calibDateUtc
+	]);
+	const clampedShotDays = Math.max(0, liveDecay.daysElapsed);
+	const shotX = xDayScale(clampedShotDays);
+	const shotY = yScale(isGamma ? liveDecay.currentCi : safeInitialCi);
+	const shotPercentRemaining = isGamma ? Number((liveDecay.fractionRemaining * 100).toFixed(1)) : 100;
+	const yTicks = (0, import_react.useMemo)(() => yScale.ticks(5), [yScale]);
+	const xTicks = (0, import_react.useMemo)(() => {
+		const ticks = xTimeScale.ticks(6);
+		const fmt = domainMaxDays > 500 ? utcFormat("%b %Y") : utcFormat("%b %d");
+		return ticks.map((date) => ({
+			date,
+			x: xTimeScale(date),
+			label: fmt(date)
+		}));
+	}, [xTimeScale, domainMaxDays]);
+	const hoverTelemetry = (0, import_react.useMemo)(() => {
+		if (hoverDayOffset === null) return null;
+		const clampedDay = Math.max(0, Math.min(domainMaxDays, Math.round(hoverDayOffset)));
+		const isoDate = formatUtcDateIso(addUtcDays(calibDateUtc, clampedDay));
+		const fraction = isGamma ? Math.pow(.5, clampedDay / isotope.halfLifeDays) : 1;
+		const activityCi = Number((safeInitialCi * fraction).toFixed(2));
+		return {
+			dayOffset: clampedDay,
+			isoDate,
+			activityCi,
+			percentRemaining: Number((fraction * 100).toFixed(1)),
+			x: xDayScale(clampedDay),
+			y: yScale(activityCi),
+			deltaFromShotDays: clampedDay - clampedShotDays
+		};
+	}, [
+		hoverDayOffset,
+		domainMaxDays,
+		calibDateUtc,
+		isGamma,
+		isotope.halfLifeDays,
+		safeInitialCi,
+		xDayScale,
+		yScale,
+		clampedShotDays
+	]);
+	const resolveDayFromPointerEvent = (0, import_react.useCallback)((e) => {
+		const svgEl = e.currentTarget.ownerSVGElement;
+		let svgX = margin.left;
+		if (svgEl) {
+			const rect = svgEl.getBoundingClientRect();
+			if (rect.width > 0) svgX = (e.clientX - rect.left) / rect.width * svgWidth;
+			else if (typeof e.nativeEvent.offsetX === "number" && e.nativeEvent.offsetX > 0) svgX = e.nativeEvent.offsetX;
+			else if (e.clientX > 0) svgX = e.clientX;
+		}
+		const clampedSvgX = Math.max(margin.left, Math.min(svgWidth - margin.right, svgX));
+		return Math.round(xDayScale.invert(clampedSvgX));
+	}, [
+		margin.left,
+		margin.right,
+		svgWidth,
+		xDayScale
+	]);
+	const handlePointerMove = (0, import_react.useCallback)((e) => {
+		setHoverDayOffset(resolveDayFromPointerEvent(e));
+	}, [resolveDayFromPointerEvent]);
+	const handlePlotClick = (0, import_react.useCallback)((e) => {
+		if (!isGamma || !onChangeMeasurementDate) return;
+		const dayOffset = resolveDayFromPointerEvent(e);
+		onChangeMeasurementDate(formatUtcDateIso(addUtcDays(calibDateUtc, dayOffset)));
+	}, [
+		isGamma,
+		onChangeMeasurementDate,
+		resolveDayFromPointerEvent,
+		calibDateUtc
+	]);
+	const jumpToDaysOffset = (0, import_react.useCallback)((days) => {
+		if (!onChangeMeasurementDate) return;
+		onChangeMeasurementDate(formatUtcDateIso(addUtcDays(calibDateUtc, days)));
+	}, [calibDateUtc, onChangeMeasurementDate]);
+	const activeColor = isGamma ? "#f59e0b" : "#06b6d4";
+	const shotLabelAnchor = shotX > svgWidth - margin.right - 135 ? "end" : shotX < margin.left + 115 ? "start" : "middle";
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		"data-testid": "isotope-decay-curve-card",
+		className: "rounded-3xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-5 sm:p-6 space-y-4",
+		children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "flex flex-wrap items-start justify-between gap-3",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "space-y-1",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-100",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Activity, { className: "w-4 h-4 text-amber-500 shrink-0" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? `منحنى التحلل الإشعاعي التفاعلي D3 — ${isotope.nameAr}` : `Interactive Isotope Decay Curve (D3) — ${isotope.nameEn}` })]
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "flex flex-wrap items-center gap-2 text-[11px] font-mono text-slate-500 dark:text-slate-400",
+						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isGamma ? `T½ = ${isotope.halfLifeDays}d` : isAr ? "مصدر كهربائي ثابت (بدون تحلل)" : "Constant Potential Generator (Non-decaying)" }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+								"aria-hidden": "true",
+								children: "·"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isGamma ? `A₀ = ${safeInitialCi} Ci (${initialCalibrationDate})` : `${isotope.nameEn}` }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+								"aria-hidden": "true",
+								children: "·"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+								className: "text-amber-600 dark:text-amber-400 font-semibold tabular-nums",
+								children: isGamma ? isAr ? `تاريخ التصوير: ${measurementDate} (${liveDecay.currentCi} Ci / ${shotPercentRemaining}%)` : `Shot: ${measurementDate} (${liveDecay.currentCi} Ci / ${shotPercentRemaining}%)` : isAr ? `تاريخ التصوير: ${measurementDate}` : `Shot: ${measurementDate}`
+							})
+						]
+					})]
+				}), isGamma && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "flex flex-wrap items-center gap-2",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+						type: "button",
+						"data-testid": "isotope-decay-compare-btn",
+						onClick: () => setShowCompareIsotopes((prev) => !prev),
+						className: `px-2.5 py-1.5 rounded-lg text-[11px] font-mono font-semibold border transition inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${showCompareIsotopes ? "bg-sky-500/15 border-sky-500/50 text-sky-600 dark:text-sky-400" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-slate-400"}`,
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Layers, { className: "w-3.5 h-3.5" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "مقارنة النظائر" : "Compare Isotopes" })]
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+						role: "group",
+						"aria-label": isAr ? "نطاق أنصاف العمر" : "Half-life range",
+						className: "inline-flex items-center p-0.5 rounded-lg bg-slate-200/70 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[11px] font-mono",
+						children: [
+							2,
+							3,
+							5
+						].map((mult) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+							type: "button",
+							"data-testid": `isotope-decay-horizon-${mult}`,
+							onClick: () => setHorizonHalfLives(mult),
+							className: `px-2.5 py-1 rounded-md font-bold transition cursor-pointer whitespace-nowrap ${horizonHalfLives === mult ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm" : "text-slate-500 hover:text-slate-900 dark:hover:text-slate-200"}`,
+							children: [mult, "×T½"]
+						}, mult))
+					})]
+				})]
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				"data-testid": "isotope-decay-hover-readout",
+				className: "flex flex-wrap items-center justify-between gap-2 px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[11px] font-mono tabular-nums",
+				children: [hoverTelemetry ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "flex flex-wrap items-center gap-3 text-slate-700 dark:text-slate-200",
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+							className: "inline-flex items-center gap-1.5 text-cyan-600 dark:text-cyan-400 font-bold",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Crosshair, { className: "w-3.5 h-3.5" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: hoverTelemetry.isoDate })]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+							"aria-hidden": "true",
+							className: "text-slate-400",
+							children: "·"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+							"+",
+							hoverTelemetry.dayOffset,
+							"d"
+						] }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+							"aria-hidden": "true",
+							className: "text-slate-400",
+							children: "·"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", {
+							className: "text-amber-600 dark:text-amber-400",
+							children: [
+								hoverTelemetry.activityCi,
+								" Ci (",
+								hoverTelemetry.percentRemaining,
+								"%)"
+							]
+						}),
+						onChangeMeasurementDate && isGamma && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+							"aria-hidden": "true",
+							className: "text-slate-400",
+							children: "·"
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+							className: "text-slate-500 dark:text-slate-400",
+							children: isAr ? "اضغط لتحديد تاريخ التصوير" : "Click curve to set shot date"
+						})] })
+					]
+				}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "flex flex-wrap items-center gap-2 text-slate-500 dark:text-slate-400",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Crosshair, { className: "w-3.5 h-3.5 text-slate-400" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isGamma ? isAr ? "مرّر المؤشر على المنحنى لاستعراض النشاط المستقبلي أو اضغط لتغيير تاريخ التصوير الفعلي." : "Hover across the curve to inspect decayed activity, or click anywhere to move the Shot Date marker." : isAr ? "أنبوبة الأشعة السينية تعمل بجهد مستمر ولا تخضع للتحلل الإشعاعي." : "X-Ray tubes maintain 100% output at constant kV/mA with zero radioactive decay." })]
+				}), rawSignedDays < 0 && isGamma && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+					className: "text-rose-500 font-semibold",
+					children: isAr ? "تاريخ التصوير يسبق تاريخ المعايرة (مقيد عند t₀)" : "Shot date precedes calibration (clamped at t₀)"
+				})]
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "relative overflow-x-auto rounded-2xl bg-white dark:bg-slate-900 p-3 sm:p-4 border border-slate-200 dark:border-slate-800",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("svg", {
+					"data-testid": "isotope-decay-svg",
+					viewBox: `0 0 ${svgWidth} ${svgHeight}`,
+					role: "img",
+					"aria-label": isAr ? `منحنى التحلل الإشعاعي للنظير ${isotope.nameAr} مع خط تاريخ التصوير ${measurementDate}` : `Radioactive decay curve for ${isotope.nameEn} with vertical shot date line at ${measurementDate}`,
+					className: "w-full h-auto min-w-[540px] select-none",
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("defs", { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("linearGradient", {
+							id: "ge-decay-area-grad",
+							x1: "0",
+							y1: "0",
+							x2: "0",
+							y2: "1",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("stop", {
+								offset: "0%",
+								stopColor: activeColor,
+								stopOpacity: .28
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("stop", {
+								offset: "100%",
+								stopColor: activeColor,
+								stopOpacity: .02
+							})]
+						}) }),
+						yTicks.map((tickVal) => {
+							const yPos = yScale(tickVal);
+							const pct = Math.round(tickVal / safeInitialCi * 100);
+							return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("g", { children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
+									x1: margin.left,
+									x2: svgWidth - margin.right,
+									y1: yPos,
+									y2: yPos,
+									stroke: "#334155",
+									strokeOpacity: .2,
+									strokeDasharray: "3 3"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("text", {
+									x: margin.left - 8,
+									y: yPos + 3,
+									textAnchor: "end",
+									fontSize: "10",
+									fontFamily: "monospace",
+									fill: "#94a3b8",
+									children: Number.isInteger(tickVal) ? tickVal : tickVal.toFixed(1)
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("text", {
+									x: svgWidth - margin.right + 8,
+									y: yPos + 3,
+									textAnchor: "start",
+									fontSize: "10",
+									fontFamily: "monospace",
+									fill: "#64748b",
+									children: [pct, "%"]
+								})
+							] }, `y-${tickVal}`);
+						}),
+						xTicks.map((tick, idx) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("g", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
+							x1: tick.x,
+							x2: tick.x,
+							y1: margin.top,
+							y2: svgHeight - margin.bottom,
+							stroke: "#334155",
+							strokeOpacity: .14,
+							strokeDasharray: "2 4"
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("text", {
+							x: tick.x,
+							y: svgHeight - margin.bottom + 16,
+							textAnchor: "middle",
+							fontSize: "10",
+							fontFamily: "monospace",
+							fill: "#94a3b8",
+							children: tick.label
+						})] }, `x-${idx}`)),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
+							x1: margin.left,
+							x2: svgWidth - margin.right,
+							y1: svgHeight - margin.bottom,
+							y2: svgHeight - margin.bottom,
+							stroke: "#475569",
+							strokeWidth: 1.25
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
+							x1: margin.left,
+							x2: margin.left,
+							y1: margin.top,
+							y2: svgHeight - margin.bottom,
+							stroke: "#475569",
+							strokeWidth: 1.25
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
+							x1: svgWidth - margin.right,
+							x2: svgWidth - margin.right,
+							y1: margin.top,
+							y2: svgHeight - margin.bottom,
+							stroke: "#475569",
+							strokeWidth: 1,
+							strokeOpacity: .45
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("text", {
+							x: margin.left,
+							y: 18,
+							fontSize: "10",
+							fontFamily: "monospace",
+							fill: "#94a3b8",
+							children: isGamma ? "Activity (Ci)" : "Output (%)"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("text", {
+							x: svgWidth - margin.right,
+							y: 18,
+							textAnchor: "end",
+							fontSize: "10",
+							fontFamily: "monospace",
+							fill: "#94a3b8",
+							children: "Remaining (%)"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("text", {
+							x: margin.left + plotWidth / 2,
+							y: 292,
+							textAnchor: "middle",
+							fontSize: "10",
+							fontFamily: "monospace",
+							fill: "#64748b",
+							children: isGamma ? `Timeline from Calibration (${initialCalibrationDate}) · Elapsed Days` : "Constant Potential Operating Envelope"
+						}),
+						comparisonCurves.map((cmp) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("g", {
+							opacity: .55,
+							children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", {
+								"data-testid": `isotope-decay-compare-${cmp.spec.id}`,
+								d: cmp.path,
+								fill: "none",
+								stroke: cmp.color,
+								strokeWidth: 1.5,
+								strokeDasharray: "4 3"
+							})
+						}, cmp.spec.id)),
+						areaPath && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", {
+							d: areaPath,
+							fill: "url(#ge-decay-area-grad)"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", {
+							"data-testid": "isotope-decay-path",
+							d: linePath,
+							fill: "none",
+							stroke: activeColor,
+							strokeWidth: 2.5,
+							strokeLinecap: "round"
+						}),
+						halfLifeMilestones.map((m) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("g", {
+							"data-testid": `isotope-decay-halflife-${m.index}`,
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
+									x1: m.x,
+									x2: m.x,
+									y1: m.y,
+									y2: svgHeight - margin.bottom,
+									stroke: "#64748b",
+									strokeOpacity: .38,
+									strokeDasharray: "3 3"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+									cx: m.x,
+									cy: m.y,
+									r: 3.5,
+									fill: "#0f172a",
+									stroke: "#94a3b8",
+									strokeWidth: 1.5
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("text", {
+									x: m.x,
+									y: m.y - 8,
+									textAnchor: "middle",
+									fontSize: "9.5",
+									fontFamily: "monospace",
+									fill: "#94a3b8",
+									children: [
+										m.index,
+										"T½ (",
+										m.percent,
+										"%)"
+									]
+								})
+							]
+						}, `hl-${m.index}`)),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("g", { children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
+								"data-testid": "isotope-decay-shot-line",
+								x1: shotX,
+								x2: shotX,
+								y1: margin.top,
+								y2: svgHeight - margin.bottom,
+								stroke: "#ef4444",
+								strokeWidth: 2,
+								strokeDasharray: "5 3"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
+								x1: margin.left,
+								x2: shotX,
+								y1: shotY,
+								y2: shotY,
+								stroke: "#ef4444",
+								strokeOpacity: .4,
+								strokeWidth: 1,
+								strokeDasharray: "2 2"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+								"data-testid": "isotope-decay-shot-dot",
+								cx: shotX,
+								cy: shotY,
+								r: 5.5,
+								fill: "#ef4444",
+								stroke: "#ffffff",
+								strokeWidth: 2
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("text", {
+								"data-testid": "isotope-decay-shot-label",
+								x: shotX,
+								y: margin.top - 7,
+								textAnchor: shotLabelAnchor,
+								fontSize: "10.5",
+								fontWeight: "bold",
+								fontFamily: "monospace",
+								fill: "#ef4444",
+								children: isGamma ? `SHOT ${measurementDate} · ${liveDecay.currentCi} Ci` : `SHOT ${measurementDate}`
+							})
+						] }),
+						hoverTelemetry && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("g", {
+							pointerEvents: "none",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
+								"data-testid": "isotope-decay-hover-line",
+								x1: hoverTelemetry.x,
+								x2: hoverTelemetry.x,
+								y1: margin.top,
+								y2: svgHeight - margin.bottom,
+								stroke: "#06b6d4",
+								strokeWidth: 1.25
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+								cx: hoverTelemetry.x,
+								cy: hoverTelemetry.y,
+								r: 4.5,
+								fill: "#06b6d4",
+								stroke: "#0f172a",
+								strokeWidth: 1.5
+							})]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("rect", {
+							"data-testid": "isotope-decay-interaction-layer",
+							x: margin.left,
+							y: margin.top,
+							width: plotWidth,
+							height: plotHeight,
+							fill: "transparent",
+							className: "cursor-crosshair",
+							onMouseMove: handlePointerMove,
+							onMouseLeave: () => setHoverDayOffset(null),
+							onClick: handlePlotClick
+						})
+					]
+				}), isGamma && showCompareIsotopes && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "flex flex-wrap items-center gap-4 pt-3 mt-2 border-t border-slate-200 dark:border-slate-800 text-[11px] font-mono text-slate-600 dark:text-slate-300",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+						className: "font-bold text-slate-500",
+						children: isAr ? "مقارنة منحنيات التحلل:" : "Isotope Comparison:"
+					}), [
+						"ir192",
+						"se75",
+						"co60",
+						"yb169"
+					].map((key) => {
+						const spec = GE_ISOTOPES[key];
+						const isSelected = key === isotope.id;
+						return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+							className: "inline-flex items-center gap-1.5",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+								className: "inline-block w-3 h-0.5 rounded-full",
+								style: { backgroundColor: isSelected ? activeColor : COMPARISON_COLORS[key] }
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+								className: isSelected ? "font-bold text-slate-900 dark:text-white" : "",
+								children: [
+									spec.id.toUpperCase(),
+									" (",
+									spec.halfLifeDays,
+									"d)"
+								]
+							})]
+						}, key);
+					})]
+				})]
+			}),
+			isGamma && onChangeMeasurementDate && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "flex flex-wrap items-center justify-between gap-3 pt-1 text-xs font-mono",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "flex items-center gap-2 flex-1 min-w-[220px]",
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar, { className: "w-3.5 h-3.5 text-slate-400 shrink-0" }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+							className: "text-[11px] text-slate-500 whitespace-nowrap",
+							children: isAr ? "تحريك تاريخ التصوير:" : "Scrub Shot Day:"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+							type: "range",
+							"data-testid": "isotope-decay-day-scrubber",
+							min: 0,
+							max: domainMaxDays,
+							step: 1,
+							value: Math.min(domainMaxDays, clampedShotDays),
+							onChange: (e) => jumpToDaysOffset(Number(e.target.value)),
+							className: "w-full accent-amber-500 cursor-pointer",
+							"aria-label": isAr ? "شريط تحريك يوم التصوير" : "Shot date day offset scrubber"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+							className: "text-[11px] font-bold text-slate-700 dark:text-slate-200 tabular-nums whitespace-nowrap",
+							children: [
+								"+",
+								clampedShotDays,
+								"d"
+							]
+						})
+					]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "flex flex-wrap items-center gap-1.5",
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+							type: "button",
+							"data-testid": "isotope-decay-jump-calib",
+							onClick: () => jumpToDaysOffset(0),
+							className: "px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-300 hover:border-amber-500 transition cursor-pointer inline-flex items-center gap-1 whitespace-nowrap",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(RotateCcw, { className: "w-3 h-3" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "t₀ (100%)" })]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+							type: "button",
+							"data-testid": "isotope-decay-jump-half1",
+							onClick: () => jumpToDaysOffset(Math.round(isotope.halfLifeDays)),
+							className: "px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-300 hover:border-amber-500 transition cursor-pointer whitespace-nowrap",
+							children: [
+								"1×T½ (",
+								Math.round(isotope.halfLifeDays),
+								"d)"
+							]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+							type: "button",
+							"data-testid": "isotope-decay-jump-half2",
+							onClick: () => jumpToDaysOffset(Math.round(isotope.halfLifeDays * 2)),
+							className: "px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-300 hover:border-amber-500 transition cursor-pointer whitespace-nowrap",
+							children: [
+								"2×T½ (",
+								Math.round(isotope.halfLifeDays * 2),
+								"d)"
+							]
+						})
+					]
+				})]
+			})
+		]
+	});
+};
+//#endregion
 //#region src/components/academy/virtuallab/GeRadiographicExposureTimeApp.tsx
 var escapeCsvField = (value) => {
 	const str = String(value);
@@ -24768,6 +26697,206 @@ var buildConversionLogCsv = (entries) => {
 		entry.calculatedTotalSeconds,
 		entry.formattedDuration
 	])].map((row) => row.map(escapeCsvField).join(",")).join("\n");
+};
+var computeBeamDecayProfile = ({ sourceType, materialId, technique, materialThicknessMm, weldReinforcementMm, samples = 72 }) => {
+	const isotope = GE_ISOTOPES[sourceType];
+	const material = GE_MATERIALS[materialId];
+	const techSpec = GE_TECHNIQUES[technique];
+	const safeThickness = Math.max(.5, materialThicknessMm);
+	const safeWeld = Math.max(0, weldReinforcementMm);
+	const rFactor = sourceType === "ir192" ? material.rFactorIr192 : sourceType === "se75" ? material.rFactorSe75 : sourceType === "co60" ? material.rFactorCo60 : material.rFactorXray;
+	const effectiveHvlMm = isotope.steelHvlMm;
+	const materialPhysicalHvlMm = Number((effectiveHvlMm / Math.max(.05, rFactor)).toFixed(2));
+	const muSteelPerMm = Number((Math.LN2 / effectiveHvlMm).toFixed(4));
+	const muMaterialPerMm = Number((Math.LN2 / Math.max(.1, materialPhysicalHvlMm)).toFixed(4));
+	const wallsPenetrated = techSpec.wallsPenetrated;
+	const wallEqSteel = safeThickness * rFactor;
+	const totalPhysicalThicknessMm = Number((safeThickness * wallsPenetrated + safeWeld).toFixed(2));
+	const effectiveSteelThicknessMm = Number((wallEqSteel * wallsPenetrated + safeWeld).toFixed(2));
+	const totalHvlCount = Number((effectiveSteelThicknessMm / effectiveHvlMm).toFixed(2));
+	const exitIntensityPct = Number((100 * Math.pow(.5, effectiveSteelThicknessMm / effectiveHvlMm)).toFixed(2));
+	const attenuationFactor = Number(Math.pow(2, totalHvlCount).toFixed(1));
+	const rawSegments = [];
+	if (wallsPenetrated === 2) {
+		const wallSpan = (.74 - (safeWeld > 0 ? Math.min(.14, Math.max(.05, safeWeld / Math.max(1, effectiveSteelThicknessMm) * .74)) : 0)) / 2;
+		const cavityStart = wallSpan;
+		const cavityEnd = cavityStart + .26;
+		const wall2End = cavityEnd + wallSpan;
+		rawSegments.push({
+			id: "wall_1",
+			labelEn: "Near Wall",
+			labelAr: "الجدار القريب",
+			startNorm: 0,
+			endNorm: cavityStart,
+			physicalThicknessMm: safeThickness,
+			effectiveSteelThicknessMm: wallEqSteel
+		});
+		rawSegments.push({
+			id: "cavity",
+			labelEn: "Pipe Bore (Air)",
+			labelAr: "تجويف الماسورة",
+			startNorm: cavityStart,
+			endNorm: cavityEnd,
+			physicalThicknessMm: 0,
+			effectiveSteelThicknessMm: 0
+		});
+		rawSegments.push({
+			id: "wall_2",
+			labelEn: "Far Wall",
+			labelAr: "الجدار البعيد",
+			startNorm: cavityEnd,
+			endNorm: wall2End,
+			physicalThicknessMm: safeThickness,
+			effectiveSteelThicknessMm: wallEqSteel
+		});
+		if (safeWeld > 0) rawSegments.push({
+			id: "weld_cap",
+			labelEn: "Weld Cap",
+			labelAr: "تاج اللحام",
+			startNorm: wall2End,
+			endNorm: 1,
+			physicalThicknessMm: safeWeld,
+			effectiveSteelThicknessMm: safeWeld
+		});
+	} else {
+		const wallFrac = safeWeld > 0 ? Math.max(.72, wallEqSteel / Math.max(.01, wallEqSteel + safeWeld)) : 1;
+		rawSegments.push({
+			id: "wall_1",
+			labelEn: "Specimen Wall",
+			labelAr: "جدار العينة",
+			startNorm: 0,
+			endNorm: wallFrac,
+			physicalThicknessMm: safeThickness,
+			effectiveSteelThicknessMm: wallEqSteel
+		});
+		if (safeWeld > 0) rawSegments.push({
+			id: "weld_cap",
+			labelEn: "Weld Cap",
+			labelAr: "تاج اللحام",
+			startNorm: wallFrac,
+			endNorm: 1,
+			physicalThicknessMm: safeWeld,
+			effectiveSteelThicknessMm: safeWeld
+		});
+	}
+	let runningPhys = 0;
+	let runningSteel = 0;
+	const wallSegments = rawSegments.map((seg) => {
+		const entryIntensityPct = Number((100 * Math.pow(.5, runningSteel / effectiveHvlMm)).toFixed(2));
+		runningPhys += seg.physicalThicknessMm;
+		runningSteel += seg.effectiveSteelThicknessMm;
+		const segExitIntensityPct = Number((100 * Math.pow(.5, runningSteel / effectiveHvlMm)).toFixed(2));
+		return {
+			...seg,
+			entryIntensityPct,
+			exitIntensityPct: segExitIntensityPct
+		};
+	});
+	const evaluateAtNorm = (normX) => {
+		const clamped = Math.max(0, Math.min(1, normX));
+		let cumPhys = 0;
+		let cumSteel = 0;
+		let inCavity = false;
+		for (const seg of wallSegments) {
+			if (clamped <= seg.endNorm || seg === wallSegments[wallSegments.length - 1]) {
+				const span = Math.max(1e-6, seg.endNorm - seg.startNorm);
+				const localT = Math.max(0, Math.min(1, (clamped - seg.startNorm) / span));
+				cumPhys += seg.physicalThicknessMm * localT;
+				cumSteel += seg.effectiveSteelThicknessMm * localT;
+				inCavity = seg.id === "cavity" && clamped > seg.startNorm && clamped < seg.endNorm;
+				break;
+			}
+			cumPhys += seg.physicalThicknessMm;
+			cumSteel += seg.effectiveSteelThicknessMm;
+		}
+		const hvlAtDepth = cumSteel / effectiveHvlMm;
+		const intensityPct = 100 * Math.pow(.5, hvlAtDepth);
+		return {
+			normX: Number(clamped.toFixed(4)),
+			physicalDepthMm: Number(cumPhys.toFixed(2)),
+			effectiveSteelDepthMm: Number(cumSteel.toFixed(2)),
+			intensityPct: Number(intensityPct.toFixed(2)),
+			hvlAtDepth: Number(hvlAtDepth.toFixed(2)),
+			inCavity
+		};
+	};
+	const normSet = /* @__PURE__ */ new Set();
+	for (let i = 0; i <= samples; i++) normSet.add(Number((i / samples).toFixed(4)));
+	wallSegments.forEach((seg) => {
+		normSet.add(Number(seg.startNorm.toFixed(4)));
+		normSet.add(Number(seg.endNorm.toFixed(4)));
+	});
+	const points = Array.from(normSet).sort((a, b) => a - b).map(evaluateAtNorm);
+	const hvlMarkers = [];
+	const maxMarkerCount = Math.min(8, Math.floor(totalHvlCount));
+	for (let h = 1; h <= maxMarkerCount; h++) {
+		const targetSteel = h * effectiveHvlMm;
+		let steelBefore = 0;
+		for (const seg of wallSegments) {
+			const steelAfter = steelBefore + seg.effectiveSteelThicknessMm;
+			if (seg.effectiveSteelThicknessMm > 0 && targetSteel >= steelBefore - 1e-6 && targetSteel <= steelAfter + 1e-6) {
+				const frac = (targetSteel - steelBefore) / seg.effectiveSteelThicknessMm;
+				const markerNormX = seg.startNorm + frac * (seg.endNorm - seg.startNorm);
+				hvlMarkers.push({
+					hvlIndex: h,
+					normX: Number(markerNormX.toFixed(4)),
+					intensityPct: Number((100 * Math.pow(.5, h)).toFixed(2)),
+					steelDepthMm: Number(targetSteel.toFixed(1))
+				});
+				break;
+			}
+			steelBefore = steelAfter;
+		}
+	}
+	return {
+		sourceType,
+		materialId,
+		technique,
+		wallsPenetrated,
+		rFactor,
+		effectiveHvlMm,
+		materialPhysicalHvlMm,
+		muSteelPerMm,
+		muMaterialPerMm,
+		wallThicknessMm: safeThickness,
+		weldReinforcementMm: safeWeld,
+		totalPhysicalThicknessMm,
+		effectiveSteelThicknessMm,
+		totalHvlCount,
+		exitIntensityPct,
+		attenuationFactor,
+		wallSegments,
+		hvlMarkers,
+		points
+	};
+};
+var interpolateBeamDecayAtNorm = (profile, normX) => {
+	const clamped = Math.max(0, Math.min(1, normX));
+	let cumPhys = 0;
+	let cumSteel = 0;
+	let inCavity = false;
+	for (const seg of profile.wallSegments) {
+		if (clamped <= seg.endNorm || seg === profile.wallSegments[profile.wallSegments.length - 1]) {
+			const span = Math.max(1e-6, seg.endNorm - seg.startNorm);
+			const localT = Math.max(0, Math.min(1, (clamped - seg.startNorm) / span));
+			cumPhys += seg.physicalThicknessMm * localT;
+			cumSteel += seg.effectiveSteelThicknessMm * localT;
+			inCavity = seg.id === "cavity" && clamped > seg.startNorm && clamped < seg.endNorm;
+			break;
+		}
+		cumPhys += seg.physicalThicknessMm;
+		cumSteel += seg.effectiveSteelThicknessMm;
+	}
+	const hvlAtDepth = cumSteel / profile.effectiveHvlMm;
+	const intensityPct = 100 * Math.pow(.5, hvlAtDepth);
+	return {
+		normX: Number(clamped.toFixed(4)),
+		physicalDepthMm: Number(cumPhys.toFixed(2)),
+		effectiveSteelDepthMm: Number(cumSteel.toFixed(2)),
+		intensityPct: Number(intensityPct.toFixed(2)),
+		hvlAtDepth: Number(hvlAtDepth.toFixed(2)),
+		inCavity
+	};
 };
 var getUnitConversionFormula = ({ kind, unitSystem, isAr, metricValue, imperialValue, secondaryImperialValue = 0 }) => {
 	if (kind === "quick_thickness") {
@@ -25047,6 +27176,7 @@ var GeRadiographicExposureTimeApp = ({ language, onApplyTimeToLab, onClose, clas
 	const [showTechniqueSheetModal, setShowTechniqueSheetModal] = (0, import_react.useState)(false);
 	const [isExportingPdf, setIsExportingPdf] = (0, import_react.useState)(false);
 	const [pdfSuccessMessage, setPdfSuccessMessage] = (0, import_react.useState)(null);
+	const [beamHoverNormX, setBeamHoverNormX] = (0, import_react.useState)(null);
 	const playBeep = (freq = 880, durationMs = 180) => {
 		if (!soundEnabled) return;
 		try {
@@ -25114,6 +27244,25 @@ var GeRadiographicExposureTimeApp = ({ language, onApplyTimeToLab, onClose, clas
 		hasInterleafScreen,
 		wideLatitudeGov
 	]);
+	const beamDecayProfile = (0, import_react.useMemo)(() => {
+		return computeBeamDecayProfile({
+			sourceType,
+			materialId,
+			technique,
+			materialThicknessMm,
+			weldReinforcementMm
+		});
+	}, [
+		sourceType,
+		materialId,
+		technique,
+		materialThicknessMm,
+		weldReinforcementMm
+	]);
+	const beamDecayProbePoint = (0, import_react.useMemo)(() => {
+		if (beamHoverNormX === null) return null;
+		return interpolateBeamDecayAtNorm(beamDecayProfile, beamHoverNormX);
+	}, [beamDecayProfile, beamHoverNormX]);
 	const toggleUnitSystem = (targetUnit) => {
 		if (targetUnit !== unitSystem) {
 			const entry = {
@@ -27284,6 +29433,788 @@ var GeRadiographicExposureTimeApp = ({ language, onApplyTimeToLab, onClose, clas
 						]
 					})
 				]
+			}),
+			(() => {
+				const pathLeft = 196;
+				const pathWidth = 396;
+				const plotTop = 46;
+				const plotBottom = 226;
+				const plotHeight = 180;
+				const sourceCenterX = 46;
+				const sourceCenterY = 136;
+				const filmPlaneX = 606;
+				const normToX = (normX) => pathLeft + normX * pathWidth;
+				const intensityToY = (pct) => plotBottom - Math.max(0, Math.min(100, pct)) / 100 * plotHeight;
+				const curveD = beamDecayProfile.points.map((pt, idx) => `${idx === 0 ? "M" : "L"} ${normToX(pt.normX).toFixed(1)} ${intensityToY(pt.intensityPct).toFixed(1)}`).join(" ");
+				const areaD = `${curveD} L ${normToX(1).toFixed(1)} ${plotBottom} L ${normToX(0).toFixed(1)} ${plotBottom} Z`;
+				const activePoint = beamDecayProbePoint ?? beamDecayProfile.points[beamDecayProfile.points.length - 1];
+				const probeSvgX = beamDecayProbePoint ? normToX(beamDecayProbePoint.normX) : null;
+				const probeSvgY = beamDecayProbePoint ? intensityToY(beamDecayProbePoint.intensityPct) : null;
+				const handlePointerInspect = (e) => {
+					const rect = e.currentTarget.getBoundingClientRect();
+					if (rect.width > 0) {
+						const relX = (e.clientX - rect.left) / rect.width;
+						setBeamHoverNormX(Math.max(0, Math.min(1, relX)));
+					} else {
+						const fallbackNorm = e.clientX > 0 ? Math.max(0, Math.min(1, (e.clientX - pathLeft) / pathWidth)) : .5;
+						setBeamHoverNormX(fallbackNorm);
+					}
+				};
+				const matBaseFill = materialId === "copper_brass" ? "rgba(217, 119, 6, 0.22)" : materialId === "aluminum" ? "rgba(148, 163, 184, 0.22)" : materialId === "titanium" ? "rgba(167, 139, 250, 0.20)" : "rgba(56, 189, 248, 0.16)";
+				const formatLen = (mmVal) => unitSystem === "imperial" ? `${(mmVal / 25.4).toFixed(3)}"` : `${mmVal.toFixed(1)} mm`;
+				return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					"data-testid": "ge-beam-intensity-decay-overlay",
+					className: "rounded-3xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-5 sm:p-6 space-y-4",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "flex flex-wrap items-start justify-between gap-3",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "space-y-1",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-slate-100",
+								children: [
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Activity, { className: "w-4 h-4 text-amber-500 shrink-0" }),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "المحاكاة الحية لمسار الإشعاع وتوهين شدة الحزمة عبر سُمك المعدن" : "Live Exposure Path & Beam Intensity Decay Overlay" }),
+									isTimerRunning && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+										className: "px-2 py-0.5 rounded bg-red-500/15 border border-red-500/40 text-red-500 dark:text-red-400 font-mono text-[10px] font-bold uppercase tracking-wider",
+										children: isAr ? "بث حي" : "Beam Active"
+									})
+								]
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+								className: "text-[11px] text-slate-500 dark:text-slate-400 font-mono",
+								children: [
+									"I(x) = I₀ · 0.5^(x_eq / HVL) · ",
+									selectedIsotope.chemicalSymbol,
+									" (HVL ",
+									formatLen(beamDecayProfile.effectiveHvlMm),
+									") ·",
+									" ",
+									selectedMaterial.nameEn.split("(")[0].trim(),
+									" (R=",
+									beamDecayProfile.rFactor.toFixed(2),
+									") ·",
+									" ",
+									beamDecayProfile.wallsPenetrated === 2 ? isAr ? "جدار مزدوج" : "2-Wall Path" : isAr ? "جدار مفرد" : "1-Wall Path"
+								]
+							})]
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "grid grid-cols-3 gap-2 text-[11px] font-mono",
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+										className: "block text-[9px] uppercase tracking-wider text-slate-500",
+										children: isAr ? "معامل التوهين μ" : "Linear μ (Steel)"
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", {
+										"data-testid": "ge-beam-decay-mu",
+										className: "text-sky-600 dark:text-sky-400 tabular-nums",
+										children: [beamDecayProfile.muSteelPerMm.toFixed(4), " mm⁻¹"]
+									})]
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+										className: "block text-[9px] uppercase tracking-wider text-slate-500",
+										children: isAr ? "طبقات النصف (HVL)" : "Penetrated HVLs"
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", {
+										"data-testid": "ge-beam-decay-hvl-count",
+										className: "text-amber-600 dark:text-amber-400 tabular-nums",
+										children: [beamDecayProfile.totalHvlCount.toFixed(2), " HVL"]
+									})]
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+										className: "block text-[9px] uppercase tracking-wider text-slate-500",
+										children: isAr ? "الشدة الخارجة للفيلم" : "Exit Intensity I/I₀"
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", {
+										"data-testid": "ge-beam-decay-exit-pct",
+										className: "text-emerald-600 dark:text-emerald-400 tabular-nums",
+										children: [beamDecayProfile.exitIntensityPct.toFixed(2), "%"]
+									})]
+								})
+							]
+						})]
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "relative overflow-x-auto rounded-2xl bg-slate-950 border border-slate-800 p-3 sm:p-4",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							"data-testid": "ge-beam-decay-probe-hud",
+							className: "flex flex-wrap items-center justify-between gap-2 mb-2 px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800 text-[11px] font-mono",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "flex items-center gap-1.5 text-slate-300",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Crosshair, { className: "w-3.5 h-3.5 text-amber-400" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									className: "text-slate-400",
+									children: beamDecayProbePoint ? isAr ? "فحص العمق المباشر:" : "Cursor Depth Probe:" : isAr ? "ملخص الخروج عند الفيلم (مرر المؤشر على المسار للفحص):" : "Exit Plane Readout (hover path to scrub depth):"
+								})]
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "flex flex-wrap items-center gap-3 tabular-nums",
+								children: [
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+										className: "text-slate-300",
+										children: [
+											isAr ? "العمق:" : "Depth:",
+											" ",
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", {
+												className: "text-white",
+												children: formatLen(activePoint.physicalDepthMm)
+											})
+										]
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+										className: "text-slate-300",
+										children: [
+											isAr ? "مكافئ الصلب:" : "Eq. Steel:",
+											" ",
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", {
+												className: "text-sky-400",
+												children: formatLen(activePoint.effectiveSteelDepthMm)
+											})
+										]
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+										className: "text-slate-300",
+										children: ["HVL: ", /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", {
+											className: "text-amber-400",
+											children: activePoint.hvlAtDepth.toFixed(2)
+										})]
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+										className: "text-slate-300",
+										children: ["I(x)/I₀: ", /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", {
+											className: "text-emerald-400",
+											children: [activePoint.intensityPct.toFixed(2), "%"]
+										})]
+									}),
+									activePoint.inCavity && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+										className: "px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 text-[10px]",
+										children: isAr ? "تجويف هوائي (لا توهين)" : "Pipe Bore (0 attenuation)"
+									})
+								]
+							})]
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("svg", {
+							"data-testid": "ge-beam-decay-svg",
+							viewBox: "0 0 780 282",
+							className: "w-full h-auto min-w-[600px] select-none",
+							role: "img",
+							"aria-label": isAr ? "مخطط مسار الإشعاع وتوهين شدة الحزمة" : "Radiographic exposure path and beam intensity decay graph",
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("defs", { children: [
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("linearGradient", {
+										id: "geBeamPathAttenuationGrad",
+										x1: "0%",
+										y1: "0%",
+										x2: "100%",
+										y2: "0%",
+										children: beamDecayProfile.points.filter((_, i, arr) => i === 0 || i === arr.length - 1 || i % 6 === 0).map((pt, idx) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("stop", {
+											offset: `${(pt.normX * 100).toFixed(1)}%`,
+											stopColor: "#f59e0b",
+											stopOpacity: Math.max(.06, Math.min(.52, pt.intensityPct / 100 * .52)).toFixed(3)
+										}, `${pt.normX}-${idx}`))
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("linearGradient", {
+										id: "geSfdConeGrad",
+										x1: "0%",
+										y1: "0%",
+										x2: "100%",
+										y2: "0%",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("stop", {
+											offset: "0%",
+											stopColor: "#fbbf24",
+											stopOpacity: isTimerRunning ? "0.68" : "0.45"
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("stop", {
+											offset: "100%",
+											stopColor: "#f59e0b",
+											stopOpacity: isTimerRunning ? "0.38" : "0.24"
+										})]
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("linearGradient", {
+										id: "geDecayAreaGrad",
+										x1: "0%",
+										y1: "0%",
+										x2: "0%",
+										y2: "100%",
+										children: [
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("stop", {
+												offset: "0%",
+												stopColor: "#f59e0b",
+												stopOpacity: "0.34"
+											}),
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("stop", {
+												offset: "65%",
+												stopColor: "#0ea5e9",
+												stopOpacity: "0.14"
+											}),
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("stop", {
+												offset: "100%",
+												stopColor: "#020617",
+												stopOpacity: "0.02"
+											})
+										]
+									})
+								] }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("text", {
+									x: "95",
+									y: "18",
+									fill: "#94a3b8",
+									fontSize: "10",
+									fontFamily: "monospace",
+									textAnchor: "middle",
+									children: sourceType.startsWith("xray") ? "X-RAY TUBE & SFD" : "ISOTOPE SOURCE & SFD"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("text", {
+									x: 394,
+									y: "18",
+									fill: "#e2e8f0",
+									fontSize: "10.5",
+									fontWeight: "bold",
+									fontFamily: "monospace",
+									textAnchor: "middle",
+									children: isAr ? "مقطع المعدن + منحنى توهين شدة الحزمة" : "MATERIAL CROSS-SECTION + BEAM DECAY OVERLAY"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("text", {
+									x: "688",
+									y: "18",
+									fill: "#94a3b8",
+									fontSize: "10",
+									fontFamily: "monospace",
+									textAnchor: "middle",
+									children: hasLeadScreens ? "Pb + FILM" : "FILM CASSETTE"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("polygon", {
+									points: hasCollimator ? `${sourceCenterX},${sourceCenterY} ${pathLeft},52 ${pathLeft},220` : `${sourceCenterX},${sourceCenterY} ${pathLeft},36 ${pathLeft},236`,
+									fill: "url(#geSfdConeGrad)"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("g", {
+									"data-testid": "ge-beam-photon-stream",
+									children: [
+										-.65,
+										0,
+										.65
+									].map((rayOffset, idx) => {
+										const targetY = sourceCenterY + rayOffset * (hasCollimator ? 64 : 84);
+										return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
+											x1: 56,
+											y1: sourceCenterY,
+											x2: pathLeft,
+											y2: targetY,
+											stroke: "#fbbf24",
+											strokeWidth: idx === 1 ? "1.8" : "1.1",
+											strokeDasharray: "6 6",
+											opacity: isTimerRunning ? .95 : .65,
+											className: idx === 1 ? "ut-beam-flow" : "ut-beam-flow-delayed"
+										}, idx);
+									})
+								}),
+								hasCollimator && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("g", {
+									"data-testid": "ge-beam-collimator-jaws",
+									children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("rect", {
+											x: "68",
+											y: 42,
+											width: "14",
+											height: "58",
+											rx: "2",
+											fill: "#334155",
+											stroke: "#64748b",
+											strokeWidth: "1"
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("rect", {
+											x: "68",
+											y: 172,
+											width: "14",
+											height: "58",
+											rx: "2",
+											fill: "#334155",
+											stroke: "#64748b",
+											strokeWidth: "1"
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("text", {
+											x: "75",
+											y: 37,
+											fill: "#cbd5e1",
+											fontSize: "8.5",
+											fontFamily: "monospace",
+											textAnchor: "middle",
+											children: "W-Coll"
+										})
+									]
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+									cx: sourceCenterX,
+									cy: sourceCenterY,
+									r: isTimerRunning ? "18" : "14",
+									fill: "#f59e0b",
+									opacity: isTimerRunning ? "0.28" : "0.16",
+									className: isTimerRunning ? "ut-beam-cone-pulse" : void 0
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+									cx: sourceCenterX,
+									cy: sourceCenterY,
+									r: "10",
+									fill: "#0f172a",
+									stroke: "#f59e0b",
+									strokeWidth: "2"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+									cx: sourceCenterX,
+									cy: sourceCenterY,
+									r: "3.5",
+									fill: "#fbbf24"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("text", {
+									x: sourceCenterX,
+									y: 162,
+									fill: "#fbbf24",
+									fontSize: "10",
+									fontWeight: "bold",
+									fontFamily: "monospace",
+									textAnchor: "middle",
+									children: selectedIsotope.chemicalSymbol
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("text", {
+									x: sourceCenterX,
+									y: 174,
+									fill: "#94a3b8",
+									fontSize: "8.5",
+									fontFamily: "monospace",
+									textAnchor: "middle",
+									children: sourceType.startsWith("xray") ? `${tubeKv}kV` : `${calcResult.currentLiveActivityCi}Ci`
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
+									x1: sourceCenterX,
+									y1: "252",
+									x2: filmPlaneX,
+									y2: "252",
+									stroke: "#475569",
+									strokeWidth: "1",
+									strokeDasharray: "3 3"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
+									x1: sourceCenterX,
+									y1: "246",
+									x2: sourceCenterX,
+									y2: "258",
+									stroke: "#64748b",
+									strokeWidth: "1.5"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
+									x1: filmPlaneX,
+									y1: "246",
+									x2: filmPlaneX,
+									y2: "258",
+									stroke: "#64748b",
+									strokeWidth: "1.5"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("rect", {
+									x: "290",
+									y: "243",
+									width: "146",
+									height: "16",
+									rx: "4",
+									fill: "#0f172a",
+									stroke: "#334155",
+									strokeWidth: "1"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("text", {
+									x: "363",
+									y: "254",
+									fill: "#e2e8f0",
+									fontSize: "9.5",
+									fontFamily: "monospace",
+									textAnchor: "middle",
+									children: [
+										"SFD: ",
+										unitSystem === "imperial" ? `${sfdInches}"` : `${sfdCm} cm`,
+										" · t_eq: ",
+										formatLen(beamDecayProfile.effectiveSteelThicknessMm)
+									]
+								}),
+								beamDecayProfile.wallSegments.map((seg) => {
+									const segX = normToX(seg.startNorm);
+									const segW = (seg.endNorm - seg.startNorm) * pathWidth;
+									const isCavity = seg.id === "cavity";
+									const isWeld = seg.id === "weld_cap";
+									return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("g", {
+										"data-testid": `ge-beam-segment-${seg.id}`,
+										children: [
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("rect", {
+												x: segX,
+												y: plotTop,
+												width: segW,
+												height: plotHeight,
+												fill: isCavity ? "rgba(15, 23, 42, 0.72)" : isWeld ? "rgba(245, 158, 11, 0.16)" : matBaseFill,
+												stroke: isCavity ? "#334155" : isWeld ? "#d97706" : "#475569",
+												strokeWidth: "1",
+												strokeDasharray: isCavity ? "4 3" : void 0
+											}),
+											isWeld && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", {
+												d: `M ${segX} 64 Q ${segX + segW + 6} ${sourceCenterY} ${segX} 208`,
+												fill: "rgba(245, 158, 11, 0.18)",
+												stroke: "#f59e0b",
+												strokeWidth: "1.2",
+												opacity: "0.7"
+											}),
+											segW >= 36 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("text", {
+												x: segX + segW / 2,
+												y: 39,
+												fill: isCavity ? "#38bdf8" : isWeld ? "#fbbf24" : "#cbd5e1",
+												fontSize: "8.5",
+												fontFamily: "monospace",
+												textAnchor: "middle",
+												children: isAr ? seg.labelAr : seg.labelEn
+											}),
+											segW >= 42 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("text", {
+												x: segX + segW / 2,
+												y: 239,
+												fill: "#94a3b8",
+												fontSize: "8",
+												fontFamily: "monospace",
+												textAnchor: "middle",
+												children: isCavity ? "Air Gap" : formatLen(seg.physicalThicknessMm)
+											})
+										]
+									}, seg.id);
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("rect", {
+									"data-testid": "ge-beam-attenuation-cone",
+									x: pathLeft,
+									y: 56,
+									width: pathWidth,
+									height: 160,
+									fill: "url(#geBeamPathAttenuationGrad)",
+									pointerEvents: "none"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
+									x1: pathLeft,
+									y1: sourceCenterY,
+									x2: filmPlaneX,
+									y2: sourceCenterY,
+									stroke: "#fbbf24",
+									strokeWidth: "1.5",
+									strokeDasharray: "5 7",
+									opacity: Math.max(.28, Math.min(.85, beamDecayProfile.exitIntensityPct / 100 + .25)),
+									className: "ut-beam-flow",
+									pointerEvents: "none"
+								}),
+								[
+									{
+										pct: 100,
+										label: "100%"
+									},
+									{
+										pct: 50,
+										label: "50% (1 HVL)"
+									},
+									{
+										pct: 25,
+										label: "25%"
+									},
+									{
+										pct: 10,
+										label: "10% (TVL)"
+									},
+									{
+										pct: 0,
+										label: "0%"
+									}
+								].map((tick) => {
+									const yPos = intensityToY(tick.pct);
+									return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("g", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
+										x1: pathLeft,
+										y1: yPos,
+										x2: 592,
+										y2: yPos,
+										stroke: tick.pct === 50 ? "#38bdf8" : "#334155",
+										strokeWidth: tick.pct === 50 ? "1" : "0.8",
+										strokeDasharray: tick.pct === 0 || tick.pct === 100 ? void 0 : "3 3",
+										opacity: tick.pct === 50 ? .55 : .45
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("text", {
+										x: 191,
+										y: yPos + 3,
+										fill: tick.pct === 50 ? "#38bdf8" : "#94a3b8",
+										fontSize: "8.5",
+										fontFamily: "monospace",
+										textAnchor: "end",
+										children: tick.label
+									})] }, tick.pct);
+								}),
+								beamDecayProfile.hvlMarkers.map((marker) => {
+									const mx = normToX(marker.normX);
+									const my = intensityToY(marker.intensityPct);
+									return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("g", {
+										"data-testid": `ge-beam-hvl-marker-${marker.hvlIndex}`,
+										children: [
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
+												x1: mx,
+												y1: plotTop,
+												x2: mx,
+												y2: plotBottom,
+												stroke: "#38bdf8",
+												strokeWidth: "1",
+												strokeDasharray: "3 3",
+												opacity: "0.6"
+											}),
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+												cx: mx,
+												cy: my,
+												r: "3",
+												fill: "#38bdf8",
+												stroke: "#020617",
+												strokeWidth: "1.2"
+											}),
+											/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("text", {
+												x: mx,
+												y: 221,
+												fill: "#38bdf8",
+												fontSize: "8",
+												fontWeight: "bold",
+												fontFamily: "monospace",
+												textAnchor: "middle",
+												children: [marker.hvlIndex, "HVL"]
+											})
+										]
+									}, marker.hvlIndex);
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", {
+									d: areaD,
+									fill: "url(#geDecayAreaGrad)",
+									pointerEvents: "none"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", {
+									"data-testid": "ge-beam-decay-curve-path",
+									d: curveD,
+									fill: "none",
+									stroke: "#fbbf24",
+									strokeWidth: "3",
+									strokeLinecap: "round",
+									strokeLinejoin: "round",
+									pointerEvents: "none"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+									cx: normToX(0),
+									cy: intensityToY(100),
+									r: "4",
+									fill: "#fbbf24",
+									stroke: "#020617",
+									strokeWidth: "1.5"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+									"data-testid": "ge-beam-decay-exit-dot",
+									cx: normToX(1),
+									cy: intensityToY(beamDecayProfile.exitIntensityPct),
+									r: "4.5",
+									fill: "#10b981",
+									stroke: "#020617",
+									strokeWidth: "1.5"
+								}),
+								probeSvgX !== null && probeSvgY !== null && beamDecayProbePoint && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("g", {
+									pointerEvents: "none",
+									children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
+											"data-testid": "ge-beam-decay-hover-line",
+											x1: probeSvgX,
+											y1: plotTop,
+											x2: probeSvgX,
+											y2: plotBottom,
+											stroke: "#e2e8f0",
+											strokeWidth: "1.2",
+											strokeDasharray: "4 2"
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+											cx: probeSvgX,
+											cy: probeSvgY,
+											r: "5",
+											fill: "#fbbf24",
+											stroke: "#ffffff",
+											strokeWidth: "1.8"
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("rect", {
+											x: Math.min(482, Math.max(200, probeSvgX + 8)),
+											y: Math.max(50, probeSvgY - 26),
+											width: "106",
+											height: "22",
+											rx: "4",
+											fill: "#0f172a",
+											stroke: "#fbbf24",
+											strokeWidth: "1"
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("text", {
+											x: Math.min(482, Math.max(200, probeSvgX + 8)) + 53,
+											y: Math.max(50, probeSvgY - 26) + 14,
+											fill: "#fbbf24",
+											fontSize: "9",
+											fontWeight: "bold",
+											fontFamily: "monospace",
+											textAnchor: "middle",
+											children: [
+												beamDecayProbePoint.intensityPct.toFixed(1),
+												"% · ",
+												beamDecayProbePoint.hvlAtDepth.toFixed(2),
+												" HVL"
+											]
+										})
+									]
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("rect", {
+									"data-testid": "ge-beam-decay-interaction-layer",
+									x: pathLeft,
+									y: plotTop,
+									width: pathWidth,
+									height: plotHeight,
+									fill: "transparent",
+									className: "cursor-crosshair",
+									onMouseMove: handlePointerInspect,
+									onClick: handlePointerInspect,
+									onMouseLeave: () => setBeamHoverNormX(null)
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("g", { children: [
+									hasLeadScreens && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("rect", {
+										x: filmPlaneX,
+										y: 54,
+										width: "6",
+										height: 164,
+										rx: "1",
+										fill: "#64748b",
+										stroke: "#94a3b8",
+										strokeWidth: "0.8"
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("rect", {
+										x: filmPlaneX + (hasLeadScreens ? 8 : 0),
+										y: 54,
+										width: "9",
+										height: 164,
+										rx: "1.5",
+										fill: "#10b981",
+										fillOpacity: "0.32",
+										stroke: "#10b981",
+										strokeWidth: "1.2"
+									}),
+									calcResult.isMultiFilm && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [hasInterleafScreen && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("rect", {
+										x: filmPlaneX + (hasLeadScreens ? 19 : 11),
+										y: 54,
+										width: "3.5",
+										height: 164,
+										fill: "#94a3b8"
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("rect", {
+										x: filmPlaneX + (hasLeadScreens ? hasInterleafScreen ? 24 : 19 : hasInterleafScreen ? 16 : 11),
+										y: 54,
+										width: "8",
+										height: 164,
+										rx: "1.5",
+										fill: "#38bdf8",
+										fillOpacity: "0.32",
+										stroke: "#38bdf8",
+										strokeWidth: "1.2"
+									})] }),
+									hasLeadScreens && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("rect", {
+										x: filmPlaneX + (calcResult.isMultiFilm ? hasInterleafScreen ? 34 : 29 : 19),
+										y: 54,
+										width: "6",
+										height: 164,
+										rx: "1",
+										fill: "#64748b",
+										stroke: "#94a3b8",
+										strokeWidth: "0.8"
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("rect", {
+										x: "656",
+										y: "72",
+										width: "112",
+										height: "128",
+										rx: "8",
+										fill: "#0f172a",
+										stroke: "#1e293b",
+										strokeWidth: "1.2"
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("text", {
+										x: "712",
+										y: "92",
+										fill: "#94a3b8",
+										fontSize: "9",
+										fontFamily: "monospace",
+										textAnchor: "middle",
+										children: isAr ? "الشدة الواصلة للفيلم" : "TRANSMITTED"
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("text", {
+										x: "712",
+										y: "114",
+										fill: "#10b981",
+										fontSize: "16",
+										fontWeight: "bold",
+										fontFamily: "monospace",
+										textAnchor: "middle",
+										children: [beamDecayProfile.exitIntensityPct.toFixed(1), "%"]
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
+										x1: "668",
+										y1: "124",
+										x2: "756",
+										y2: "124",
+										stroke: "#1e293b",
+										strokeWidth: "1"
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("text", {
+										x: "712",
+										y: "140",
+										fill: "#cbd5e1",
+										fontSize: "9",
+										fontFamily: "monospace",
+										textAnchor: "middle",
+										children: [
+											"1 / ",
+											calcResult.attenuationFactor,
+											"× Beam"
+										]
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("text", {
+										x: "712",
+										y: "156",
+										fill: "#38bdf8",
+										fontSize: "9.5",
+										fontWeight: "bold",
+										fontFamily: "monospace",
+										textAnchor: "middle",
+										children: [selectedFilm.code.replace("Structurix ", ""), calcResult.isMultiFilm && calcResult.secondaryFilmSpec ? ` + ${calcResult.secondaryFilmSpec.code.replace("Structurix ", "")}` : ""]
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("text", {
+										x: "712",
+										y: "172",
+										fill: "#fbbf24",
+										fontSize: "9.5",
+										fontFamily: "monospace",
+										textAnchor: "middle",
+										children: [
+											"Target ",
+											targetOpticalDensity.toFixed(1),
+											" H&D"
+										]
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("text", {
+										x: "712",
+										y: "188",
+										fill: calcResult.passesAsmeUg ? "#34d399" : "#f87171",
+										fontSize: "8.5",
+										fontFamily: "monospace",
+										textAnchor: "middle",
+										children: [
+											"Ug ",
+											calcResult.calculatedUgMm,
+											"mm ",
+											calcResult.passesAsmeUg ? "PASS" : "FAIL"
+										]
+									})
+								] })
+							]
+						})]
+					})]
+				});
+			})(),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(IsotopeDecayCurveChart, {
+				isotope: selectedIsotope,
+				initialActivityCi,
+				initialCalibrationDate,
+				measurementDate,
+				onChangeMeasurementDate: setMeasurementDate,
+				language
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 				className: "rounded-3xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-6 space-y-4",
@@ -38800,7 +41731,7 @@ var DigitalLabSideSettingsPanel = ({ language, activeBlockType, transducerFreqMH
 };
 //#endregion
 //#region src/components/academy/VirtualLab.tsx
-var UtThreeScene = (0, import_react.lazy)(() => __vitePreload(() => import("./UtThreeScene-BPAX7bHi.js").then((module) => ({ default: module.UtThreeScene })), __vite__mapDeps([5,1,2,6])));
+var UtThreeScene = (0, import_react.lazy)(() => __vitePreload(() => import("./UtThreeScene-9nkjiV7T.js").then((module) => ({ default: module.UtThreeScene })), __vite__mapDeps([4,1,0,2,3,5])));
 var ANGLE_WELD_COUPON_FLAWS = {
 	incomplete_penetration: {
 		id: "incomplete_penetration",
@@ -64768,127 +67699,359 @@ var InteractiveBookExperiment = ({ experimentId, language }) => {
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 						className: "bg-[#050714] border border-[#1b224d] rounded-2xl p-4 text-center overflow-hidden",
-						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("svg", {
-							viewBox: "0 0 500 240",
-							className: "w-full max-h-64 mx-auto",
-							children: [
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("polygon", {
-									points: "50,20 180,20 180,100 50,100",
-									fill: "#1e2954",
-									stroke: "#3b82f6",
-									strokeWidth: "1.5"
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("text", {
-									x: "70",
-									y: "55",
-									fill: "#93c5fd",
-									fontSize: "11",
-									fontWeight: "bold",
-									children: "إسفين البلكسيجلاس (2700 m/s)"
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("rect", {
-									x: "20",
-									y: "100",
-									width: "460",
-									height: "110",
-									fill: "#111827",
-									stroke: "#475569",
-									strokeWidth: "2"
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("text", {
-									x: "30",
-									y: "125",
-									fill: "#94a3b8",
-									fontSize: "11",
-									fontWeight: "bold",
-									children: "قطعة الفولاذ (الصلب الكربوني)"
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("text", {
-									x: "30",
-									y: "145",
-									fill: "#64748b",
-									fontSize: "10",
-									children: [
-										"سماكة القطعة: ",
-										utPlateThickness,
-										" mm"
-									]
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
-									x1: "20",
-									y1: "100",
-									x2: "480",
-									y2: "100",
-									stroke: "#f59e0b",
-									strokeWidth: "2",
-									strokeDasharray: "4 2"
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
-									x1: 180 - Math.tan(utIncidentAngle * Math.PI / 180) * 80,
-									y1: "20",
-									x2: "180",
-									y2: "100",
-									stroke: "#fbbf24",
-									strokeWidth: "3"
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
-									cx: "180",
-									cy: "100",
-									r: "4",
-									fill: "#f59e0b"
-								}),
-								utCalculations.hasShearWave && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
-										x1: "180",
-										y1: "100",
-										x2: 180 + Math.tan(utCalculations.shearAngleDeg * Math.PI / 180) * 110,
-										y2: "210",
-										stroke: "#38bdf8",
-										strokeWidth: "3"
+						children: (() => {
+							const incStartX = 180 - Math.tan(utIncidentAngle * Math.PI / 180) * 80;
+							const shearEndX = 180 + Math.tan(utCalculations.shearAngleDeg * Math.PI / 180) * 110;
+							const skipEndX = 180 + Math.tan(utCalculations.shearAngleDeg * Math.PI / 180) * 220;
+							const longEndX = 180 + Math.tan(utCalculations.longAngleDeg * Math.PI / 180) * 110;
+							const incDx = 180 - incStartX;
+							const shearDx = shearEndX - 180;
+							const skipDx = skipEndX - shearEndX;
+							const longDx = longEndX - 180;
+							return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("svg", {
+								viewBox: "0 0 500 240",
+								className: "w-full max-h-64 mx-auto",
+								role: "img",
+								"aria-label": isAr ? "رسم تفاعلي متحرك لانكسار الأشعة فوق الصوتية عبر الحد الفاصل بين الإسفين والفولاذ" : "Animated ultrasonic beam refraction diagram across wedge-to-steel material interface",
+								children: [
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("defs", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("linearGradient", {
+										id: "utIncidentBeamGrad",
+										x1: "0",
+										y1: "0",
+										x2: "0",
+										y2: "1",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("stop", {
+											offset: "0%",
+											stopColor: "#fbbf24",
+											stopOpacity: "0.28"
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("stop", {
+											offset: "100%",
+											stopColor: "#f59e0b",
+											stopOpacity: "0.06"
+										})]
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("linearGradient", {
+										id: "utShearBeamGrad",
+										x1: "0",
+										y1: "0",
+										x2: "0",
+										y2: "1",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("stop", {
+											offset: "0%",
+											stopColor: "#38bdf8",
+											stopOpacity: "0.26"
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("stop", {
+											offset: "100%",
+											stopColor: "#0284c7",
+											stopOpacity: "0.06"
+										})]
+									})] }),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("polygon", {
+										points: "50,20 180,20 180,100 50,100",
+										fill: "#1e2954",
+										stroke: "#3b82f6",
+										strokeWidth: "1.5"
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("text", {
+										x: "62",
+										y: "42",
+										fill: "#93c5fd",
+										fontSize: "10.5",
+										fontWeight: "bold",
+										children: isAr ? "إسفين البلكسيجلاس (2700 m/s)" : "Perspex Wedge (2700 m/s)"
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("rect", {
+										x: "20",
+										y: "100",
+										width: "460",
+										height: "110",
+										fill: "#111827",
+										stroke: "#475569",
+										strokeWidth: "2"
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("text", {
+										x: "30",
+										y: "125",
+										fill: "#94a3b8",
+										fontSize: "10.5",
+										fontWeight: "bold",
+										children: isAr ? "قطعة الفولاذ (الصلب الكربوني)" : "Carbon Steel Workpiece"
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("text", {
+										x: "30",
+										y: "143",
+										fill: "#64748b",
+										fontSize: "10",
+										children: isAr ? `سماكة القطعة: ${utPlateThickness} mm` : `Thickness: ${utPlateThickness} mm`
 									}),
 									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
-										x1: 180 + Math.tan(utCalculations.shearAngleDeg * Math.PI / 180) * 110,
-										y1: "210",
-										x2: 180 + Math.tan(utCalculations.shearAngleDeg * Math.PI / 180) * 220,
+										x1: "180",
+										y1: "20",
+										x2: "180",
+										y2: "210",
+										stroke: "#475569",
+										strokeWidth: "1",
+										strokeDasharray: "3 3",
+										opacity: "0.55"
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
+										x1: "20",
+										y1: "100",
+										x2: "480",
 										y2: "100",
-										stroke: "#38bdf8",
+										stroke: "#f59e0b",
 										strokeWidth: "2",
 										strokeDasharray: "4 2"
 									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("text", {
-										x: 200 + Math.tan(utCalculations.shearAngleDeg * Math.PI / 180) * 50,
-										y: "160",
-										fill: "#38bdf8",
-										fontSize: "11",
-										fontWeight: "bold",
-										children: [
-											"موجة القص: ",
-											utCalculations.shearAngleDeg.toFixed(1),
-											"°"
-										]
-									})
-								] }),
-								utCalculations.hasLongWave && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
-									x1: "180",
-									y1: "100",
-									x2: 180 + Math.tan(utCalculations.longAngleDeg * Math.PI / 180) * 110,
-									y2: "210",
-									stroke: "#f43f5e",
-									strokeWidth: "2",
-									strokeDasharray: "2 2"
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("text", {
-									x: 210 + Math.tan(utCalculations.longAngleDeg * Math.PI / 180) * 30,
-									y: "130",
-									fill: "#f43f5e",
-									fontSize: "10",
-									children: [
-										"موجة طولية: ",
-										utCalculations.longAngleDeg.toFixed(1),
-										"°"
-									]
-								})] })
-							]
-						})
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("text", {
+										x: "292",
+										y: "94",
+										fill: "#fbbf24",
+										fontSize: "9.5",
+										fontFamily: "monospace",
+										children: isAr ? "الحد الفاصل (Material Interface)" : "Material Interface (Couplant)"
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("polygon", {
+										points: `${incStartX - 6},20 ${incStartX + 6},20 189,100 171,100`,
+										fill: "url(#utIncidentBeamGrad)",
+										className: "ut-beam-cone-pulse"
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
+										x1: incStartX,
+										y1: "20",
+										x2: "180",
+										y2: "100",
+										stroke: "#f59e0b",
+										strokeWidth: "4.5",
+										strokeOpacity: "0.28"
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
+										x1: incStartX,
+										y1: "20",
+										x2: "180",
+										y2: "100",
+										stroke: "#fbbf24",
+										strokeWidth: "2.8",
+										strokeDasharray: "10 6",
+										className: "ut-beam-flow"
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+										cx: incStartX,
+										cy: "20",
+										r: "3.5",
+										fill: "#fef08a",
+										className: "ut-wave-packet",
+										style: {
+											"--beam-dx": `${incDx.toFixed(1)}px`,
+											"--beam-dy": "80px",
+											"--beam-duration": "1.05s",
+											"--beam-delay": "0s"
+										}
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+										cx: incStartX,
+										cy: "20",
+										r: "2.8",
+										fill: "#fbbf24",
+										className: "ut-wave-packet",
+										style: {
+											"--beam-dx": `${incDx.toFixed(1)}px`,
+											"--beam-dy": "80px",
+											"--beam-duration": "1.05s",
+											"--beam-delay": "0.52s"
+										}
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+										cx: "180",
+										cy: "100",
+										r: "7",
+										fill: "none",
+										stroke: "#fbbf24",
+										strokeWidth: "1.6",
+										className: "ut-interface-ripple"
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+										cx: "180",
+										cy: "100",
+										r: "7",
+										fill: "none",
+										stroke: "#38bdf8",
+										strokeWidth: "1.4",
+										className: "ut-interface-ripple-delayed"
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+										cx: "180",
+										cy: "100",
+										r: "4.2",
+										fill: "#f59e0b",
+										stroke: "#fef3c7",
+										strokeWidth: "1"
+									}),
+									utCalculations.hasShearWave ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("polygon", {
+											points: `174,100 186,100 ${shearEndX + 12},210 ${shearEndX - 12},210`,
+											fill: "url(#utShearBeamGrad)",
+											className: "ut-beam-cone-pulse"
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
+											x1: "180",
+											y1: "100",
+											x2: shearEndX,
+											y2: "210",
+											stroke: "#0284c7",
+											strokeWidth: "5",
+											strokeOpacity: "0.28"
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
+											x1: "180",
+											y1: "100",
+											x2: shearEndX,
+											y2: "210",
+											stroke: "#38bdf8",
+											strokeWidth: "2.8",
+											strokeDasharray: "10 6",
+											className: "ut-beam-flow"
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+											cx: "180",
+											cy: "100",
+											r: "3.5",
+											fill: "#bae6fd",
+											className: "ut-wave-packet",
+											style: {
+												"--beam-dx": `${shearDx.toFixed(1)}px`,
+												"--beam-dy": "110px",
+												"--beam-duration": "1.35s",
+												"--beam-delay": "0.2s"
+											}
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+											cx: "180",
+											cy: "100",
+											r: "2.8",
+											fill: "#38bdf8",
+											className: "ut-wave-packet",
+											style: {
+												"--beam-dx": `${shearDx.toFixed(1)}px`,
+												"--beam-dy": "110px",
+												"--beam-duration": "1.35s",
+												"--beam-delay": "0.88s"
+											}
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+											cx: shearEndX,
+											cy: "210",
+											r: "6",
+											fill: "none",
+											stroke: "#38bdf8",
+											strokeWidth: "1.4",
+											className: "ut-interface-ripple"
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+											cx: shearEndX,
+											cy: "210",
+											r: "3",
+											fill: "#38bdf8"
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
+											x1: shearEndX,
+											y1: "210",
+											x2: skipEndX,
+											y2: "100",
+											stroke: "#38bdf8",
+											strokeWidth: "2.2",
+											strokeDasharray: "10 6",
+											className: "ut-beam-flow-delayed"
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+											cx: shearEndX,
+											cy: "210",
+											r: "2.8",
+											fill: "#7dd3fc",
+											className: "ut-wave-packet",
+											style: {
+												"--beam-dx": `${skipDx.toFixed(1)}px`,
+												"--beam-dy": "-110px",
+												"--beam-duration": "1.35s",
+												"--beam-delay": "0.55s"
+											}
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("text", {
+											x: Math.min(395, 196 + Math.tan(utCalculations.shearAngleDeg * Math.PI / 180) * 50),
+											y: "162",
+											fill: "#38bdf8",
+											fontSize: "10.5",
+											fontWeight: "bold",
+											children: isAr ? `موجة القص: ${utCalculations.shearAngleDeg.toFixed(1)}°` : `Shear: ${utCalculations.shearAngleDeg.toFixed(1)}°`
+										})
+									] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
+											x1: "180",
+											y1: "100",
+											x2: "465",
+											y2: "100",
+											stroke: "#22d3ee",
+											strokeWidth: "3.2",
+											strokeDasharray: "10 6",
+											className: "ut-beam-flow-fast"
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+											cx: "180",
+											cy: "100",
+											r: "3.2",
+											fill: "#67e8f9",
+											className: "ut-wave-packet",
+											style: {
+												"--beam-dx": "280px",
+												"--beam-dy": "0px",
+												"--beam-duration": "1.1s",
+												"--beam-delay": "0s"
+											}
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("text", {
+											x: "275",
+											y: "122",
+											fill: "#22d3ee",
+											fontSize: "10.5",
+											fontWeight: "bold",
+											children: isAr ? "موجة ريليه سطحية (Rayleigh)" : "Surface Rayleigh Wave"
+										})
+									] }),
+									utCalculations.hasLongWave && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
+											x1: "180",
+											y1: "100",
+											x2: longEndX,
+											y2: "210",
+											stroke: "#f43f5e",
+											strokeWidth: "2.2",
+											strokeDasharray: "10 6",
+											className: "ut-beam-flow-fast"
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+											cx: "180",
+											cy: "100",
+											r: "3",
+											fill: "#fda4af",
+											className: "ut-wave-packet",
+											style: {
+												"--beam-dx": `${longDx.toFixed(1)}px`,
+												"--beam-dy": "110px",
+												"--beam-duration": "0.82s",
+												"--beam-delay": "0.1s"
+											}
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("text", {
+											x: Math.min(395, 206 + Math.tan(utCalculations.longAngleDeg * Math.PI / 180) * 32),
+											y: "130",
+											fill: "#fb7185",
+											fontSize: "10",
+											fontWeight: "bold",
+											children: isAr ? `موجة طولية: ${utCalculations.longAngleDeg.toFixed(1)}°` : `Long.: ${utCalculations.longAngleDeg.toFixed(1)}°`
+										})
+									] })
+								]
+							});
+						})()
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 						className: "p-4 rounded-2xl bg-[#0d112e] border border-[#232c66] space-y-2",
@@ -65805,12 +68968,24 @@ var InteractiveBookExperiment = ({ experimentId, language }) => {
 									className: "absolute top-8 left-1/2 -translate-x-1/2 origin-top transition-all duration-300 flex flex-col items-center",
 									style: {
 										transform: `translateX(-50%) rotate(${pautSteerAngle}deg)`,
-										height: `${Math.min(130, pautFocalDepthMm * 2.2)}px`
+										height: `${Math.min(130, pautFocalDepthMm * 2.2)}px`,
+										"--paut-depth": `${Math.min(115, pautFocalDepthMm * 1.95)}px`
 									},
-									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "w-0 h-0 border-l-[18px] border-r-[18px] border-t-[110px] border-l-transparent border-r-transparent border-t-amber-400/30 opacity-70" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-										className: "w-3 h-3 rounded-full bg-amber-400 shadow-[0_0_15px_#f59e0b] animate-ping",
-										title: "Focal Point"
-									})]
+									children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "w-0 h-0 border-l-[18px] border-r-[18px] border-t-[110px] border-l-transparent border-r-transparent border-t-amber-400/30 ut-beam-cone-pulse" }),
+										[
+											0,
+											.45,
+											.9
+										].map((delaySec) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+											className: "ut-paut-wavefront absolute top-1 w-7 h-2 rounded-full border-b-2 border-cyan-300/90 pointer-events-none",
+											style: { "--paut-delay": `${delaySec}s` }
+										}, delaySec)),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+											className: "w-3 h-3 rounded-full bg-amber-400 shadow-[0_0_15px_#f59e0b] animate-ping",
+											title: "Focal Point"
+										})
+									]
 								}),
 								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 									className: "absolute bottom-2 right-3 text-[10px] font-mono text-slate-400 bg-black/40 px-2 py-0.5 rounded",

@@ -580,7 +580,7 @@ export const ComprehensiveWeldUtSimulator: React.FC<ComprehensiveWeldUtSimulator
   };
 
   // ---------------------------------------------------------------------------
-  // 1. Render Weld Cross-Section (Flat Plate OR Curved Pipe) & Acoustic Beam Cone
+  // 1. Render Weld Cross-Section (Flat Plate OR Curved Pipe) & Animated Wavefront Rays
   // ---------------------------------------------------------------------------
   useEffect(() => {
     const canvas = weldCanvasRef.current;
@@ -588,411 +588,473 @@ export const ComprehensiveWeldUtSimulator: React.FC<ComprehensiveWeldUtSimulator
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const width = canvas.width;
-    const height = canvas.height;
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const shouldAnimate = showBeamConeOverlay && showNearFieldAndWavefronts && !isFrozen && !prefersReducedMotion;
+    let rafId = 0;
+    const startMs = Date.now();
 
-    ctx.fillStyle = '#050814';
-    ctx.fillRect(0, 0, width, height);
+    const flawScatterMode: 'specular_planar' | 'corner_trap' | 'volumetric_scatter' | 'tip_diffraction' | 'lamination' =
+      currentFlaw.id === 'base_lamination'
+        ? 'lamination'
+        : currentFlaw.echoWaveformType === 'sharp_spike_tip'
+        ? 'tip_diffraction'
+        : currentFlaw.id === 'root_crack' ||
+          currentFlaw.id === 'root_lof' ||
+          currentFlaw.id === 'incomplete_penetration'
+        ? 'corner_trap'
+        : currentFlaw.category === 'Volumetric'
+        ? 'volumetric_scatter'
+        : 'specular_planar';
 
-    const originX = width / 2;
-    const scale = Math.min((width * 0.82) / 150, (height * 0.68) / 38);
+    const renderWeldFrame = (phaseSec: number) => {
+      const width = canvas.width;
+      const height = canvas.height;
 
-    if (specimenGeometry === 'flat') {
-      // ==================== FLAT PLATE BUTT WELD GEOMETRY ====================
-      const originY = 58;
-      const plateThicknessPx = plateThicknessMm * scale;
-      const bottomY = originY + plateThicknessPx;
-      const halfPlateWidthPx = 70 * scale;
+      ctx.fillStyle = '#050814';
+      ctx.fillRect(0, 0, width, height);
 
-      // Base Metal Plates
-      ctx.fillStyle = '#131a33';
-      ctx.strokeStyle = '#2b3b6b';
-      ctx.lineWidth = 1.5;
+      const originX = width / 2;
+      const scale = Math.min((width * 0.82) / 150, (height * 0.68) / 38);
 
-      // Left Plate
-      ctx.beginPath();
-      ctx.moveTo(originX - halfPlateWidthPx, originY);
-      ctx.lineTo(originX - (capWidthMm / 2) * scale, originY);
-      ctx.lineTo(originX - 1.5 * scale, bottomY);
-      ctx.lineTo(originX - halfPlateWidthPx, bottomY);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
+      if (specimenGeometry === 'flat') {
+        // ==================== FLAT PLATE BUTT WELD GEOMETRY ====================
+        const originY = 58;
+        const plateThicknessPx = plateThicknessMm * scale;
+        const bottomY = originY + plateThicknessPx;
+        const halfPlateWidthPx = 70 * scale;
 
-      // Right Plate
-      ctx.beginPath();
-      ctx.moveTo(originX + halfPlateWidthPx, originY);
-      ctx.lineTo(originX + (capWidthMm / 2) * scale, originY);
-      ctx.lineTo(originX + 1.5 * scale, bottomY);
-      ctx.lineTo(originX + halfPlateWidthPx, bottomY);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
+        // Base Metal Plates
+        ctx.fillStyle = '#131a33';
+        ctx.strokeStyle = '#2b3b6b';
+        ctx.lineWidth = 1.5;
 
-      // Weld Metal V-Groove
-      ctx.fillStyle = '#1f2b52';
-      ctx.beginPath();
-      ctx.moveTo(originX - (capWidthMm / 2) * scale, originY);
-      ctx.quadraticCurveTo(originX, originY - 3.5 * scale, originX + (capWidthMm / 2) * scale, originY);
-      ctx.lineTo(originX + 1.5 * scale, bottomY);
-      ctx.quadraticCurveTo(originX, bottomY + 2.5 * scale, originX - 1.5 * scale, bottomY);
-      ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = '#435894';
-      ctx.lineWidth = 1;
-      ctx.stroke();
+        // Left Plate
+        ctx.beginPath();
+        ctx.moveTo(originX - halfPlateWidthPx, originY);
+        ctx.lineTo(originX - (capWidthMm / 2) * scale, originY);
+        ctx.lineTo(originX - 1.5 * scale, bottomY);
+        ctx.lineTo(originX - halfPlateWidthPx, bottomY);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
 
-      // Centerline
-      ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
-      ctx.setLineDash([4, 4]);
-      ctx.beginPath();
-      ctx.moveTo(originX, originY - 22);
-      ctx.lineTo(originX, bottomY + 18);
-      ctx.stroke();
-      ctx.setLineDash([]);
+        // Right Plate
+        ctx.beginPath();
+        ctx.moveTo(originX + halfPlateWidthPx, originY);
+        ctx.lineTo(originX + (capWidthMm / 2) * scale, originY);
+        ctx.lineTo(originX + 1.5 * scale, bottomY);
+        ctx.lineTo(originX + halfPlateWidthPx, bottomY);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
 
-      ctx.fillStyle = '#94a3b8';
-      ctx.font = '10px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(`FLAT PLATE WELD ℄ (t = ${plateThicknessMm}mm)`, originX, originY - 26);
+        // Weld Metal V-Groove
+        ctx.fillStyle = '#1f2b52';
+        ctx.beginPath();
+        ctx.moveTo(originX - (capWidthMm / 2) * scale, originY);
+        ctx.quadraticCurveTo(originX, originY - 3.5 * scale, originX + (capWidthMm / 2) * scale, originY);
+        ctx.lineTo(originX + 1.5 * scale, bottomY);
+        ctx.quadraticCurveTo(originX, bottomY + 2.5 * scale, originX - 1.5 * scale, bottomY);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = '#435894';
+        ctx.lineWidth = 1;
+        ctx.stroke();
 
-      // Draw Target Flaw (All 16 Morphologies)
-      const effectiveFlawXmm =
-        currentFlaw.id === 'base_lamination'
-          ? Math.abs(currentFlaw.distanceFromWeldCenterMm)
-          : currentFlaw.distanceFromWeldCenterMm;
-      const flawCanvasX = originX + effectiveFlawXmm * scale;
-      const flawCanvasY = originY + flawNominalDepthMm * scale;
-      drawComprehensiveDefectMorphology(
-        ctx,
-        currentFlaw.id,
-        flawCanvasX,
-        flawCanvasY,
-        originY,
-        bottomY,
-        scale,
-        isHit
-      );
+        // Centerline
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(originX, originY - 22);
+        ctx.lineTo(originX, bottomY + 18);
+        ctx.stroke();
+        ctx.setLineDash([]);
 
-      // Draw Probe & Wedge at probeIndexXmm
-      const probeX = originX + probeIndexXmm * scale;
-      const wedgeW = (instrumentMode === 'paut' ? 22 : 17) * scale;
-      const wedgeH = 13 * scale;
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '10px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(`FLAT PLATE WELD ℄ (t = ${plateThicknessMm}mm)`, originX, originY - 26);
 
-      ctx.fillStyle = instrumentMode === 'paut' ? 'rgba(245, 158, 11, 0.22)' : 'rgba(56, 189, 248, 0.22)';
-      ctx.strokeStyle = instrumentMode === 'paut' ? '#f59e0b' : '#38bdf8';
-      ctx.lineWidth = 1.6;
-      ctx.beginPath();
-      ctx.moveTo(probeX, originY);
-      ctx.lineTo(probeX + wedgeW, originY);
-      ctx.lineTo(probeX + wedgeW, originY - wedgeH);
-      ctx.lineTo(probeX + (isStraightZeroBeam ? 0 : 3 * scale), originY - wedgeH * (isStraightZeroBeam ? 1 : 0.72));
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
+        // Draw Target Flaw (All 16 Morphologies)
+        const effectiveFlawXmm =
+          currentFlaw.id === 'base_lamination'
+            ? Math.abs(currentFlaw.distanceFromWeldCenterMm)
+            : currentFlaw.distanceFromWeldCenterMm;
+        const flawCanvasX = originX + effectiveFlawXmm * scale;
+        const flawCanvasY = originY + flawNominalDepthMm * scale;
+        drawComprehensiveDefectMorphology(
+          ctx,
+          currentFlaw.id,
+          flawCanvasX,
+          flawCanvasY,
+          originY,
+          bottomY,
+          scale,
+          isHit
+        );
 
-      // PAUT multi-element array ticks vs single UT crystal
-      if (instrumentMode === 'paut') {
-        for (let el = 0; el < 8; el++) {
-          ctx.fillStyle = '#fbbf24';
-          ctx.fillRect(probeX + (4 + el * 1.9) * scale, originY - wedgeH * 0.85, 1.3 * scale, 3.2 * scale);
+        // Draw Probe & Wedge at probeIndexXmm
+        const probeX = originX + probeIndexXmm * scale;
+        const wedgeW = (instrumentMode === 'paut' ? 22 : 17) * scale;
+        const wedgeH = 13 * scale;
+
+        ctx.fillStyle = instrumentMode === 'paut' ? 'rgba(245, 158, 11, 0.22)' : 'rgba(56, 189, 248, 0.22)';
+        ctx.strokeStyle = instrumentMode === 'paut' ? '#f59e0b' : '#38bdf8';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(probeX, originY);
+        ctx.lineTo(probeX + wedgeW, originY);
+        ctx.lineTo(probeX + wedgeW, originY - wedgeH);
+        ctx.lineTo(probeX + (isStraightZeroBeam ? 0 : 3 * scale), originY - wedgeH * (isStraightZeroBeam ? 1 : 0.72));
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // PAUT multi-element array ticks vs single UT crystal + refracted wedge ray
+        if (instrumentMode === 'paut') {
+          for (let el = 0; el < 8; el++) {
+            ctx.fillStyle = '#fbbf24';
+            ctx.fillRect(probeX + (4 + el * 1.9) * scale, originY - wedgeH * 0.85, 1.3 * scale, 3.2 * scale);
+          }
+        } else {
+          ctx.fillStyle = '#38bdf8';
+          ctx.fillRect(probeX + 4 * scale, originY - wedgeH * 0.82, 8 * scale, 3.5 * scale);
+        }
+
+        if (showNearFieldAndWavefronts) {
+          ctx.strokeStyle = instrumentMode === 'paut' ? 'rgba(253, 224, 71, 0.75)' : 'rgba(186, 230, 253, 0.75)';
+          ctx.lineWidth = 1.3;
+          ctx.beginPath();
+          ctx.moveTo(probeX + 7.5 * scale, originY - wedgeH * 0.72);
+          ctx.lineTo(probeX, originY);
+          ctx.stroke();
+        }
+
+        // Beam Index Red Dot
+        ctx.fillStyle = '#f43f5e';
+        ctx.beginPath();
+        ctx.arc(probeX, originY, 3.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#e2e8f0';
+        ctx.font = 'bold 9px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(
+          `${instrumentMode === 'paut' ? `${pautApertureElements}E PAUT` : 'UT'} ${effectiveBeamAngleDeg}° (X=${probeIndexXmm}mm)`,
+          probeX + wedgeW / 2,
+          originY - wedgeH - 6
+        );
+
+        // Ray Tracing: Animated Beam Cone ("كوم الأشعة المتحرك") + PAUT Fan + Central Leg 1 & Leg 2
+        const leg1EndX = isStraightZeroBeam ? probeX : probeX - halfSkipSurfaceMm * scale;
+        const leg1EndY =
+          currentFlaw.id === 'base_lamination' && isHit ? flawCanvasY : bottomY;
+        const leg2EndX = isStraightZeroBeam ? undefined : leg1EndX - halfSkipSurfaceMm * scale;
+        const leg2EndY = isStraightZeroBeam ? undefined : originY;
+
+        if (showBeamConeOverlay) {
+          drawUltrasonicBeamCone2D({
+            ctx,
+            entryX: probeX,
+            entryY: originY,
+            bounceX: leg1EndX,
+            bounceY: leg1EndY,
+            leg2EndX,
+            leg2EndY,
+            scalePxPerMm: scale,
+            coneMetrics: beamConeMetrics,
+            isPaut: instrumentMode === 'paut',
+            focalDepthMm: pautFocalDepthMm,
+            showNearField: showNearFieldAndWavefronts,
+            showWavefronts: showNearFieldAndWavefronts,
+            isHit,
+            animationPhase: phaseSec,
+            defectImpact: {
+              x: flawCanvasX,
+              y: flawCanvasY,
+              hit: isHit,
+              scatterMode: flawScatterMode,
+              leg: activeLeg === 2 ? 2 : 1,
+            },
+          });
+        }
+
+        if (instrumentMode === 'paut') {
+          for (let fanDeg = 40; fanDeg <= 70; fanDeg += 5) {
+            const fRad = (fanDeg * Math.PI) / 180;
+            const fEndX = probeX - plateThicknessMm * Math.tan(fRad) * scale;
+            const fanPulse = 0.14 + 0.12 * Math.sin(phaseSec * 4.5 - fanDeg * 0.25);
+            ctx.strokeStyle = `rgba(245, 158, 11, ${fanPulse.toFixed(2)})`;
+            ctx.lineWidth = 1.05;
+            ctx.beginPath();
+            ctx.moveTo(probeX, originY);
+            ctx.lineTo(fEndX, bottomY);
+            ctx.stroke();
+          }
+        }
+
+        // Central Leg 1 Ray
+        ctx.strokeStyle = activeLeg === 1 && isHit ? 'rgba(239, 68, 68, 0.85)' : 'rgba(56, 189, 248, 0.85)';
+        ctx.lineWidth = 2.0;
+        ctx.beginPath();
+        ctx.moveTo(probeX, originY);
+        ctx.lineTo(leg1EndX, leg1EndY);
+        ctx.stroke();
+
+        // Central Leg 2 Ray (Full Skip)
+        if (!isStraightZeroBeam && leg2EndX !== undefined && leg2EndY !== undefined) {
+          ctx.strokeStyle = activeLeg === 2 && isHit ? 'rgba(239, 68, 68, 0.85)' : 'rgba(245, 158, 11, 0.85)';
+          ctx.lineWidth = 1.8;
+          ctx.beginPath();
+          ctx.moveTo(leg1EndX, leg1EndY);
+          ctx.lineTo(leg2EndX, leg2EndY);
+          ctx.stroke();
+        }
+
+        // Return Echo Bounce Ray when Flaw is Hit
+        if (isHit) {
+          ctx.strokeStyle = 'rgba(34, 197, 94, 0.82)';
+          ctx.setLineDash([4, 3]);
+          ctx.lineWidth = 2.0;
+          ctx.beginPath();
+          if (activeLeg === 1) {
+            ctx.moveTo(flawCanvasX, flawCanvasY);
+            ctx.lineTo(probeX, originY);
+          } else {
+            ctx.moveTo(flawCanvasX, flawCanvasY);
+            ctx.lineTo(leg1EndX, leg1EndY);
+            ctx.lineTo(probeX, originY);
+          }
+          ctx.stroke();
+          ctx.setLineDash([]);
         }
       } else {
+        // ==================== CURVED PIPE WELD GEOMETRY ====================
+        // Visual Pipe Arc Center below the canvas
+        const visualOuterR = Math.max(150, Math.min(360, outerRadiusMm * scale * 0.72));
+        const plateThicknessPx = plateThicknessMm * scale * 0.9;
+        const visualInnerR = Math.max(60, visualOuterR - plateThicknessPx);
+        const pipeCenterX = originX;
+        const pipeCenterY = 58 + visualOuterR;
+
+        const maxSpanAngle = Math.min(0.68, (68 * scale) / visualOuterR);
+
+        // Draw Curved Pipe Wall Sector
+        ctx.fillStyle = '#131a33';
+        ctx.strokeStyle = '#2b3b6b';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.arc(pipeCenterX, pipeCenterY, visualOuterR, -Math.PI / 2 - maxSpanAngle, -Math.PI / 2 + maxSpanAngle);
+        ctx.arc(pipeCenterX, pipeCenterY, visualInnerR, -Math.PI / 2 + maxSpanAngle, -Math.PI / 2 - maxSpanAngle, true);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Draw Curved V-Groove Weld at Top Crown (-PI/2)
+        const capHalfAngle = ((capWidthMm / 2) * scale) / visualOuterR;
+        const rootHalfAngle = (1.6 * scale) / visualInnerR;
+
+        ctx.fillStyle = '#1f2b52';
+        ctx.strokeStyle = '#435894';
+        ctx.beginPath();
+        const capLeftX = pipeCenterX + visualOuterR * Math.cos(-Math.PI / 2 - capHalfAngle);
+        const capLeftY = pipeCenterY + visualOuterR * Math.sin(-Math.PI / 2 - capHalfAngle);
+        const capRightX = pipeCenterX + visualOuterR * Math.cos(-Math.PI / 2 + capHalfAngle);
+        const capRightY = pipeCenterY + visualOuterR * Math.sin(-Math.PI / 2 + capHalfAngle);
+        const rootRightX = pipeCenterX + visualInnerR * Math.cos(-Math.PI / 2 + rootHalfAngle);
+        const rootRightY = pipeCenterY + visualInnerR * Math.sin(-Math.PI / 2 + rootHalfAngle);
+        const rootLeftX = pipeCenterX + visualInnerR * Math.cos(-Math.PI / 2 - rootHalfAngle);
+        const rootLeftY = pipeCenterY + visualInnerR * Math.sin(-Math.PI / 2 - rootHalfAngle);
+
+        ctx.moveTo(capLeftX, capLeftY);
+        ctx.quadraticCurveTo(pipeCenterX, pipeCenterY - visualOuterR - 4 * scale, capRightX, capRightY);
+        ctx.lineTo(rootRightX, rootRightY);
+        ctx.quadraticCurveTo(pipeCenterX, pipeCenterY - visualInnerR + 2.5 * scale, rootLeftX, rootLeftY);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Header Label for Curved Pipe
         ctx.fillStyle = '#38bdf8';
-        ctx.fillRect(probeX + 4 * scale, originY - wedgeH * 0.82, 8 * scale, 3.5 * scale);
-      }
+        ctx.font = 'bold 10px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(
+          `CURVED PIPE SPECIMEN (OD = ${pipeOuterDiameterMm}mm · ID = ${pipeOuterDiameterMm - 2 * plateThicknessMm}mm · t = ${plateThicknessMm}mm)`,
+          originX,
+          24
+        );
 
-      // Beam Index Red Dot
-      ctx.fillStyle = '#f43f5e';
-      ctx.beginPath();
-      ctx.arc(probeX, originY, 3.2, 0, Math.PI * 2);
-      ctx.fill();
+        // Draw Defect inside Curved Pipe Weld (All 16 Morphologies)
+        const effectiveCurvedFlawX =
+          currentFlaw.id === 'base_lamination'
+            ? Math.abs(currentFlaw.distanceFromWeldCenterMm)
+            : currentFlaw.distanceFromWeldCenterMm;
+        const flawArcAngle = -Math.PI / 2 + (effectiveCurvedFlawX * scale) / visualOuterR;
+        const flawRadialR = visualOuterR - (flawNominalDepthMm / plateThicknessMm) * plateThicknessPx;
+        const flawCanvasX = pipeCenterX + flawRadialR * Math.cos(flawArcAngle);
+        const flawCanvasY = pipeCenterY + flawRadialR * Math.sin(flawArcAngle);
 
-      ctx.fillStyle = '#e2e8f0';
-      ctx.font = 'bold 9px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(
-        `${instrumentMode === 'paut' ? `${pautApertureElements}E PAUT` : 'UT'} ${effectiveBeamAngleDeg}° (X=${probeIndexXmm}mm)`,
-        probeX + wedgeW / 2,
-        originY - wedgeH - 6
-      );
-
-      // Ray Tracing: Beam Cone ("كوم الأشعة") + PAUT Fan + Central Leg 1 & Leg 2
-      const leg1EndX = isStraightZeroBeam ? probeX : probeX - halfSkipSurfaceMm * scale;
-      const leg1EndY =
-        currentFlaw.id === 'base_lamination' && isHit ? flawCanvasY : bottomY;
-      const leg2EndX = isStraightZeroBeam ? undefined : leg1EndX - halfSkipSurfaceMm * scale;
-      const leg2EndY = isStraightZeroBeam ? undefined : originY;
-
-      if (showBeamConeOverlay) {
-        drawUltrasonicBeamCone2D({
+        drawComprehensiveDefectMorphology(
           ctx,
-          entryX: probeX,
-          entryY: originY,
-          bounceX: leg1EndX,
-          bounceY: leg1EndY,
-          leg2EndX,
-          leg2EndY,
-          scalePxPerMm: scale,
-          coneMetrics: beamConeMetrics,
-          isPaut: instrumentMode === 'paut',
-          focalDepthMm: pautFocalDepthMm,
-          showNearField: showNearFieldAndWavefronts,
-          showWavefronts: showNearFieldAndWavefronts,
-          isHit,
-        });
-      }
+          currentFlaw.id,
+          flawCanvasX,
+          flawCanvasY,
+          pipeCenterY - visualOuterR,
+          pipeCenterY - visualInnerR,
+          scale,
+          isHit
+        );
 
-      if (instrumentMode === 'paut') {
-        for (let fanDeg = 40; fanDeg <= 70; fanDeg += 5) {
-          const fRad = (fanDeg * Math.PI) / 180;
-          const fEndX = probeX - plateThicknessMm * Math.tan(fRad) * scale;
-          ctx.strokeStyle = 'rgba(245, 158, 11, 0.18)';
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.moveTo(probeX, originY);
-          ctx.lineTo(fEndX, bottomY);
-          ctx.stroke();
+        // Draw Tangential Contoured Probe on Curved Outer Surface
+        const probeGamma = Math.min(maxSpanAngle * 0.92, (probeIndexXmm * scale) / visualOuterR);
+        const probePolarAngle = -Math.PI / 2 + probeGamma;
+        const probeX = pipeCenterX + visualOuterR * Math.cos(probePolarAngle);
+        const probeY = pipeCenterY + visualOuterR * Math.sin(probePolarAngle);
+
+        ctx.save();
+        ctx.translate(probeX, probeY);
+        ctx.rotate(probeGamma);
+        const wedgeW = 16 * scale;
+        const wedgeH = 12 * scale;
+        ctx.fillStyle = instrumentMode === 'paut' ? 'rgba(245, 158, 11, 0.26)' : 'rgba(56, 189, 248, 0.26)';
+        ctx.strokeStyle = instrumentMode === 'paut' ? '#f59e0b' : '#38bdf8';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(wedgeW, 0);
+        ctx.lineTo(wedgeW, -wedgeH);
+        ctx.lineTo(2 * scale, -wedgeH * 0.72);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#f43f5e';
+        ctx.beginPath();
+        ctx.arc(0, 0, 3.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#e2e8f0';
+        ctx.font = 'bold 8.5px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${effectiveBeamAngleDeg}° CONTOURED`, wedgeW / 2, -wedgeH - 5);
+        ctx.restore();
+
+        // Curved Pipe Ray Tracing & Animated Beam Cone
+        const leg1IdAngle = isStraightZeroBeam
+          ? probePolarAngle
+          : probePolarAngle - Math.min(probeGamma + 0.25, (halfSkipSurfaceMm * scale) / visualOuterR);
+        const idBounceX = pipeCenterX + visualInnerR * Math.cos(leg1IdAngle);
+        const idBounceY = pipeCenterY + visualInnerR * Math.sin(leg1IdAngle);
+
+        const leg2OdAngle = leg1IdAngle - (halfSkipSurfaceMm * scale) / visualOuterR;
+        const odBounceX = pipeCenterX + visualOuterR * Math.cos(leg2OdAngle);
+        const odBounceY = pipeCenterY + visualOuterR * Math.sin(leg2OdAngle);
+
+        if (showBeamConeOverlay) {
+          drawUltrasonicBeamCone2D({
+            ctx,
+            entryX: probeX,
+            entryY: probeY,
+            bounceX: idBounceX,
+            bounceY: idBounceY,
+            leg2EndX: isStraightZeroBeam ? undefined : odBounceX,
+            leg2EndY: isStraightZeroBeam ? undefined : odBounceY,
+            scalePxPerMm: scale * 0.9,
+            coneMetrics: beamConeMetrics,
+            isPaut: instrumentMode === 'paut',
+            focalDepthMm: pautFocalDepthMm,
+            showNearField: showNearFieldAndWavefronts,
+            showWavefronts: showNearFieldAndWavefronts,
+            isHit,
+            animationPhase: phaseSec,
+            defectImpact: {
+              x: flawCanvasX,
+              y: flawCanvasY,
+              hit: isHit,
+              scatterMode: flawScatterMode,
+              leg: activeLeg === 2 ? 2 : 1,
+            },
+          });
         }
-      }
 
-      // Central Leg 1 Ray
-      ctx.strokeStyle = activeLeg === 1 && isHit ? '#ef4444' : '#38bdf8';
-      ctx.lineWidth = 2.4;
-      ctx.beginPath();
-      ctx.moveTo(probeX, originY);
-      ctx.lineTo(leg1EndX, leg1EndY);
-      ctx.stroke();
+        if (instrumentMode === 'paut') {
+          for (let fan = -3; fan <= 3; fan++) {
+            const fanAngle = leg1IdAngle + fan * 0.035;
+            const fx = pipeCenterX + visualInnerR * Math.cos(fanAngle);
+            const fy = pipeCenterY + visualInnerR * Math.sin(fanAngle);
+            ctx.strokeStyle = 'rgba(245, 158, 11, 0.18)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(probeX, probeY);
+            ctx.lineTo(fx, fy);
+            ctx.stroke();
+          }
+        }
 
-      // Central Leg 2 Ray (Full Skip)
-      if (!isStraightZeroBeam && leg2EndX !== undefined && leg2EndY !== undefined) {
-        ctx.strokeStyle = activeLeg === 2 && isHit ? '#ef4444' : '#f59e0b';
+        // Leg 1 Ray
+        ctx.strokeStyle = activeLeg === 1 && isHit ? 'rgba(239, 68, 68, 0.85)' : 'rgba(56, 189, 248, 0.85)';
         ctx.lineWidth = 2.0;
         ctx.beginPath();
-        ctx.moveTo(leg1EndX, leg1EndY);
-        ctx.lineTo(leg2EndX, leg2EndY);
+        ctx.moveTo(probeX, probeY);
+        ctx.lineTo(idBounceX, idBounceY);
         ctx.stroke();
-      }
 
-      // Return Echo Bounce Ray when Flaw is Hit
-      if (isHit) {
-        ctx.strokeStyle = '#22c55e';
-        ctx.setLineDash([4, 3]);
-        ctx.lineWidth = 2.2;
-        ctx.beginPath();
-        if (activeLeg === 1) {
-          ctx.moveTo(flawCanvasX, flawCanvasY);
-          ctx.lineTo(probeX, originY);
-        } else {
-          ctx.moveTo(flawCanvasX, flawCanvasY);
-          ctx.lineTo(leg1EndX, leg1EndY);
-          ctx.lineTo(probeX, originY);
-        }
-        ctx.stroke();
-        ctx.setLineDash([]);
-      }
-    } else {
-      // ==================== CURVED PIPE WELD GEOMETRY ====================
-      // Visual Pipe Arc Center below the canvas
-      const visualOuterR = Math.max(150, Math.min(360, outerRadiusMm * scale * 0.72));
-      const plateThicknessPx = plateThicknessMm * scale * 0.9;
-      const visualInnerR = Math.max(60, visualOuterR - plateThicknessPx);
-      const pipeCenterX = originX;
-      const pipeCenterY = 58 + visualOuterR;
-
-      const maxSpanAngle = Math.min(0.68, (68 * scale) / visualOuterR);
-
-      // Draw Curved Pipe Wall Sector
-      ctx.fillStyle = '#131a33';
-      ctx.strokeStyle = '#2b3b6b';
-      ctx.lineWidth = 1.6;
-      ctx.beginPath();
-      ctx.arc(pipeCenterX, pipeCenterY, visualOuterR, -Math.PI / 2 - maxSpanAngle, -Math.PI / 2 + maxSpanAngle);
-      ctx.arc(pipeCenterX, pipeCenterY, visualInnerR, -Math.PI / 2 + maxSpanAngle, -Math.PI / 2 - maxSpanAngle, true);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-
-      // Draw Curved V-Groove Weld at Top Crown (-PI/2)
-      const capHalfAngle = ((capWidthMm / 2) * scale) / visualOuterR;
-      const rootHalfAngle = (1.6 * scale) / visualInnerR;
-
-      ctx.fillStyle = '#1f2b52';
-      ctx.strokeStyle = '#435894';
-      ctx.beginPath();
-      const capLeftX = pipeCenterX + visualOuterR * Math.cos(-Math.PI / 2 - capHalfAngle);
-      const capLeftY = pipeCenterY + visualOuterR * Math.sin(-Math.PI / 2 - capHalfAngle);
-      const capRightX = pipeCenterX + visualOuterR * Math.cos(-Math.PI / 2 + capHalfAngle);
-      const capRightY = pipeCenterY + visualOuterR * Math.sin(-Math.PI / 2 + capHalfAngle);
-      const rootRightX = pipeCenterX + visualInnerR * Math.cos(-Math.PI / 2 + rootHalfAngle);
-      const rootRightY = pipeCenterY + visualInnerR * Math.sin(-Math.PI / 2 + rootHalfAngle);
-      const rootLeftX = pipeCenterX + visualInnerR * Math.cos(-Math.PI / 2 - rootHalfAngle);
-      const rootLeftY = pipeCenterY + visualInnerR * Math.sin(-Math.PI / 2 - rootHalfAngle);
-
-      ctx.moveTo(capLeftX, capLeftY);
-      ctx.quadraticCurveTo(pipeCenterX, pipeCenterY - visualOuterR - 4 * scale, capRightX, capRightY);
-      ctx.lineTo(rootRightX, rootRightY);
-      ctx.quadraticCurveTo(pipeCenterX, pipeCenterY - visualInnerR + 2.5 * scale, rootLeftX, rootLeftY);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-
-      // Header Label for Curved Pipe
-      ctx.fillStyle = '#38bdf8';
-      ctx.font = 'bold 10px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(
-        `CURVED PIPE SPECIMEN (OD = ${pipeOuterDiameterMm}mm · ID = ${pipeOuterDiameterMm - 2 * plateThicknessMm}mm · t = ${plateThicknessMm}mm)`,
-        originX,
-        24
-      );
-
-      // Draw Defect inside Curved Pipe Weld (All 16 Morphologies)
-      const effectiveCurvedFlawX =
-        currentFlaw.id === 'base_lamination'
-          ? Math.abs(currentFlaw.distanceFromWeldCenterMm)
-          : currentFlaw.distanceFromWeldCenterMm;
-      const flawArcAngle = -Math.PI / 2 + (effectiveCurvedFlawX * scale) / visualOuterR;
-      const flawRadialR = visualOuterR - (flawNominalDepthMm / plateThicknessMm) * plateThicknessPx;
-      const flawCanvasX = pipeCenterX + flawRadialR * Math.cos(flawArcAngle);
-      const flawCanvasY = pipeCenterY + flawRadialR * Math.sin(flawArcAngle);
-
-      drawComprehensiveDefectMorphology(
-        ctx,
-        currentFlaw.id,
-        flawCanvasX,
-        flawCanvasY,
-        pipeCenterY - visualOuterR,
-        pipeCenterY - visualInnerR,
-        scale,
-        isHit
-      );
-
-      // Draw Tangential Contoured Probe on Curved Outer Surface
-      const probeGamma = Math.min(maxSpanAngle * 0.92, (probeIndexXmm * scale) / visualOuterR);
-      const probePolarAngle = -Math.PI / 2 + probeGamma;
-      const probeX = pipeCenterX + visualOuterR * Math.cos(probePolarAngle);
-      const probeY = pipeCenterY + visualOuterR * Math.sin(probePolarAngle);
-
-      ctx.save();
-      ctx.translate(probeX, probeY);
-      ctx.rotate(probeGamma);
-      const wedgeW = 16 * scale;
-      const wedgeH = 12 * scale;
-      ctx.fillStyle = instrumentMode === 'paut' ? 'rgba(245, 158, 11, 0.26)' : 'rgba(56, 189, 248, 0.26)';
-      ctx.strokeStyle = instrumentMode === 'paut' ? '#f59e0b' : '#38bdf8';
-      ctx.lineWidth = 1.6;
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(wedgeW, 0);
-      ctx.lineTo(wedgeW, -wedgeH);
-      ctx.lineTo(2 * scale, -wedgeH * 0.72);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-
-      ctx.fillStyle = '#f43f5e';
-      ctx.beginPath();
-      ctx.arc(0, 0, 3.2, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = '#e2e8f0';
-      ctx.font = 'bold 8.5px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(`${effectiveBeamAngleDeg}° CONTOURED`, wedgeW / 2, -wedgeH - 5);
-      ctx.restore();
-
-      // Curved Pipe Ray Tracing & Beam Cone
-      const leg1IdAngle = isStraightZeroBeam
-        ? probePolarAngle
-        : probePolarAngle - Math.min(probeGamma + 0.25, (halfSkipSurfaceMm * scale) / visualOuterR);
-      const idBounceX = pipeCenterX + visualInnerR * Math.cos(leg1IdAngle);
-      const idBounceY = pipeCenterY + visualInnerR * Math.sin(leg1IdAngle);
-
-      const leg2OdAngle = leg1IdAngle - (halfSkipSurfaceMm * scale) / visualOuterR;
-      const odBounceX = pipeCenterX + visualOuterR * Math.cos(leg2OdAngle);
-      const odBounceY = pipeCenterY + visualOuterR * Math.sin(leg2OdAngle);
-
-      if (showBeamConeOverlay) {
-        drawUltrasonicBeamCone2D({
-          ctx,
-          entryX: probeX,
-          entryY: probeY,
-          bounceX: idBounceX,
-          bounceY: idBounceY,
-          leg2EndX: isStraightZeroBeam ? undefined : odBounceX,
-          leg2EndY: isStraightZeroBeam ? undefined : odBounceY,
-          scalePxPerMm: scale * 0.9,
-          coneMetrics: beamConeMetrics,
-          isPaut: instrumentMode === 'paut',
-          focalDepthMm: pautFocalDepthMm,
-          showNearField: showNearFieldAndWavefronts,
-          showWavefronts: showNearFieldAndWavefronts,
-          isHit,
-        });
-      }
-
-      if (instrumentMode === 'paut') {
-        for (let fan = -3; fan <= 3; fan++) {
-          const fanAngle = leg1IdAngle + fan * 0.035;
-          const fx = pipeCenterX + visualInnerR * Math.cos(fanAngle);
-          const fy = pipeCenterY + visualInnerR * Math.sin(fanAngle);
-          ctx.strokeStyle = 'rgba(245, 158, 11, 0.18)';
-          ctx.lineWidth = 1;
+        // Leg 2 Ray off Curved Inner Wall
+        if (!isStraightZeroBeam) {
+          ctx.strokeStyle = activeLeg === 2 && isHit ? 'rgba(239, 68, 68, 0.85)' : 'rgba(245, 158, 11, 0.85)';
+          ctx.lineWidth = 1.8;
           ctx.beginPath();
-          ctx.moveTo(probeX, probeY);
-          ctx.lineTo(fx, fy);
+          ctx.moveTo(idBounceX, idBounceY);
+          ctx.lineTo(odBounceX, odBounceY);
           ctx.stroke();
         }
-      }
 
-      // Leg 1 Ray
-      ctx.strokeStyle = activeLeg === 1 && isHit ? '#ef4444' : '#38bdf8';
-      ctx.lineWidth = 2.4;
-      ctx.beginPath();
-      ctx.moveTo(probeX, probeY);
-      ctx.lineTo(idBounceX, idBounceY);
-      ctx.stroke();
-
-      // Leg 2 Ray off Curved Inner Wall
-      if (!isStraightZeroBeam) {
-        ctx.strokeStyle = activeLeg === 2 && isHit ? '#ef4444' : '#f59e0b';
-        ctx.lineWidth = 2.0;
-        ctx.beginPath();
-        ctx.moveTo(idBounceX, idBounceY);
-        ctx.lineTo(odBounceX, odBounceY);
-        ctx.stroke();
-      }
-
-      if (isHit) {
-        ctx.strokeStyle = '#22c55e';
-        ctx.setLineDash([4, 3]);
-        ctx.lineWidth = 2.2;
-        ctx.beginPath();
-        if (activeLeg === 1) {
-          ctx.moveTo(flawCanvasX, flawCanvasY);
-          ctx.lineTo(probeX, probeY);
-        } else {
-          ctx.moveTo(flawCanvasX, flawCanvasY);
-          ctx.lineTo(idBounceX, idBounceY);
-          ctx.lineTo(probeX, probeY);
+        if (isHit) {
+          ctx.strokeStyle = 'rgba(34, 197, 94, 0.82)';
+          ctx.setLineDash([4, 3]);
+          ctx.lineWidth = 2.0;
+          ctx.beginPath();
+          if (activeLeg === 1) {
+            ctx.moveTo(flawCanvasX, flawCanvasY);
+            ctx.lineTo(probeX, probeY);
+          } else {
+            ctx.moveTo(flawCanvasX, flawCanvasY);
+            ctx.lineTo(idBounceX, idBounceY);
+            ctx.lineTo(probeX, probeY);
+          }
+          ctx.stroke();
+          ctx.setLineDash([]);
         }
-        ctx.stroke();
-        ctx.setLineDash([]);
       }
-    }
 
-    // Bottom HUD Strip inside Weld Canvas showing Beam Cone & Skip Info
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
-    ctx.fillRect(10, height - 26, width - 20, 20);
-    ctx.fillStyle = '#94a3b8';
-    ctx.font = '10px monospace';
-    ctx.textAlign = 'left';
-    ctx.fillText(
-      `N_total=${beamConeMetrics.nearFieldLengthMm.toFixed(1)}mm · N_eff=${beamConeMetrics.effectiveNearFieldInSpecimenMm.toFixed(1)}mm · -6dB=±${beamConeMetrics.halfAngleMinus6dBDeg.toFixed(1)}° · Skip/2=${halfSkipSurfaceMm.toFixed(1)}mm`,
-      18,
-      height - 13
-    );
+      // Bottom HUD Strip inside Weld Canvas showing Beam Cone & Skip Info
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+      ctx.fillRect(10, height - 26, width - 20, 20);
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '10px monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText(
+        `N_total=${beamConeMetrics.nearFieldLengthMm.toFixed(1)}mm · N_eff=${beamConeMetrics.effectiveNearFieldInSpecimenMm.toFixed(1)}mm · -6dB=±${beamConeMetrics.halfAngleMinus6dBDeg.toFixed(1)}° · Skip/2=${halfSkipSurfaceMm.toFixed(1)}mm`,
+        18,
+        height - 13
+      );
+    };
+
+    const tick = () => {
+      const elapsedSec = (Date.now() - startMs) / 1000;
+      renderWeldFrame(elapsedSec);
+      if (shouldAnimate) {
+        rafId = requestAnimationFrame(tick);
+      }
+    };
+
+    tick();
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+    };
   }, [
     specimenGeometry,
     pipeOuterDiameterMm,
@@ -1014,6 +1076,7 @@ export const ComprehensiveWeldUtSimulator: React.FC<ComprehensiveWeldUtSimulator
     activeLeg,
     halfSkipSurfaceMm,
     fullSkipSurfaceMm,
+    isFrozen,
   ]);
 
   // ---------------------------------------------------------------------------

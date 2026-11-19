@@ -532,7 +532,7 @@ export const UtFlawDetectorDevice: React.FC<UtFlawDetectorDeviceProps> = ({ lang
   }, [isPeakHold, activeSpecimen]);
 
   // ---------------------------------------------------------------------------
-  // 2. Render Side-by-Side Live Physical Work Simulator & Beam Cone ("كوم الأشعة")
+  // 2. Render Side-by-Side Live Physical Work Simulator & Animated Waves ("كوم الأشعة والموجات")
   // ---------------------------------------------------------------------------
   useEffect(() => {
     const canvas = workSimCanvasRef.current;
@@ -540,293 +540,361 @@ export const UtFlawDetectorDevice: React.FC<UtFlawDetectorDeviceProps> = ({ lang
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const w = canvas.width;
-    const h = canvas.height;
-    ctx.fillStyle = '#040814';
-    ctx.fillRect(0, 0, w, h);
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const shouldAnimate = showBeamCone && showWavefronts && !isFrozen && !prefersReducedMotion;
+    let rafId = 0;
+    const startMs = Date.now();
 
-    if (activeSpecimen === 'weld_butt' || activeSpecimen === 'weld_curved_pipe') {
-      const originX = w * 0.38;
-      const scale = 4.3;
-      const topY = 58;
-      const bottomY = topY + plateThicknessMm * scale;
-      const flawDepthMm = currentDefect.nominalDepthRatio * plateThicknessMm;
+    const scatterMode: 'specular_planar' | 'corner_trap' | 'volumetric_scatter' | 'tip_diffraction' | 'lamination' =
+      currentDefect.id === 'base_lamination'
+        ? 'lamination'
+        : currentDefect.echoWaveformType === 'sharp_spike_tip'
+        ? 'tip_diffraction'
+        : currentDefect.id === 'root_crack' ||
+          currentDefect.id === 'root_lof' ||
+          currentDefect.id === 'incomplete_penetration'
+        ? 'corner_trap'
+        : currentDefect.category === 'Volumetric'
+        ? 'volumetric_scatter'
+        : 'specular_planar';
 
-      if (activeSpecimen === 'weld_butt') {
-        // Steel Plate
-        ctx.fillStyle = '#131c36';
-        ctx.strokeStyle = '#334155';
-        ctx.lineWidth = 1.5;
-        ctx.fillRect(16, topY, w - 32, plateThicknessMm * scale);
-        ctx.strokeRect(16, topY, w - 32, plateThicknessMm * scale);
+    const renderFrame = (phaseSec: number) => {
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.fillStyle = '#040814';
+      ctx.fillRect(0, 0, w, h);
 
-        // V-Groove Weld
-        ctx.fillStyle = '#1e293b';
-        ctx.strokeStyle = '#f59e0b';
-        ctx.lineWidth = 1.3;
-        ctx.beginPath();
-        ctx.moveTo(originX - 8.5 * scale, topY);
-        ctx.quadraticCurveTo(originX, topY - 3 * scale, originX + 8.5 * scale, topY);
-        ctx.lineTo(originX + 1.5 * scale, bottomY);
-        ctx.lineTo(originX - 1.5 * scale, bottomY);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
+      if (activeSpecimen === 'weld_butt' || activeSpecimen === 'weld_curved_pipe') {
+        const originX = w * 0.38;
+        const scale = 4.3;
+        const topY = 58;
+        const bottomY = topY + plateThicknessMm * scale;
+        const flawDepthMm = currentDefect.nominalDepthRatio * plateThicknessMm;
+        const isFlawHit = gateAMaxAmp >= gateAThresholdPct;
 
-        // Defect Shape
-        const defX = originX + currentDefect.distanceFromWeldCenterMm * scale;
-        const defY = topY + flawDepthMm * scale;
-        drawComprehensiveDefectMorphology(
-          ctx,
-          currentDefect.id,
-          defX,
-          defY,
-          topY,
-          bottomY,
-          scale,
-          gateAMaxAmp >= gateAThresholdPct
-        );
+        if (activeSpecimen === 'weld_butt') {
+          // Steel Plate
+          ctx.fillStyle = '#131c36';
+          ctx.strokeStyle = '#334155';
+          ctx.lineWidth = 1.5;
+          ctx.fillRect(16, topY, w - 32, plateThicknessMm * scale);
+          ctx.strokeRect(16, topY, w - 32, plateThicknessMm * scale);
 
-        // Probe & Ultrasonic Beam Cone ("كوم الأشعة")
-        const entryX = originX + weldProbeStandoffMm * scale;
-        const radA = (probeAngleDeg * Math.PI) / 180;
-        const halfSkipPx = probeAngleDeg === 0 ? 0 : plateThicknessMm * Math.tan(radA) * scale;
-        const bounceX = probeAngleDeg === 0 ? entryX : entryX - halfSkipPx;
-        const leg2X = probeAngleDeg === 0 ? undefined : bounceX - halfSkipPx;
+          // V-Groove Weld
+          ctx.fillStyle = '#1e293b';
+          ctx.strokeStyle = '#f59e0b';
+          ctx.lineWidth = 1.3;
+          ctx.beginPath();
+          ctx.moveTo(originX - 8.5 * scale, topY);
+          ctx.quadraticCurveTo(originX, topY - 3 * scale, originX + 8.5 * scale, topY);
+          ctx.lineTo(originX + 1.5 * scale, bottomY);
+          ctx.lineTo(originX - 1.5 * scale, bottomY);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
 
-        if (showBeamCone) {
-          drawUltrasonicBeamCone2D({
+          // Defect Shape
+          const defX = originX + currentDefect.distanceFromWeldCenterMm * scale;
+          const defY = topY + flawDepthMm * scale;
+          drawComprehensiveDefectMorphology(
             ctx,
-            entryX,
-            entryY: topY,
-            bounceX,
-            bounceY: bottomY,
-            leg2EndX: leg2X,
-            leg2EndY: probeAngleDeg === 0 ? undefined : topY,
-            scalePxPerMm: scale,
-            coneMetrics,
-            showWavefronts,
-            showNearField: true,
-            isHit: gateAMaxAmp >= gateAThresholdPct,
-          });
-        }
+            currentDefect.id,
+            defX,
+            defY,
+            topY,
+            bottomY,
+            scale,
+            isFlawHit
+          );
 
-        // Central Ray Spine
-        ctx.strokeStyle = gateAMaxAmp >= gateAThresholdPct ? '#ef4444' : '#38bdf8';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(entryX, topY);
-        ctx.lineTo(bounceX, bottomY);
-        if (leg2X !== undefined) ctx.lineTo(leg2X, topY);
-        ctx.stroke();
+          // Probe & Animated Ultrasonic Wave Beam Cone ("كوم الأشعة والموجات المتحركة")
+          const entryX = originX + weldProbeStandoffMm * scale;
+          const radA = (probeAngleDeg * Math.PI) / 180;
+          const halfSkipPx = probeAngleDeg === 0 ? 0 : plateThicknessMm * Math.tan(radA) * scale;
+          const bounceX = probeAngleDeg === 0 ? entryX : entryX - halfSkipPx;
+          const leg2X = probeAngleDeg === 0 ? undefined : bounceX - halfSkipPx;
 
-        // Physical Probe + Perspex Wedge + Coax BNC
-        ctx.fillStyle = '#0284c7';
-        ctx.strokeStyle = '#7dd3fc';
-        ctx.fillRect(entryX - 4, topY - 18, 28, 18);
-        ctx.strokeRect(entryX - 4, topY - 18, 28, 18);
-        ctx.fillStyle = '#f59e0b';
-        ctx.fillRect(entryX + 6, topY - 25, 6, 7); // Brass BNC
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 8.5px monospace';
-        ctx.fillText(`${probeAngleDeg}°`, entryX + 2, topY - 6);
-      } else {
-        // Curved Pipe Work Specimen
-        const visOuterR = 210;
-        const thkPx = plateThicknessMm * scale * 0.92;
-        const visInnerR = visOuterR - thkPx;
-        const cx = originX;
-        const cy = 54 + visOuterR;
-
-        ctx.fillStyle = '#131c36';
-        ctx.strokeStyle = '#334155';
-        ctx.lineWidth = 1.6;
-        ctx.beginPath();
-        ctx.arc(cx, cy, visOuterR, -Math.PI / 2 - 0.65, -Math.PI / 2 + 0.78);
-        ctx.arc(cx, cy, visInnerR, -Math.PI / 2 + 0.78, -Math.PI / 2 - 0.65, true);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-
-        // Weld Groove at Crown
-        ctx.fillStyle = '#1e293b';
-        ctx.strokeStyle = '#f59e0b';
-        ctx.beginPath();
-        ctx.moveTo(cx - 32, cy - visOuterR + 2);
-        ctx.lineTo(cx + 32, cy - visOuterR + 2);
-        ctx.lineTo(cx + 6, cy - visInnerR);
-        ctx.lineTo(cx - 6, cy - visInnerR);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-
-        const defX = cx + currentDefect.distanceFromWeldCenterMm * scale * 0.85;
-        const defY = cy - visOuterR + (flawDepthMm / plateThicknessMm) * thkPx;
-        drawComprehensiveDefectMorphology(
-          ctx,
-          currentDefect.id,
-          defX,
-          defY,
-          cy - visOuterR,
-          cy - visInnerR,
-          scale * 0.9,
-          gateAMaxAmp >= gateAThresholdPct
-        );
-
-        const gamma = (weldProbeStandoffMm * scale) / visOuterR;
-        const pAng = -Math.PI / 2 + gamma;
-        const entryX = cx + visOuterR * Math.cos(pAng);
-        const entryY = cy + visOuterR * Math.sin(pAng);
-        const radA = (probeAngleDeg * Math.PI) / 180;
-        const idAng = pAng - (plateThicknessMm * Math.tan(radA) * scale) / visOuterR;
-        const bounceX = cx + visInnerR * Math.cos(idAng);
-        const bounceY = cy + visInnerR * Math.sin(idAng);
-        const odAng2 = idAng - (plateThicknessMm * Math.tan(radA) * scale) / visOuterR;
-        const leg2X = cx + visOuterR * Math.cos(odAng2);
-        const leg2Y = cy + visOuterR * Math.sin(odAng2);
-
-        if (showBeamCone) {
-          drawUltrasonicBeamCone2D({
-            ctx,
-            entryX,
-            entryY,
-            bounceX,
-            bounceY,
-            leg2EndX: probeAngleDeg > 0 ? leg2X : undefined,
-            leg2EndY: probeAngleDeg > 0 ? leg2Y : undefined,
-            scalePxPerMm: scale * 0.9,
-            coneMetrics,
-            showWavefronts,
-            showNearField: true,
-            isHit: gateAMaxAmp >= gateAThresholdPct,
-          });
-        }
-
-        ctx.fillStyle = '#0284c7';
-        ctx.beginPath();
-        ctx.arc(entryX, entryY - 5, 9, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      // Top-View Seam Y Strip inside Work Simulator
-      const stripY = h - 42;
-      ctx.fillStyle = '#090f20';
-      ctx.strokeStyle = '#1e293b';
-      ctx.fillRect(16, stripY, w - 32, 30);
-      ctx.strokeRect(16, stripY, w - 32, 30);
-      const seamStartPx = 16 + ((currentDefect.centerYmm - currentDefect.lengthMm / 2) / 100) * (w - 32);
-      const seamLenPx = Math.max(8, (currentDefect.lengthMm / 100) * (w - 32));
-      ctx.fillStyle = currentDefect.category === 'Planar' ? 'rgba(239, 68, 68, 0.8)' : 'rgba(245, 158, 11, 0.8)';
-      ctx.fillRect(seamStartPx, stripY + 9, seamLenPx, 12);
-      const probeYPx = 16 + (weldSeamYmm / 100) * (w - 32);
-      ctx.strokeStyle = '#22d3ee';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(probeYPx, stripY);
-      ctx.lineTo(probeYPx, stripY + 30);
-      ctx.stroke();
-      ctx.fillStyle = '#94a3b8';
-      ctx.font = '9px monospace';
-      ctx.fillText(`TOP SEAM SCAN: Y=${weldSeamYmm}mm · Defect [${currentDefect.codeSymbol}]`, 22, stripY - 5);
-    } else if (activeSpecimen === 'iiw_v1' || activeSpecimen === 'iiw_v2') {
-      // Calibration Block Worktable with Beam Cone
-      const bx = 42;
-      const by = 52;
-      const bw = w - 84;
-      const bh = h - 92;
-      ctx.fillStyle = '#16213e';
-      ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = 1.8;
-      ctx.beginPath();
-      ctx.moveTo(bx, by);
-      ctx.lineTo(bx + bw * 0.72, by);
-      ctx.arc(bx + bw * 0.35, by, bw * 0.37, 0, Math.PI * 0.44);
-      ctx.lineTo(bx, by + bh);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-
-      // Perspex insert & 1.5mm SDH
-      ctx.fillStyle = 'rgba(56, 189, 248, 0.25)';
-      ctx.beginPath();
-      ctx.arc(bx + bw * 0.34, by + bh * 0.55, 18, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-
-      ctx.fillStyle = '#f59e0b';
-      ctx.beginPath();
-      ctx.arc(bx + bw * 0.58, by + 28, 4.5, 0, Math.PI * 2);
-      ctx.fill();
-
-      const entryX =
-        iiwPosition === 'A' ? bx + 55 : iiwPosition === 'C' ? bx + bw * 0.58 : bx + bw * 0.35;
-      const targetX =
-        iiwPosition === 'A' ? bx + 55 : iiwPosition === 'C' ? bx + bw * 0.58 : bx + bw * 0.68;
-      const targetY =
-        iiwPosition === 'A' ? by + bh : iiwPosition === 'C' ? by + 28 : by + bh * 0.62;
-
-      if (showBeamCone) {
-        drawUltrasonicBeamCone2D({
-          ctx,
-          entryX,
-          entryY: by,
-          bounceX: targetX,
-          bounceY: targetY,
-          scalePxPerMm: 2.2,
-          coneMetrics,
-          showWavefronts,
-          showNearField: true,
-        });
-      }
-
-      ctx.fillStyle = '#0284c7';
-      ctx.fillRect(entryX - 15, by - 16, 30, 16);
-      ctx.fillStyle = '#e2e8f0';
-      ctx.font = 'bold 10px monospace';
-      ctx.fillText(
-        activeSpecimen === 'iiw_v1'
-          ? `IIW V1 BLOCK (Pos ${iiwPosition}) · Cone NF=${coneMetrics.nearFieldLengthMm.toFixed(0)}mm`
-          : 'IIW V2 MINI CALIBRATION BLOCK (R25 / R50mm)',
-        24,
-        26
-      );
-    } else {
-      // 5-Step Corrosion Wedge with Beam Cone
-      const steps = [2.5, 5.0, 7.5, 10.0, 12.5];
-      const stepW = (w - 60) / 5;
-      const baseBottom = h - 38;
-      steps.forEach((thk, idx) => {
-        const sh = thk * 11;
-        const sx = 30 + idx * stepW;
-        const sy = baseBottom - sh;
-        ctx.fillStyle = idx === corrosionStepIndex ? '#1e3a5f' : '#131c36';
-        ctx.strokeStyle = idx === corrosionStepIndex ? '#38bdf8' : '#334155';
-        ctx.fillRect(sx, sy, stepW - 4, sh);
-        ctx.strokeRect(sx, sy, stepW - 4, sh);
-        ctx.fillStyle = '#94a3b8';
-        ctx.font = '9px monospace';
-        ctx.fillText(`${thk}mm`, sx + 10, baseBottom + 14);
-
-        if (idx === corrosionStepIndex) {
-          const cx = sx + (stepW - 4) / 2;
           if (showBeamCone) {
             drawUltrasonicBeamCone2D({
               ctx,
-              entryX: cx,
-              entryY: sy,
-              bounceX: cx,
-              bounceY: baseBottom,
-              scalePxPerMm: 8,
+              entryX,
+              entryY: topY,
+              bounceX,
+              bounceY: bottomY,
+              leg2EndX: leg2X,
+              leg2EndY: probeAngleDeg === 0 ? undefined : topY,
+              scalePxPerMm: scale,
               coneMetrics,
               showWavefronts,
-              showNearField: false,
+              showNearField: true,
+              isHit: isFlawHit,
+              animationPhase: phaseSec,
+              defectImpact: {
+                x: defX,
+                y: defY,
+                hit: isFlawHit,
+                scatterMode,
+                leg: legNumber === 2 ? 2 : 1,
+              },
             });
           }
+
+          // Central Ray Spine
+          ctx.strokeStyle = isFlawHit ? 'rgba(239, 68, 68, 0.72)' : 'rgba(56, 189, 248, 0.75)';
+          ctx.lineWidth = 1.6;
+          ctx.beginPath();
+          ctx.moveTo(entryX, topY);
+          ctx.lineTo(bounceX, bottomY);
+          if (leg2X !== undefined) ctx.lineTo(leg2X, topY);
+          ctx.stroke();
+
+          // Physical Probe + Perspex Wedge + Piezo Refraction + Coax BNC
           ctx.fillStyle = '#0284c7';
-          ctx.fillRect(cx - 12, sy - 14, 24, 14);
+          ctx.strokeStyle = '#7dd3fc';
+          ctx.fillRect(entryX - 4, topY - 18, 28, 18);
+          ctx.strokeRect(entryX - 4, topY - 18, 28, 18);
+          if (probeAngleDeg > 0 && showWavefronts) {
+            ctx.strokeStyle = 'rgba(186, 230, 253, 0.75)';
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.moveTo(entryX + 12, topY - 14);
+            ctx.lineTo(entryX, topY);
+            ctx.stroke();
+          }
+          ctx.fillStyle = '#f59e0b';
+          ctx.fillRect(entryX + 6, topY - 25, 6, 7); // Brass BNC
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 8.5px monospace';
+          ctx.fillText(`${probeAngleDeg}°`, entryX + 2, topY - 6);
+        } else {
+          // Curved Pipe Work Specimen
+          const visOuterR = 210;
+          const thkPx = plateThicknessMm * scale * 0.92;
+          const visInnerR = visOuterR - thkPx;
+          const cx = originX;
+          const cy = 54 + visOuterR;
+
+          ctx.fillStyle = '#131c36';
+          ctx.strokeStyle = '#334155';
+          ctx.lineWidth = 1.6;
+          ctx.beginPath();
+          ctx.arc(cx, cy, visOuterR, -Math.PI / 2 - 0.65, -Math.PI / 2 + 0.78);
+          ctx.arc(cx, cy, visInnerR, -Math.PI / 2 + 0.78, -Math.PI / 2 - 0.65, true);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+
+          // Weld Groove at Crown
+          ctx.fillStyle = '#1e293b';
+          ctx.strokeStyle = '#f59e0b';
+          ctx.beginPath();
+          ctx.moveTo(cx - 32, cy - visOuterR + 2);
+          ctx.lineTo(cx + 32, cy - visOuterR + 2);
+          ctx.lineTo(cx + 6, cy - visInnerR);
+          ctx.lineTo(cx - 6, cy - visInnerR);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+
+          const defX = cx + currentDefect.distanceFromWeldCenterMm * scale * 0.85;
+          const defY = cy - visOuterR + (flawDepthMm / plateThicknessMm) * thkPx;
+          drawComprehensiveDefectMorphology(
+            ctx,
+            currentDefect.id,
+            defX,
+            defY,
+            cy - visOuterR,
+            cy - visInnerR,
+            scale * 0.9,
+            isFlawHit
+          );
+
+          const gamma = (weldProbeStandoffMm * scale) / visOuterR;
+          const pAng = -Math.PI / 2 + gamma;
+          const entryX = cx + visOuterR * Math.cos(pAng);
+          const entryY = cy + visOuterR * Math.sin(pAng);
+          const radA = (probeAngleDeg * Math.PI) / 180;
+          const idAng = pAng - (plateThicknessMm * Math.tan(radA) * scale) / visOuterR;
+          const bounceX = cx + visInnerR * Math.cos(idAng);
+          const bounceY = cy + visInnerR * Math.sin(idAng);
+          const odAng2 = idAng - (plateThicknessMm * Math.tan(radA) * scale) / visOuterR;
+          const leg2X = cx + visOuterR * Math.cos(odAng2);
+          const leg2Y = cy + visOuterR * Math.sin(odAng2);
+
+          if (showBeamCone) {
+            drawUltrasonicBeamCone2D({
+              ctx,
+              entryX,
+              entryY,
+              bounceX,
+              bounceY,
+              leg2EndX: probeAngleDeg > 0 ? leg2X : undefined,
+              leg2EndY: probeAngleDeg > 0 ? leg2Y : undefined,
+              scalePxPerMm: scale * 0.9,
+              coneMetrics,
+              showWavefronts,
+              showNearField: true,
+              isHit: isFlawHit,
+              animationPhase: phaseSec,
+              defectImpact: {
+                x: defX,
+                y: defY,
+                hit: isFlawHit,
+                scatterMode,
+                leg: legNumber === 2 ? 2 : 1,
+              },
+            });
+          }
+
+          ctx.fillStyle = '#0284c7';
+          ctx.beginPath();
+          ctx.arc(entryX, entryY - 5, 9, 0, Math.PI * 2);
+          ctx.fill();
         }
-      });
-    }
+
+        // Top-View Seam Y Strip inside Work Simulator
+        const stripY = h - 42;
+        ctx.fillStyle = '#090f20';
+        ctx.strokeStyle = '#1e293b';
+        ctx.fillRect(16, stripY, w - 32, 30);
+        ctx.strokeRect(16, stripY, w - 32, 30);
+        const seamStartPx = 16 + ((currentDefect.centerYmm - currentDefect.lengthMm / 2) / 100) * (w - 32);
+        const seamLenPx = Math.max(8, (currentDefect.lengthMm / 100) * (w - 32));
+        ctx.fillStyle = currentDefect.category === 'Planar' ? 'rgba(239, 68, 68, 0.8)' : 'rgba(245, 158, 11, 0.8)';
+        ctx.fillRect(seamStartPx, stripY + 9, seamLenPx, 12);
+        const probeYPx = 16 + (weldSeamYmm / 100) * (w - 32);
+        ctx.strokeStyle = '#22d3ee';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(probeYPx, stripY);
+        ctx.lineTo(probeYPx, stripY + 30);
+        ctx.stroke();
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '9px monospace';
+        ctx.fillText(`TOP SEAM SCAN: Y=${weldSeamYmm}mm · Defect [${currentDefect.codeSymbol}]`, 22, stripY - 5);
+      } else if (activeSpecimen === 'iiw_v1' || activeSpecimen === 'iiw_v2') {
+        // Calibration Block Worktable with Animated Wavefronts
+        const bx = 42;
+        const by = 52;
+        const bw = w - 84;
+        const bh = h - 92;
+        ctx.fillStyle = '#16213e';
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(bx, by);
+        ctx.lineTo(bx + bw * 0.72, by);
+        ctx.arc(bx + bw * 0.35, by, bw * 0.37, 0, Math.PI * 0.44);
+        ctx.lineTo(bx, by + bh);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Perspex insert & 1.5mm SDH
+        ctx.fillStyle = 'rgba(56, 189, 248, 0.25)';
+        ctx.beginPath();
+        ctx.arc(bx + bw * 0.34, by + bh * 0.55, 18, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#f59e0b';
+        ctx.beginPath();
+        ctx.arc(bx + bw * 0.58, by + 28, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        const entryX =
+          iiwPosition === 'A' ? bx + 55 : iiwPosition === 'C' ? bx + bw * 0.58 : bx + bw * 0.35;
+        const targetX =
+          iiwPosition === 'A' ? bx + 55 : iiwPosition === 'C' ? bx + bw * 0.58 : bx + bw * 0.68;
+        const targetY =
+          iiwPosition === 'A' ? by + bh : iiwPosition === 'C' ? by + 28 : by + bh * 0.62;
+
+        if (showBeamCone) {
+          drawUltrasonicBeamCone2D({
+            ctx,
+            entryX,
+            entryY: by,
+            bounceX: targetX,
+            bounceY: targetY,
+            scalePxPerMm: 2.2,
+            coneMetrics,
+            showWavefronts,
+            showNearField: true,
+            animationPhase: phaseSec,
+            defectImpact:
+              iiwPosition === 'C'
+                ? { x: targetX, y: targetY, hit: true, scatterMode: 'volumetric_scatter', leg: 1 }
+                : undefined,
+          });
+        }
+
+        ctx.fillStyle = '#0284c7';
+        ctx.fillRect(entryX - 15, by - 16, 30, 16);
+        ctx.fillStyle = '#e2e8f0';
+        ctx.font = 'bold 10px monospace';
+        ctx.fillText(
+          activeSpecimen === 'iiw_v1'
+            ? `IIW V1 BLOCK (Pos ${iiwPosition}) · Cone NF=${coneMetrics.nearFieldLengthMm.toFixed(0)}mm`
+            : 'IIW V2 MINI CALIBRATION BLOCK (R25 / R50mm)',
+          24,
+          26
+        );
+      } else {
+        // 5-Step Corrosion Wedge with Animated Wavefronts
+        const steps = [2.5, 5.0, 7.5, 10.0, 12.5];
+        const stepW = (w - 60) / 5;
+        const baseBottom = h - 38;
+        steps.forEach((thk, idx) => {
+          const sh = thk * 11;
+          const sx = 30 + idx * stepW;
+          const sy = baseBottom - sh;
+          ctx.fillStyle = idx === corrosionStepIndex ? '#1e3a5f' : '#131c36';
+          ctx.strokeStyle = idx === corrosionStepIndex ? '#38bdf8' : '#334155';
+          ctx.fillRect(sx, sy, stepW - 4, sh);
+          ctx.strokeRect(sx, sy, stepW - 4, sh);
+          ctx.fillStyle = '#94a3b8';
+          ctx.font = '9px monospace';
+          ctx.fillText(`${thk}mm`, sx + 10, baseBottom + 14);
+
+          if (idx === corrosionStepIndex) {
+            const cx = sx + (stepW - 4) / 2;
+            if (showBeamCone) {
+              drawUltrasonicBeamCone2D({
+                ctx,
+                entryX: cx,
+                entryY: sy,
+                bounceX: cx,
+                bounceY: baseBottom,
+                scalePxPerMm: 8,
+                coneMetrics,
+                showWavefronts,
+                showNearField: false,
+                animationPhase: phaseSec,
+                defectImpact: { x: cx, y: baseBottom, hit: true, scatterMode: 'lamination', leg: 1 },
+              });
+            }
+            ctx.fillStyle = '#0284c7';
+            ctx.fillRect(cx - 12, sy - 14, 24, 14);
+          }
+        });
+      }
+    };
+
+    const tick = () => {
+      const elapsedSec = (Date.now() - startMs) / 1000;
+      renderFrame(elapsedSec);
+      if (shouldAnimate) {
+        rafId = requestAnimationFrame(tick);
+      }
+    };
+
+    tick();
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+    };
   }, [
     activeSpecimen,
     iiwPosition,
@@ -841,6 +909,8 @@ export const UtFlawDetectorDevice: React.FC<UtFlawDetectorDeviceProps> = ({ lang
     showWavefronts,
     gateAMaxAmp,
     gateAThresholdPct,
+    isFrozen,
+    legNumber,
   ]);
 
   const handleWorkCanvasPointer = (clientX: number) => {

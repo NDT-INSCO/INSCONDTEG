@@ -268,7 +268,7 @@ export const BeamConeAndDefectExplorer: React.FC<BeamConeAndDefectExplorerProps>
   }, [isIn6dBCore, isIn20dBEdge, currentDefect, flawDepthMm, loggedDefects]);
 
   // ---------------------------------------------------------------------------
-  // 1. Render 3D Spatial Volumetric "كوم الأشعة" & 3D Weld Groove Projection
+  // 1. Render Animated 3D Spatial Volumetric "كوم الأشعة" & 3D Wavefront Pulses
   // ---------------------------------------------------------------------------
   useEffect(() => {
     const canvas = canvas3DRef.current;
@@ -276,10 +276,19 @@ export const BeamConeAndDefectExplorer: React.FC<BeamConeAndDefectExplorerProps>
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const w = canvas.width;
-    const h = canvas.height;
-    ctx.fillStyle = '#040814';
-    ctx.fillRect(0, 0, w, h);
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const shouldAnimate = showWavefronts && !prefersReducedMotion;
+    let rafId = 0;
+    const startMs = Date.now();
+
+    const render3DFrame = (phaseSec: number) => {
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.fillStyle = '#040814';
+      ctx.fillRect(0, 0, w, h);
 
     const yaw = (yawDeg * Math.PI) / 180;
     const pitch = (pitchDeg * Math.PI) / 180;
@@ -726,6 +735,95 @@ export const BeamConeAndDefectExplorer: React.FC<BeamConeAndDefectExplorerProps>
       });
     }
 
+    // Traveling 3D Wavefront Discs & Pulse Packets propagating along the Beam Cone!
+    if (showWavefronts) {
+      const waveCount = 7;
+      for (let wIdx = 0; wIdx < waveCount; wIdx++) {
+        const normS = ((phaseSec * 0.42 + wIdx / waveCount) % 1 + 1) % 1;
+        const sMm = normS * totalSoundPathMm;
+        const [wx3, wy3, wz3] = get3DConeCenter(sMm);
+        const rWave = coneMetrics.width6dBAtDepthMm(sMm) / 2;
+        const inNfWave = showNearField && sMm <= effectiveNf3D;
+        const fade = Math.sin(normS * Math.PI);
+        const alpha = Math.max(0.18, 0.85 * fade);
+
+        ctx.strokeStyle = isIn6dBCore
+          ? `rgba(253, 186, 116, ${alpha.toFixed(2)})`
+          : inNfWave
+          ? `rgba(233, 213, 255, ${alpha.toFixed(2)})`
+          : beamMode === 'paut_focused'
+          ? `rgba(254, 240, 138, ${alpha.toFixed(2)})`
+          : `rgba(165, 243, 252, ${alpha.toFixed(2)})`;
+        ctx.lineWidth = wIdx % 2 === 0 ? 2.1 : 1.3;
+        ctx.beginPath();
+        for (let k = 0; k <= ringSegments; k++) {
+          const phi = (k / ringSegments) * Math.PI * 2;
+          const ox = Math.cos(phi) * rWave * cosT;
+          const oy = Math.sin(phi) * rWave;
+          const oz = Math.cos(phi) * rWave * Math.sin(rad) * 0.55;
+          const [sx, sy] = project(
+            wx3 + ox,
+            wy3 + oy,
+            Math.min(0, Math.max(-plateThicknessMm, wz3 + oz))
+          );
+          if (k === 0) ctx.moveTo(sx, sy);
+          else ctx.lineTo(sx, sy);
+        }
+        ctx.stroke();
+
+        // Glowing core energy bead riding the wavefront center
+        const [cx2d, cy2d] = project(wx3, wy3, wz3);
+        const beadGlow = ctx.createRadialGradient(cx2d, cy2d, 0.5, cx2d, cy2d, 6);
+        beadGlow.addColorStop(0, 'rgba(255, 255, 255, 0.92)');
+        beadGlow.addColorStop(0.5, beamMode === 'paut_focused' ? 'rgba(245, 158, 11, 0.55)' : 'rgba(34, 211, 238, 0.55)');
+        beadGlow.addColorStop(1, 'rgba(34, 211, 238, 0)');
+        ctx.fillStyle = beadGlow;
+        ctx.beginPath();
+        ctx.arc(cx2d, cy2d, 6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Bottom-wall bounce highlight ring (angle beam)
+      if (probeAngleDeg > 0) {
+        const leg1S = plateThicknessMm / cosT;
+        const [bx3, by3, bz3] = get3DConeCenter(leg1S);
+        const bouncePulse = 0.5 + 0.5 * Math.sin(phaseSec * 7.0);
+        const rBounce = coneMetrics.width6dBAtDepthMm(leg1S) * (0.35 + bouncePulse * 0.25);
+        ctx.strokeStyle = `rgba(251, 191, 36, ${(0.35 + bouncePulse * 0.45).toFixed(2)})`;
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        for (let k = 0; k <= 16; k++) {
+          const phi = (k / 16) * Math.PI * 2;
+          const [sx, sy] = project(bx3 + Math.cos(phi) * rBounce, by3 + Math.sin(phi) * rBounce, bz3);
+          if (k === 0) ctx.moveTo(sx, sy);
+          else ctx.lineTo(sx, sy);
+        }
+        ctx.stroke();
+      }
+
+      // Returning 3D Echo Wavelets from Defect back to Probe when intersected!
+      if (isIn6dBCore || isIn20dBEdge) {
+        const [dfx, dfy] = project(defX, 0, defZ);
+        for (let rIdx = 0; rIdx < 3; rIdx++) {
+          const prog = ((phaseSec * 1.1 + rIdx / 3) % 1 + 1) % 1;
+          ctx.strokeStyle = `rgba(52, 211, 153, ${(0.85 * (1 - prog)).toFixed(2)})`;
+          ctx.lineWidth = 1.7;
+          ctx.beginPath();
+          ctx.arc(dfx, dfy, 4 + prog * 22, 0, Math.PI * 2);
+          ctx.stroke();
+
+          // Return echo bead traveling back to transducer
+          const rx3 = defX + (probeX - defX) * prog;
+          const rz3 = defZ + (0 - defZ) * prog;
+          const [rsx, rsy] = project(rx3, 0, rz3);
+          ctx.fillStyle = '#34d399';
+          ctx.beginPath();
+          ctx.arc(rsx, rsy, 3.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    }
+
     // HUD Legend inside 3D Viewport
     ctx.fillStyle = '#e2e8f0';
     ctx.font = 'bold 10px monospace';
@@ -737,6 +835,20 @@ export const BeamConeAndDefectExplorer: React.FC<BeamConeAndDefectExplorerProps>
 
     void prevRing6;
     void prevRing20;
+    };
+
+    const tick3D = () => {
+      const elapsedSec = (Date.now() - startMs) / 1000;
+      render3DFrame(elapsedSec);
+      if (shouldAnimate) {
+        rafId = requestAnimationFrame(tick3D);
+      }
+    };
+
+    tick3D();
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+    };
   }, [
     yawDeg,
     pitchDeg,
@@ -754,16 +866,18 @@ export const BeamConeAndDefectExplorer: React.FC<BeamConeAndDefectExplorerProps>
     rad,
     halfSkipMm,
     isIn6dBCore,
+    isIn20dBEdge,
     showNearField,
     showOuter20dBCone,
     showSideLobes,
+    showWavefronts,
     showDefectWireframe,
     coneSpecimenWireframeOverlays,
     plateThicknessMm,
   ]);
 
   // ---------------------------------------------------------------------------
-  // 2. Render Synchronized High-Precision 2D Cross-Section + Echo Envelope
+  // 2. Render Synchronized High-Precision 2D Cross-Section + Animated Waves & Echo Envelope
   // ---------------------------------------------------------------------------
   useEffect(() => {
     const canvas = canvasCrossRef.current;
@@ -771,135 +885,181 @@ export const BeamConeAndDefectExplorer: React.FC<BeamConeAndDefectExplorerProps>
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const w = canvas.width;
-    const h = canvas.height;
-    ctx.fillStyle = '#030712';
-    ctx.fillRect(0, 0, w, h);
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const shouldAnimate = showWavefronts && !prefersReducedMotion;
+    let rafId = 0;
+    const startMs = Date.now();
 
-    const originX = w * 0.44;
-    const topY = 46;
-    const scale = 4.6;
-    const bottomY = topY + plateThicknessMm * scale;
+    const scatterMode: 'specular_planar' | 'corner_trap' | 'volumetric_scatter' | 'tip_diffraction' | 'lamination' =
+      currentDefect.id === 'base_lamination'
+        ? 'lamination'
+        : currentDefect.echoWaveformType === 'sharp_spike_tip'
+        ? 'tip_diffraction'
+        : currentDefect.id === 'root_crack' ||
+          currentDefect.id === 'root_lof' ||
+          currentDefect.id === 'incomplete_penetration'
+        ? 'corner_trap'
+        : currentDefect.category === 'Volumetric'
+        ? 'volumetric_scatter'
+        : 'specular_planar';
 
-    // Parent Steel Plate
-    ctx.fillStyle = '#111827';
-    ctx.strokeStyle = '#334155';
-    ctx.lineWidth = 1.5;
-    ctx.fillRect(18, topY, w - 36, plateThicknessMm * scale);
-    ctx.strokeRect(18, topY, w - 36, plateThicknessMm * scale);
+    const renderCrossFrame = (phaseSec: number) => {
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.fillStyle = '#030712';
+      ctx.fillRect(0, 0, w, h);
 
-    // V-Groove Weld Overlay
-    ctx.fillStyle = '#1e293b';
-    ctx.strokeStyle = '#f59e0b';
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    ctx.moveTo(originX - 9 * scale, topY);
-    ctx.lineTo(originX + 9 * scale, topY);
-    ctx.lineTo(originX + 1.6 * scale, bottomY);
-    ctx.lineTo(originX - 1.6 * scale, bottomY);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
+      const originX = w * 0.44;
+      const topY = 46;
+      const scale = 4.6;
+      const bottomY = topY + plateThicknessMm * scale;
 
-    // Draw Ultrasonic Beam Cone 2D
-    const entryX = originX + probeStandoffMm * scale;
-    const entryY = topY;
-    const bounceX = probeAngleDeg === 0 ? entryX : entryX - halfSkipMm * scale;
-    const bounceY = bottomY;
-    const leg2EndX = probeAngleDeg === 0 ? undefined : bounceX - halfSkipMm * scale;
-    const leg2EndY = probeAngleDeg === 0 ? undefined : topY;
+      // Parent Steel Plate
+      ctx.fillStyle = '#111827';
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 1.5;
+      ctx.fillRect(18, topY, w - 36, plateThicknessMm * scale);
+      ctx.strokeRect(18, topY, w - 36, plateThicknessMm * scale);
 
-    drawUltrasonicBeamCone2D({
-      ctx,
-      entryX,
-      entryY,
-      bounceX,
-      bounceY,
-      leg2EndX,
-      leg2EndY,
-      scalePxPerMm: scale,
-      coneMetrics,
-      isPaut: beamMode === 'paut_focused',
-      focalDepthMm: pautFocusMm,
-      showWavefronts,
-      showNearField,
-      isHit: isIn6dBCore,
-    });
+      // V-Groove Weld Overlay
+      ctx.fillStyle = '#1e293b';
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(originX - 9 * scale, topY);
+      ctx.lineTo(originX + 9 * scale, topY);
+      ctx.lineTo(originX + 1.6 * scale, bottomY);
+      ctx.lineTo(originX - 1.6 * scale, bottomY);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
 
-    // Probe Icon
-    ctx.fillStyle = beamMode === 'paut_focused' ? '#f59e0b' : '#0284c7';
-    ctx.fillRect(entryX - 8, topY - 16, 28, 16);
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 8.5px monospace';
-    ctx.fillText(`${probeAngleDeg}°`, entryX - 4, topY - 5);
+      const defCanvasX = originX + currentDefect.distanceFromWeldCenterMm * scale;
+      const defCanvasY = topY + flawDepthMm * scale;
+      const hitActive = isIn6dBCore || isIn20dBEdge;
 
-    // Draw Defect Morphology
-    const defCanvasX = originX + currentDefect.distanceFromWeldCenterMm * scale;
-    const defCanvasY = topY + flawDepthMm * scale;
-    drawComprehensiveDefectMorphology(
-      ctx,
-      currentDefect.id,
-      defCanvasX,
-      defCanvasY,
-      topY,
-      bottomY,
-      scale,
-      isIn6dBCore
-    );
+      // Draw Animated Ultrasonic Beam Cone 2D
+      const entryX = originX + probeStandoffMm * scale;
+      const entryY = topY;
+      const bounceX = probeAngleDeg === 0 ? entryX : entryX - halfSkipMm * scale;
+      const bounceY = bottomY;
+      const leg2EndX = probeAngleDeg === 0 ? undefined : bounceX - halfSkipMm * scale;
+      const leg2EndY = probeAngleDeg === 0 ? undefined : topY;
 
-    // Bottom Mini Echo Signature Strip inside Canvas
-    const stripTop = bottomY + 22;
-    const stripH = h - stripTop - 10;
-    ctx.fillStyle = '#020617';
-    ctx.strokeStyle = '#1e293b';
-    ctx.fillRect(18, stripTop, w - 36, stripH);
-    ctx.strokeRect(18, stripTop, w - 36, stripH);
+      drawUltrasonicBeamCone2D({
+        ctx,
+        entryX,
+        entryY,
+        bounceX,
+        bounceY,
+        leg2EndX,
+        leg2EndY,
+        scalePxPerMm: scale,
+        coneMetrics,
+        isPaut: beamMode === 'paut_focused',
+        focalDepthMm: pautFocusMm,
+        showWavefronts,
+        showNearField,
+        isHit: isIn6dBCore,
+        animationPhase: phaseSec,
+        defectImpact: {
+          x: defCanvasX,
+          y: defCanvasY,
+          hit: hitActive,
+          scatterMode,
+          leg: Math.abs(rayXLeg2AtFlaw - currentDefect.distanceFromWeldCenterMm) < Math.abs(rayXAtFlaw - currentDefect.distanceFromWeldCenterMm) ? 2 : 1,
+        },
+      });
 
-    ctx.fillStyle = '#94a3b8';
-    ctx.font = 'bold 9px monospace';
-    ctx.fillText(
-      `ECHO ENVELOPE SIGNATURE [${currentDefect.codeSymbol}]: ${currentDefect.directionalSensitivity}`,
-      26,
-      stripTop + 13
-    );
+      // Probe Icon
+      ctx.fillStyle = beamMode === 'paut_focused' ? '#f59e0b' : '#0284c7';
+      ctx.fillRect(entryX - 8, topY - 16, 28, 16);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 8.5px monospace';
+      ctx.fillText(`${probeAngleDeg}°`, entryX - 4, topY - 5);
 
-    // Draw characteristic A-Scan envelope shape for this defect
-    ctx.strokeStyle = isIn6dBCore ? '#22c55e' : isIn20dBEdge ? '#f59e0b' : '#64748b';
-    ctx.lineWidth = 1.8;
-    ctx.beginPath();
-    const baseLine = stripTop + stripH - 6;
-    const ampMult = isIn6dBCore ? 0.82 : isIn20dBEdge ? 0.38 : 0.16;
-    for (let px = 24; px < w - 24; px++) {
-      const norm = (px - 24) / (w - 48);
-      let sig = 0;
-      if (norm < 0.06) {
-        sig = 0.85 * Math.exp(-Math.pow((norm - 0.02) / 0.018, 2));
-      }
-      const centerNorm = 0.52;
-      const d = norm - centerNorm;
-      if (currentDefect.echoWaveformType === 'sharp_spike_tip') {
-        sig += ampMult * Math.exp(-Math.pow(d / 0.018, 2));
-        sig += ampMult * 0.28 * Math.exp(-Math.pow((d + 0.06) / 0.012, 2)); // Tip diffraction!
-      } else if (currentDefect.echoWaveformType === 'clean_specular') {
-        sig += ampMult * 0.95 * Math.exp(-Math.pow(d / 0.015, 2));
-      } else if (currentDefect.echoWaveformType === 'jagged_multipeak') {
-        sig +=
-          ampMult *
-          0.72 *
-          Math.exp(-Math.pow(d / 0.042, 2)) *
-          (0.65 + 0.35 * Math.abs(Math.sin(d * 210)));
-      } else if (currentDefect.echoWaveformType === 'dense_cluster') {
-        for (const off of [-0.04, -0.015, 0.01, 0.035]) {
-          sig += ampMult * 0.52 * Math.exp(-Math.pow((d - off) / 0.011, 2));
+      // Draw Defect Morphology
+      drawComprehensiveDefectMorphology(
+        ctx,
+        currentDefect.id,
+        defCanvasX,
+        defCanvasY,
+        topY,
+        bottomY,
+        scale,
+        isIn6dBCore
+      );
+
+      // Bottom Mini Echo Signature Strip inside Canvas
+      const stripTop = bottomY + 22;
+      const stripH = h - stripTop - 10;
+      ctx.fillStyle = '#020617';
+      ctx.strokeStyle = '#1e293b';
+      ctx.fillRect(18, stripTop, w - 36, stripH);
+      ctx.strokeRect(18, stripTop, w - 36, stripH);
+
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = 'bold 9px monospace';
+      ctx.fillText(
+        `ECHO ENVELOPE SIGNATURE [${currentDefect.codeSymbol}]: ${currentDefect.directionalSensitivity}`,
+        26,
+        stripTop + 13
+      );
+
+      // Draw characteristic A-Scan envelope shape for this defect
+      ctx.strokeStyle = isIn6dBCore ? '#22c55e' : isIn20dBEdge ? '#f59e0b' : '#64748b';
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      const baseLine = stripTop + stripH - 6;
+      const ampMult = isIn6dBCore ? 0.82 : isIn20dBEdge ? 0.38 : 0.16;
+      for (let px = 24; px < w - 24; px++) {
+        const norm = (px - 24) / (w - 48);
+        let sig = 0;
+        if (norm < 0.06) {
+          sig = 0.85 * Math.exp(-Math.pow((norm - 0.02) / 0.018, 2));
         }
-      } else if (currentDefect.echoWaveformType === 'backwall_loss') {
-        sig += ampMult * 0.95 * Math.exp(-Math.pow((norm - 0.36) / 0.016, 2));
+        const centerNorm = 0.52;
+        const d = norm - centerNorm;
+        if (currentDefect.echoWaveformType === 'sharp_spike_tip') {
+          sig += ampMult * Math.exp(-Math.pow(d / 0.018, 2));
+          sig += ampMult * 0.28 * Math.exp(-Math.pow((d + 0.06) / 0.012, 2)); // Tip diffraction!
+        } else if (currentDefect.echoWaveformType === 'clean_specular') {
+          sig += ampMult * 0.95 * Math.exp(-Math.pow(d / 0.015, 2));
+        } else if (currentDefect.echoWaveformType === 'jagged_multipeak') {
+          sig +=
+            ampMult *
+            0.72 *
+            Math.exp(-Math.pow(d / 0.042, 2)) *
+            (0.65 + 0.35 * Math.abs(Math.sin(d * 210)));
+        } else if (currentDefect.echoWaveformType === 'dense_cluster') {
+          for (const off of [-0.04, -0.015, 0.01, 0.035]) {
+            sig += ampMult * 0.52 * Math.exp(-Math.pow((d - off) / 0.011, 2));
+          }
+        } else if (currentDefect.echoWaveformType === 'backwall_loss') {
+          sig += ampMult * 0.95 * Math.exp(-Math.pow((norm - 0.36) / 0.016, 2));
+        }
+        const sy = baseLine - Math.min(stripH - 20, sig * (stripH - 18));
+        if (px === 24) ctx.moveTo(px, sy);
+        else ctx.lineTo(px, sy);
       }
-      const sy = baseLine - Math.min(stripH - 20, sig * (stripH - 18));
-      if (px === 24) ctx.moveTo(px, sy);
-      else ctx.lineTo(px, sy);
-    }
-    ctx.stroke();
+      ctx.stroke();
+    };
+
+    const tickCross = () => {
+      const elapsedSec = (Date.now() - startMs) / 1000;
+      renderCrossFrame(elapsedSec);
+      if (shouldAnimate) {
+        rafId = requestAnimationFrame(tickCross);
+      }
+    };
+
+    tickCross();
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+    };
   }, [
     currentDefect,
     flawDepthMm,
@@ -914,6 +1074,8 @@ export const BeamConeAndDefectExplorer: React.FC<BeamConeAndDefectExplorerProps>
     isIn6dBCore,
     isIn20dBEdge,
     plateThicknessMm,
+    rayXAtFlaw,
+    rayXLeg2AtFlaw,
   ]);
 
   return (

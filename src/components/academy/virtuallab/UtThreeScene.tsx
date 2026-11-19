@@ -113,6 +113,123 @@ function createDimensionCalloutSprite(
 }
 
 /**
+ * Generates an animated GLSL 1.0 ShaderMaterial for 3D ultrasonic beam cones & Fresnel near-field zones.
+ * Renders traveling compressional/shear wavefront crests, near-field interference ripples, and Fresnel rim glow.
+ */
+function createUltrasonicBeamShaderMaterial(options: {
+  coreColor: number;
+  outerColor: number;
+  nearFieldColor?: number;
+  freqMHz: number;
+  nearFieldFrac: number;
+  baseOpacity: number;
+  phaseOffset?: number;
+  isDetected?: boolean;
+  isNearFieldZone?: boolean;
+  xrayActive?: boolean;
+}): THREE.ShaderMaterial {
+  const {
+    coreColor,
+    outerColor,
+    nearFieldColor = 0xa855f7,
+    freqMHz,
+    nearFieldFrac,
+    baseOpacity,
+    phaseOffset = 0,
+    isDetected = false,
+    isNearFieldZone = false,
+    xrayActive = false,
+  } = options;
+
+  return new THREE.ShaderMaterial({
+    transparent: true,
+    depthWrite: false,
+    depthTest: false,
+    side: THREE.DoubleSide,
+    uniforms: {
+      uTime: { value: 0 },
+      uFreqMHz: { value: freqMHz },
+      uNearFieldFrac: { value: THREE.MathUtils.clamp(nearFieldFrac, 0.05, 0.95) },
+      uBaseOpacity: { value: baseOpacity * (xrayActive ? 1.25 : 0.92) },
+      uPhaseOffset: { value: phaseOffset },
+      uIsDetected: { value: isDetected ? 1.0 : 0.0 },
+      uIsNearFieldZone: { value: isNearFieldZone ? 1.0 : 0.0 },
+      uCoreColor: { value: new THREE.Color(coreColor) },
+      uOuterColor: { value: new THREE.Color(outerColor) },
+      uNearFieldColor: { value: new THREE.Color(nearFieldColor) },
+      uEchoColor: { value: new THREE.Color(0x10b981) },
+    },
+    vertexShader: /* glsl */ `
+      varying vec2 vUv;
+      varying vec3 vNormal;
+      varying vec3 vViewPos;
+      void main() {
+        vUv = uv;
+        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+        vViewPos = -mvPosition.xyz;
+        vNormal = normalize(normalMatrix * normal);
+        gl_Position = projectionMatrix * mvPosition;
+      }
+    `,
+    fragmentShader: /* glsl */ `
+      uniform float uTime;
+      uniform float uFreqMHz;
+      uniform float uNearFieldFrac;
+      uniform float uBaseOpacity;
+      uniform float uPhaseOffset;
+      uniform float uIsDetected;
+      uniform float uIsNearFieldZone;
+      uniform vec3 uCoreColor;
+      uniform vec3 uOuterColor;
+      uniform vec3 uNearFieldColor;
+      uniform vec3 uEchoColor;
+
+      varying vec2 vUv;
+      varying vec3 vNormal;
+      varying vec3 vViewPos;
+
+      void main() {
+        // CylinderGeometry maps uv.y = 1.0 at entry (start) -> 0.0 at far end
+        float axial = clamp(1.0 - vUv.y, 0.0, 1.0);
+        float waveDensity = 5.0 + uFreqMHz * 1.9;
+        float speed = 1.85 + uFreqMHz * 0.22;
+
+        // Forward-traveling acoustic wave crests & burst packet envelope
+        float phase = (axial * waveDensity - uTime * speed) * 6.2831853 + uPhaseOffset;
+        float crest = pow(0.5 + 0.5 * cos(phase), 2.6);
+        float packet = 0.55 + 0.45 * sin((axial * 2.1 - uTime * (speed * 0.44)) * 6.2831853 + uPhaseOffset);
+
+        // Fresnel Near-Field interference fringes (0 -> N_eff)
+        float nfMask = 1.0 - smoothstep(uNearFieldFrac - 0.06, uNearFieldFrac + 0.08, axial);
+        float interference = 0.5 + 0.5 * sin(vUv.x * 18.84955 + axial * 16.0 - uTime * 3.4);
+        float nfMix = clamp(nfMask * (0.55 + 0.45 * uIsNearFieldZone), 0.0, 1.0);
+
+        // Returning defect echo wave (when defect is intersected)
+        float echoCrest = pow(0.5 + 0.5 * cos((axial * waveDensity * 0.9 + uTime * speed * 1.15) * 6.2831853), 3.0);
+        float echoMask = uIsDetected * 0.42 * echoCrest;
+
+        // Soft Fresnel rim glow so cone borders read as acoustic energy rather than hard polygons
+        vec3 n = normalize(vNormal);
+        vec3 v = normalize(vViewPos);
+        float ndotv = abs(dot(n, v));
+        float rim = pow(1.0 - ndotv, 1.35);
+        float centerGlow = smoothstep(0.0, 0.65, ndotv);
+
+        vec3 baseCol = mix(uOuterColor, uCoreColor, clamp(crest * 0.75 + centerGlow * 0.35, 0.0, 1.0));
+        baseCol = mix(baseCol, uNearFieldColor, nfMix * (0.45 + 0.45 * interference));
+        baseCol = mix(baseCol, uEchoColor, clamp(echoMask, 0.0, 0.65));
+
+        float endFade = smoothstep(0.0, 0.04, axial) * (1.0 - smoothstep(0.94, 1.0, axial) * 0.45);
+        float energy = (0.34 + 0.66 * crest * packet + nfMix * interference * 0.22 + echoMask * 0.35);
+        float alpha = clamp(uBaseOpacity * energy * (0.58 + 0.55 * rim) * endFade, 0.04, 0.88);
+
+        gl_FragColor = vec4(baseCol, alpha);
+      }
+    `,
+  });
+}
+
+/**
  * Recursively disposes geometries, materials, and procedural textures inside a Three.js Object3D tree.
  */
 function disposeObjectTree(obj: THREE.Object3D) {
@@ -196,6 +313,11 @@ export const UtThreeScene: React.FC<UtThreeSceneProps> = ({
   freqRef.current = transducerFreqMHz;
   const magFieldRef = useRef<number>(magneticFieldKaM);
   magFieldRef.current = magneticFieldKaM;
+  const reducedMotionRef = useRef<boolean>(
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      : false
+  );
 
   // Camera Orbit controls state
   const isDraggingRef = useRef(false);
@@ -335,14 +457,74 @@ export const UtThreeScene: React.FC<UtThreeSceneProps> = ({
       if (isDisposed) return;
       const elapsedTime = clock.getElapsedTime();
 
+      const animTime = reducedMotionRef.current ? 0.35 : elapsedTime;
+
       if (soundBeamRef.current) {
         const pulseRate = 3.5 + freqRef.current * 1.15;
-        soundBeamRef.current.children.forEach((child, idx) => {
-          if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshStandardMaterial) {
-            const baseOpacity = child.userData.baseOpacity || 0.55;
-            child.material.opacity = baseOpacity + Math.sin(elapsedTime * pulseRate + idx) * 0.14;
+        const children = soundBeamRef.current.children;
+        for (let idx = 0; idx < children.length; idx++) {
+          const child = children[idx];
+          if (!(child instanceof THREE.Mesh)) continue;
+
+          if (child.material instanceof THREE.ShaderMaterial && child.userData.isUtBeamShader) {
+            child.material.uniforms.uTime.value = animTime;
+            continue;
           }
-        });
+
+          const travelCfg = child.userData.utTravelWave as
+            | {
+                startX: number;
+                startY: number;
+                startZ: number;
+                endX: number;
+                endY: number;
+                endZ: number;
+                rStart: number;
+                rEnd: number;
+                phaseOffset: number;
+                speed: number;
+                baseOpacity: number;
+                isBead?: boolean;
+              }
+            | undefined;
+
+          if (travelCfg) {
+            const rawT = animTime * travelCfg.speed + travelCfg.phaseOffset;
+            const t = rawT - Math.floor(rawT);
+            child.position.set(
+              travelCfg.startX + (travelCfg.endX - travelCfg.startX) * t,
+              travelCfg.startY + (travelCfg.endY - travelCfg.startY) * t,
+              travelCfg.startZ + (travelCfg.endZ - travelCfg.startZ) * t
+            );
+            const r = travelCfg.rStart + (travelCfg.rEnd - travelCfg.rStart) * t;
+            if (travelCfg.isBead) {
+              const beadScale = 0.72 + 0.45 * Math.sin(t * Math.PI);
+              child.scale.set(beadScale, beadScale, beadScale);
+            } else {
+              child.scale.set(r, r, Math.max(0.15, r * 0.65));
+            }
+            if (child.material instanceof THREE.MeshBasicMaterial) {
+              const fade = Math.sin(t * Math.PI);
+              child.material.opacity = travelCfg.baseOpacity * (0.2 + 0.8 * fade);
+            }
+            continue;
+          }
+
+          if (child.userData.utBouncePulse) {
+            const pulse = 0.5 + 0.5 * Math.sin(animTime * pulseRate * 1.15);
+            const s = 0.85 + 0.35 * pulse;
+            child.scale.set(s, s, s);
+            if (child.material instanceof THREE.MeshBasicMaterial) {
+              child.material.opacity = 0.35 + 0.55 * pulse;
+            }
+            continue;
+          }
+
+          if (child.material instanceof THREE.MeshStandardMaterial) {
+            const baseOpacity = child.userData.baseOpacity || 0.55;
+            child.material.opacity = baseOpacity + Math.sin(animTime * pulseRate + idx) * 0.14;
+          }
+        }
       }
 
       if (fluxLinesGroupRef.current && energizedRef.current) {
@@ -648,68 +830,102 @@ export const UtThreeScene: React.FC<UtThreeSceneProps> = ({
       const beamGeo = new THREE.CylinderGeometry(nearStartR, farEndR, beamLen, 24, 1, true);
       beamGeo.translate(0, -beamLen / 2, 0);
 
-      const beamMat = new THREE.MeshStandardMaterial({
-        color: 0x38bdf8,
-        transparent: true,
-        opacity: 0.45,
-        emissive: 0x0284c7,
-        emissiveIntensity: 0.8,
-        side: THREE.DoubleSide,
+      const nfSceneLen = THREE.MathUtils.clamp((nearFieldMm / 100) * beamLen, 0.35, beamLen * 0.85);
+      const nfFrac = THREE.MathUtils.clamp(nfSceneLen / beamLen, 0.08, 0.88);
+      const beamMat = createUltrasonicBeamShaderMaterial({
+        coreColor: 0x38bdf8,
+        outerColor: 0x0284c7,
+        nearFieldColor: 0xa855f7,
+        freqMHz: clampedFreq,
+        nearFieldFrac: nfFrac,
+        baseOpacity: 0.52,
+        xrayActive,
       });
       const beamMesh = new THREE.Mesh(beamGeo, beamMat);
-      beamMesh.userData = { baseOpacity: 0.45 };
+      beamMesh.userData = { isUtBeamShader: true };
+      beamMesh.renderOrder = 6;
       beamGroup.add(beamMesh);
 
       // 3D Fresnel Near-Field Zone (N = D^2 * f / 4v)
-      const nfSceneLen = THREE.MathUtils.clamp((nearFieldMm / 100) * beamLen, 0.35, beamLen * 0.85);
       const nfGeo = new THREE.CylinderGeometry(nearStartR * 0.88, nearStartR * 0.95, nfSceneLen, 20, 1, true);
       nfGeo.translate(0, -nfSceneLen / 2, 0);
-      const nfMat = new THREE.MeshStandardMaterial({
-        color: 0xa855f7,
-        emissive: 0x7e22ce,
-        emissiveIntensity: 0.9,
-        transparent: true,
-        opacity: 0.52,
-        side: THREE.DoubleSide,
+      const nfMat = createUltrasonicBeamShaderMaterial({
+        coreColor: 0xc084fc,
+        outerColor: 0x7e22ce,
+        nearFieldColor: 0xe879f9,
+        freqMHz: clampedFreq,
+        nearFieldFrac: 1.0,
+        baseOpacity: 0.42,
+        isNearFieldZone: true,
+        xrayActive,
       });
       const nfMesh = new THREE.Mesh(nfGeo, nfMat);
-      nfMesh.userData = { baseOpacity: 0.52 };
+      nfMesh.userData = { isUtBeamShader: true };
+      nfMesh.renderOrder = 7;
       beamGroup.add(nfMesh);
 
-      // Frequency-dependent 3D Wavefront Rings along Beam Axis
-      const wavefrontRingCount = Math.min(10, Math.max(3, Math.round(clampedFreq * 1.1)));
-      for (let wIdx = 1; wIdx <= wavefrontRingCount; wIdx++) {
-        const frac = wIdx / (wavefrontRingCount + 1);
-        const ringR = THREE.MathUtils.lerp(nearStartR, farEndR, frac);
-        const wfGeo = new THREE.RingGeometry(Math.max(0.05, ringR * 0.82), ringR, 20);
-        wfGeo.rotateX(-Math.PI / 2);
+      // Traveling 3D Acoustic Wavefront Torus Rings along Beam Axis
+      const wfTorusGeo = new THREE.TorusGeometry(1.0, 0.035, 8, 28);
+      wfTorusGeo.rotateX(-Math.PI / 2);
+      const wavefrontRingCount = Math.min(8, Math.max(4, Math.round(clampedFreq * 1.1)));
+      const wfSpeed = 0.55 + clampedFreq * 0.07;
+      for (let wIdx = 0; wIdx < wavefrontRingCount; wIdx++) {
         const wfMesh = new THREE.Mesh(
-          wfGeo,
+          wfTorusGeo,
           new THREE.MeshBasicMaterial({
             color: 0x67e8f9,
             transparent: true,
-            opacity: 0.45,
-            side: THREE.DoubleSide,
+            opacity: 0.72,
+            depthTest: false,
+            depthWrite: false,
           })
         );
-        wfMesh.position.y = -frac * beamLen;
+        wfMesh.renderOrder = 8;
+        wfMesh.userData = {
+          utTravelWave: {
+            startX: 0,
+            startY: -0.05,
+            startZ: 0,
+            endX: 0,
+            endY: -beamLen,
+            endZ: 0,
+            rStart: nearStartR * 0.92,
+            rEnd: farEndR * 0.95,
+            phaseOffset: wIdx / wavefrontRingCount,
+            speed: wfSpeed,
+            baseOpacity: 0.78,
+          },
+        };
         beamGroup.add(wfMesh);
       }
 
-      const rayGeo = new THREE.CylinderGeometry(0.04, 0.04, beamLen, 8);
+      const rayGeo = new THREE.CylinderGeometry(0.032, 0.032, beamLen, 8);
       rayGeo.translate(0, -beamLen / 2, 0);
-      const rayMat = new THREE.MeshBasicMaterial({ color: 0xe0f2fe });
+      const rayMat = new THREE.MeshBasicMaterial({
+        color: 0xe0f2fe,
+        transparent: true,
+        opacity: 0.55,
+        depthTest: false,
+        depthWrite: false,
+      });
       const rayMesh = new THREE.Mesh(rayGeo, rayMat);
+      rayMesh.renderOrder = 7;
       beamGroup.add(rayMesh);
 
       const impactRingGeo = new THREE.RingGeometry(0.18, farEndR * 0.72, 24);
       impactRingGeo.rotateX(-Math.PI / 2);
       const impactRingMat = new THREE.MeshBasicMaterial({
         color: 0x38bdf8,
+        transparent: true,
+        opacity: 0.7,
         side: THREE.DoubleSide,
+        depthTest: false,
+        depthWrite: false,
       });
       const impactRingMesh = new THREE.Mesh(impactRingGeo, impactRingMat);
       impactRingMesh.position.y = -beamLen;
+      impactRingMesh.renderOrder = 8;
+      impactRingMesh.userData = { utBouncePulse: true };
       beamGroup.add(impactRingMesh);
 
       if (probePreset === 'C') {
@@ -782,22 +998,68 @@ export const UtThreeScene: React.FC<UtThreeSceneProps> = ({
       const botR = THREE.MathUtils.clamp(topR + Math.tan(halfSpreadRad) * currentH * 2.0, topR + 0.04, 1.35);
       const beamGeo = new THREE.CylinderGeometry(topR, botR, currentH, 16);
       beamGeo.translate(0, -currentH / 2 - 0.66, 0);
-      const beamMat = new THREE.MeshStandardMaterial({
-        color: 0x38bdf8,
-        transparent: true,
-        opacity: 0.5,
-        emissive: 0x0284c7,
-        emissiveIntensity: 0.7,
+      const beamMat = createUltrasonicBeamShaderMaterial({
+        coreColor: 0x38bdf8,
+        outerColor: 0x0284c7,
+        nearFieldColor: 0xa855f7,
+        freqMHz: clampedFreq,
+        nearFieldFrac: 0.35,
+        baseOpacity: 0.56,
+        xrayActive,
       });
       const beamMesh = new THREE.Mesh(beamGeo, beamMat);
-      beamMesh.userData = { baseOpacity: 0.5 };
+      beamMesh.userData = { isUtBeamShader: true };
+      beamMesh.renderOrder = 6;
       beamGroup.add(beamMesh);
+
+      // Traveling wavefront rings in Step Wedge
+      const stepWfGeo = new THREE.TorusGeometry(1.0, 0.032, 8, 24);
+      stepWfGeo.rotateX(-Math.PI / 2);
+      const stepRingCount = Math.max(3, Math.round(currentH * 1.4));
+      for (let wIdx = 0; wIdx < stepRingCount; wIdx++) {
+        const ringMesh = new THREE.Mesh(
+          stepWfGeo,
+          new THREE.MeshBasicMaterial({
+            color: 0x67e8f9,
+            transparent: true,
+            opacity: 0.72,
+            depthTest: false,
+            depthWrite: false,
+          })
+        );
+        ringMesh.renderOrder = 8;
+        ringMesh.userData = {
+          utTravelWave: {
+            startX: 0,
+            startY: -0.68,
+            startZ: 0,
+            endX: 0,
+            endY: -currentH - 0.66,
+            endZ: 0,
+            rStart: topR * 0.9,
+            rEnd: botR * 0.96,
+            phaseOffset: wIdx / stepRingCount,
+            speed: 0.65 + clampedFreq * 0.06,
+            baseOpacity: 0.78,
+          },
+        };
+        beamGroup.add(ringMesh);
+      }
 
       const echoGeo = new THREE.RingGeometry(0.1, botR * 1.05, 16);
       echoGeo.rotateX(-Math.PI / 2);
-      const echoMat = new THREE.MeshBasicMaterial({ color: 0x67e8f9 });
+      const echoMat = new THREE.MeshBasicMaterial({
+        color: 0x67e8f9,
+        transparent: true,
+        opacity: 0.75,
+        side: THREE.DoubleSide,
+        depthTest: false,
+        depthWrite: false,
+      });
       const echoMesh = new THREE.Mesh(echoGeo, echoMat);
       echoMesh.position.y = -currentH - 0.66;
+      echoMesh.renderOrder = 8;
+      echoMesh.userData = { utBouncePulse: true };
       beamGroup.add(echoMesh);
 
       probeGroup.add(beamGroup);
@@ -1151,48 +1413,65 @@ export const UtThreeScene: React.FC<UtThreeSceneProps> = ({
         1.45
       );
 
-      // Center Axis Ray (Leg 1 & Leg 2)
-      const leg1Path = new THREE.LineCurve3(startVec, bounceVec);
-      const leg1Geo = new THREE.TubeGeometry(leg1Path, 10, 0.055, 8, false);
-      const beamMat = new THREE.MeshStandardMaterial({
-        color: defectDetected ? 0xf59e0b : 0x38bdf8,
-        emissive: defectDetected ? 0xf59e0b : 0x0284c7,
-        emissiveIntensity: 0.95,
+      // Center Axis Ray (Leg 1 & Leg 2) + Wedge Incident Refraction Ray inside Perspex Wedge
+      const wedgeStartVec = new THREE.Vector3(-0.28, 1.12, 0);
+      const wedgeRayPath = new THREE.LineCurve3(wedgeStartVec, startVec);
+      const wedgeRayGeo = new THREE.TubeGeometry(wedgeRayPath, 6, 0.032, 8, false);
+      const wedgeRayMat = new THREE.MeshBasicMaterial({
+        color: 0x67e8f9,
         transparent: true,
-        opacity: 0.88,
+        opacity: 0.72,
+        depthTest: false,
+        depthWrite: false,
+      });
+      const wedgeRayMesh = new THREE.Mesh(wedgeRayGeo, wedgeRayMat);
+      wedgeRayMesh.renderOrder = 7;
+      beamGroup.add(wedgeRayMesh);
+
+      const leg1Path = new THREE.LineCurve3(startVec, bounceVec);
+      const leg1Geo = new THREE.TubeGeometry(leg1Path, 10, 0.04, 8, false);
+      const beamMat = new THREE.MeshBasicMaterial({
+        color: defectDetected ? 0xfbbf24 : 0x7dd3fc,
+        transparent: true,
+        opacity: 0.68,
+        depthTest: false,
+        depthWrite: false,
       });
       const leg1Mesh = new THREE.Mesh(leg1Geo, beamMat);
-      leg1Mesh.userData = { baseOpacity: 0.86 };
+      leg1Mesh.renderOrder = 7;
       beamGroup.add(leg1Mesh);
 
-      // Outer 3D -6 dB Divergent Ultrasonic Cone Frustum along Leg 1 (Controlled by Frequency MHz!)
+      // Animated GLSL Ultrasonic Beam Shader Cone along Leg 1 (Wavefronts + Near-Field Interference + Rim Glow)
       const leg1Mid = startVec.clone().add(bounceVec).multiplyScalar(0.5);
       const leg1Dir = bounceVec.clone().sub(startVec).normalize();
+      const nfRatioOnLeg1 = THREE.MathUtils.clamp(nearFieldMm / Math.max(12, plateThicknessMm * 2.2), 0.12, 0.85);
       const leg1ConeGeo = new THREE.CylinderGeometry(
         coreRadiusStart,
         coneRadiusBounce,
         Math.max(0.2, leg1Length),
-        20,
+        24,
         1,
         true
       );
-      const coneEnvelopeMat = new THREE.MeshStandardMaterial({
-        color: defectDetected ? 0xfbbf24 : 0x22d3ee,
-        emissive: defectDetected ? 0xd97706 : 0x0891b2,
-        emissiveIntensity: 0.7,
-        transparent: true,
-        opacity: 0.34,
-        side: THREE.DoubleSide,
-        depthWrite: false,
+      const coneEnvelopeMat = createUltrasonicBeamShaderMaterial({
+        coreColor: defectDetected ? 0xfbbf24 : 0x38bdf8,
+        outerColor: defectDetected ? 0xd97706 : 0x0284c7,
+        nearFieldColor: 0xa855f7,
+        freqMHz: clampedFreq,
+        nearFieldFrac: nfRatioOnLeg1,
+        baseOpacity: 0.56,
+        phaseOffset: 0,
+        isDetected: defectDetected,
+        xrayActive,
       });
       const leg1ConeMesh = new THREE.Mesh(leg1ConeGeo, coneEnvelopeMat);
       leg1ConeMesh.position.copy(leg1Mid);
       leg1ConeMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), leg1Dir);
-      leg1ConeMesh.userData = { baseOpacity: 0.34 };
+      leg1ConeMesh.userData = { isUtBeamShader: true };
+      leg1ConeMesh.renderOrder = 6;
       beamGroup.add(leg1ConeMesh);
 
       // 3D Fresnel Near-Field Segment along Leg 1 (Length proportional to D^2 * f / 4v)
-      const nfRatioOnLeg1 = THREE.MathUtils.clamp(nearFieldMm / Math.max(12, plateThicknessMm * 2.2), 0.12, 0.85);
       const nfLen3D = leg1Length * nfRatioOnLeg1;
       const nfEndVec = startVec.clone().add(leg1Dir.clone().multiplyScalar(nfLen3D));
       const nfMidVec = startVec.clone().add(nfEndVec).multiplyScalar(0.5);
@@ -1200,40 +1479,150 @@ export const UtThreeScene: React.FC<UtThreeSceneProps> = ({
         coreRadiusStart * 0.95,
         THREE.MathUtils.lerp(coreRadiusStart, coneRadiusBounce, nfRatioOnLeg1),
         Math.max(0.15, nfLen3D),
-        18,
+        20,
         1,
         true
       );
-      const nfAngleMat = new THREE.MeshStandardMaterial({
-        color: 0xa855f7,
-        emissive: 0x7e22ce,
-        emissiveIntensity: 0.9,
-        transparent: true,
-        opacity: 0.52,
-        side: THREE.DoubleSide,
-        depthWrite: false,
+      const nfAngleMat = createUltrasonicBeamShaderMaterial({
+        coreColor: 0xc084fc,
+        outerColor: 0x7e22ce,
+        nearFieldColor: 0xe879f9,
+        freqMHz: clampedFreq,
+        nearFieldFrac: 1.0,
+        baseOpacity: 0.42,
+        isNearFieldZone: true,
+        isDetected: defectDetected,
+        xrayActive,
       });
       const nfAngleMesh = new THREE.Mesh(nfAngleGeo, nfAngleMat);
       nfAngleMesh.position.copy(nfMidVec);
       nfAngleMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), leg1Dir);
-      nfAngleMesh.userData = { baseOpacity: 0.52 };
+      nfAngleMesh.userData = { isUtBeamShader: true };
+      nfAngleMesh.renderOrder = 7;
       beamGroup.add(nfAngleMesh);
 
-      const bottomBounceGeo = new THREE.RingGeometry(0.08, Math.max(0.28, coneRadiusBounce * 1.15), 20);
+      // 3D Traveling Acoustic Wavefront Torus Rings + Pulse Beads along Leg 1
+      const zAxisUnit = new THREE.Vector3(0, 0, 1);
+      const leg1RingQuat = new THREE.Quaternion().setFromUnitVectors(zAxisUnit, leg1Dir);
+      const angleWfTorusGeo = new THREE.TorusGeometry(1.0, 0.042, 8, 28);
+      const anglePulseBeadGeo = new THREE.SphereGeometry(0.085, 10, 10);
+      const legWaveCount = Math.min(7, Math.max(4, Math.round(clampedFreq * 0.9)));
+      const angleWaveSpeed = 0.58 + clampedFreq * 0.065;
+
+      for (let wIdx = 0; wIdx < legWaveCount; wIdx++) {
+        const ringMesh = new THREE.Mesh(
+          angleWfTorusGeo,
+          new THREE.MeshBasicMaterial({
+            color: defectDetected ? 0xfde68a : 0x67e8f9,
+            transparent: true,
+            opacity: 0.82,
+            depthTest: false,
+            depthWrite: false,
+          })
+        );
+        ringMesh.quaternion.copy(leg1RingQuat);
+        ringMesh.renderOrder = 8;
+        ringMesh.userData = {
+          utTravelWave: {
+            startX: startVec.x,
+            startY: startVec.y,
+            startZ: startVec.z,
+            endX: bounceVec.x,
+            endY: bounceVec.y,
+            endZ: bounceVec.z,
+            rStart: coreRadiusStart * 0.9,
+            rEnd: coneRadiusBounce * 0.94,
+            phaseOffset: wIdx / legWaveCount,
+            speed: angleWaveSpeed,
+            baseOpacity: 0.85,
+          },
+        };
+        beamGroup.add(ringMesh);
+      }
+
+      // Moving energy packet beads inside Leg 1 (and wedge incident ray)
+      for (let bIdx = 0; bIdx < 2; bIdx++) {
+        const bead = new THREE.Mesh(
+          anglePulseBeadGeo,
+          new THREE.MeshBasicMaterial({
+            color: 0xf8fafc,
+            transparent: true,
+            opacity: 0.92,
+            depthTest: false,
+            depthWrite: false,
+          })
+        );
+        bead.renderOrder = 9;
+        bead.userData = {
+          utTravelWave: {
+            startX: startVec.x,
+            startY: startVec.y,
+            startZ: startVec.z,
+            endX: bounceVec.x,
+            endY: bounceVec.y,
+            endZ: bounceVec.z,
+            rStart: 1,
+            rEnd: 1,
+            phaseOffset: bIdx * 0.5,
+            speed: angleWaveSpeed,
+            baseOpacity: 0.94,
+            isBead: true,
+          },
+        };
+        beamGroup.add(bead);
+      }
+
+      const wedgeBead = new THREE.Mesh(
+        anglePulseBeadGeo,
+        new THREE.MeshBasicMaterial({
+          color: 0x67e8f9,
+          transparent: true,
+          opacity: 0.9,
+          depthTest: false,
+          depthWrite: false,
+        })
+      );
+      wedgeBead.renderOrder = 9;
+      wedgeBead.userData = {
+        utTravelWave: {
+          startX: wedgeStartVec.x,
+          startY: wedgeStartVec.y,
+          startZ: wedgeStartVec.z,
+          endX: startVec.x,
+          endY: startVec.y,
+          endZ: startVec.z,
+          rStart: 1,
+          rEnd: 1,
+          phaseOffset: 0.15,
+          speed: angleWaveSpeed * 1.4,
+          baseOpacity: 0.9,
+          isBead: true,
+        },
+      };
+      beamGroup.add(wedgeBead);
+
+      // Pulsing Bottom-Wall Specular Reflection Ring
+      const bottomBounceGeo = new THREE.RingGeometry(0.08, Math.max(0.28, coneRadiusBounce * 1.15), 24);
       bottomBounceGeo.rotateX(-Math.PI / 2);
       const bottomBounceMat = new THREE.MeshBasicMaterial({
         color: defectDetected ? 0xfbbf24 : 0x38bdf8,
+        transparent: true,
+        opacity: 0.78,
         side: THREE.DoubleSide,
+        depthTest: false,
+        depthWrite: false,
       });
       const bottomBounceMesh = new THREE.Mesh(bottomBounceGeo, bottomBounceMat);
       bottomBounceMesh.position.copy(bounceVec);
+      bottomBounceMesh.renderOrder = 8;
+      bottomBounceMesh.userData = { utBouncePulse: true };
       beamGroup.add(bottomBounceMesh);
 
       if (refractedClampedDeg > 5) {
         const leg2Path = new THREE.LineCurve3(bounceVec, fullSkipVec);
-        const leg2Geo = new THREE.TubeGeometry(leg2Path, 10, 0.048, 8, false);
+        const leg2Geo = new THREE.TubeGeometry(leg2Path, 10, 0.036, 8, false);
         const leg2Mesh = new THREE.Mesh(leg2Geo, beamMat);
-        leg2Mesh.userData = { baseOpacity: 0.8 };
+        leg2Mesh.renderOrder = 7;
         beamGroup.add(leg2Mesh);
 
         const leg2Mid = bounceVec.clone().add(fullSkipVec).multiplyScalar(0.5);
@@ -1242,15 +1631,153 @@ export const UtThreeScene: React.FC<UtThreeSceneProps> = ({
           coneRadiusBounce,
           coneRadiusFullSkip,
           Math.max(0.2, leg1Length),
-          20,
+          24,
           1,
           true
         );
-        const leg2ConeMesh = new THREE.Mesh(leg2ConeGeo, coneEnvelopeMat);
+        const leg2ConeMat = createUltrasonicBeamShaderMaterial({
+          coreColor: defectDetected ? 0xf59e0b : 0x38bdf8,
+          outerColor: defectDetected ? 0xb45309 : 0x0369a1,
+          nearFieldColor: 0x818cf8,
+          freqMHz: clampedFreq,
+          nearFieldFrac: 0.05,
+          baseOpacity: 0.44,
+          phaseOffset: Math.PI * 0.75,
+          isDetected: defectDetected,
+          xrayActive,
+        });
+        const leg2ConeMesh = new THREE.Mesh(leg2ConeGeo, leg2ConeMat);
         leg2ConeMesh.position.copy(leg2Mid);
         leg2ConeMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), leg2Dir);
-        leg2ConeMesh.userData = { baseOpacity: 0.28 };
+        leg2ConeMesh.userData = { isUtBeamShader: true };
+        leg2ConeMesh.renderOrder = 6;
         beamGroup.add(leg2ConeMesh);
+
+        // Traveling 3D Acoustic Wavefront Torus Rings along Leg 2 (Full Skip)
+        const leg2RingQuat = new THREE.Quaternion().setFromUnitVectors(zAxisUnit, leg2Dir);
+        for (let wIdx = 0; wIdx < legWaveCount; wIdx++) {
+          const ringMesh2 = new THREE.Mesh(
+            angleWfTorusGeo,
+            new THREE.MeshBasicMaterial({
+              color: defectDetected ? 0xfbbf24 : 0x38bdf8,
+              transparent: true,
+              opacity: 0.68,
+              depthTest: false,
+              depthWrite: false,
+            })
+          );
+          ringMesh2.quaternion.copy(leg2RingQuat);
+          ringMesh2.renderOrder = 8;
+          ringMesh2.userData = {
+            utTravelWave: {
+              startX: bounceVec.x,
+              startY: bounceVec.y,
+              startZ: bounceVec.z,
+              endX: fullSkipVec.x,
+              endY: fullSkipVec.y,
+              endZ: fullSkipVec.z,
+              rStart: coneRadiusBounce * 0.92,
+              rEnd: coneRadiusFullSkip * 0.95,
+              phaseOffset: (wIdx + 0.5) / legWaveCount,
+              speed: angleWaveSpeed,
+              baseOpacity: 0.68,
+            },
+          };
+          beamGroup.add(ringMesh2);
+        }
+
+        const leg2Bead = new THREE.Mesh(
+          anglePulseBeadGeo,
+          new THREE.MeshBasicMaterial({
+            color: 0xfef08a,
+            transparent: true,
+            opacity: 0.85,
+            depthTest: false,
+            depthWrite: false,
+          })
+        );
+        leg2Bead.renderOrder = 9;
+        leg2Bead.userData = {
+          utTravelWave: {
+            startX: bounceVec.x,
+            startY: bounceVec.y,
+            startZ: bounceVec.z,
+            endX: fullSkipVec.x,
+            endY: fullSkipVec.y,
+            endZ: fullSkipVec.z,
+            rStart: 1,
+            rEnd: 1,
+            phaseOffset: 0.25,
+            speed: angleWaveSpeed,
+            baseOpacity: 0.85,
+            isBead: true,
+          },
+        };
+        beamGroup.add(leg2Bead);
+      }
+
+      // Returning 3D Echo Wavelets + Scattering Pulse Rings when a defect is intersected
+      if (defectDetected) {
+        for (let eIdx = 0; eIdx < 3; eIdx++) {
+          const echoRing = new THREE.Mesh(
+            angleWfTorusGeo,
+            new THREE.MeshBasicMaterial({
+              color: 0x10b981,
+              transparent: true,
+              opacity: 0.88,
+              depthTest: false,
+              depthWrite: false,
+            })
+          );
+          echoRing.quaternion.copy(leg1RingQuat);
+          echoRing.renderOrder = 9;
+          echoRing.userData = {
+            utTravelWave: {
+              startX: bounceVec.x,
+              startY: bounceVec.y,
+              startZ: bounceVec.z,
+              endX: startVec.x,
+              endY: startVec.y,
+              endZ: startVec.z,
+              rStart: coneRadiusBounce * 0.68,
+              rEnd: coreRadiusStart * 1.15,
+              phaseOffset: eIdx / 3,
+              speed: angleWaveSpeed * 1.15,
+              baseOpacity: 0.88,
+            },
+          };
+          beamGroup.add(echoRing);
+        }
+
+        // Expanding 3D Defect Scatter Pulse Ring around the intersection on the weld
+        const scatterRing = new THREE.Mesh(
+          angleWfTorusGeo,
+          new THREE.MeshBasicMaterial({
+            color: 0x34d399,
+            transparent: true,
+            opacity: 0.9,
+            depthTest: false,
+            depthWrite: false,
+          })
+        );
+        scatterRing.rotation.x = Math.PI / 2;
+        scatterRing.renderOrder = 9;
+        scatterRing.userData = {
+          utTravelWave: {
+            startX: bounceVec.x,
+            startY: bounceVec.y + 0.18,
+            startZ: bounceVec.z,
+            endX: bounceVec.x,
+            endY: bounceVec.y + 0.18,
+            endZ: bounceVec.z,
+            rStart: 0.18,
+            rEnd: Math.max(0.65, coneRadiusBounce * 1.25),
+            phaseOffset: 0,
+            speed: angleWaveSpeed * 1.35,
+            baseOpacity: 0.9,
+          },
+        };
+        beamGroup.add(scatterRing);
       }
 
       probeGroup.add(beamGroup);

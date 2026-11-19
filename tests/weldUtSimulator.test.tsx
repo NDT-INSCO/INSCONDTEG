@@ -16,9 +16,11 @@ import {
   ALL_WELD_DEFECTS_CATALOG,
   INSPECTION_CODES_META,
   computeUltrasonicBeamCone,
+  drawUltrasonicBeamCone2D,
   getAllDefectsCodeToleranceSchedule,
   getDefectCodeTolerance,
 } from '../src/data/utWeldDefectsCatalog';
+import { UtThreeScene } from '../src/components/academy/virtuallab/UtThreeScene';
 import { EducationalAcademy } from '../src/components/EducationalAcademy';
 import { generateWeldInspectionPdf } from '../src/utils/weldInspectionPdfGenerator';
 
@@ -460,4 +462,135 @@ test('Selecting or hovering a defect triggers visual Tooltip and Modal tolerance
   assert.ok(academyModal.textContent?.includes('0.0 مم'));
 });
 
+test('drawUltrasonicBeamCone2D animates traveling wavefronts, Near-Field fringes, defect scattering, and returning echoes across scatter modes', () => {
+  const cone = computeUltrasonicBeamCone({
+    frequencyMhz: 4.0,
+    velocityMs: 3240,
+    crystalDiameterMm: 12,
+    isPaut: false,
+  });
+
+  const scatterModes: Array<
+    'corner_trap' | 'specular_planar' | 'volumetric_scatter' | 'tip_diffraction' | 'lamination'
+  > = ['corner_trap', 'specular_planar', 'volumetric_scatter', 'tip_diffraction', 'lamination'];
+
+  for (const scatterMode of scatterModes) {
+    const callCounts = { moveTo: 0, lineTo: 0, arc: 0, stroke: 0, fill: 0, quadraticCurveTo: 0 };
+    const spyCtx = {
+      save: () => {},
+      restore: () => {},
+      beginPath: () => {},
+      closePath: () => {},
+      moveTo: () => {
+        callCounts.moveTo++;
+      },
+      lineTo: () => {
+        callCounts.lineTo++;
+      },
+      arc: () => {
+        callCounts.arc++;
+      },
+      ellipse: () => {},
+      quadraticCurveTo: () => {
+        callCounts.quadraticCurveTo++;
+      },
+      bezierCurveTo: () => {},
+      stroke: () => {
+        callCounts.stroke++;
+      },
+      fill: () => {
+        callCounts.fill++;
+      },
+      fillRect: () => {},
+      strokeRect: () => {},
+      clearRect: () => {},
+      fillText: () => {},
+      setLineDash: () => {},
+      createLinearGradient: () => ({ addColorStop: () => {} }),
+      createRadialGradient: () => ({ addColorStop: () => {} }),
+    } as unknown as CanvasRenderingContext2D;
+
+    // Render angle beam across animated phases with Leg 1 + Leg 2 + defect scatter & returning echoes
+    for (const animationPhase of [0, 1.35, 2.8]) {
+      drawUltrasonicBeamCone2D({
+        ctx: spyCtx,
+        entryX: 80,
+        entryY: 60,
+        bounceX: 210,
+        bounceY: 185,
+        leg2EndX: 340,
+        leg2EndY: 60,
+        scalePxPerMm: 4.2,
+        coneMetrics: cone,
+        showWavefronts: true,
+        showNearField: true,
+        isHit: true,
+        animationPhase,
+        defectImpact: {
+          x: scatterMode === 'specular_planar' ? 275 : 210,
+          y: scatterMode === 'specular_planar' ? 122 : 180,
+          hit: true,
+          scatterMode,
+          leg: scatterMode === 'specular_planar' ? 2 : 1,
+        },
+      });
+    }
+
+    assert.ok(callCounts.quadraticCurveTo > 15, `${scatterMode} should draw curved wavefronts`);
+    assert.ok(callCounts.arc > 15, `${scatterMode} should draw pulse beads & scatter arcs`);
+    assert.ok(callCounts.stroke > 20 && callCounts.fill > 5);
+  }
+
+  // Straight 0° beam mode (no Leg 2) should also render cleanly
+  const straightSpy = {
+    save: () => {},
+    restore: () => {},
+    beginPath: () => {},
+    closePath: () => {},
+    moveTo: () => {},
+    lineTo: () => {},
+    arc: () => {},
+    ellipse: () => {},
+    quadraticCurveTo: () => {},
+    bezierCurveTo: () => {},
+    stroke: () => {},
+    fill: () => {},
+    setLineDash: () => {},
+    createLinearGradient: () => ({ addColorStop: () => {} }),
+    createRadialGradient: () => ({ addColorStop: () => {} }),
+  } as unknown as CanvasRenderingContext2D;
+
+  drawUltrasonicBeamCone2D({
+    ctx: straightSpy,
+    entryX: 160,
+    entryY: 50,
+    bounceX: 160,
+    bounceY: 210,
+    scalePxPerMm: 4.0,
+    coneMetrics: cone,
+    showWavefronts: true,
+    showNearField: true,
+    isHit: false,
+    animationPhase: 0.75,
+  });
+
+  // Verify UtThreeScene renders cleanly across UT block types with defect detection & X-Ray weld active
+  for (const blockType of ['angle_weld', 'iiw_v1', 'step_wedge'] as const) {
+    const threeUi = render(
+      <UtThreeScene
+        language="ar"
+        blockType={blockType}
+        probePositionMm={35}
+        probeAngleDeg={60}
+        plateThicknessMm={20}
+        transducerFreqMHz={4.0}
+        crystalDiameterMm={12}
+        defectDetected={true}
+        xraySpecimenMode={true}
+      />
+    );
+    assert.ok(threeUi.getByTestId('three-scene-live-telemetry'));
+    cleanup();
+  }
+});
 

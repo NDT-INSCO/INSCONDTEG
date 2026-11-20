@@ -54,9 +54,10 @@ npm run build && npm run site:check
 
 اضبط `ADMIN_PASSWORD` على الخادم وحده؛ لا توجد كلمة مرور افتراضية. GitHub Pages لا يشغّل
 الخادم، لكنه يربط المفتاح ببوابة على عنوان HTTPS مستقل عبر `VITE_ADMIN_PORTAL_URL`.
-يمكن نشر الإدارة على خادم Node بقرص دائم، أو على Vercel مع قاعدة libSQL مشتركة.
-انظر [`documentation/ADMIN_AR.md`](documentation/ADMIN_AR.md) لإعداد الدخول والنشر
-والتخزين الدائم.
+لتشغيل الإدارة بدون اشتراك مدفوع، يدعم المشروع **Netlify Free + Turso Free (libSQL)**
+ضمن حدود الباقتين. ويمكن أيضًا استخدام خادم Node بقرص دائم أو Vercel بخطة مناسبة.
+انظر [دليل إعداد البوابة والنشر بالعربي](documentation/ADMIN_AR.md) للروابط والمتغيرات
+واختبار الدخول قبل ربط المفتاح بالموقع العام.
 
 ## المستشار الذكي
 

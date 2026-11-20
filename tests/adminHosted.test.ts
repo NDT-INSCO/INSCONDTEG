@@ -2,10 +2,10 @@ import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
 import { createServer, request, type RequestListener } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { DatabaseSync, type SQLInputValue } from 'node:sqlite';
 import { test, type TestContext } from 'node:test';
 import { hostedDatabaseConfig } from '../server/admin/database';
 import { createVercelHandler } from '../server/admin/vercel';
+import { fakeDatabase } from './helpers/hostedAdmin';
 import { authenticator } from './helpers/passkeyAuthenticator';
 
 const ORIGIN = 'https://admin.insco-hosted.test';
@@ -16,49 +16,6 @@ const PASSWORD = 'Example_Hosted_52!';
 const TOKEN = 'isolated-test-rw-token';
 const env = () => ({ ADMIN_ORIGIN: ORIGIN, ADMIN_PASSWORD: PASSWORD, ADMIN_STATE_KEY: randomBytes(32).toString('hex'),
   TURSO_DATABASE_URL: DATABASE, TURSO_AUTH_TOKEN: TOKEN, PUBLIC_SITE_ORIGIN: PAGES });
-
-type WireValue = { type: string; value?: string | number; base64?: string };
-function decode(v: WireValue): SQLInputValue {
-  if (v.type === 'null') return null;
-  if (v.type === 'blob') return Buffer.from(v.base64!, 'base64');
-  return v.type === 'text' ? String(v.value) : Number(v.value);
-}
-function encode(v: unknown): WireValue {
-  if (v === null) return { type: 'null' };
-  if (v instanceof Uint8Array) return { type: 'blob', base64: Buffer.from(v).toString('base64') };
-  if (typeof v === 'number') return Number.isInteger(v) ? { type: 'integer', value: String(v) } : { type: 'float', value: v };
-  return { type: 'text', value: String(v) };
-}
-
-/** Exercise the real libSQL HTTP client offline against a small SQLite-backed Hrana fixture. */
-function fakeDatabase(t: TestContext) {
-  const db = new DatabaseSync(':memory:');
-  let online = true;
-  let schemaLoads = 0;
-  t.mock.method(globalThis, 'fetch', async (req: Request) => {
-    assert.equal(req.url, `${DATABASE}/v2/pipeline`);
-    assert.equal(req.headers.get('authorization'), `Bearer ${TOKEN}`);
-    if (!online) return new Response(null, { status: 503 });
-    const packet = await req.json() as { requests: { type: string; sql?: string; stmt?: { sql: string; args: WireValue[] } }[] };
-    const results = packet.requests.map(({ type, sql, stmt }) => {
-      if (type === 'sequence') { schemaLoads += 1; db.exec(sql!); }
-      if (type !== 'execute') {
-        assert.ok(['sequence', 'close'].includes(type));
-        return { type: 'ok', response: { type } };
-      }
-      assert.ok(stmt);
-      const rows = db.prepare(stmt.sql).all(...stmt.args.map(decode));
-      const cols = Object.keys(rows[0] ?? {});
-      return { type: 'ok', response: { type, result: {
-        cols: cols.map(name => ({ name, decltype: null })), rows: rows.map(row => cols.map(key => encode(row[key]))),
-        affected_row_count: Number(db.prepare('SELECT changes() AS n').get()?.n), last_insert_rowid: null,
-      } } };
-    });
-    return Response.json({ baton: null, base_url: null, results });
-  });
-  t.after(() => db.close());
-  return { db, outage: () => { online = false; }, restore: () => { online = true; }, schemaLoads: () => schemaLoads };
-}
 
 async function worker(t: TestContext, config: NodeJS.ProcessEnv) {
   const handler = createVercelHandler(config) as RequestListener;
@@ -118,7 +75,7 @@ test('hosted configuration rejects insecure or incomplete remote storage, with n
 });
 
 test('hosted initialization can recover after a storage outage; other deploy hostnames stay blocked', async t => {
-  const storage = fakeDatabase(t);
+  const storage = fakeDatabase(t, DATABASE, TOKEN);
   const call = await worker(t, env());
   const alias = await call(`${api}/dashboard`, { host: 'old.insco-hosted.test' });
   assert.equal(alias.status, 403);
@@ -133,7 +90,7 @@ test('hosted initialization can recover after a storage outage; other deploy hos
 });
 
 test('password sessions, logout, rotations, and rate limits span independent hosted workers', async t => {
-  const storage = fakeDatabase(t);
+  const storage = fakeDatabase(t, DATABASE, TOKEN);
   const config = env();
   const a = await worker(t, config);
   const b = await worker(t, config);
@@ -156,7 +113,7 @@ test('password sessions, logout, rotations, and rate limits span independent hos
 });
 
 test('passkey ceremonies and revocation work across hosted workers; parallel proof succeeds only once', async t => {
-  fakeDatabase(t);
+  fakeDatabase(t, DATABASE, TOKEN);
   const config = env();
   const a = await worker(t, config);
   const b = await worker(t, config);
@@ -182,7 +139,7 @@ test('passkey ceremonies and revocation work across hosted workers; parallel pro
 });
 
 test('hosted RFQs and public announcements use the shared store without granting the Pages origin admin access', async t => {
-  fakeDatabase(t);
+  fakeDatabase(t, DATABASE, TOKEN);
   const config = env();
   const a = await worker(t, config);
   const b = await worker(t, config);

@@ -6,7 +6,17 @@ import { createServer } from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, Type } from '@google/genai';
+import {
+  AGENT_ENDPOINTS,
+  AGENT_MODELS,
+  normaliseCommunityAssistRequest,
+  normaliseSiteManagerRequest,
+  normaliseUserCopilotRequest,
+  type CommunityAssistResponse,
+  type SiteManagerResponse,
+  type UserCopilotResponse,
+} from './src/ai/agentsContract';
 import {
   encodeSse,
   failureMessage,
@@ -22,7 +32,7 @@ import {
 } from './src/ai/contract';
 import type { CorpusDocument, CorpusStats } from './src/ai/corpus';
 import type { SearchHit } from './src/ai/search';
-import { streamTutorText, TutorAiClient, TutorTransportMode } from './src/ai/transport';
+import { isModelMissing, streamTutorText, TutorAiClient, TutorTransportMode } from './src/ai/transport';
 import { createOperations } from './server/admin/operations';
 
 dotenv.config();
@@ -80,7 +90,10 @@ let clientInitError = '';
 const ai: GoogleGenAI | null = API_KEY
   ? (() => {
       try {
-        return new GoogleGenAI({ apiKey: API_KEY });
+        return new GoogleGenAI({
+          apiKey: API_KEY,
+          httpOptions: { headers: { 'User-Agent': 'aistudio-build' } },
+        });
       } catch (error) {
         clientInitError = error instanceof Error ? error.message : String(error);
         console.error('[ai] client init failed:', clientInitError);
@@ -440,6 +453,368 @@ app.post(TUTOR_ENDPOINTS.tutor, (req, res) => {
 // cached bundle built before the contract fix keeps working.
 app.post(TUTOR_ENDPOINTS.legacyTutor, (req, res) => {
   void handleTutor(req, res, false);
+});
+
+/* ------------------------------------------------------------------ */
+/* Dual AI Agents & INSCO Community Copilot                            */
+/* ------------------------------------------------------------------ */
+
+async function generateStructuredAgentJson<T>(params: {
+  prompt: string;
+  systemInstruction: string;
+  responseSchema: Record<string, unknown>;
+  signal: AbortSignal;
+}): Promise<{ data: T; model: string }> {
+  if (!ai) throw new Error('AI client is not configured');
+  const candidates = [AGENT_MODELS.primary, AGENT_MODELS.fallback];
+  let lastError: unknown = null;
+
+  for (const model of candidates) {
+    try {
+      const response = await ai.models.generateContent({
+        model,
+        contents: params.prompt,
+        config: {
+          systemInstruction: params.systemInstruction,
+          responseMimeType: 'application/json',
+          responseSchema: params.responseSchema as never,
+          temperature: 0.35,
+          maxOutputTokens: 1800,
+          abortSignal: params.signal,
+        },
+      });
+      const rawText = (response.text || '').trim();
+      if (!rawText) {
+        throw new Error('Model returned empty structured payload');
+      }
+      const parsed = JSON.parse(rawText) as T;
+      return { data: parsed, model };
+    } catch (err) {
+      lastError = err;
+      if (params.signal.aborted) throw err;
+      if (isModelMissing(err)) {
+        console.warn(`[ai] agent model ${model} unavailable, trying fallback`);
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error('All agent models failed');
+}
+
+function guardAgentPreconditions(req: Request, res: Response, lang: 'ar' | 'en'): boolean {
+  const limit = takeToken(req.ip || req.socket.remoteAddress || 'unknown');
+  if (!limit.allowed) {
+    const failure = limit.failure;
+    if (failure.code === 'rate_limited' && failure.retryAfterSeconds) {
+      res.setHeader('Retry-After', String(failure.retryAfterSeconds));
+    }
+    res.status(STATUS_CODE[failure.code]).json({
+      error: { ...failure, message: failureMessage(failure.code, lang) },
+    });
+    return false;
+  }
+
+  if (!ai) {
+    res.status(STATUS_CODE.not_configured).json({
+      error: {
+        code: 'not_configured',
+        message: failureMessage('not_configured', lang),
+        detail: 'Set GEMINI_API_KEY on the server hosting /api/ai/agent/*.',
+      },
+    });
+    return false;
+  }
+  return true;
+}
+
+app.post(AGENT_ENDPOINTS.userCopilot, async (req: Request, res: Response) => {
+  const parsed = normaliseUserCopilotRequest(req.body);
+  if (!parsed.ok) {
+    res.status(400).json({ error: { code: 'invalid_request', message: parsed.error } });
+    return;
+  }
+  const input = parsed.value;
+  if (!guardAgentPreconditions(req, res, input.language)) return;
+
+  const started = Date.now();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  res.on('close', () => {
+    if (!res.writableEnded) controller.abort();
+  });
+
+  const systemInstruction =
+    input.language === 'ar'
+      ? [
+          'أنت "المساعد الذكي الشامل لمستخدمي منصة INSCO" — خبير هندسي في الفحص غير الإتلافي (NDT: RT, UT, PAUT, MT, PT, VT) والمعالجة الحرارية PWHT، ومستشار تفاعلي داخل منصة INSCO (بوابة الشركة، بوابة العملاء والملفات المكوّدة، مجتمع INSCO المهني الهجين بين LinkedIn وFacebook، والأكاديمية ومعامل الواقع المعزز AR).',
+          'مهامك:',
+          '1) مساعدة المستخدم في أي طلب: اختيار طريقة الفحص أو تقنية التصوير المناسبة، صياغة منشورات احترافية في مجتمع INSCO، تلخيص المناقشات، تجهيز طلبات عرض الأسعار والاختبارات RFQ، وشرح محاكيات الأكاديمية والواقع المعزز.',
+          '2) أعد إجابة عملية ومختصرة ومنظمة بالعربية، واقترح أزرار إجراءات سريعة مفيدة للتنقل أو تطبيق المسودة مباشرة.',
+          '3) عندما يطلب المستخدم كتابة منشور أو صياغته (أو كان الوضع draft_post / improve_post)، عبّئ الحقل draftPost بعنوان ومحتوى هندسي جاهز للنشر ووسوم مناسبة.',
+          '4) أجب بصيغة JSON مطابقة للمخطط فقط بدون نص خارج JSON.',
+        ].join('\n')
+      : [
+          'You are the "INSCO Universal User Copilot" — a senior NDT (RT, UT, PAUT, MT, PT, VT) & PWHT engineering advisor and interactive platform concierge across the INSCO Corporate Portal, Client & Dossier Portal, INSCO Community (LinkedIn + Facebook hybrid), and Engineering Academy / AR Simulators.',
+          'Responsibilities:',
+          '1) Help users accomplish any task: choosing NDT methods or RT/UT techniques, drafting or polishing LinkedIn/Facebook community posts, summarizing discussions, structuring RFQs/test requests, and explaining simulator physics.',
+          '2) Keep replies concise, directly actionable, and structured, plus 1-3 concrete suggestedActions buttons.',
+          '3) When the user asks to draft or improve a post (or mode is draft_post / improve_post), populate draftPost completely.',
+          '4) Respond strictly as JSON matching the schema.',
+        ].join('\n');
+
+  const historyBlock = input.history
+    .map(m => `${m.role === 'assistant' ? 'Copilot' : 'User'}: ${m.content}`)
+    .join('\n');
+  const contextBlock = input.context ? JSON.stringify(input.context) : '{}';
+  const prompt = [
+    `Mode: ${input.mode}`,
+    `Active Platform Context JSON: ${contextBlock}`,
+    historyBlock ? `Recent Conversation:\n${historyBlock}` : '',
+    `User Request: ${input.message}`,
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+
+  try {
+    const { data, model } = await generateStructuredAgentJson<
+      Omit<UserCopilotResponse, 'model' | 'elapsedMs'>
+    >({
+      prompt,
+      systemInstruction,
+      signal: controller.signal,
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          reply: { type: Type.STRING },
+          suggestedActions: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                label: { type: Type.STRING },
+                actionType: {
+                  type: Type.STRING,
+                  enum: ['navigate', 'apply_post_draft', 'open_rfq', 'open_ar_lab', 'open_community'],
+                },
+                target: { type: Type.STRING },
+              },
+              required: ['label', 'actionType'],
+            },
+          },
+          draftPost: {
+            type: Type.OBJECT,
+            properties: {
+              postType: {
+                type: Type.STRING,
+                enum: ['technical_case', 'job_tender', 'discussion', 'equipment_review'],
+              },
+              ndtMethod: { type: Type.STRING },
+              title: { type: Type.STRING },
+              body: { type: Type.STRING },
+              tags: { type: Type.ARRAY, items: { type: Type.STRING } },
+            },
+            required: ['postType', 'ndtMethod', 'title', 'body', 'tags'],
+          },
+        },
+        required: ['reply', 'suggestedActions'],
+      },
+    });
+
+    res.json({
+      reply: data.reply,
+      suggestedActions: Array.isArray(data.suggestedActions) ? data.suggestedActions.slice(0, 4) : [],
+      ...(data.draftPost ? { draftPost: data.draftPost } : {}),
+      model,
+      elapsedMs: Date.now() - started,
+    } satisfies UserCopilotResponse);
+  } catch (error) {
+    const timedOut = controller.signal.aborted;
+    const code: TutorErrorCode = timedOut ? 'timeout' : 'upstream_error';
+    console.error('[ai] user-copilot failed:', error instanceof Error ? error.message : error);
+    res.status(STATUS_CODE[code]).json({
+      error: { code, message: failureMessage(code, input.language) },
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+});
+
+app.post(AGENT_ENDPOINTS.siteManager, async (req: Request, res: Response) => {
+  const parsed = normaliseSiteManagerRequest(req.body);
+  if (!parsed.ok) {
+    res.status(400).json({ error: { code: 'invalid_request', message: parsed.error } });
+    return;
+  }
+  const input = parsed.value;
+  if (!guardAgentPreconditions(req, res, input.language)) return;
+
+  const started = Date.now();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  res.on('close', () => {
+    if (!res.writableEnded) controller.abort();
+  });
+
+  const systemInstruction =
+    input.language === 'ar'
+      ? [
+          'أنت "وكيل إدارة الموقع والعمليات في منصة INSCO" — مدير عمليات رقمي احترافي يشرف على تشغيل المنصة بالكامل.',
+          'مسؤولياتك تشمل: تدقيق صحة المنصة، فرز أولويات طلبات الفحص والعملاء الجدد، تحليل تنبيهات الجيوفينس (تسجيل الحضور خارج النطاق الجغرافي للمشروع)، الإشراف على محتوى مجتمع INSCO ورصد أي منشورات تحتاج مراجعة أو توضيح، وصياغة إعلانات إدارية احترافية لنشرها وتثبيتها في المجتمع.',
+          'اعتمد بدقة على بيانات التليمترى المقدمة ولا تخترع أرقاماً غير موجودة فيها.',
+          'أجب بصيغة JSON مطابقة للمخطط فقط.',
+        ].join('\n')
+      : [
+          'You are the "INSCO Site Manager & Operations Director AI Agent" — the executive autonomous operator overseeing platform health, client request triage, field attendance geofencing alerts, and INSCO Community moderation & announcements.',
+          'Rely strictly on the telemetry snapshot provided; never fabricate counts or employee alerts.',
+          'Return strict JSON matching the schema.',
+        ].join('\n');
+
+  const prompt = [
+    `Operation Mode: ${input.mode}`,
+    `Telemetry Snapshot JSON:\n${JSON.stringify(input.telemetry)}`,
+    `Directive: ${input.instruction}`,
+  ].join('\n\n');
+
+  try {
+    const { data, model } = await generateStructuredAgentJson<
+      Omit<SiteManagerResponse, 'model' | 'elapsedMs'>
+    >({
+      prompt,
+      systemInstruction,
+      signal: controller.signal,
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          summary: { type: Type.STRING },
+          healthStatus: {
+            type: Type.STRING,
+            enum: ['OPTIMAL', 'ATTENTION_NEEDED', 'ACTION_REQUIRED'],
+          },
+          priorityActions: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                title: { type: Type.STRING },
+                detail: { type: Type.STRING },
+                severity: { type: Type.STRING, enum: ['high', 'medium', 'low'] },
+                actionType: {
+                  type: Type.STRING,
+                  enum: [
+                    'navigate',
+                    'publish_announcement',
+                    'flag_post',
+                    'open_requests',
+                    'open_timeclock',
+                    'open_community',
+                  ],
+                },
+                target: { type: Type.STRING },
+              },
+              required: ['title', 'detail', 'severity', 'actionType'],
+            },
+          },
+          flaggedPostIds: { type: Type.ARRAY, items: { type: Type.STRING } },
+          announcementDraft: {
+            type: Type.OBJECT,
+            properties: {
+              title: { type: Type.STRING },
+              body: { type: Type.STRING },
+              ndtMethod: { type: Type.STRING },
+            },
+            required: ['title', 'body', 'ndtMethod'],
+          },
+        },
+        required: ['summary', 'healthStatus', 'priorityActions', 'flaggedPostIds'],
+      },
+    });
+
+    res.json({
+      summary: data.summary,
+      healthStatus: data.healthStatus || 'OPTIMAL',
+      priorityActions: Array.isArray(data.priorityActions) ? data.priorityActions.slice(0, 6) : [],
+      flaggedPostIds: Array.isArray(data.flaggedPostIds) ? data.flaggedPostIds.slice(0, 10) : [],
+      ...(data.announcementDraft ? { announcementDraft: data.announcementDraft } : {}),
+      model,
+      elapsedMs: Date.now() - started,
+    } satisfies SiteManagerResponse);
+  } catch (error) {
+    const timedOut = controller.signal.aborted;
+    const code: TutorErrorCode = timedOut ? 'timeout' : 'upstream_error';
+    console.error('[ai] site-manager failed:', error instanceof Error ? error.message : error);
+    res.status(STATUS_CODE[code]).json({
+      error: { code, message: failureMessage(code, input.language) },
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+});
+
+app.post(AGENT_ENDPOINTS.communityAssist, async (req: Request, res: Response) => {
+  const parsed = normaliseCommunityAssistRequest(req.body);
+  if (!parsed.ok) {
+    res.status(400).json({ error: { code: 'invalid_request', message: parsed.error } });
+    return;
+  }
+  const input = parsed.value;
+  if (!guardAgentPreconditions(req, res, input.language)) return;
+
+  const started = Date.now();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  res.on('close', () => {
+    if (!res.writableEnded) controller.abort();
+  });
+
+  const systemInstruction =
+    input.language === 'ar'
+      ? 'أنت مساعد تحرير هندسي في مجتمع INSCO (مزيج LinkedIn وFacebook لمهندسي NDT وPWHT). حسّن المنشورات التقنية أو لخّصها أو اقترح ردوداً هندسية دقيقة متوافقة مع الأكواد الدولية بصيغة JSON فقط.'
+      : 'You are an engineering editorial AI inside INSCO Community (LinkedIn + Facebook hybrid for NDT & PWHT engineers). Draft, polish, summarize, or code-check posts strictly in JSON.';
+
+  const prompt = JSON.stringify({
+    action: input.action,
+    language: input.language,
+    ndtMethod: input.ndtMethod,
+    title: input.title || '',
+    body: input.body,
+  });
+
+  try {
+    const { data, model } = await generateStructuredAgentJson<
+      Omit<CommunityAssistResponse, 'model' | 'elapsedMs'>
+    >({
+      prompt,
+      systemInstruction,
+      signal: controller.signal,
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          reply: { type: Type.STRING },
+          title: { type: Type.STRING },
+          body: { type: Type.STRING },
+          tags: { type: Type.ARRAY, items: { type: Type.STRING } },
+          technicalSnippet: { type: Type.STRING },
+        },
+        required: ['reply'],
+      },
+    });
+
+    res.json({
+      ...data,
+      model,
+      elapsedMs: Date.now() - started,
+    } satisfies CommunityAssistResponse);
+  } catch (error) {
+    const timedOut = controller.signal.aborted;
+    const code: TutorErrorCode = timedOut ? 'timeout' : 'upstream_error';
+    console.error('[ai] community-assist failed:', error instanceof Error ? error.message : error);
+    res.status(STATUS_CODE[code]).json({
+      error: { code, message: failureMessage(code, input.language) },
+    });
+  } finally {
+    clearTimeout(timer);
+  }
 });
 
 /* ------------------------------------------------------------------ */

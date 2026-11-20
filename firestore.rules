@@ -297,7 +297,9 @@ service cloud.firestore {
         && data.keys().hasOnly([
           'uid', 'displayName', 'organizationName', 'sector', 'city',
           'companyCode', 'specialtyTrades', 'bio', 'companiesManaged',
-          'isPublished', 'createdAt', 'updatedAt'
+          'isPublished', 'headline', 'certifications', 'yearsExperience',
+          'availabilityStatus', 'followersCount', 'endorsementsCount',
+          'createdAt', 'updatedAt'
         ])
         && isValidId(data.uid) && data.uid == userId
         && data.displayName is string && data.displayName.size() >= 2 && data.displayName.size() <= 120
@@ -307,8 +309,119 @@ service cloud.firestore {
         && (!('companyCode' in data) || (data.companyCode is string && data.companyCode.size() <= 32))
         && (!('specialtyTrades' in data) || (data.specialtyTrades is string && data.specialtyTrades.size() <= 300))
         && (!('bio' in data) || (data.bio is string && data.bio.size() <= 600))
+        && (!('headline' in data) || (data.headline is string && data.headline.size() <= 160))
+        && (!('certifications' in data) || (data.certifications is string && data.certifications.size() <= 240))
+        && (!('yearsExperience' in data) || (data.yearsExperience is number && data.yearsExperience >= 0 && data.yearsExperience <= 70))
+        && (!('availabilityStatus' in data) || data.availabilityStatus in ['active_field', 'open_to_work', 'hiring', 'offering_services'])
+        && (!('followersCount' in data) || (data.followersCount is number && data.followersCount >= 0 && data.followersCount <= 1000000))
+        && (!('endorsementsCount' in data) || (data.endorsementsCount is number && data.endorsementsCount >= 0 && data.endorsementsCount <= 1000000))
         && data.companiesManaged is number && data.companiesManaged >= 0 && data.companiesManaged <= 10000
         && data.isPublished is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCommunityPost(data) {
+      return data.keys().hasAll([
+          'authorUid', 'authorName', 'authorOrg', 'postType', 'ndtMethod',
+          'title', 'body', 'likesCount', 'commentsCount', 'visibility',
+          'aiModerationStatus', 'isPinnedAnnouncement', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'authorUid', 'authorName', 'authorHeadline', 'authorOrg', 'authorCompanyCode',
+          'postType', 'ndtMethod', 'title', 'body', 'tags', 'technicalSnippet',
+          'aiSummary', 'likesCount', 'commentsCount', 'visibility',
+          'aiModerationStatus', 'isPinnedAnnouncement', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.authorUid)
+        && data.authorName is string && data.authorName.size() >= 2 && data.authorName.size() <= 120
+        && (!('authorHeadline' in data) || (data.authorHeadline is string && data.authorHeadline.size() <= 160))
+        && data.authorOrg is string && data.authorOrg.size() >= 2 && data.authorOrg.size() <= 160
+        && (!('authorCompanyCode' in data) || (data.authorCompanyCode is string && data.authorCompanyCode.size() <= 32))
+        && data.postType in ['technical_case', 'job_tender', 'discussion', 'equipment_review', 'announcement']
+        && data.ndtMethod in ['GENERAL', 'RT', 'UT', 'PAUT', 'MT', 'PT', 'VT', 'PWHT', 'AR']
+        && data.title is string && data.title.size() >= 3 && data.title.size() <= 180
+        && data.body is string && data.body.size() >= 5 && data.body.size() <= 3000
+        && (!('tags' in data) || (data.tags is list && data.tags.size() <= 6 && (data.tags.size() == 0 || (data.tags[0] is string && data.tags[0].size() <= 32))))
+        && (!('technicalSnippet' in data) || (data.technicalSnippet is string && data.technicalSnippet.size() <= 600))
+        && (!('aiSummary' in data) || (data.aiSummary is string && data.aiSummary.size() <= 800))
+        && data.likesCount is number && data.likesCount >= 0 && data.likesCount <= 1000000
+        && data.commentsCount is number && data.commentsCount >= 0 && data.commentsCount <= 1000000
+        && data.visibility in ['public', 'members_only']
+        && data.aiModerationStatus in ['approved', 'flagged']
+        && data.isPinnedAnnouncement is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCommunityComment(data, parentPostId) {
+      return data.keys().hasAll([
+          'postId', 'authorUid', 'authorName', 'body', 'isAiAssisted', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'postId', 'authorUid', 'authorName', 'authorHeadline',
+          'body', 'isAiAssisted', 'createdAt'
+        ])
+        && isValidId(data.postId) && data.postId == parentPostId
+        && isValidId(data.authorUid)
+        && data.authorName is string && data.authorName.size() >= 2 && data.authorName.size() <= 120
+        && (!('authorHeadline' in data) || (data.authorHeadline is string && data.authorHeadline.size() <= 160))
+        && data.body is string && data.body.size() >= 1 && data.body.size() <= 1500
+        && data.isAiAssisted is bool
+        && data.createdAt is timestamp;
+    }
+
+    function isValidCommunityReaction(data, parentPostId, userId) {
+      return data.keys().hasAll(['postId', 'uid', 'reactionType', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['postId', 'uid', 'reactionType', 'createdAt', 'updatedAt'])
+        && isValidId(data.postId) && data.postId == parentPostId
+        && isValidId(data.uid) && data.uid == userId
+        && data.reactionType in ['like', 'insightful', 'verified', 'celebrate']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCommunityConnection(data, connectionId) {
+      return data.keys().hasAll([
+          'fromUid', 'toUid', 'fromName', 'toName', 'status', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'fromUid', 'toUid', 'fromName', 'toName', 'status', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.fromUid)
+        && isValidId(data.toUid)
+        && data.fromUid != data.toUid
+        && connectionId == (data.fromUid + '_' + data.toUid)
+        && data.fromName is string && data.fromName.size() >= 2 && data.fromName.size() <= 120
+        && data.toName is string && data.toName.size() >= 2 && data.toName.size() <= 120
+        && data.status in ['connected', 'pending']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCommunityOpportunity(data) {
+      return data.keys().hasAll([
+          'authorUid', 'authorName', 'authorOrg', 'opportunityType',
+          'title', 'location', 'methods', 'requirements',
+          'status', 'visibility', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'authorUid', 'authorName', 'authorOrg', 'companyCode',
+          'opportunityType', 'title', 'location', 'methods',
+          'requirements', 'status', 'visibility', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.authorUid)
+        && data.authorName is string && data.authorName.size() >= 2 && data.authorName.size() <= 120
+        && data.authorOrg is string && data.authorOrg.size() >= 2 && data.authorOrg.size() <= 160
+        && (!('companyCode' in data) || (data.companyCode is string && data.companyCode.size() <= 32))
+        && data.opportunityType in ['job', 'tender', 'equipment']
+        && data.title is string && data.title.size() >= 3 && data.title.size() <= 180
+        && data.location is string && data.location.size() >= 2 && data.location.size() <= 140
+        && data.methods is list && data.methods.size() >= 1 && data.methods.size() <= 8
+        && data.methods[0] is string && data.methods[0].size() <= 32
+        && data.requirements is string && data.requirements.size() >= 5 && data.requirements.size() <= 1500
+        && data.status in ['open', 'closed']
+        && data.visibility in ['public']
         && data.createdAt is timestamp
         && data.updatedAt is timestamp;
     }
@@ -409,8 +522,8 @@ service cloud.firestore {
     // Opt-In Public Community Business Directory (Zero PII)
     // -------------------------------------------------------------------------
     match /community_workspaces/{userId} {
-      allow get: if isValidId(userId) && isVerifiedUser() && (existing().isPublished == true || isOwner(userId) || isAdmin());
-      allow list: if isAdminEmail() || (isVerifiedUser() && existing().isPublished == true);
+      allow get: if isValidId(userId) && (existing().isPublished == true || isOwner(userId) || isAdmin());
+      allow list: if existing().isPublished == true || isAdminEmail() || (isVerifiedUser() && existing().uid == request.auth.uid);
 
       allow create: if isVerifiedUser()
         && isValidId(userId)
@@ -421,13 +534,175 @@ service cloud.firestore {
 
       allow update: if isVerifiedUser()
         && isValidId(userId)
-        && isOwner(userId)
-        && isValidCommunityWorkspace(incoming(), userId)
-        && incoming().uid == existing().uid
-        && incoming().createdAt == existing().createdAt
-        && incoming().updatedAt == request.time;
+        && (
+          (
+            isOwner(userId)
+            && isValidCommunityWorkspace(incoming(), userId)
+            && incoming().uid == existing().uid
+            && incoming().createdAt == existing().createdAt
+            && incoming().updatedAt == request.time
+          )
+          || (
+            isValidCommunityWorkspace(incoming(), userId)
+            && incoming().uid == existing().uid
+            && incoming().createdAt == existing().createdAt
+            && incoming().updatedAt == request.time
+            && incoming().diff(existing()).affectedKeys().hasOnly(['endorsementsCount', 'updatedAt'])
+          )
+        );
 
       allow delete: if isValidId(userId) && (isOwner(userId) || isAdmin());
+    }
+
+    // -------------------------------------------------------------------------
+    // INSCO Community Feed Posts, Comments & Reactions (Zero PII)
+    // -------------------------------------------------------------------------
+    match /community_posts/{postId} {
+      allow get: if isValidId(postId) && (
+        existing().visibility == 'public'
+        || isAdmin()
+        || (isVerifiedUser() && existing().authorUid == request.auth.uid)
+      );
+      allow list: if existing().visibility == 'public'
+        || isAdminEmail()
+        || (isVerifiedUser() && existing().authorUid == request.auth.uid);
+
+      allow create: if isVerifiedUser()
+        && isValidId(postId)
+        && isValidCommunityPost(incoming())
+        && incoming().authorUid == request.auth.uid
+        && incoming().likesCount == 0
+        && incoming().commentsCount == 0
+        && incoming().aiModerationStatus == 'approved'
+        && (isAdmin() || incoming().isPinnedAnnouncement == false)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isVerifiedUser()
+        && isValidId(postId)
+        && isValidCommunityPost(incoming())
+        && incoming().authorUid == existing().authorUid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin()
+          || (
+            existing().authorUid == request.auth.uid
+            && incoming().isPinnedAnnouncement == existing().isPinnedAnnouncement
+            && incoming().aiModerationStatus == existing().aiModerationStatus
+            && incoming().diff(existing()).affectedKeys().hasOnly([
+              'authorName', 'authorHeadline', 'authorOrg', 'authorCompanyCode',
+              'postType', 'ndtMethod', 'title', 'body', 'tags',
+              'technicalSnippet', 'aiSummary', 'visibility', 'updatedAt'
+            ])
+          )
+          || (
+            incoming().diff(existing()).affectedKeys().hasOnly(['likesCount', 'updatedAt'])
+            && (incoming().likesCount == existing().likesCount + 1 || incoming().likesCount == existing().likesCount - 1)
+          )
+          || (
+            incoming().diff(existing()).affectedKeys().hasOnly(['commentsCount', 'updatedAt'])
+            && incoming().commentsCount == existing().commentsCount + 1
+          )
+        );
+
+      allow delete: if isValidId(postId)
+        && (isAdmin() || (isVerifiedUser() && existing().authorUid == request.auth.uid));
+
+      match /comments/{commentId} {
+        allow get: if isValidId(postId) && isValidId(commentId);
+        allow list: if isValidId(postId);
+
+        allow create: if isVerifiedUser()
+          && isValidId(postId)
+          && isValidId(commentId)
+          && exists(/databases/$(database)/documents/community_posts/$(postId))
+          && isValidCommunityComment(incoming(), postId)
+          && incoming().authorUid == request.auth.uid
+          && incoming().createdAt == request.time;
+
+        allow update: if false;
+        allow delete: if isValidId(postId) && isValidId(commentId)
+          && (isAdmin() || (isVerifiedUser() && existing().authorUid == request.auth.uid));
+      }
+
+      match /reactions/{userId} {
+        allow get: if isValidId(postId) && isValidId(userId);
+        allow list: if isValidId(postId);
+
+        allow create, update: if isVerifiedUser()
+          && isValidId(postId)
+          && isValidId(userId)
+          && isOwner(userId)
+          && exists(/databases/$(database)/documents/community_posts/$(postId))
+          && isValidCommunityReaction(incoming(), postId, userId)
+          && incoming().updatedAt == request.time;
+
+        allow delete: if isVerifiedUser()
+          && isValidId(postId)
+          && isValidId(userId)
+          && (isOwner(userId) || isAdmin());
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // LinkedIn-Style Member Network Connections
+    // -------------------------------------------------------------------------
+    match /community_connections/{connectionId} {
+      allow get: if isVerifiedUser()
+        && isValidId(connectionId)
+        && (isAdmin() || existing().fromUid == request.auth.uid || existing().toUid == request.auth.uid);
+      allow list: if isAdminEmail()
+        || (isVerifiedUser() && (existing().fromUid == request.auth.uid || existing().toUid == request.auth.uid));
+
+      allow create: if isVerifiedUser()
+        && isValidId(connectionId)
+        && isValidCommunityConnection(incoming(), connectionId)
+        && incoming().fromUid == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isVerifiedUser()
+        && isValidId(connectionId)
+        && isValidCommunityConnection(incoming(), connectionId)
+        && incoming().fromUid == existing().fromUid
+        && incoming().toUid == existing().toUid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (isAdmin() || existing().fromUid == request.auth.uid || existing().toUid == request.auth.uid);
+
+      allow delete: if isVerifiedUser()
+        && isValidId(connectionId)
+        && (isAdmin() || existing().fromUid == request.auth.uid || existing().toUid == request.auth.uid);
+    }
+
+    // -------------------------------------------------------------------------
+    // LinkedIn-Style NDT Jobs, Tenders & Subcontracting Board (Zero PII)
+    // -------------------------------------------------------------------------
+    match /community_opportunities/{opportunityId} {
+      allow get: if isValidId(opportunityId)
+        && (existing().visibility == 'public' || isAdmin() || (isVerifiedUser() && existing().authorUid == request.auth.uid));
+      allow list: if existing().visibility == 'public'
+        || isAdminEmail()
+        || (isVerifiedUser() && existing().authorUid == request.auth.uid);
+
+      allow create: if isVerifiedUser()
+        && isValidId(opportunityId)
+        && isValidCommunityOpportunity(incoming())
+        && incoming().authorUid == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isVerifiedUser()
+        && isValidId(opportunityId)
+        && isValidCommunityOpportunity(incoming())
+        && incoming().authorUid == existing().authorUid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (isAdmin() || existing().authorUid == request.auth.uid);
+
+      allow delete: if isValidId(opportunityId)
+        && (isAdmin() || (isVerifiedUser() && existing().authorUid == request.auth.uid));
     }
 
     // -------------------------------------------------------------------------

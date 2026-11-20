@@ -8,6 +8,7 @@ import { MobileNavDrawer } from './components/MobileNavDrawer';
 import { GlobalHeaderSearch } from './components/GlobalHeaderSearch';
 import { GlobalThemeSwitcher } from './components/GlobalThemeSwitcher';
 import { GlobalAppConfigControl } from './components/GlobalAppConfigControl';
+import { InscoDualAiDock } from './components/ai/InscoDualAiDock';
 import { Language } from './types';
 import { AcademyTab } from './academyTabs';
 import { ADMIN_HASH } from './admin/contract';
@@ -410,7 +411,7 @@ export const App: React.FC = () => {
           { id: 'requests', ar: 'طلبات العملاء', en: 'Requests' },
           { id: 'companies', ar: 'أرشيف الشركات والملفات', en: 'Companies & Dossiers' },
           { id: 'timeclock', ar: 'الحضور والانصراف', en: 'Time-Clock' },
-          { id: 'community', ar: 'مجتمع الأعمال', en: 'Community' },
+          { id: 'community', ar: 'مجتمع INSCO', en: 'INSCO Community' },
           { id: 'register', ar: 'التسجيل وربط الكود', en: 'Registration' },
         ] as { id: ClientSectionId; ar: string; en: string }[]
       ).map(item => ({
@@ -553,6 +554,7 @@ export const App: React.FC = () => {
           portal={portal}
           trail={trail}
           onSwitchPortal={openPortal}
+          onOpenCommunity={() => openClient('community')}
         />
 
         <header
@@ -907,6 +909,23 @@ export const App: React.FC = () => {
           </div>
         </footer>
       )}
+      {/* Dual Professional AI Agents Dock (User Copilot + Site Manager Director) */}
+      <InscoDualAiDock
+        language={language}
+        portal={portal}
+        section={
+          route.portal === 'client'
+            ? route.section
+            : route.portal === 'academy' && route.page === 'section'
+              ? route.section
+              : route.portal === 'company'
+                ? route.page
+                : undefined
+        }
+        onOpenCompany={sectionId => openCompany(sectionId)}
+        onOpenClient={sec => openClient(sec)}
+        onOpenAcademy={tab => openAcademy(tab)}
+      />
     </div>
   );
 };

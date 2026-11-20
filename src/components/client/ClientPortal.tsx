@@ -21,6 +21,9 @@ import type {
   AttendanceLog,
   ClientAccount,
   ClientRequest,
+  CommunityConnection,
+  CommunityOpportunity,
+  CommunityPost,
   CommunityWorkspaceProfile,
   CompanyEmployee,
   CompanyInspectionReport,
@@ -39,6 +42,8 @@ import {
   signOutClientPortal,
   subscribeAllClientAccounts,
   subscribeClientRequests,
+  subscribeCommunityOpportunities,
+  subscribeCommunityPosts,
   subscribeCommunityWorkspaces,
   subscribeCompanies,
   subscribeCompanyAttendance,
@@ -46,8 +51,11 @@ import {
   subscribeCompanyReports,
   subscribeMyClientAccount,
   subscribeMyCommunityWorkspace,
+  subscribeMyConnections,
   updateEmployeeLiveLocation,
 } from '../../client/firestoreClientService';
+import { getLocalWorkforceSnapshot } from '../../client/workforceLocalStore';
+import { publishSiteTelemetrySnapshot } from '../../ai/telemetryStore';
 import { ClientErrorBoundary } from './ClientErrorBoundary';
 import { ClientAuthOnboardingCard } from './ClientAuthOnboardingCard';
 import { ClientCompaniesSection } from './ClientCompaniesSection';
@@ -93,6 +101,10 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
     null
   );
   const [communityDirectory, setCommunityDirectory] = useState<CommunityWorkspaceProfile[]>([]);
+  const [communityPosts, setCommunityPosts] = useState<CommunityPost[]>([]);
+  const [communityOpportunities, setCommunityOpportunities] = useState<CommunityOpportunity[]>([]);
+  const [myConnections, setMyConnections] = useState<CommunityConnection[]>([]);
+  const [guestAuthOpen, setGuestAuthOpen] = useState(false);
   const [updatingLocation, setUpdatingLocation] = useState(false);
   const [reportsLoading, setReportsLoading] = useState(false);
 
@@ -110,9 +122,32 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
     const unsub = observeClientPortalAuth(current => {
       setUser(current);
       setAuthReady(true);
+      if (current) setGuestAuthOpen(false);
     });
     return unsub;
   }, []);
+
+  // Public + Authenticated INSCO Community streams
+  useEffect(() => {
+    if (!firebaseReady) {
+      setCommunityDirectory([]);
+      setCommunityPosts([]);
+      setCommunityOpportunities([]);
+      return;
+    }
+    const unsubDirectory = subscribeCommunityWorkspaces(
+      isAdmin,
+      setCommunityDirectory,
+      () => {}
+    );
+    const unsubPosts = subscribeCommunityPosts(isAdmin, setCommunityPosts, () => {});
+    const unsubOpps = subscribeCommunityOpportunities(setCommunityOpportunities, () => {});
+    return () => {
+      unsubDirectory();
+      unsubPosts();
+      unsubOpps();
+    };
+  }, [firebaseReady, isAdmin]);
 
   useEffect(() => {
     if (!authReady || !user || !isVerifiedUser || !firebaseReady) {
@@ -121,7 +156,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
       setRequests([]);
       setCompanies([]);
       setMyCommunityProfile(null);
-      setCommunityDirectory([]);
+      setMyConnections([]);
       return;
     }
 
@@ -132,11 +167,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
       setMyCommunityProfile,
       setRuntimeError
     );
-    const unsubDirectory = subscribeCommunityWorkspaces(
-      isAdmin,
-      setCommunityDirectory,
-      setRuntimeError
-    );
+    const unsubConnections = subscribeMyConnections(user.uid, setMyConnections, () => {});
     const unsubRequests = subscribeClientRequests(
       user.uid,
       isAdmin,
@@ -162,12 +193,55 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
     return () => {
       unsubAccount();
       unsubMyCommunity();
-      unsubDirectory();
+      unsubConnections();
       unsubRequests();
       unsubCompanies();
       unsubAllAccounts();
     };
   }, [authReady, user, isVerifiedUser, isAdmin, firebaseReady]);
+
+  // Publish live operational telemetry snapshot for INSCO Site Manager AI Agent
+  useEffect(() => {
+    const localLogs = getLocalWorkforceSnapshot().logs;
+    const sourceAttendance = activeCompanyAttendance.length > 0 ? activeCompanyAttendance : localLogs;
+    const outsideAlerts = sourceAttendance.filter(l => l.geofenceStatus === 'outside_geofence');
+    publishSiteTelemetrySnapshot({
+      totalRequests: requests.length,
+      newRequests: requests.filter(r => r.status === 'new').length,
+      urgentRequests: requests.filter(r => r.urgency !== 'standard').length,
+      totalCompanies: companies.length,
+      activeTestingCompanies: companies.filter(c => c.hasActiveTestingDossier).length,
+      pendingAccounts: allAccounts.filter(a => a.approvalStatus === 'pending').length,
+      geofenceAlertCount: outsideAlerts.length,
+      recentGeofenceAlerts: outsideAlerts.slice(0, 6).map(a => ({
+        employeeName: a.employeeName,
+        companyCode: a.companyCode,
+        distanceMeters: a.distanceFromSiteMeters,
+        radiusMeters: a.geofenceRadiusMeters,
+        timestampIso: a.timestampIso,
+      })),
+      communityPostsCount: communityPosts.length,
+      communityMembersCount: communityDirectory.length,
+      opportunitiesCount: communityOpportunities.length,
+      recentPosts: communityPosts.slice(0, 8).map(p => ({
+        id: p.id,
+        title: p.title,
+        ndtMethod: p.ndtMethod,
+        postType: p.postType,
+        authorOrg: p.authorOrg,
+        excerpt: p.body.slice(0, 220),
+        aiModerationStatus: p.aiModerationStatus,
+      })),
+    });
+  }, [
+    requests,
+    companies,
+    allAccounts,
+    activeCompanyAttendance,
+    communityPosts,
+    communityDirectory,
+    communityOpportunities,
+  ]);
 
   // Auto-commit pending Email registration draft once email_verified becomes true
   useEffect(() => {
@@ -349,14 +423,43 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
   return (
     <ClientErrorBoundary language={language}>
       <div data-testid="client-portal-root" className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-        {!user ? (
-          /* Unauthenticated Multi-Provider Sign-In & Complete Registration View */
-          <ClientAuthOnboardingCard
+        {!user && section === 'community' && !guestAuthOpen ? (
+          <CommunityWorkspacesHub
             language={language}
-            firebaseReady={firebaseReady}
-            authReady={authReady}
-            onOpenCompanyPortal={onOpenCompanyPortal}
+            user={null}
+            account={null}
+            myProfile={null}
+            directoryProfiles={communityDirectory}
+            companies={[]}
+            posts={communityPosts}
+            opportunities={communityOpportunities}
+            connections={[]}
+            isAdmin={false}
+            onRequireSignIn={() => setGuestAuthOpen(true)}
+            onOpenCompanies={() => setGuestAuthOpen(true)}
+            onOpenTimeClock={() => setGuestAuthOpen(true)}
           />
+        ) : !user ? (
+          /* Unauthenticated Multi-Provider Sign-In & Complete Registration View */
+          <div className="space-y-4">
+            {guestAuthOpen && section === 'community' && (
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setGuestAuthOpen(false)}
+                  className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-cyan-400 cursor-pointer"
+                >
+                  {isAr ? 'العودة إلى مجتمع INSCO ←' : '← Back to INSCO Community'}
+                </button>
+              </div>
+            )}
+            <ClientAuthOnboardingCard
+              language={language}
+              firebaseReady={firebaseReady}
+              authReady={authReady}
+              onOpenCompanyPortal={onOpenCompanyPortal}
+            />
+          </div>
         ) : !isVerifiedUser ? (
           /* Email Verification Checkpoint before Firestore Profile Activation */
           <div className="max-w-2xl mx-auto rounded-2xl border border-amber-500/40 bg-slate-900/80 p-6 sm:p-8 space-y-4">
@@ -721,6 +824,13 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                   myProfile={myCommunityProfile}
                   directoryProfiles={communityDirectory}
                   companies={companies}
+                  posts={communityPosts}
+                  opportunities={communityOpportunities}
+                  connections={myConnections}
+                  requests={requests}
+                  attendanceLogs={activeCompanyAttendance}
+                  isAdmin={isAdmin}
+                  onRequireSignIn={() => setGuestAuthOpen(true)}
                   onOpenCompanies={() => onNavigateSection('companies')}
                   onOpenTimeClock={() => onNavigateSection('timeclock')}
                 />

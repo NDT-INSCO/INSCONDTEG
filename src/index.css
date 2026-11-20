@@ -377,6 +377,63 @@ body {
   animation: utPautWaveSweep 1.35s cubic-bezier(0.22, 1, 0.36, 1) var(--paut-delay, 0s) infinite;
 }
 
+/* ---------------------------------------------------------------------------
+   Radiographic Photon Stream & Beam Decay Path Animations
+   Simulates radiation photons streaming from source focal spot through the
+   material cross-section to the film detector, with cycle speed synchronized
+   to the active isotope's decayed intensity via --rt-photon-duration.
+   --------------------------------------------------------------------------- */
+@keyframes rtPhotonPathFlow {
+  from {
+    stroke-dashoffset: 36;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes rtPhotonCurveFlow {
+  from {
+    stroke-dashoffset: 56;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes rtPhotonTravel {
+  0% {
+    transform: translate(0px, 0px);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.98;
+  }
+  30% {
+    opacity: 0.92;
+  }
+  85% {
+    opacity: var(--rt-photon-exit-opacity, 0.35);
+  }
+  100% {
+    transform: translate(var(--rt-dx, 560px), var(--rt-dy, 0px));
+    opacity: 0;
+  }
+}
+
+.rt-photon-beam-flow {
+  animation: rtPhotonPathFlow var(--rt-photon-stream-duration, 1.0s) linear var(--rt-photon-delay, 0s) infinite;
+}
+
+.rt-photon-curve-flow {
+  animation: rtPhotonCurveFlow var(--rt-photon-duration, 1.5s) linear infinite;
+}
+
+.rt-photon-particle {
+  animation: rtPhotonTravel var(--rt-photon-duration, 1.5s) linear var(--rt-photon-delay, 0s) infinite;
+  will-change: transform, opacity;
+}
+
 /* Respect users who ask the OS to reduce motion: the flip/scale affordances
    become instant instead of animated. */
 @media (prefers-reduced-motion: reduce) {

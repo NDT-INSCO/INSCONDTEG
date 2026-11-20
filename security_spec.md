@@ -22,5 +22,6 @@
 9. **Client Forging Timestamp**: `createdAt` set to past timestamp != `request.time` -> `PERMISSION_DENIED`.
 10. **Cross-Tenant Company Hijacking**: User A attempting `POST /companies/co1` with `assignedClientUid: 'userB'` -> `PERMISSION_DENIED`.
 11. **Non-Admin Mutating Request Status**: Client trying to change `client_requests/req1.status` from `'new'` to `'approved'` -> `PERMISSION_DENIED`.
-12. **Tampering Historical Attendance Logs**: Any user attempting `PATCH /companies/co1/attendance/log1` -> `PERMISSION_DENIED`.
+11. **Tampering Historical Attendance Logs**: Any user attempting `PATCH /companies/co1/attendance/log1` -> `PERMISSION_DENIED`.
+12. **PII & Impersonation in INSCO Community**: Any post/comment/opportunity under `/community_posts`, `/community_connections`, `/community_opportunities` MUST isolate PII (`authorUid == request.auth.uid` on create), force `isPinnedAnnouncement == false` for non-admins, and prevent spoofing `likesCount`/`commentsCount` outside bounded ±1 reaction/comment transitions.
 

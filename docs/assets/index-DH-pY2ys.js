@@ -1,6 +1,8 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/InteractiveInspectionHologram-BbyaU5S2.js","assets/rolldown-runtime-oLLnCvco.js","assets/three.module-5482Nant.js","assets/html2canvas-DhbxtboP.js","assets/index.es-7DeNCa4C.js","assets/AcademyContent-BBfCepQU.js","assets/PautOmniScanDevice-tedsV26O.js","assets/bell-DvVNupS8.js","assets/clipboard-check-Cd5inpU1.js","assets/user-plus-iLOUjAYd.js","assets/rotate-cw-DnNs5hC0.js","assets/trash-2-B20G7FEr.js","assets/index.esm-DiiqkTPp.js","assets/CompanyDemoPortal-CXoUUiRc.js","assets/ClientPortal-CL1ci0fT.js","assets/save-ljqf60QX.js","assets/AdminPortal-BOF8nCj_.js"])))=>i.map(i=>d[i]);
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/InscoHero3dBanner-CHTNR-53.js","assets/rolldown-runtime-oLLnCvco.js","assets/jsx-runtime-CJAQq89J.js","assets/three.module-KJ9Rnf9y.js","assets/RoomEnvironment-dUxLHW9h.js","assets/InteractiveInspectionHologram-BU7b98_i.js","assets/eye-DyafRkmV.js","assets/html2canvas-DhbxtboP.js","assets/index.es-Bhd_hkv6.js","assets/AcademyContent-BLJVCkah.js","assets/PautOmniScanDevice-B2E8v9Qc.js","assets/bell-JTqmyOK0.js","assets/clipboard-check-CejqIRPH.js","assets/rotate-cw-BZxM_76B.js","assets/user-plus-DvAXkYPB.js","assets/trash-2-nZVRBPor.js","assets/index.esm-CF5M3rKe.js","assets/CompanyDemoPortal-BPveqCh-.js","assets/ClientPortal-DNYHOy7J.js","assets/save-i6p7a9jN.js","assets/AdminPortal--TFu4cKs.js"])))=>i.map(i=>d[i]);
 import { a as __toESM, i as __toCommonJS, n as __esmMin, r as __exportAll, t as __commonJSMin } from "./rolldown-runtime-oLLnCvco.js";
-import { A as FirebaseError, B as isCloudWorkstation, C as initializeApp, D as Component$1, E as Logger, F as getDefaultEmulatorHost, G as isReactNative, H as isEmpty, I as getExperimentalSetting, J as querystringDecode, K as pingServer, L as getModularInstance, M as createSubscribe, N as deepEqual, O as Deferred, P as extractQuerystring, R as getUA, S as getApps, T as LogLevel, U as isIE, V as isCloudflareWorker, W as isMobileCordova, _ as SDK_VERSION, a as onSnapshot, b as _registerComponent, c as setDoc, d as writeBatch, f as collection, g as serverTimestamp, h as increment, i as getDocs, j as base64Decode, k as ErrorFactory, l as updateDoc, m as getFirestore, n as addDoc, o as orderBy, p as doc, q as querystring, r as getDocFromServer, s as query, u as where, v as _getProvider, w as registerVersion, x as getApp, y as _isFirebaseServerApp, z as isBrowserExtension } from "./index.esm-DiiqkTPp.js";
+import { n as require_react, t as require_jsx_runtime } from "./jsx-runtime-CJAQq89J.js";
+import { n as createLucideIcon, t as Eye } from "./eye-DyafRkmV.js";
+import { A as Deferred, B as getUA, C as getApp, D as LogLevel, E as registerVersion, F as deepEqual, G as isIE, H as isCloudWorkstation, I as extractQuerystring, J as pingServer, K as isMobileCordova, L as getDefaultEmulatorHost, M as FirebaseError, N as base64Decode, O as Logger, P as createSubscribe, R as getExperimentalSetting, S as _registerComponent, T as initializeApp, U as isCloudflareWorker, V as isBrowserExtension, W as isEmpty, X as querystringDecode, Y as querystring, _ as increment, a as getDocs, b as _getProvider, c as orderBy, d as updateDoc, f as where, g as getFirestore, h as doc, i as getDocFromServer, j as ErrorFactory, k as Component$1, l as query, m as collection, n as addDoc, o as limit, p as writeBatch, q as isReactNative, r as deleteDoc, s as onSnapshot, u as setDoc, v as serverTimestamp, w as getApps, x as _isFirebaseServerApp, y as SDK_VERSION, z as getModularInstance } from "./index.esm-CF5M3rKe.js";
 //#region \0vite/modulepreload-polyfill.js
 (function polyfill() {
 	const relList = document.createElement("link").relList;
@@ -31,398 +33,6 @@ import { A as FirebaseError, B as isCloudWorkstation, C as initializeApp, D as C
 		fetch(link.href, fetchOpts);
 	}
 })();
-//#endregion
-//#region node_modules/react/cjs/react.production.js
-/**
-* @license React
-* react.production.js
-*
-* Copyright (c) Meta Platforms, Inc. and affiliates.
-*
-* This source code is licensed under the MIT license found in the
-* LICENSE file in the root directory of this source tree.
-*/
-var require_react_production = /* @__PURE__ */ __commonJSMin(((exports) => {
-	var REACT_ELEMENT_TYPE = Symbol.for("react.transitional.element");
-	var REACT_PORTAL_TYPE = Symbol.for("react.portal");
-	var REACT_FRAGMENT_TYPE = Symbol.for("react.fragment");
-	var REACT_STRICT_MODE_TYPE = Symbol.for("react.strict_mode");
-	var REACT_PROFILER_TYPE = Symbol.for("react.profiler");
-	var REACT_CONSUMER_TYPE = Symbol.for("react.consumer");
-	var REACT_CONTEXT_TYPE = Symbol.for("react.context");
-	var REACT_FORWARD_REF_TYPE = Symbol.for("react.forward_ref");
-	var REACT_SUSPENSE_TYPE = Symbol.for("react.suspense");
-	var REACT_MEMO_TYPE = Symbol.for("react.memo");
-	var REACT_LAZY_TYPE = Symbol.for("react.lazy");
-	var REACT_ACTIVITY_TYPE = Symbol.for("react.activity");
-	var REACT_VIEW_TRANSITION_TYPE = Symbol.for("react.view_transition");
-	var MAYBE_ITERATOR_SYMBOL = Symbol.iterator;
-	function getIteratorFn(maybeIterable) {
-		if (null === maybeIterable || "object" !== typeof maybeIterable) return null;
-		maybeIterable = MAYBE_ITERATOR_SYMBOL && maybeIterable[MAYBE_ITERATOR_SYMBOL] || maybeIterable["@@iterator"];
-		return "function" === typeof maybeIterable ? maybeIterable : null;
-	}
-	var ReactNoopUpdateQueue = {
-		isMounted: function() {
-			return !1;
-		},
-		enqueueForceUpdate: function() {},
-		enqueueReplaceState: function() {},
-		enqueueSetState: function() {}
-	};
-	var assign = Object.assign;
-	var emptyObject = {};
-	function Component(props, context, updater) {
-		this.props = props;
-		this.context = context;
-		this.refs = emptyObject;
-		this.updater = updater || ReactNoopUpdateQueue;
-	}
-	Component.prototype.isReactComponent = {};
-	Component.prototype.setState = function(partialState, callback) {
-		if ("object" !== typeof partialState && "function" !== typeof partialState && null != partialState) throw Error("takes an object of state variables to update or a function which returns an object of state variables.");
-		this.updater.enqueueSetState(this, partialState, callback, "setState");
-	};
-	Component.prototype.forceUpdate = function(callback) {
-		this.updater.enqueueForceUpdate(this, callback, "forceUpdate");
-	};
-	function ComponentDummy() {}
-	ComponentDummy.prototype = Component.prototype;
-	function PureComponent(props, context, updater) {
-		this.props = props;
-		this.context = context;
-		this.refs = emptyObject;
-		this.updater = updater || ReactNoopUpdateQueue;
-	}
-	var pureComponentPrototype = PureComponent.prototype = new ComponentDummy();
-	pureComponentPrototype.constructor = PureComponent;
-	assign(pureComponentPrototype, Component.prototype);
-	pureComponentPrototype.isPureReactComponent = !0;
-	var isArrayImpl = Array.isArray;
-	function noop() {}
-	var ReactSharedInternals = {
-		H: null,
-		A: null,
-		T: null,
-		S: null
-	};
-	var hasOwnProperty = Object.prototype.hasOwnProperty;
-	function ReactElement(type, key, props) {
-		var refProp = props.ref;
-		return {
-			$$typeof: REACT_ELEMENT_TYPE,
-			type,
-			key,
-			ref: void 0 !== refProp ? refProp : null,
-			props
-		};
-	}
-	function cloneAndReplaceKey(oldElement, newKey) {
-		return ReactElement(oldElement.type, newKey, oldElement.props);
-	}
-	function isValidElement(object) {
-		return "object" === typeof object && null !== object && object.$$typeof === REACT_ELEMENT_TYPE;
-	}
-	function escape(key) {
-		var escaperLookup = {
-			"=": "=0",
-			":": "=2"
-		};
-		return "$" + key.replace(/[=:]/g, function(match) {
-			return escaperLookup[match];
-		});
-	}
-	var userProvidedKeyEscapeRegex = /\/+/g;
-	function getElementKey(element, index) {
-		return "object" === typeof element && null !== element && null != element.key ? escape("" + element.key) : index.toString(36);
-	}
-	function resolveThenable(thenable) {
-		switch (thenable.status) {
-			case "fulfilled": return thenable.value;
-			case "rejected": throw thenable.reason;
-			default: switch ("string" === typeof thenable.status ? thenable.then(noop, noop) : (thenable.status = "pending", thenable.then(function(fulfilledValue) {
-				"pending" === thenable.status && (thenable.status = "fulfilled", thenable.value = fulfilledValue);
-			}, function(error) {
-				"pending" === thenable.status && (thenable.status = "rejected", thenable.reason = error);
-			})), thenable.status) {
-				case "fulfilled": return thenable.value;
-				case "rejected": throw thenable.reason;
-			}
-		}
-		throw thenable;
-	}
-	function mapIntoArray(children, array, escapedPrefix, nameSoFar, callback) {
-		var type = typeof children;
-		if ("undefined" === type || "boolean" === type) children = null;
-		var invokeCallback = !1;
-		if (null === children) invokeCallback = !0;
-		else switch (type) {
-			case "bigint":
-			case "string":
-			case "number":
-				invokeCallback = !0;
-				break;
-			case "object": switch (children.$$typeof) {
-				case REACT_ELEMENT_TYPE:
-				case REACT_PORTAL_TYPE:
-					invokeCallback = !0;
-					break;
-				case REACT_LAZY_TYPE: return invokeCallback = children._init, mapIntoArray(invokeCallback(children._payload), array, escapedPrefix, nameSoFar, callback);
-			}
-		}
-		if (invokeCallback) return callback = callback(children), invokeCallback = "" === nameSoFar ? "." + getElementKey(children, 0) : nameSoFar, isArrayImpl(callback) ? (escapedPrefix = "", null != invokeCallback && (escapedPrefix = invokeCallback.replace(userProvidedKeyEscapeRegex, "$&/") + "/"), mapIntoArray(callback, array, escapedPrefix, "", function(c) {
-			return c;
-		})) : null != callback && (isValidElement(callback) && (callback = cloneAndReplaceKey(callback, escapedPrefix + (null == callback.key || children && children.key === callback.key ? "" : ("" + callback.key).replace(userProvidedKeyEscapeRegex, "$&/") + "/") + invokeCallback)), array.push(callback)), 1;
-		invokeCallback = 0;
-		var nextNamePrefix = "" === nameSoFar ? "." : nameSoFar + ":";
-		if (isArrayImpl(children)) for (var i = 0; i < children.length; i++) nameSoFar = children[i], type = nextNamePrefix + getElementKey(nameSoFar, i), invokeCallback += mapIntoArray(nameSoFar, array, escapedPrefix, type, callback);
-		else if (i = getIteratorFn(children), "function" === typeof i) for (children = i.call(children), i = 0; !(nameSoFar = children.next()).done;) nameSoFar = nameSoFar.value, type = nextNamePrefix + getElementKey(nameSoFar, i++), invokeCallback += mapIntoArray(nameSoFar, array, escapedPrefix, type, callback);
-		else if ("object" === type) {
-			if ("function" === typeof children.then) return mapIntoArray(resolveThenable(children), array, escapedPrefix, nameSoFar, callback);
-			array = String(children);
-			throw Error("Objects are not valid as a React child (found: " + ("[object Object]" === array ? "object with keys {" + Object.keys(children).join(", ") + "}" : array) + "). If you meant to render a collection of children, use an array instead.");
-		}
-		return invokeCallback;
-	}
-	function mapChildren(children, func, context) {
-		if (null == children) return children;
-		var result = [], count = 0;
-		mapIntoArray(children, result, "", "", function(child) {
-			return func.call(context, child, count++);
-		});
-		return result;
-	}
-	function lazyInitializer(payload) {
-		if (-1 === payload._status) {
-			var ctor = payload._result, thenable = ctor();
-			thenable.then(function(moduleObject) {
-				if (0 === payload._status || -1 === payload._status) payload._status = 1, payload._result = moduleObject, void 0 === thenable.status && (thenable.status = "fulfilled", thenable.value = moduleObject);
-			}, function(error) {
-				if (0 === payload._status || -1 === payload._status) payload._status = 2, payload._result = error, void 0 === thenable.status && (thenable.status = "rejected", thenable.reason = error);
-			});
-			-1 === payload._status && (payload._status = 0, payload._result = thenable);
-		}
-		if (1 === payload._status) return payload._result.default;
-		throw payload._result;
-	}
-	var reportGlobalError = "function" === typeof reportError ? reportError : function(error) {
-		if ("object" === typeof window && "function" === typeof window.ErrorEvent) {
-			var event = new window.ErrorEvent("error", {
-				bubbles: !0,
-				cancelable: !0,
-				message: "object" === typeof error && null !== error && "string" === typeof error.message ? String(error.message) : String(error),
-				error
-			});
-			if (!window.dispatchEvent(event)) return;
-		} else if ("object" === typeof process && "function" === typeof process.emit) {
-			process.emit("uncaughtException", error);
-			return;
-		}
-		console.error(error);
-	};
-	function startTransition(scope) {
-		var prevTransition = ReactSharedInternals.T, currentTransition = {};
-		currentTransition.types = null !== prevTransition ? prevTransition.types : null;
-		ReactSharedInternals.T = currentTransition;
-		try {
-			var returnValue = scope(), onStartTransitionFinish = ReactSharedInternals.S;
-			null !== onStartTransitionFinish && onStartTransitionFinish(currentTransition, returnValue);
-			"object" === typeof returnValue && null !== returnValue && "function" === typeof returnValue.then && returnValue.then(noop, reportGlobalError);
-		} catch (error) {
-			reportGlobalError(error);
-		} finally {
-			null !== prevTransition && null !== currentTransition.types && (prevTransition.types = currentTransition.types), ReactSharedInternals.T = prevTransition;
-		}
-	}
-	function addTransitionType(type) {
-		var transition = ReactSharedInternals.T;
-		if (null !== transition) {
-			var transitionTypes = transition.types;
-			null === transitionTypes ? transition.types = [type] : -1 === transitionTypes.indexOf(type) && transitionTypes.push(type);
-		} else startTransition(addTransitionType.bind(null, type));
-	}
-	var Children = {
-		map: mapChildren,
-		forEach: function(children, forEachFunc, forEachContext) {
-			mapChildren(children, function() {
-				forEachFunc.apply(this, arguments);
-			}, forEachContext);
-		},
-		count: function(children) {
-			var n = 0;
-			mapChildren(children, function() {
-				n++;
-			});
-			return n;
-		},
-		toArray: function(children) {
-			return mapChildren(children, function(child) {
-				return child;
-			}) || [];
-		},
-		only: function(children) {
-			if (!isValidElement(children)) throw Error("React.Children.only expected to receive a single React element child.");
-			return children;
-		}
-	};
-	exports.Activity = REACT_ACTIVITY_TYPE;
-	exports.Children = Children;
-	exports.Component = Component;
-	exports.Fragment = REACT_FRAGMENT_TYPE;
-	exports.Profiler = REACT_PROFILER_TYPE;
-	exports.PureComponent = PureComponent;
-	exports.StrictMode = REACT_STRICT_MODE_TYPE;
-	exports.Suspense = REACT_SUSPENSE_TYPE;
-	exports.ViewTransition = REACT_VIEW_TRANSITION_TYPE;
-	exports.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE = ReactSharedInternals;
-	exports.__COMPILER_RUNTIME = {
-		__proto__: null,
-		c: function(size) {
-			return ReactSharedInternals.H.useMemoCache(size);
-		}
-	};
-	exports.addTransitionType = addTransitionType;
-	exports.cache = function(fn) {
-		return function() {
-			return fn.apply(null, arguments);
-		};
-	};
-	exports.cacheSignal = function() {
-		return null;
-	};
-	exports.cloneElement = function(element, config, children) {
-		if (null === element || void 0 === element) throw Error("The argument must be a React element, but you passed " + element + ".");
-		var props = assign({}, element.props), key = element.key;
-		if (null != config) for (propName in void 0 !== config.key && (key = "" + config.key), config) !hasOwnProperty.call(config, propName) || "key" === propName || "__self" === propName || "__source" === propName || "ref" === propName && void 0 === config.ref || (props[propName] = config[propName]);
-		var propName = arguments.length - 2;
-		if (1 === propName) props.children = children;
-		else if (1 < propName) {
-			for (var childArray = Array(propName), i = 0; i < propName; i++) childArray[i] = arguments[i + 2];
-			props.children = childArray;
-		}
-		return ReactElement(element.type, key, props);
-	};
-	exports.createContext = function(defaultValue) {
-		defaultValue = {
-			$$typeof: REACT_CONTEXT_TYPE,
-			_currentValue: defaultValue,
-			_currentValue2: defaultValue,
-			_threadCount: 0,
-			Provider: null,
-			Consumer: null
-		};
-		defaultValue.Provider = defaultValue;
-		defaultValue.Consumer = {
-			$$typeof: REACT_CONSUMER_TYPE,
-			_context: defaultValue
-		};
-		return defaultValue;
-	};
-	exports.createElement = function(type, config, children) {
-		var propName, props = {}, key = null;
-		if (null != config) for (propName in void 0 !== config.key && (key = "" + config.key), config) hasOwnProperty.call(config, propName) && "key" !== propName && "__self" !== propName && "__source" !== propName && (props[propName] = config[propName]);
-		var childrenLength = arguments.length - 2;
-		if (1 === childrenLength) props.children = children;
-		else if (1 < childrenLength) {
-			for (var childArray = Array(childrenLength), i = 0; i < childrenLength; i++) childArray[i] = arguments[i + 2];
-			props.children = childArray;
-		}
-		if (type && type.defaultProps) for (propName in childrenLength = type.defaultProps, childrenLength) void 0 === props[propName] && (props[propName] = childrenLength[propName]);
-		return ReactElement(type, key, props);
-	};
-	exports.createRef = function() {
-		return { current: null };
-	};
-	exports.forwardRef = function(render) {
-		return {
-			$$typeof: REACT_FORWARD_REF_TYPE,
-			render
-		};
-	};
-	exports.isValidElement = isValidElement;
-	exports.lazy = function(ctor) {
-		return {
-			$$typeof: REACT_LAZY_TYPE,
-			_payload: {
-				_status: -1,
-				_result: ctor
-			},
-			_init: lazyInitializer
-		};
-	};
-	exports.memo = function(type, compare) {
-		return {
-			$$typeof: REACT_MEMO_TYPE,
-			type,
-			compare: void 0 === compare ? null : compare
-		};
-	};
-	exports.startTransition = startTransition;
-	exports.unstable_useCacheRefresh = function() {
-		return ReactSharedInternals.H.useCacheRefresh();
-	};
-	exports.use = function(usable) {
-		return ReactSharedInternals.H.use(usable);
-	};
-	exports.useActionState = function(action, initialState, permalink) {
-		return ReactSharedInternals.H.useActionState(action, initialState, permalink);
-	};
-	exports.useCallback = function(callback, deps) {
-		return ReactSharedInternals.H.useCallback(callback, deps);
-	};
-	exports.useContext = function(Context) {
-		return ReactSharedInternals.H.useContext(Context);
-	};
-	exports.useDebugValue = function() {};
-	exports.useDeferredValue = function(value, initialValue) {
-		return ReactSharedInternals.H.useDeferredValue(value, initialValue);
-	};
-	exports.useEffect = function(create, deps) {
-		return ReactSharedInternals.H.useEffect(create, deps);
-	};
-	exports.useEffectEvent = function(callback) {
-		return ReactSharedInternals.H.useEffectEvent(callback);
-	};
-	exports.useId = function() {
-		return ReactSharedInternals.H.useId();
-	};
-	exports.useImperativeHandle = function(ref, create, deps) {
-		return ReactSharedInternals.H.useImperativeHandle(ref, create, deps);
-	};
-	exports.useInsertionEffect = function(create, deps) {
-		return ReactSharedInternals.H.useInsertionEffect(create, deps);
-	};
-	exports.useLayoutEffect = function(create, deps) {
-		return ReactSharedInternals.H.useLayoutEffect(create, deps);
-	};
-	exports.useMemo = function(create, deps) {
-		return ReactSharedInternals.H.useMemo(create, deps);
-	};
-	exports.useOptimistic = function(passthrough, reducer) {
-		return ReactSharedInternals.H.useOptimistic(passthrough, reducer);
-	};
-	exports.useReducer = function(reducer, initialArg, init) {
-		return ReactSharedInternals.H.useReducer(reducer, initialArg, init);
-	};
-	exports.useRef = function(initialValue) {
-		return ReactSharedInternals.H.useRef(initialValue);
-	};
-	exports.useState = function(initialState) {
-		return ReactSharedInternals.H.useState(initialState);
-	};
-	exports.useSyncExternalStore = function(subscribe, getSnapshot, getServerSnapshot) {
-		return ReactSharedInternals.H.useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-	};
-	exports.useTransition = function() {
-		return ReactSharedInternals.H.useTransition();
-	};
-	exports.version = "19.3.1";
-}));
-//#endregion
-//#region node_modules/react/index.js
-var require_react = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	module.exports = require_react_production();
-}));
 //#endregion
 //#region node_modules/scheduler/cjs/scheduler.production.js
 /**
@@ -11441,7 +11051,7 @@ var require_client = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 }));
 //#endregion
 //#region src/utils/publicUrl.ts
-var import_react = /* @__PURE__ */ __toESM(require_react());
+var import_react = /* @__PURE__ */ __toESM(require_react(), 1);
 var import_client = require_client();
 /**
 * Absolute URL for a file shipped in `public/`.
@@ -12514,82 +12124,6 @@ var COMPANY_MEDIA = {
 	radiographyGammaScan: publicUrl("images/radiography_gamma_scan_1792692355717.jpg"),
 	pautFlawDetector: publicUrl("images/paut_flaw_detector_1792692369481.jpg")
 };
-//#endregion
-//#region node_modules/lucide-react/dist/esm/shared/src/utils.js
-/**
-* @license lucide-react v0.546.0 - ISC
-*
-* This source code is licensed under the ISC license.
-* See the LICENSE file in the root directory of this source tree.
-*/
-var toKebabCase = (string) => string.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
-var toCamelCase = (string) => string.replace(/^([A-Z])|[\s-_]+(\w)/g, (match, p1, p2) => p2 ? p2.toUpperCase() : p1.toLowerCase());
-var toPascalCase = (string) => {
-	const camelCase = toCamelCase(string);
-	return camelCase.charAt(0).toUpperCase() + camelCase.slice(1);
-};
-var mergeClasses = (...classes) => classes.filter((className, index, array) => {
-	return Boolean(className) && className.trim() !== "" && array.indexOf(className) === index;
-}).join(" ").trim();
-var hasA11yProp = (props) => {
-	for (const prop in props) if (prop.startsWith("aria-") || prop === "role" || prop === "title") return true;
-};
-//#endregion
-//#region node_modules/lucide-react/dist/esm/defaultAttributes.js
-/**
-* @license lucide-react v0.546.0 - ISC
-*
-* This source code is licensed under the ISC license.
-* See the LICENSE file in the root directory of this source tree.
-*/
-var defaultAttributes = {
-	xmlns: "http://www.w3.org/2000/svg",
-	width: 24,
-	height: 24,
-	viewBox: "0 0 24 24",
-	fill: "none",
-	stroke: "currentColor",
-	strokeWidth: 2,
-	strokeLinecap: "round",
-	strokeLinejoin: "round"
-};
-//#endregion
-//#region node_modules/lucide-react/dist/esm/Icon.js
-/**
-* @license lucide-react v0.546.0 - ISC
-*
-* This source code is licensed under the ISC license.
-* See the LICENSE file in the root directory of this source tree.
-*/
-var Icon = (0, import_react.forwardRef)(({ color = "currentColor", size = 24, strokeWidth = 2, absoluteStrokeWidth, className = "", children, iconNode, ...rest }, ref) => (0, import_react.createElement)("svg", {
-	ref,
-	...defaultAttributes,
-	width: size,
-	height: size,
-	stroke: color,
-	strokeWidth: absoluteStrokeWidth ? Number(strokeWidth) * 24 / Number(size) : strokeWidth,
-	className: mergeClasses("lucide", className),
-	...!children && !hasA11yProp(rest) && { "aria-hidden": "true" },
-	...rest
-}, [...iconNode.map(([tag, attrs]) => (0, import_react.createElement)(tag, attrs)), ...Array.isArray(children) ? children : [children]]));
-//#endregion
-//#region node_modules/lucide-react/dist/esm/createLucideIcon.js
-/**
-* @license lucide-react v0.546.0 - ISC
-*
-* This source code is licensed under the ISC license.
-* See the LICENSE file in the root directory of this source tree.
-*/
-var createLucideIcon = (iconName, iconNode) => {
-	const Component = (0, import_react.forwardRef)(({ className, ...props }, ref) => (0, import_react.createElement)(Icon, {
-		ref,
-		iconNode,
-		className: mergeClasses(`lucide-${toKebabCase(toPascalCase(iconName))}`, `lucide-${iconName}`, className),
-		...props
-	}));
-	Component.displayName = toPascalCase(iconName);
-	return Component;
-};
 /**
 * @license lucide-react v0.546.0 - ISC
 *
@@ -12680,6 +12214,62 @@ var BookOpen = createLucideIcon("book-open", [["path", {
 	d: "M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z",
 	key: "ruj8y"
 }]]);
+/**
+* @license lucide-react v0.546.0 - ISC
+*
+* This source code is licensed under the ISC license.
+* See the LICENSE file in the root directory of this source tree.
+*/
+var Bot = createLucideIcon("bot", [
+	["path", {
+		d: "M12 8V4H8",
+		key: "hb8ula"
+	}],
+	["rect", {
+		width: "16",
+		height: "12",
+		x: "4",
+		y: "8",
+		rx: "2",
+		key: "enze0r"
+	}],
+	["path", {
+		d: "M2 14h2",
+		key: "vft8re"
+	}],
+	["path", {
+		d: "M20 14h2",
+		key: "4cs60a"
+	}],
+	["path", {
+		d: "M15 13v2",
+		key: "1xurst"
+	}],
+	["path", {
+		d: "M9 13v2",
+		key: "rq6x2g"
+	}]
+]);
+/**
+* @license lucide-react v0.546.0 - ISC
+*
+* This source code is licensed under the ISC license.
+* See the LICENSE file in the root directory of this source tree.
+*/
+var Box = createLucideIcon("box", [
+	["path", {
+		d: "M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z",
+		key: "hh9hay"
+	}],
+	["path", {
+		d: "m3.3 7 8.7 5 8.7-5",
+		key: "g66t2b"
+	}],
+	["path", {
+		d: "M12 22V12",
+		key: "d0xqtd"
+	}]
+]);
 /**
 * @license lucide-react v0.546.0 - ISC
 *
@@ -12870,6 +12460,16 @@ var Check = createLucideIcon("check", [["path", {
 * This source code is licensed under the ISC license.
 * See the LICENSE file in the root directory of this source tree.
 */
+var ChevronDown = createLucideIcon("chevron-down", [["path", {
+	d: "m6 9 6 6 6-6",
+	key: "qrunsl"
+}]]);
+/**
+* @license lucide-react v0.546.0 - ISC
+*
+* This source code is licensed under the ISC license.
+* See the LICENSE file in the root directory of this source tree.
+*/
 var ChevronLeft = createLucideIcon("chevron-left", [["path", {
 	d: "m15 18-6-6 6-6",
 	key: "1wnfg3"
@@ -12883,6 +12483,16 @@ var ChevronLeft = createLucideIcon("chevron-left", [["path", {
 var ChevronRight = createLucideIcon("chevron-right", [["path", {
 	d: "m9 18 6-6-6-6",
 	key: "mthhwq"
+}]]);
+/**
+* @license lucide-react v0.546.0 - ISC
+*
+* This source code is licensed under the ISC license.
+* See the LICENSE file in the root directory of this source tree.
+*/
+var ChevronUp = createLucideIcon("chevron-up", [["path", {
+	d: "m18 15-6-6-6 6",
+	key: "153udz"
 }]]);
 /**
 * @license lucide-react v0.546.0 - ISC
@@ -13085,21 +12695,6 @@ var ExternalLink = createLucideIcon("external-link", [
 		key: "a6xqqp"
 	}]
 ]);
-/**
-* @license lucide-react v0.546.0 - ISC
-*
-* This source code is licensed under the ISC license.
-* See the LICENSE file in the root directory of this source tree.
-*/
-var Eye = createLucideIcon("eye", [["path", {
-	d: "M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0",
-	key: "1nclc0"
-}], ["circle", {
-	cx: "12",
-	cy: "12",
-	r: "3",
-	key: "1v7zrd"
-}]]);
 /**
 * @license lucide-react v0.546.0 - ISC
 *
@@ -14012,46 +13607,6 @@ var Zap = createLucideIcon("zap", [["path", {
 	key: "1xq2db"
 }]]);
 //#endregion
-//#region node_modules/react/cjs/react-jsx-runtime.production.js
-/**
-* @license React
-* react-jsx-runtime.production.js
-*
-* Copyright (c) Meta Platforms, Inc. and affiliates.
-*
-* This source code is licensed under the MIT license found in the
-* LICENSE file in the root directory of this source tree.
-*/
-var require_react_jsx_runtime_production = /* @__PURE__ */ __commonJSMin(((exports) => {
-	var REACT_ELEMENT_TYPE = Symbol.for("react.transitional.element");
-	var REACT_FRAGMENT_TYPE = Symbol.for("react.fragment");
-	function jsxProd(type, config, maybeKey) {
-		var key = null;
-		void 0 !== maybeKey && (key = "" + maybeKey);
-		void 0 !== config.key && (key = "" + config.key);
-		if ("key" in config) {
-			maybeKey = {};
-			for (var propName in config) "key" !== propName && (maybeKey[propName] = config[propName]);
-		} else maybeKey = config;
-		config = maybeKey.ref;
-		return {
-			$$typeof: REACT_ELEMENT_TYPE,
-			type,
-			key,
-			ref: void 0 !== config ? config : null,
-			props: maybeKey
-		};
-	}
-	exports.Fragment = REACT_FRAGMENT_TYPE;
-	exports.jsx = jsxProd;
-	exports.jsxs = jsxProd;
-}));
-//#endregion
-//#region node_modules/react/jsx-runtime.js
-var require_jsx_runtime = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	module.exports = require_react_jsx_runtime_production();
-}));
-//#endregion
 //#region \0vite/preload-helper.js
 var import_jsx_runtime = require_jsx_runtime();
 var scriptRel = "modulepreload";
@@ -14149,184 +13704,346 @@ var __vitePreload = function preload(baseModule, deps, importerUrl) {
 };
 //#endregion
 //#region src/components/company/CompanyHero.tsx
-var InteractiveInspectionHologram = import_react.lazy(() => __vitePreload(() => import("./InteractiveInspectionHologram-BbyaU5S2.js").then((module) => ({ default: module.InteractiveInspectionHologram })), __vite__mapDeps([0,1,2])));
+var InscoHero3dBanner = import_react.lazy(() => __vitePreload(() => import("./InscoHero3dBanner-CHTNR-53.js").then((module) => ({ default: module.InscoHero3dBanner })), __vite__mapDeps([0,1,2,3,4])));
+var InteractiveInspectionHologram = import_react.lazy(() => __vitePreload(() => import("./InteractiveInspectionHologram-BU7b98_i.js").then((module) => ({ default: module.InteractiveInspectionHologram })), __vite__mapDeps([5,1,2,6,3])));
 var CompanyHero = ({ language, onNavigateToAcademy, onNavigateToClient, onNavigateToSection, onOpenDemo }) => {
 	const isAr = language === "ar";
 	const ArrowIcon = isAr ? ArrowLeft : ArrowRight;
-	const [activeVisualMode, setActiveVisualMode] = (0, import_react.useState)("photo");
+	const [activeVisualMode, setActiveVisualMode] = (0, import_react.useState)("banner3d");
+	const [banner3dMode, setBanner3dMode] = (0, import_react.useState)("ut");
+	const [cameraPreset, setCameraPreset] = (0, import_react.useState)("overview");
+	const [autoOrbit, setAutoOrbit] = (0, import_react.useState)(true);
+	const [dockCollapsed, setDockCollapsed] = (0, import_react.useState)(false);
+	const [inspectedPart, setInspectedPart] = (0, import_react.useState)(null);
 	const heroImagePath = COMPANY_MEDIA.heroInspection;
+	const modeMeta = {
+		ut: {
+			labelAr: "موجات PAUT",
+			labelEn: "PAUT Ultrasonic",
+			specAr: "5.0 MHz · زاوية 60° · مصفوفة 64 عنصر",
+			specEn: "5.0 MHz · 60° Shear · 64-Element Array"
+		},
+		rt: {
+			labelAr: "أشعة جاما RT",
+			labelEn: "Gamma RT",
+			specAr: "Ir-192 / Se-75 · مسح محيطي متكامل",
+			specEn: "Ir-192 / Se-75 · Panoramic Girth Weld"
+		},
+		pwht: {
+			labelAr: "معالجة PWHT",
+			labelEn: "PWHT 65 kW",
+			specAr: "أسطول 16 وحدة · تسخين 760°C مبرمج",
+			specEn: "16-Unit Fleet · 760°C Programmed Soak"
+		}
+	};
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
-		className: "relative overflow-hidden pt-8 pb-16 border-b border-slate-800",
-		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "absolute inset-0 bg-radial-[circle_at_top,_var(--tw-gradient-stops)] from-cyan-950/20 via-slate-950 to-slate-950 pointer-events-none" }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-			className: "relative max-w-7xl mx-auto px-4 sm:px-6",
-			children: [
-				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					className: "flex flex-wrap items-center gap-3 text-xs text-slate-400 mb-6 font-mono",
-					children: [
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-							className: "text-cyan-400 font-semibold",
-							children: INSCO_COMPANY_DATA.docRef
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-							"aria-hidden": "true",
-							children: "·"
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: INSCO_COMPANY_DATA.revision }),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-							"aria-hidden": "true",
-							children: "·"
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "س.ت: " + INSCO_COMPANY_DATA.commercialRegistrationNo : "CR: " + INSCO_COMPANY_DATA.commercialRegistrationNo }),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-							"aria-hidden": "true",
-							children: "·"
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "اعتماد إيجاك: " + INSCO_COMPANY_DATA.egacCabNo : "EGAC CAB: " + INSCO_COMPANY_DATA.egacCabNo }),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-							"aria-hidden": "true",
-							children: "·"
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "سجل NDT العالمي: " + INSCO_COMPANY_DATA.ndtOrgId : "ndt.org ID: " + INSCO_COMPANY_DATA.ndtOrgId })
-					]
-				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					className: "grid grid-cols-1 lg:grid-cols-12 gap-10 items-center",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-						className: "lg:col-span-6 space-y-6",
-						children: [
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								className: "space-y-3",
-								children: [
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-										className: "text-xs font-semibold tracking-wider uppercase text-cyan-400",
-										children: INSCO_COMPANY_DATA.slogan[language]
-									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h1", {
-										className: "text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight text-balance",
-										children: INSCO_COMPANY_DATA.name[language]
-									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-										className: "text-lg sm:text-xl text-slate-300 font-medium",
-										children: INSCO_COMPANY_DATA.subSlogan[language]
-									})
-								]
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
-								className: "text-sm sm:text-base text-slate-400 leading-relaxed max-w-2xl",
-								children: [
-									INSCO_COMPANY_DATA.tagline[language],
-									".",
-									" ",
-									isAr ? "شريك معتمد لكبرى المشروعات القومية والصناعية ومحطات الطاقة في الشرق الأوسط وأفريقيا منذ عام 2010، بأسطول متكامل وشهادات جودة ثلاثية معتمدة." : "A certified partner to leading mega-projects, industrial plants, and power stations across the Middle East and Africa since 2010, backed by an owned automated fleet and triple ISO accreditations."
-								]
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								className: "flex flex-wrap items-center gap-3 pt-2",
-								children: [
-									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
-										type: "button",
-										onClick: () => onNavigateToSection("rfq"),
-										className: "inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm transition shadow-sm cursor-pointer",
-										children: [
-											/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FileText, { className: "w-4 h-4 shrink-0" }),
-											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-												className: "whitespace-nowrap",
-												children: isAr ? "اطلب عرض سعر" : "Request a quote"
-											}),
-											/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ArrowIcon, { className: "w-4 h-4 shrink-0" })
-										]
-									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("a", {
-										href: INSCO_COMPANY_DATA.pdfBrochureUrl,
-										target: "_blank",
-										rel: "noopener noreferrer",
-										className: "inline-flex items-center gap-2 px-5 py-3 rounded-lg border border-slate-700 hover:border-cyan-500/60 bg-slate-900/60 text-slate-200 hover:text-white font-medium text-sm transition",
-										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FileText, { className: "w-4 h-4 shrink-0" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-											className: "whitespace-nowrap",
-											children: isAr ? "ملف الشركة (PDF)" : "Company profile (PDF)"
-										})]
-									}),
-									onOpenDemo && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
-										type: "button",
-										onClick: onOpenDemo,
-										className: "inline-flex items-center gap-2 px-4 py-3 rounded-lg text-cyan-300 hover:text-cyan-200 hover:bg-slate-900 font-medium text-sm transition cursor-pointer",
-										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Activity, { className: "w-4 h-4 shrink-0" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-											className: "whitespace-nowrap",
-											children: isAr ? "شاهد العرض الفني" : "See the demonstrations"
-										})]
-									}),
-									onNavigateToClient && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
-										type: "button",
-										onClick: onNavigateToClient,
-										className: "inline-flex items-center gap-2 px-4 py-3 rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 hover:text-emerald-200 font-semibold text-sm transition cursor-pointer",
-										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(BriefcaseBusiness, { className: "w-4 h-4 shrink-0" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-											className: "whitespace-nowrap",
-											children: isAr ? "بوابة العملاء والملفات" : "Client & Dossier Portal"
-										})]
-									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
-										type: "button",
-										onClick: onNavigateToAcademy,
-										className: "inline-flex items-center gap-2 px-4 py-3 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-900 font-medium text-sm transition cursor-pointer",
-										children: [
-											/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Layers, { className: "w-4 h-4 shrink-0" }),
-											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-												className: "whitespace-nowrap",
-												children: isAr ? "أكاديمية إنسكو" : "INSCO Academy"
-											}),
-											/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ArrowIcon, { className: "w-3.5 h-3.5 shrink-0" })
-										]
-									})
-								]
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								className: "pt-2 border-t border-slate-800/80",
-								children: [
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-										className: "text-xs text-slate-400 uppercase tracking-wider mb-1 font-mono",
-										children: isAr ? "بيان الإدارة التنفيذية" : "Executive Statement"
-									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("blockquote", {
-										className: "text-xs sm:text-sm text-slate-300 italic leading-relaxed",
-										children: [
-											"\"",
-											INSCO_COMPANY_DATA.quote.text[language],
-											"\""
-										]
-									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-										className: "mt-1 text-xs font-semibold text-cyan-400",
-										children: INSCO_COMPANY_DATA.quote.author[language]
-									})
-								]
-							})
-						]
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-						className: "lg:col-span-6 space-y-4",
-						children: [
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								className: "flex items-center justify-between",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-									className: "text-xs font-mono uppercase text-cyan-400 tracking-wider flex items-center gap-1.5",
-									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Sparkles, { className: "w-3.5 h-3.5" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "معاينة التفتيش الميداني الذكي" : "Smart Field Inspection Visual" })]
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-									className: "flex items-center gap-1 p-1 bg-slate-900 border border-slate-800 rounded-lg",
-									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
-										type: "button",
-										onClick: () => setActiveVisualMode("photo"),
-										className: `px-3 py-1 text-xs font-medium rounded-md transition cursor-pointer flex items-center gap-1.5 ${activeVisualMode === "photo" ? "bg-cyan-600 text-white shadow-sm" : "text-slate-400 hover:text-white"}`,
-										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Eye, { className: "w-3.5 h-3.5" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "المشهد الميداني" : "Field View" })]
-									}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
-										type: "button",
-										onClick: () => setActiveVisualMode("3d"),
-										className: `px-3 py-1 text-xs font-medium rounded-md transition cursor-pointer flex items-center gap-1.5 ${activeVisualMode === "3d" ? "bg-cyan-600 text-white shadow-sm" : "text-slate-400 hover:text-white"}`,
-										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Activity, { className: "w-3.5 h-3.5" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "محاكي 3D تفاعلي" : "3D Scanner" })]
+		"data-testid": "company-hero-banner",
+		"data-preserve-dark": "true",
+		className: "relative overflow-hidden bg-slate-950 text-white border-b border-slate-800",
+		children: [
+			activeVisualMode === "banner3d" ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+				className: "absolute inset-0 z-0",
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_react.Suspense, {
+					fallback: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "w-full h-full bg-radial-[circle_at_70%_40%,_var(--tw-gradient-stops)] from-cyan-950/35 via-slate-950 to-slate-950" }),
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(InscoHero3dBanner, {
+						language,
+						mode: banner3dMode,
+						cameraPreset,
+						autoOrbit,
+						onInspectedPartChange: setInspectedPart
+					})
+				})
+			}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "absolute inset-0 z-0 bg-radial-[circle_at_top,_var(--tw-gradient-stops)] from-cyan-950/25 via-slate-950 to-slate-950 pointer-events-none" }),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+				"aria-hidden": "true",
+				className: `absolute inset-0 z-[1] pointer-events-none ${isAr ? "bg-gradient-to-l from-slate-950/95 via-slate-950/72 to-slate-950/20" : "bg-gradient-to-r from-slate-950/95 via-slate-950/72 to-slate-950/20"}`
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+				"aria-hidden": "true",
+				className: "absolute inset-x-0 bottom-0 h-28 z-[1] pointer-events-none bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent"
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-8 pb-12 pointer-events-none",
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "flex flex-wrap items-center justify-between gap-3 mb-6 pointer-events-auto",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex flex-wrap items-center gap-3 text-xs text-slate-300 font-mono",
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									className: "text-cyan-400 font-semibold",
+									children: INSCO_COMPANY_DATA.docRef
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									"aria-hidden": "true",
+									children: "·"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: INSCO_COMPANY_DATA.revision }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									"aria-hidden": "true",
+									children: "·"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "س.ت: " + INSCO_COMPANY_DATA.commercialRegistrationNo : "CR: " + INSCO_COMPANY_DATA.commercialRegistrationNo }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									"aria-hidden": "true",
+									children: "·"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "اعتماد إيجاك: " + INSCO_COMPANY_DATA.egacCabNo : "EGAC CAB: " + INSCO_COMPANY_DATA.egacCabNo }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									"aria-hidden": "true",
+									children: "·"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "سجل NDT العالمي: " + INSCO_COMPANY_DATA.ndtOrgId : "ndt.org ID: " + INSCO_COMPANY_DATA.ndtOrgId })
+							]
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex items-center gap-1 p-1 bg-slate-900/95 border border-slate-700/80 rounded-lg",
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+									type: "button",
+									onClick: () => setActiveVisualMode("banner3d"),
+									className: `px-2.5 py-1 text-xs font-medium rounded-md transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 ${activeVisualMode === "banner3d" ? "bg-cyan-600 text-white" : "text-slate-300 hover:text-white"}`,
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Box, {
+										className: "w-3.5 h-3.5",
+										"aria-hidden": "true"
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "بانر 3D حي" : "3D Banner" })]
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+									type: "button",
+									onClick: () => setActiveVisualMode("hologram"),
+									className: `px-2.5 py-1 text-xs font-medium rounded-md transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 ${activeVisualMode === "hologram" ? "bg-cyan-600 text-white" : "text-slate-300 hover:text-white"}`,
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Activity, {
+										className: "w-3.5 h-3.5",
+										"aria-hidden": "true"
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "محاكي A-Scan" : "A-Scan Lab" })]
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+									type: "button",
+									onClick: () => setActiveVisualMode("photo"),
+									className: `px-2.5 py-1 text-xs font-medium rounded-md transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 ${activeVisualMode === "photo" ? "bg-cyan-600 text-white" : "text-slate-300 hover:text-white"}`,
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Eye, {
+										className: "w-3.5 h-3.5",
+										"aria-hidden": "true"
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "المشهد الميداني" : "Field View" })]
+								})
+							]
+						})]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "lg:col-span-6 space-y-6 pointer-events-auto flex flex-col justify-center",
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "space-y-3",
+									children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+											className: "text-xs font-semibold tracking-wider uppercase text-cyan-400",
+											children: INSCO_COMPANY_DATA.slogan[language]
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h1", {
+											className: "text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight text-balance",
+											children: INSCO_COMPANY_DATA.name[language]
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+											className: "text-lg sm:text-xl text-slate-200 font-medium",
+											children: INSCO_COMPANY_DATA.subSlogan[language]
+										})
+									]
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+									className: "text-sm sm:text-base text-slate-300 leading-relaxed max-w-2xl",
+									children: [
+										INSCO_COMPANY_DATA.tagline[language],
+										".",
+										" ",
+										isAr ? "شريك معتمد لكبرى المشروعات القومية والصناعية ومحطات الطاقة في الشرق الأوسط وأفريقيا منذ عام 2010، بأسطول متكامل وشهادات جودة ثلاثية معتمدة." : "A certified partner to leading mega-projects, industrial plants, and power stations across the Middle East and Africa since 2010, backed by an owned automated fleet and triple ISO accreditations."
+									]
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "flex flex-wrap items-center gap-3 pt-1",
+									children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+											type: "button",
+											onClick: () => onNavigateToSection("rfq"),
+											className: "inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm transition shadow-sm cursor-pointer whitespace-nowrap shrink-0",
+											children: [
+												/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FileText, {
+													className: "w-4 h-4 shrink-0",
+													"aria-hidden": "true"
+												}),
+												/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "اطلب عرض سعر" : "Request a quote" }),
+												/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ArrowIcon, {
+													className: "w-4 h-4 shrink-0",
+													"aria-hidden": "true"
+												})
+											]
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("a", {
+											href: INSCO_COMPANY_DATA.pdfBrochureUrl,
+											target: "_blank",
+											rel: "noopener noreferrer",
+											className: "inline-flex items-center gap-2 px-5 py-3 rounded-lg border border-slate-700 hover:border-cyan-500/60 bg-slate-900/90 text-slate-100 hover:text-white font-medium text-sm transition whitespace-nowrap shrink-0",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FileText, {
+												className: "w-4 h-4 shrink-0",
+												"aria-hidden": "true"
+											}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "ملف الشركة (PDF)" : "Company profile (PDF)" })]
+										}),
+										onOpenDemo && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+											type: "button",
+											onClick: onOpenDemo,
+											className: "inline-flex items-center gap-2 px-4 py-3 rounded-lg text-cyan-300 hover:text-cyan-200 hover:bg-slate-900/80 font-medium text-sm transition cursor-pointer whitespace-nowrap shrink-0",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Activity, {
+												className: "w-4 h-4 shrink-0",
+												"aria-hidden": "true"
+											}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "شاهد العرض الفني" : "See the demonstrations" })]
+										}),
+										onNavigateToClient && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+											type: "button",
+											onClick: onNavigateToClient,
+											className: "inline-flex items-center gap-2 px-4 py-3 rounded-lg border border-emerald-500/40 bg-emerald-950/75 text-emerald-300 hover:bg-emerald-900/70 hover:text-emerald-200 font-semibold text-sm transition cursor-pointer whitespace-nowrap shrink-0",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(BriefcaseBusiness, {
+												className: "w-4 h-4 shrink-0",
+												"aria-hidden": "true"
+											}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "بوابة العملاء والملفات" : "Client & Dossier Portal" })]
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+											type: "button",
+											onClick: onNavigateToAcademy,
+											className: "inline-flex items-center gap-2 px-4 py-3 rounded-lg text-slate-300 hover:text-white hover:bg-slate-900/80 font-medium text-sm transition cursor-pointer whitespace-nowrap shrink-0",
+											children: [
+												/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Layers, {
+													className: "w-4 h-4 shrink-0",
+													"aria-hidden": "true"
+												}),
+												/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "أكاديمية إنسكو" : "INSCO Academy" }),
+												/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ArrowIcon, {
+													className: "w-3.5 h-3.5 shrink-0",
+													"aria-hidden": "true"
+												})
+											]
+										})
+									]
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "pt-3 border-t border-slate-800/90",
+									children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+											className: "text-xs text-slate-400 uppercase tracking-wider mb-1 font-mono",
+											children: isAr ? "بيان الإدارة التنفيذية" : "Executive Statement"
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("blockquote", {
+											className: "text-xs sm:text-sm text-slate-200 italic leading-relaxed",
+											children: [
+												"\"",
+												INSCO_COMPANY_DATA.quote.text[language],
+												"\""
+											]
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+											className: "mt-1 text-xs font-semibold text-cyan-400",
+											children: INSCO_COMPANY_DATA.quote.author[language]
+										})
+									]
+								})
+							]
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "lg:col-span-6 flex flex-col justify-between min-h-[340px] lg:min-h-[450px]",
+							children: [activeVisualMode === "banner3d" ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "flex items-center justify-between gap-2 text-[11px] font-mono text-slate-300 pointer-events-none",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+										className: "px-2.5 py-1 rounded-md bg-slate-950/88 border border-slate-700/80",
+										children: inspectedPart ? isAr ? inspectedPart.titleAr : inspectedPart.titleEn : isAr ? "اسحب للتدوير · انقر/مرر لفحص المكونات" : "Drag to Orbit · Inspect 30\" Weld & Crawler"
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+										className: "px-2.5 py-1 rounded-md bg-slate-950/88 border border-cyan-500/35 text-cyan-300",
+										children: isAr ? modeMeta[banner3dMode].specAr : modeMeta[banner3dMode].specEn
 									})]
-								})]
-							}),
-							activeVisualMode === "photo" ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								"data-preserve-dark": "true",
-								className: "relative rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 group shadow-2xl",
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+									className: "flex-1 min-h-[210px]",
+									"aria-hidden": "true"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									"data-testid": "hero-3d-control-dock",
+									className: "pointer-events-auto flex flex-col items-center gap-1.5",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+										type: "button",
+										onClick: () => setDockCollapsed((prev) => !prev),
+										className: "inline-flex items-center gap-1.5 px-3 py-1 rounded-t-lg bg-slate-900/95 border border-b-0 border-slate-700/80 text-[11px] font-medium text-slate-300 hover:text-white cursor-pointer",
+										children: dockCollapsed ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChevronUp, {
+											className: "w-3.5 h-3.5",
+											"aria-hidden": "true"
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "إظهار أدوات 3D" : "Show 3D Controls" })] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChevronDown, {
+											className: "w-3.5 h-3.5",
+											"aria-hidden": "true"
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "إخفاء أدوات التحكم" : "Hide Controls" })] })
+									}), !dockCollapsed && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "w-full rounded-xl bg-slate-950/92 border border-slate-700/85 p-2.5 flex flex-wrap items-center justify-between gap-2 shadow-xl",
+										children: [
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+												className: "flex items-center gap-1 bg-slate-900 p-1 rounded-lg border border-slate-800",
+												children: [
+													"ut",
+													"rt",
+													"pwht"
+												].map((m) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+													type: "button",
+													onClick: () => setBanner3dMode(m),
+													className: `px-2.5 py-1 rounded-md text-xs font-semibold transition cursor-pointer whitespace-nowrap shrink-0 ${banner3dMode === m ? m === "ut" ? "bg-cyan-600 text-white" : m === "rt" ? "bg-amber-500 text-slate-950" : "bg-rose-600 text-white" : "text-slate-300 hover:text-white"}`,
+													children: isAr ? modeMeta[m].labelAr : modeMeta[m].labelEn
+												}, m))
+											}),
+											/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+												className: "flex items-center gap-1",
+												children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Camera, {
+													className: "w-3.5 h-3.5 text-slate-400 mx-1 shrink-0",
+													"aria-hidden": "true"
+												}), [
+													{
+														id: "overview",
+														ar: "بانوراما",
+														en: "Overview"
+													},
+													{
+														id: "weld_focus",
+														ar: "درزة اللحام",
+														en: "Weld Root"
+													},
+													{
+														id: "orbital_rig",
+														ar: "الماسح المداري",
+														en: "Scanner Rig"
+													}
+												].map((p) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+													type: "button",
+													onClick: () => setCameraPreset(p.id),
+													className: `px-2 py-1 rounded-md text-[11px] font-medium transition cursor-pointer whitespace-nowrap shrink-0 ${cameraPreset === p.id ? "bg-slate-800 text-cyan-300 border border-cyan-500/40" : "text-slate-400 hover:text-white"}`,
+													children: isAr ? p.ar : p.en
+												}, p.id))]
+											}),
+											/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+												type: "button",
+												onClick: () => setAutoOrbit((prev) => !prev),
+												className: "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs text-slate-200 cursor-pointer whitespace-nowrap shrink-0",
+												children: [autoOrbit ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Pause, {
+													className: "w-3.5 h-3.5 text-cyan-400",
+													"aria-hidden": "true"
+												}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Play, {
+													className: "w-3.5 h-3.5 text-amber-400",
+													"aria-hidden": "true"
+												}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: autoOrbit ? isAr ? "دوران نشط" : "Orbiting" : isAr ? "متوقف" : "Paused" })]
+											})
+										]
+									})]
+								})
+							] }) : activeVisualMode === "hologram" ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+								className: "pointer-events-auto rounded-2xl overflow-hidden",
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_react.Suspense, {
+									fallback: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "h-[420px] rounded-2xl border border-slate-800 bg-slate-900/90" }),
+									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(InteractiveInspectionHologram, { language })
+								})
+							}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "pointer-events-auto relative rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 group shadow-2xl",
 								children: [
 									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("img", {
 										src: heroImagePath,
@@ -14334,28 +14051,27 @@ var CompanyHero = ({ language, onNavigateToAcademy, onNavigateToClient, onNaviga
 										referrerPolicy: "no-referrer",
 										className: "w-full h-80 sm:h-96 object-cover transition duration-700 group-hover:scale-105"
 									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "absolute inset-0 bg-linear-to-t from-slate-950 via-slate-950/30 to-transparent pointer-events-none" }),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-										className: "absolute inset-0 pointer-events-none overflow-hidden",
-										children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "w-full h-1 bg-linear-to-r from-transparent via-cyan-400 to-transparent opacity-75 animate-pulse absolute top-1/3 shadow-[0_0_15px_#22d3ee]" })
-									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/30 to-transparent pointer-events-none" }),
 									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 										className: "absolute top-4 left-4 right-4 flex items-center justify-between text-[11px] font-mono text-cyan-300 pointer-events-none",
 										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-											className: "px-2.5 py-1 rounded-md bg-slate-950/80 backdrop-blur-md border border-cyan-500/30",
+											className: "px-2.5 py-1 rounded-md bg-slate-950/90 border border-cyan-500/30",
 											children: isAr ? "محطة البرلس 4800 MW · وحدة 4" : "Burullus CCPP 4800 MW · Unit 4"
 										}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-											className: "px-2.5 py-1 rounded-md bg-slate-950/80 backdrop-blur-md border border-cyan-500/30 text-emerald-400",
+											className: "px-2.5 py-1 rounded-md bg-slate-950/90 border border-cyan-500/30 text-emerald-400",
 											children: "ASME SEC. V ART. 4 · PASS"
 										})]
 									}),
 									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-										className: "absolute bottom-4 left-4 right-4 p-3 rounded-xl bg-slate-950/85 backdrop-blur-md border border-slate-800 text-xs text-slate-200 flex items-center justify-between",
+										className: "absolute bottom-4 left-4 right-4 p-3 rounded-xl bg-slate-950/90 border border-slate-800 text-xs text-slate-200 flex items-center justify-between",
 										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 											className: "flex items-center gap-2",
 											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 												className: "p-1.5 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20",
-												children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Activity, { className: "w-4 h-4" })
+												children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Activity, {
+													className: "w-4 h-4",
+													"aria-hidden": "true"
+												})
 											}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 												className: "font-bold text-white text-xs",
 												children: isAr ? "فحص بالموجات فوق الصوتية (UT)" : "Ultrasonic Flaw Inspection (UT)"
@@ -14365,70 +14081,72 @@ var CompanyHero = ({ language, onNavigateToAcademy, onNavigateToClient, onNaviga
 											})] })]
 										}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
 											type: "button",
-											onClick: () => setActiveVisualMode("3d"),
-											className: "px-2.5 py-1 text-[11px] font-semibold text-cyan-300 bg-cyan-950/40 hover:bg-cyan-900/50 border border-cyan-800/60 rounded-md transition cursor-pointer",
-											children: isAr ? "تشغيل 3D" : "Open 3D"
+											onClick: () => setActiveVisualMode("banner3d"),
+											className: "px-2.5 py-1 text-[11px] font-semibold text-cyan-300 bg-cyan-950/70 hover:bg-cyan-900/70 border border-cyan-800/60 rounded-md transition cursor-pointer whitespace-nowrap",
+											children: isAr ? "عرض 3D" : "Open 3D"
 										})]
 									})
 								]
-							}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-								className: "rounded-2xl overflow-hidden",
-								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_react.Suspense, {
-									fallback: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "h-[420px] animate-pulse rounded-2xl border border-slate-800 bg-slate-900/60" }),
-									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(InteractiveInspectionHologram, { language })
-								})
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								className: "grid grid-cols-3 gap-2 text-center text-xs font-mono",
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "mt-3 grid grid-cols-3 gap-2 text-center text-xs font-mono pointer-events-auto",
 								children: [
 									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-										className: "p-2.5 rounded-lg bg-slate-900/60 border border-slate-800",
-										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ShieldCheck, { className: "w-4 h-4 text-cyan-400 mx-auto mb-1" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-											className: "text-[11px] text-slate-300 font-sans",
+										className: "p-2.5 rounded-lg bg-slate-900/90 border border-slate-800",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ShieldCheck, {
+											className: "w-4 h-4 text-cyan-400 mx-auto mb-1",
+											"aria-hidden": "true"
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+											className: "text-[11px] text-slate-200 font-sans",
 											children: "Triple ISO 2028"
 										})]
 									}),
 									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-										className: "p-2.5 rounded-lg bg-slate-900/60 border border-slate-800",
-										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Award, { className: "w-4 h-4 text-cyan-400 mx-auto mb-1" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-											className: "text-[11px] text-slate-300 font-sans",
+										className: "p-2.5 rounded-lg bg-slate-900/90 border border-slate-800",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Award, {
+											className: "w-4 h-4 text-cyan-400 mx-auto mb-1",
+											"aria-hidden": "true"
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+											className: "text-[11px] text-slate-200 font-sans",
 											children: "IRCA Auditor"
 										})]
 									}),
 									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-										className: "p-2.5 rounded-lg bg-slate-900/60 border border-slate-800",
-										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Zap, { className: "w-4 h-4 text-cyan-400 mx-auto mb-1" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-											className: "text-[11px] text-slate-300 font-sans",
+										className: "p-2.5 rounded-lg bg-slate-900/90 border border-slate-800",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Zap, {
+											className: "w-4 h-4 text-cyan-400 mx-auto mb-1",
+											"aria-hidden": "true"
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+											className: "text-[11px] text-slate-200 font-sans",
 											children: "ENRRA Licensed"
 										})]
 									})
 								]
-							})
-						]
-					})]
-				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-					className: "mt-14 grid grid-cols-2 md:grid-cols-4 gap-4",
-					children: INSCO_COMPANY_DATA.metrics.map((metric, idx) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-						className: "p-5 rounded-lg border border-slate-800 bg-slate-900/40 hover:border-slate-700 transition",
-						children: [
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-								className: "text-2xl sm:text-3xl font-black text-cyan-400 font-mono tabular-nums",
-								children: metric.value
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-								className: "mt-1 text-sm font-semibold text-slate-200",
-								children: metric.label[language]
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-								className: "mt-0.5 text-xs text-slate-400",
-								children: metric.subLabel[language]
-							})
-						]
-					}, idx))
-				})
-			]
-		})]
+							})]
+						})]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+						className: "mt-10 grid grid-cols-2 md:grid-cols-4 gap-4 pointer-events-auto",
+						children: INSCO_COMPANY_DATA.metrics.map((metric, idx) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "p-5 rounded-lg border border-slate-800 bg-slate-900/88 hover:border-cyan-500/40 transition",
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+									className: "text-2xl sm:text-3xl font-black text-cyan-400 font-mono tabular-nums",
+									children: metric.value
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+									className: "mt-1 text-sm font-semibold text-slate-100",
+									children: metric.label[language]
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+									className: "mt-0.5 text-xs text-slate-400",
+									children: metric.subLabel[language]
+								})
+							]
+						}, idx))
+					})
+				]
+			})
+		]
 	});
 };
 //#endregion
@@ -57214,7 +56932,7 @@ function le() {
 	}, t.allowFsRead = void 0, t.loadImageFile = t.loadFile;
 }(E.API), function(e) {
 	function r() {
-		return (i.html2canvas ? Promise.resolve(i.html2canvas) : __vitePreload(() => import("./html2canvas-DhbxtboP.js").then((m) => /* @__PURE__ */ __toESM(m.default)), __vite__mapDeps([3,1]))).catch(function(t) {
+		return (i.html2canvas ? Promise.resolve(i.html2canvas) : __vitePreload(() => import("./html2canvas-DhbxtboP.js").then((m) => /* @__PURE__ */ __toESM(m.default)), __vite__mapDeps([7,1]))).catch(function(t) {
 			return Promise.reject(/* @__PURE__ */ new Error("Could not load html2canvas: " + t));
 		}).then(function(t) {
 			return t.default ? t.default : t;
@@ -58381,7 +58099,7 @@ function le() {
 		ignoreAnimation: !0,
 		ignoreDimensions: !0
 	}, d = this;
-	return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-7DeNCa4C.js"), __vite__mapDeps([4,1]))).catch(function(t) {
+	return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-Bhd_hkv6.js"), __vite__mapDeps([8,1]))).catch(function(t) {
 		return Promise.reject(/* @__PURE__ */ new Error("Could not load canvg: " + t));
 	}).then(function(t) {
 		return t.default ? t.default : t;
@@ -61595,7 +61313,15 @@ var BLUEPRINT_LIMITS = {
 	MAX_METHODS_PER_REQUEST: 12,
 	MAX_TECH_FIELDS: 30,
 	MIN_GEOFENCE_RADIUS_M: 50,
-	MAX_GEOFENCE_RADIUS_M: 5e4
+	MAX_GEOFENCE_RADIUS_M: 5e4,
+	COMMUNITY_POST_TITLE_MAX: 180,
+	COMMUNITY_POST_BODY_MAX: 3e3,
+	COMMUNITY_COMMENT_MAX: 1500,
+	COMMUNITY_SNIPPET_MAX: 600,
+	COMMUNITY_AI_SUMMARY_MAX: 800,
+	COMMUNITY_HEADLINE_MAX: 160,
+	COMMUNITY_CERTS_MAX: 240,
+	COMMUNITY_MAX_TAGS: 6
 };
 function sanitizeUpperCode(raw) {
 	return raw.trim().toUpperCase().replace(/[^A-Z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, BLUEPRINT_LIMITS.COMPANY_CODE_MAX);
@@ -70283,35 +70009,45 @@ async function upsertCommunityWorkspace(user, input, existing) {
 	if (!db) throw new Error("Firestore not initialized");
 	const path = `community_workspaces/${user.uid}`;
 	const docRef = doc(db, "community_workspaces", user.uid);
+	const sharedFields = {
+		displayName: clampStr(input.displayName, BLUEPRINT_LIMITS.SHORT_NAME_MAX),
+		organizationName: clampStr(input.organizationName, 160),
+		sector: clampStr(input.sector, 100),
+		city: clampStr(input.city, 100),
+		companyCode: sanitizeUpperCode(input.companyCode ?? ""),
+		specialtyTrades: clampStr(input.specialtyTrades, 300),
+		bio: clampStr(input.bio, 600),
+		companiesManaged: Math.max(0, Math.min(1e4, Math.round(input.companiesManaged))),
+		isPublished: Boolean(input.isPublished),
+		...input.headline !== void 0 && { headline: clampStr(input.headline, BLUEPRINT_LIMITS.COMMUNITY_HEADLINE_MAX) },
+		...input.certifications !== void 0 && { certifications: clampStr(input.certifications, BLUEPRINT_LIMITS.COMMUNITY_CERTS_MAX) },
+		...typeof input.yearsExperience === "number" && Number.isFinite(input.yearsExperience) && { yearsExperience: Math.max(0, Math.min(70, Math.round(input.yearsExperience))) },
+		...input.availabilityStatus !== void 0 && { availabilityStatus: input.availabilityStatus },
+		updatedAt: serverTimestamp()
+	};
 	try {
 		if (!existing) await setDoc(docRef, {
 			uid: user.uid,
-			displayName: clampStr(input.displayName, BLUEPRINT_LIMITS.SHORT_NAME_MAX),
-			organizationName: clampStr(input.organizationName, 160),
-			sector: clampStr(input.sector, 100),
-			city: clampStr(input.city, 100),
-			companyCode: sanitizeUpperCode(input.companyCode ?? ""),
-			specialtyTrades: clampStr(input.specialtyTrades, 300),
-			bio: clampStr(input.bio, 600),
-			companiesManaged: Math.max(0, Math.min(1e4, Math.round(input.companiesManaged))),
-			isPublished: Boolean(input.isPublished),
-			createdAt: serverTimestamp(),
-			updatedAt: serverTimestamp()
+			...sharedFields,
+			followersCount: 0,
+			endorsementsCount: 0,
+			createdAt: serverTimestamp()
 		});
-		else await updateDoc(docRef, {
-			displayName: clampStr(input.displayName, BLUEPRINT_LIMITS.SHORT_NAME_MAX),
-			organizationName: clampStr(input.organizationName, 160),
-			sector: clampStr(input.sector, 100),
-			city: clampStr(input.city, 100),
-			companyCode: sanitizeUpperCode(input.companyCode ?? ""),
-			specialtyTrades: clampStr(input.specialtyTrades, 300),
-			bio: clampStr(input.bio, 600),
-			companiesManaged: Math.max(0, Math.min(1e4, Math.round(input.companiesManaged))),
-			isPublished: Boolean(input.isPublished),
+		else await updateDoc(docRef, sharedFields);
+	} catch (err) {
+		handleFirestoreError(err, existing ? OperationType.UPDATE : OperationType.CREATE, path);
+	}
+}
+async function endorseMemberWorkspace(targetUid) {
+	if (!db) throw new Error("Firestore not initialized");
+	const path = `community_workspaces/${targetUid}`;
+	try {
+		await updateDoc(doc(db, "community_workspaces", targetUid), {
+			endorsementsCount: increment(1),
 			updatedAt: serverTimestamp()
 		});
 	} catch (err) {
-		handleFirestoreError(err, existing ? OperationType.UPDATE : OperationType.CREATE, path);
+		handleFirestoreError(err, OperationType.UPDATE, path);
 	}
 }
 function subscribeMyCommunityWorkspace(uid, onData, onError) {
@@ -70340,6 +70076,293 @@ function subscribeCommunityWorkspaces(isAdmin, onData, onError) {
 	return onSnapshot(q, (snap) => {
 		const list = snap.docs.map((d) => d.data());
 		list.sort((a, b) => a.organizationName.localeCompare(b.organizationName));
+		onData(list);
+	}, (err) => {
+		try {
+			handleFirestoreError(err, OperationType.LIST, path);
+		} catch (wrapped) {
+			onError?.(wrapped instanceof Error ? wrapped : new Error(String(wrapped)));
+		}
+	});
+}
+async function createCommunityPost(user, input) {
+	if (!db) throw new Error("Firestore not initialized");
+	const postRef = doc(collection(db, "community_posts"));
+	const path = `community_posts/${postRef.id}`;
+	const cleanTags = (input.tags ?? []).map((t) => clampStr(t.replace(/^#/, ""), 32)).filter(Boolean).slice(0, BLUEPRINT_LIMITS.COMMUNITY_MAX_TAGS);
+	const allowPinned = isVerifiedAdminUser(user) && Boolean(input.isPinnedAnnouncement);
+	const payload = {
+		authorUid: user.uid,
+		authorName: clampStr(input.authorName, BLUEPRINT_LIMITS.SHORT_NAME_MAX),
+		...input.authorHeadline && { authorHeadline: clampStr(input.authorHeadline, BLUEPRINT_LIMITS.COMMUNITY_HEADLINE_MAX) },
+		authorOrg: clampStr(input.authorOrg, 160),
+		...input.authorCompanyCode && { authorCompanyCode: sanitizeUpperCode(input.authorCompanyCode) },
+		postType: input.postType,
+		ndtMethod: input.ndtMethod,
+		title: clampStr(input.title, BLUEPRINT_LIMITS.COMMUNITY_POST_TITLE_MAX),
+		body: clampStr(input.body, BLUEPRINT_LIMITS.COMMUNITY_POST_BODY_MAX),
+		...cleanTags.length > 0 && { tags: cleanTags },
+		...input.technicalSnippet && { technicalSnippet: clampStr(input.technicalSnippet, BLUEPRINT_LIMITS.COMMUNITY_SNIPPET_MAX) },
+		...input.aiSummary && { aiSummary: clampStr(input.aiSummary, BLUEPRINT_LIMITS.COMMUNITY_AI_SUMMARY_MAX) },
+		likesCount: 0,
+		commentsCount: 0,
+		visibility: input.visibility ?? "public",
+		aiModerationStatus: "approved",
+		isPinnedAnnouncement: allowPinned,
+		createdAt: serverTimestamp(),
+		updatedAt: serverTimestamp()
+	};
+	try {
+		await setDoc(postRef, payload);
+	} catch (err) {
+		handleFirestoreError(err, OperationType.CREATE, path);
+	}
+	return {
+		id: postRef.id,
+		...payload
+	};
+}
+async function updateCommunityPostModeration(postId, updates) {
+	if (!db) throw new Error("Firestore not initialized");
+	const path = `community_posts/${postId}`;
+	try {
+		await updateDoc(doc(db, "community_posts", postId), {
+			...updates.aiModerationStatus !== void 0 && { aiModerationStatus: updates.aiModerationStatus },
+			...updates.isPinnedAnnouncement !== void 0 && { isPinnedAnnouncement: updates.isPinnedAnnouncement },
+			...updates.aiSummary !== void 0 && { aiSummary: clampStr(updates.aiSummary, BLUEPRINT_LIMITS.COMMUNITY_AI_SUMMARY_MAX) },
+			updatedAt: serverTimestamp()
+		});
+	} catch (err) {
+		handleFirestoreError(err, OperationType.UPDATE, path);
+	}
+}
+async function deleteCommunityPost(postId) {
+	if (!db) throw new Error("Firestore not initialized");
+	const path = `community_posts/${postId}`;
+	try {
+		await deleteDoc(doc(db, "community_posts", postId));
+	} catch (err) {
+		handleFirestoreError(err, OperationType.DELETE, path);
+	}
+}
+function createdAtMs(ts) {
+	if (ts && typeof ts === "object" && "toMillis" in ts && typeof ts.toMillis === "function") return ts.toMillis();
+	return 0;
+}
+function subscribeCommunityPosts(isAdmin, onData, onError) {
+	if (!db) {
+		onData([]);
+		return () => {};
+	}
+	const path = "community_posts";
+	const q = isAdmin ? query(collection(db, "community_posts"), orderBy("createdAt", "desc"), limit(60)) : query(collection(db, "community_posts"), where("visibility", "==", "public"), limit(60));
+	return onSnapshot(q, (snap) => {
+		const list = snap.docs.map((d) => ({
+			id: d.id,
+			...d.data()
+		}));
+		list.sort((a, b) => {
+			if (a.isPinnedAnnouncement !== b.isPinnedAnnouncement) return a.isPinnedAnnouncement ? -1 : 1;
+			return createdAtMs(b.createdAt) - createdAtMs(a.createdAt);
+		});
+		onData(list);
+	}, (err) => {
+		try {
+			handleFirestoreError(err, OperationType.LIST, path);
+		} catch (wrapped) {
+			onError?.(wrapped instanceof Error ? wrapped : new Error(String(wrapped)));
+		}
+	});
+}
+async function setCommunityPostReaction(user, postId, reactionType, existingReaction) {
+	if (!db) throw new Error("Firestore not initialized");
+	const path = `community_posts/${postId}/reactions/${user.uid}`;
+	const postRef = doc(db, "community_posts", postId);
+	const reactRef = doc(db, "community_posts", postId, "reactions", user.uid);
+	const batch = writeBatch(db);
+	if (existingReaction && existingReaction.reactionType === reactionType) {
+		batch.delete(reactRef);
+		batch.update(postRef, {
+			likesCount: increment(-1),
+			updatedAt: serverTimestamp()
+		});
+	} else if (existingReaction) batch.update(reactRef, {
+		reactionType,
+		updatedAt: serverTimestamp()
+	});
+	else {
+		batch.set(reactRef, {
+			postId,
+			uid: user.uid,
+			reactionType,
+			createdAt: serverTimestamp(),
+			updatedAt: serverTimestamp()
+		});
+		batch.update(postRef, {
+			likesCount: increment(1),
+			updatedAt: serverTimestamp()
+		});
+	}
+	try {
+		await batch.commit();
+	} catch (err) {
+		handleFirestoreError(err, OperationType.UPDATE, path);
+	}
+}
+function subscribePostReactions(postId, onData, onError) {
+	if (!db) {
+		onData([]);
+		return () => {};
+	}
+	const path = `community_posts/${postId}/reactions`;
+	return onSnapshot(collection(db, "community_posts", postId, "reactions"), (snap) => {
+		onData(snap.docs.map((d) => d.data()));
+	}, (err) => {
+		try {
+			handleFirestoreError(err, OperationType.LIST, path);
+		} catch (wrapped) {
+			onError?.(wrapped instanceof Error ? wrapped : new Error(String(wrapped)));
+		}
+	});
+}
+async function addCommunityPostComment(user, postId, input) {
+	if (!db) throw new Error("Firestore not initialized");
+	const commentRef = doc(collection(db, "community_posts", postId, "comments"));
+	const path = `community_posts/${postId}/comments/${commentRef.id}`;
+	const batch = writeBatch(db);
+	batch.set(commentRef, {
+		postId,
+		authorUid: user.uid,
+		authorName: clampStr(input.authorName, BLUEPRINT_LIMITS.SHORT_NAME_MAX),
+		...input.authorHeadline && { authorHeadline: clampStr(input.authorHeadline, BLUEPRINT_LIMITS.COMMUNITY_HEADLINE_MAX) },
+		body: clampStr(input.body, BLUEPRINT_LIMITS.COMMUNITY_COMMENT_MAX),
+		isAiAssisted: Boolean(input.isAiAssisted),
+		createdAt: serverTimestamp()
+	});
+	batch.update(doc(db, "community_posts", postId), {
+		commentsCount: increment(1),
+		updatedAt: serverTimestamp()
+	});
+	try {
+		await batch.commit();
+	} catch (err) {
+		handleFirestoreError(err, OperationType.CREATE, path);
+	}
+}
+function subscribePostComments(postId, onData, onError) {
+	if (!db) {
+		onData([]);
+		return () => {};
+	}
+	const path = `community_posts/${postId}/comments`;
+	return onSnapshot(query(collection(db, "community_posts", postId, "comments"), orderBy("createdAt", "asc")), (snap) => {
+		onData(snap.docs.map((d) => ({
+			id: d.id,
+			...d.data()
+		})));
+	}, (err) => {
+		try {
+			handleFirestoreError(err, OperationType.LIST, path);
+		} catch (wrapped) {
+			onError?.(wrapped instanceof Error ? wrapped : new Error(String(wrapped)));
+		}
+	});
+}
+async function connectWithCommunityMember(user, fromName, target) {
+	if (!db) throw new Error("Firestore not initialized");
+	if (user.uid === target.uid) return;
+	const connId = `${user.uid}_${target.uid}`;
+	const path = `community_connections/${connId}`;
+	try {
+		await setDoc(doc(db, "community_connections", connId), {
+			fromUid: user.uid,
+			toUid: target.uid,
+			fromName: clampStr(fromName, BLUEPRINT_LIMITS.SHORT_NAME_MAX),
+			toName: clampStr(target.displayName, BLUEPRINT_LIMITS.SHORT_NAME_MAX),
+			status: "connected",
+			createdAt: serverTimestamp(),
+			updatedAt: serverTimestamp()
+		});
+	} catch (err) {
+		handleFirestoreError(err, OperationType.CREATE, path);
+	}
+}
+function subscribeMyConnections(uid, onData, onError) {
+	if (!db) {
+		onData([]);
+		return () => {};
+	}
+	const path = "community_connections";
+	const q = query(collection(db, "community_connections"), where("fromUid", "==", uid));
+	return onSnapshot(q, (snap) => {
+		onData(snap.docs.map((d) => ({
+			id: d.id,
+			...d.data()
+		})));
+	}, (err) => {
+		try {
+			handleFirestoreError(err, OperationType.LIST, path);
+		} catch (wrapped) {
+			onError?.(wrapped instanceof Error ? wrapped : new Error(String(wrapped)));
+		}
+	});
+}
+async function createCommunityOpportunity(user, input) {
+	if (!db) throw new Error("Firestore not initialized");
+	const oppRef = doc(collection(db, "community_opportunities"));
+	const path = `community_opportunities/${oppRef.id}`;
+	const cleanMethods = input.methods.map((m) => clampStr(m, 32)).filter(Boolean).slice(0, 8);
+	const methods = cleanMethods.length > 0 ? cleanMethods : ["GENERAL"];
+	const payload = {
+		authorUid: user.uid,
+		authorName: clampStr(input.authorName, BLUEPRINT_LIMITS.SHORT_NAME_MAX),
+		authorOrg: clampStr(input.authorOrg, 160),
+		...input.companyCode && { companyCode: sanitizeUpperCode(input.companyCode) },
+		opportunityType: input.opportunityType,
+		title: clampStr(input.title, 180),
+		location: clampStr(input.location, 140),
+		methods,
+		requirements: clampStr(input.requirements, 1500),
+		status: "open",
+		visibility: "public",
+		createdAt: serverTimestamp(),
+		updatedAt: serverTimestamp()
+	};
+	try {
+		await setDoc(oppRef, payload);
+	} catch (err) {
+		handleFirestoreError(err, OperationType.CREATE, path);
+	}
+	return {
+		id: oppRef.id,
+		...payload
+	};
+}
+async function updateCommunityOpportunityStatus(opportunityId, status) {
+	if (!db) throw new Error("Firestore not initialized");
+	const path = `community_opportunities/${opportunityId}`;
+	try {
+		await updateDoc(doc(db, "community_opportunities", opportunityId), {
+			status,
+			updatedAt: serverTimestamp()
+		});
+	} catch (err) {
+		handleFirestoreError(err, OperationType.UPDATE, path);
+	}
+}
+function subscribeCommunityOpportunities(onData, onError) {
+	if (!db) {
+		onData([]);
+		return () => {};
+	}
+	const path = "community_opportunities";
+	const q = query(collection(db, "community_opportunities"), where("visibility", "==", "public"), limit(40));
+	return onSnapshot(q, (snap) => {
+		const list = snap.docs.map((d) => ({
+			id: d.id,
+			...d.data()
+		}));
+		list.sort((a, b) => createdAtMs(b.createdAt) - createdAtMs(a.createdAt));
 		onData(list);
 	}, (err) => {
 		try {
@@ -72992,7 +73015,7 @@ var PortalChooser = ({ language, onChoose, onDismiss }) => {
 /**
 * The permanent indicator at the very top of every screen across the three portals.
 */
-var PortalSwitchBar = ({ language, portal, trail = [], onSwitchPortal }) => {
+var PortalSwitchBar = ({ language, portal, trail = [], onSwitchPortal, onOpenCommunity }) => {
 	const isAr = language === "ar";
 	const Chevron = isAr ? ChevronLeft : ChevronRight;
 	const steps = trail.filter((step) => Boolean(step.label));
@@ -73027,19 +73050,31 @@ var PortalSwitchBar = ({ language, portal, trail = [], onSwitchPortal }) => {
 			className: "max-w-7xl mx-auto px-4 sm:px-6 py-1.5 flex items-center justify-between gap-3",
 			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 				className: "flex items-center gap-2 min-w-0",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-					className: "hidden md:inline text-[10px] font-mono uppercase tracking-wider text-slate-500 whitespace-nowrap",
-					children: isAr ? "المسار الحالي" : "Current path"
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					role: "group",
-					"aria-label": isAr ? "تبديل المسار بين بوابة الشركة وبوابة العملاء والأكاديمية" : "Switch between Company, Client, and Academy portals",
-					className: "flex items-center gap-1 rounded-lg border border-slate-800 bg-slate-900/60 p-0.5",
-					children: [
-						door("company", "بوابة الشركة", "Company portal", "الشركة", "Company", Building2),
-						door("client", "بوابة العملاء", "Client portal", "العملاء", "Clients", BriefcaseBusiness),
-						door("academy", "أكاديمية إنسكو", "INSCO Academy", "الأكاديمية", "Academy", GraduationCap)
-					]
-				})]
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+						className: "hidden md:inline text-[10px] font-mono uppercase tracking-wider text-slate-500 whitespace-nowrap",
+						children: isAr ? "المسار الحالي" : "Current path"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						role: "group",
+						"aria-label": isAr ? "تبديل المسار بين بوابة الشركة وبوابة العملاء والأكاديمية" : "Switch between Company, Client, and Academy portals",
+						className: "flex items-center gap-1 rounded-lg border border-slate-800 bg-slate-900/60 p-0.5",
+						children: [
+							door("company", "بوابة الشركة", "Company portal", "الشركة", "Company", Building2),
+							door("client", "بوابة العملاء", "Client portal", "العملاء", "Clients", BriefcaseBusiness),
+							door("academy", "أكاديمية إنسكو", "INSCO Academy", "الأكاديمية", "Academy", GraduationCap)
+						]
+					}),
+					onOpenCommunity && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+						type: "button",
+						onClick: onOpenCommunity,
+						className: "inline-flex items-center gap-1 rounded-md border border-cyan-500/35 bg-cyan-500/10 hover:bg-cyan-500/20 px-2.5 py-1 text-[11px] font-bold text-cyan-300 transition cursor-pointer whitespace-nowrap",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Users, {
+							className: "w-3 h-3",
+							"aria-hidden": "true"
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "مجتمع INSCO" : "INSCO Community" })]
+					})
+				]
 			}), steps.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("nav", {
 				"aria-label": isAr ? "مسار التنقل داخل البوابة" : "Breadcrumb",
 				className: "hidden md:flex items-center gap-1 text-[11px] text-slate-400 min-w-0 truncate",
@@ -73195,8 +73230,8 @@ var MobileNavDrawer = ({ open, language, portal = "company", onClose, onNavigate
 			action: client("timeclock")
 		},
 		{
-			labelAr: "مجتمع إدارة الأعمال",
-			labelEn: "Business community",
+			labelAr: "مجتمع INSCO الهندسي",
+			labelEn: "INSCO Community",
 			action: client("community")
 		},
 		{
@@ -77709,6 +77744,746 @@ var GlobalAppConfigControl = ({ language }) => {
 	});
 };
 //#endregion
+//#region src/ai/agentsContract.ts
+var AGENT_ENDPOINTS = {
+	userCopilot: "/api/ai/agent/user-copilot",
+	siteManager: "/api/ai/agent/site-manager",
+	communityAssist: "/api/ai/community/assist"
+};
+//#endregion
+//#region src/ai/agentsClient.ts
+var AgentApiError = class extends Error {
+	status;
+	code;
+	constructor(message, status, code = "agent_error") {
+		super(message);
+		this.name = "AgentApiError";
+		this.status = status;
+		this.code = code;
+	}
+};
+async function postAgentJson(endpoint, payload, signal) {
+	const res = await fetch(endpoint, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify(payload),
+		signal
+	});
+	const data = await res.json().catch(() => ({}));
+	if (!res.ok) throw new AgentApiError(data?.error?.message || `AI service unavailable (HTTP ${res.status}). Ensure GEMINI_API_KEY is configured on the server.`, res.status, data?.error?.code || "agent_error");
+	return data;
+}
+function askUserCopilot(request, signal) {
+	return postAgentJson(AGENT_ENDPOINTS.userCopilot, request, signal);
+}
+function runSiteManagerAgent(request, signal) {
+	return postAgentJson(AGENT_ENDPOINTS.siteManager, request, signal);
+}
+function runCommunityAssist(request, signal) {
+	return postAgentJson(AGENT_ENDPOINTS.communityAssist, request, signal);
+}
+//#endregion
+//#region src/ai/telemetryStore.ts
+var INSCO_TELEMETRY_EVENT = "insco:telemetry-updated";
+var INSCO_APPLY_POST_DRAFT_EVENT = "insco:apply-post-draft";
+var INSCO_OPEN_AI_DOCK_EVENT = "insco:open-ai-dock";
+function defaultTelemetry() {
+	const localWf = getLocalWorkforceSnapshot();
+	const outsideLogs = localWf.logs.filter((l) => l.geofenceStatus === "outside_geofence");
+	return {
+		totalRequests: 0,
+		newRequests: 0,
+		urgentRequests: 0,
+		totalCompanies: 1,
+		activeTestingCompanies: localWf.company.hasActiveTestingDossier ? 1 : 0,
+		pendingAccounts: 0,
+		geofenceAlertCount: outsideLogs.length,
+		recentGeofenceAlerts: outsideLogs.slice(0, 6).map((l) => ({
+			employeeName: l.employeeName,
+			companyCode: l.companyCode,
+			distanceMeters: l.distanceFromSiteMeters,
+			radiusMeters: l.geofenceRadiusMeters,
+			timestampIso: l.timestampIso
+		})),
+		communityPostsCount: 0,
+		communityMembersCount: 0,
+		opportunitiesCount: 0,
+		recentPosts: [],
+		currentRoute: typeof window !== "undefined" ? window.location.hash || "#company" : "#company"
+	};
+}
+var currentTelemetry = defaultTelemetry();
+var listeners = /* @__PURE__ */ new Set();
+function getSiteTelemetrySnapshot() {
+	return {
+		...currentTelemetry,
+		currentRoute: typeof window !== "undefined" ? window.location.hash || currentTelemetry.currentRoute || "#company" : currentTelemetry.currentRoute
+	};
+}
+function publishSiteTelemetrySnapshot(partial) {
+	currentTelemetry = {
+		...getSiteTelemetrySnapshot(),
+		...partial
+	};
+	listeners.forEach((cb) => cb(currentTelemetry));
+	if (typeof window !== "undefined" && typeof CustomEvent !== "undefined") window.dispatchEvent(new CustomEvent(INSCO_TELEMETRY_EVENT, { detail: currentTelemetry }));
+}
+function subscribeSiteTelemetry(listener) {
+	listeners.add(listener);
+	return () => {
+		listeners.delete(listener);
+	};
+}
+function dispatchApplyPostDraft(detail) {
+	try {
+		if (typeof sessionStorage !== "undefined") sessionStorage.setItem("insco_pending_post_draft_v1", JSON.stringify(detail));
+	} catch {}
+	if (typeof window !== "undefined" && typeof CustomEvent !== "undefined") window.dispatchEvent(new CustomEvent(INSCO_APPLY_POST_DRAFT_EVENT, { detail }));
+}
+function consumePendingPostDraft() {
+	try {
+		if (typeof sessionStorage === "undefined") return null;
+		const raw = sessionStorage.getItem("insco_pending_post_draft_v1");
+		if (!raw) return null;
+		sessionStorage.removeItem("insco_pending_post_draft_v1");
+		return JSON.parse(raw);
+	} catch {
+		return null;
+	}
+}
+function dispatchOpenAiDock(detail) {
+	if (typeof window !== "undefined" && typeof CustomEvent !== "undefined") window.dispatchEvent(new CustomEvent(INSCO_OPEN_AI_DOCK_EVENT, { detail }));
+}
+//#endregion
+//#region src/components/ai/InscoDualAiDock.tsx
+var InscoDualAiDock = ({ language, portal, section, onOpenCompany, onOpenClient, onOpenAcademy }) => {
+	const isAr = language === "ar";
+	const [open, setOpen] = (0, import_react.useState)(false);
+	const [activeAgent, setActiveAgent] = (0, import_react.useState)("copilot");
+	const [copilotMode, setCopilotMode] = (0, import_react.useState)("assistant");
+	const [copilotInput, setCopilotInput] = (0, import_react.useState)("");
+	const [copilotLoading, setCopilotLoading] = (0, import_react.useState)(false);
+	const [copilotError, setCopilotError] = (0, import_react.useState)(null);
+	const [turns, setTurns] = (0, import_react.useState)([]);
+	const [telemetry, setTelemetry] = (0, import_react.useState)(() => getSiteTelemetrySnapshot());
+	const [managerMode, setManagerMode] = (0, import_react.useState)("executive_audit");
+	const [managerInstruction, setManagerInstruction] = (0, import_react.useState)("");
+	const [managerLoading, setManagerLoading] = (0, import_react.useState)(false);
+	const [managerError, setManagerError] = (0, import_react.useState)(null);
+	const [managerResult, setManagerResult] = (0, import_react.useState)(null);
+	const [copiedNotice, setCopiedNotice] = (0, import_react.useState)(false);
+	useEscapeKey(open, () => setOpen(false));
+	(0, import_react.useEffect)(() => {
+		return subscribeSiteTelemetry(setTelemetry);
+	}, []);
+	(0, import_react.useEffect)(() => {
+		const handler = (ev) => {
+			const custom = ev;
+			setOpen(true);
+			if (custom.detail?.agent) setActiveAgent(custom.detail.agent);
+			if (custom.detail?.prompt) setCopilotInput(custom.detail.prompt);
+			setTelemetry(getSiteTelemetrySnapshot());
+		};
+		window.addEventListener(INSCO_OPEN_AI_DOCK_EVENT, handler);
+		return () => window.removeEventListener(INSCO_OPEN_AI_DOCK_EVENT, handler);
+	}, []);
+	const executeCopilotAction = (action, draft) => {
+		if (action.actionType === "apply_post_draft" && draft) {
+			dispatchApplyPostDraft({
+				postType: draft.postType,
+				ndtMethod: draft.ndtMethod,
+				title: draft.title,
+				body: draft.body,
+				tags: draft.tags
+			});
+			onOpenClient("community");
+			setOpen(false);
+			return;
+		}
+		if (action.actionType === "open_community") {
+			onOpenClient("community");
+			setOpen(false);
+			return;
+		}
+		if (action.actionType === "open_rfq") {
+			onOpenCompany("rfq");
+			setOpen(false);
+			return;
+		}
+		if (action.actionType === "open_ar_lab") {
+			onOpenAcademy("sim_labs_ar");
+			setOpen(false);
+			return;
+		}
+		if (action.actionType === "navigate" && action.target) {
+			const t = action.target.toLowerCase();
+			if (t.includes("community")) onOpenClient("community");
+			else if (t.includes("timeclock")) onOpenClient("timeclock");
+			else if (t.includes("companies")) onOpenClient("companies");
+			else if (t.includes("requests")) onOpenClient("requests");
+			else if (t.includes("sim_labs_ar") || t.includes("ar")) onOpenAcademy("sim_labs_ar");
+			else if (t.includes("academy")) onOpenAcademy();
+			else if (t.includes("rfq")) onOpenCompany("rfq");
+			else onOpenCompany();
+			setOpen(false);
+		}
+	};
+	const sendCopilotPrompt = async (overrideMsg, overrideMode) => {
+		const text = (overrideMsg ?? copilotInput).trim();
+		const modeToUse = overrideMode ?? copilotMode;
+		if (text.length < 2 || copilotLoading) return;
+		setCopilotError(null);
+		const nextHistory = turns.slice(-8).map((t) => ({
+			role: t.role,
+			content: t.content
+		}));
+		setTurns((prev) => [...prev, {
+			role: "user",
+			content: text
+		}]);
+		if (!overrideMsg) setCopilotInput("");
+		setCopilotLoading(true);
+		try {
+			const res = await askUserCopilot({
+				message: text,
+				history: nextHistory,
+				language,
+				mode: modeToUse,
+				context: {
+					portal,
+					section,
+					feedPreview: telemetry.recentPosts.slice(0, 5).map((p) => ({
+						id: p.id,
+						title: p.title,
+						ndtMethod: p.ndtMethod,
+						excerpt: p.excerpt
+					}))
+				}
+			});
+			setTurns((prev) => [...prev, {
+				role: "assistant",
+				content: res.reply,
+				actions: res.suggestedActions,
+				draftPost: res.draftPost
+			}]);
+		} catch (err) {
+			const msg = err instanceof AgentApiError ? err.message : err instanceof Error ? err.message : String(err);
+			setCopilotError(msg);
+		} finally {
+			setCopilotLoading(false);
+		}
+	};
+	const triggerSiteManager = async (overrideMode, customText) => {
+		if (managerLoading) return;
+		const modeToRun = overrideMode ?? managerMode;
+		const latestTelemetry = getSiteTelemetrySnapshot();
+		setTelemetry(latestTelemetry);
+		setManagerMode(modeToRun);
+		setManagerError(null);
+		setManagerLoading(true);
+		try {
+			const defaultInstructions = {
+				executive_audit: {
+					ar: "أجرِ مراجعة شاملة لأداء الموقع، طلبات العملاء، تنبيهات الجيوفينس الميدانية، ونشاط مجتمع INSCO.",
+					en: "Perform a full operational audit across site telemetry, client requests, geofence alerts, and INSCO Community."
+				},
+				moderate_community: {
+					ar: "راجع منشورات مجتمع INSCO المرفقة وحدد المنشورات التي تستحق التثبيت أو تحتاج مراجعة إدارية.",
+					en: "Moderate INSCO Community posts, flagging any off-topic/low-quality posts or highlighting valuable technical cases."
+				},
+				geofence_brief: {
+					ar: "حلل تنبيهات الدخول خارج نطاق المشروع (Geofencing Alerts) وقدّم توصيات للمشرفين.",
+					en: "Analyze recent outside_geofence attendance alerts and recommend field supervisor actions."
+				},
+				triage_requests: {
+					ar: "رتّب أولويات طلبات العملاء الجديدة والعاجلة واقترح خطوات التعيين والتنفيذ.",
+					en: "Triage new and urgent client requests and recommend assignment steps."
+				},
+				draft_announcement: {
+					ar: "اكتب مسودة إعلان رسمي احترافي من إدارة INSCO للمجتمع الهندسي.",
+					en: "Draft an official INSCO Management announcement for the engineering community."
+				},
+				custom: {
+					ar: managerInstruction.trim() || "قدم ملخصاً تنفيذياً لإدارة الموقع.",
+					en: managerInstruction.trim() || "Provide an executive operations brief."
+				}
+			};
+			const res = await runSiteManagerAgent({
+				instruction: (customText ?? managerInstruction).trim() || defaultInstructions[modeToRun][isAr ? "ar" : "en"],
+				language,
+				mode: modeToRun,
+				telemetry: latestTelemetry
+			});
+			setManagerResult(res);
+		} catch (err) {
+			const msg = err instanceof AgentApiError ? err.message : err instanceof Error ? err.message : String(err);
+			setManagerError(msg);
+		} finally {
+			setManagerLoading(false);
+		}
+	};
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+		type: "button",
+		"data-testid": "insco-dual-ai-launcher",
+		onClick: () => {
+			setTelemetry(getSiteTelemetrySnapshot());
+			setOpen(true);
+		},
+		className: "fixed bottom-16 xl:bottom-5 end-4 sm:end-6 z-40 inline-flex items-center gap-2 rounded-xl border border-cyan-400/50 bg-slate-900/95 hover:bg-slate-800 px-3.5 py-2.5 text-xs font-black text-white shadow-xl backdrop-blur cursor-pointer",
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Sparkles, {
+			className: "w-4 h-4 text-cyan-400",
+			"aria-hidden": "true"
+		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "وكلاء INSCO الذكية (AI)" : "INSCO AI Agents" })]
+	}), open && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "fixed inset-0 z-[85] flex justify-end",
+		role: "presentation",
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+			type: "button",
+			tabIndex: -1,
+			"aria-label": isAr ? "إغلاق لوحة الوكلاء الذكية" : "Close AI Agents panel",
+			onClick: () => setOpen(false),
+			className: "absolute inset-0 bg-slate-950/75 backdrop-blur-sm cursor-default"
+		}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+			role: "dialog",
+			"aria-modal": "true",
+			"aria-label": isAr ? "وكلاء الذكاء الاصطناعي لإدارة الموقع ومساعدة المستخدمين" : "INSCO Dual Professional AI Agents",
+			dir: isAr ? "rtl" : "ltr",
+			"data-testid": "insco-dual-ai-drawer",
+			className: "relative z-10 w-full max-w-xl h-full bg-slate-950 border-s border-slate-800 shadow-2xl flex flex-col",
+			children: [
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "p-4 border-b border-slate-800 space-y-3",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "flex items-center justify-between gap-3",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex items-center gap-2",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bot, {
+								className: "w-5 h-5 text-cyan-400",
+								"aria-hidden": "true"
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
+								className: "text-sm font-black text-white",
+								children: isAr ? "مركز وكلاء INSCO الذكية (Gemini AI)" : "INSCO Dual AI Command"
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								className: "text-[11px] text-slate-400",
+								children: isAr ? "وكيل إدارة الموقع والعمليات · والمساعد الشامل للمستخدمين" : "Site Manager Director AI · Universal User Copilot AI"
+							})] })]
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+							type: "button",
+							onClick: () => setOpen(false),
+							"aria-label": isAr ? "إغلاق" : "Close",
+							className: "p-1.5 rounded-lg border border-slate-700 text-slate-300 hover:text-white cursor-pointer",
+							children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(X$2, { className: "w-4 h-4" })
+						})]
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "grid grid-cols-2 gap-2",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+							type: "button",
+							"data-testid": "ai-tab-copilot",
+							onClick: () => setActiveAgent("copilot"),
+							className: `flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-black transition cursor-pointer ${activeAgent === "copilot" ? "bg-cyan-600 text-white" : "border border-slate-800 bg-slate-900 text-slate-300 hover:text-white"}`,
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Users, {
+								className: "w-3.5 h-3.5",
+								"aria-hidden": "true"
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "المساعد الشامل للمستخدم" : "User Copilot AI" })]
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+							type: "button",
+							"data-testid": "ai-tab-manager",
+							onClick: () => {
+								setTelemetry(getSiteTelemetrySnapshot());
+								setActiveAgent("manager");
+							},
+							className: `flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-black transition cursor-pointer ${activeAgent === "manager" ? "bg-amber-500 text-slate-950" : "border border-slate-800 bg-slate-900 text-slate-300 hover:text-white"}`,
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ShieldAlert, {
+								className: "w-3.5 h-3.5",
+								"aria-hidden": "true"
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "وكيل إدارة الموقع" : "Site Manager AI" })]
+						})]
+					})]
+				}),
+				activeAgent === "copilot" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "flex-1 flex flex-col min-h-0",
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+							className: "px-4 py-2.5 border-b border-slate-800/80 flex flex-wrap gap-1.5",
+							children: [
+								{
+									mode: "draft_post",
+									ar: "مسودة منشور مجتمع",
+									en: "Draft Community Post",
+									promptAr: "اكتب مسودة منشور تقني احترافي لمجتمع INSCO حول فحص وصلات الضغط العالي بـ PAUT و RT.",
+									promptEn: "Draft a professional technical post for INSCO Community on PAUT & RT high-pressure weld inspection."
+								},
+								{
+									mode: "ndt_selector",
+									ar: "اختيار طريقة NDT",
+									en: "Select NDT Method",
+									promptAr: "ما أنسب تقنية فحص NDT (RT مقابل UT مقابل PAUT) لمواسير سماكة 24 مم كربون ستيل؟",
+									promptEn: "Recommend the best NDT method (RT vs UT vs PAUT) for 24mm carbon steel process piping."
+								},
+								{
+									mode: "rfq_draft",
+									ar: "تجهيز طلب عرض سعر",
+									en: "Prepare RFQ Scope",
+									promptAr: "ساعدني في صياغة نطاق عمل RFQ واضح لفحص خطوط أنابيب ومعالجة حرارية PWHT.",
+									promptEn: "Help me prepare a clear RFQ scope for pipeline NDT and 65kW PWHT services."
+								},
+								{
+									mode: "navigate",
+									ar: "شرح معامل AR وتوجيهي",
+									en: "Explain AR & Navigate",
+									promptAr: "اشرح لي كيفية استخدام محاكي الواقع المعزز AR لتصوير RT وفحص UT ووجهني إليه.",
+									promptEn: "Explain how to use the Live Camera AR RT & UT simulator and take me there."
+								}
+							].map((q) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+								type: "button",
+								onClick: () => {
+									setCopilotMode(q.mode);
+									sendCopilotPrompt(isAr ? q.promptAr : q.promptEn, q.mode);
+								},
+								className: "rounded-lg border border-slate-800 bg-slate-900 hover:border-cyan-400 px-2.5 py-1 text-[11px] font-semibold text-cyan-300 cursor-pointer",
+								children: isAr ? q.ar : q.en
+							}, q.mode))
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex-1 overflow-y-auto p-4 space-y-3",
+							children: [
+								turns.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-2 text-xs text-slate-300",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "font-black text-white flex items-center gap-1.5",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Compass, {
+											className: "w-4 h-4 text-cyan-400",
+											"aria-hidden": "true"
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "أهلاً بك! أنا مساعد INSCO الذكي الشامل" : "Welcome! I am the INSCO Universal Copilot" })]
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+										className: "leading-relaxed text-slate-400",
+										children: isAr ? "اسألني عن أي شيء: صياغة منشورات مجتمع INSCO، اختيار تكنيكات الفحص RT/UT/PAUT/PWHT، تجهيز طلبات عروض الأسعار، فهم محاكي AR، أو التنقل السريع داخل الموقع." : "Ask anything: craft INSCO Community posts, pick RT/UT/PAUT/PWHT codes, prepare RFQs, interpret AR overlays, or jump directly to any module."
+									})]
+								}),
+								turns.map((turn, idx) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: `rounded-xl p-3 text-xs space-y-2 ${turn.role === "user" ? "bg-cyan-950/50 border border-cyan-500/30 text-white ms-6" : "bg-slate-900/85 border border-slate-800 text-slate-200 me-4"}`,
+									children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+											className: "whitespace-pre-line leading-relaxed",
+											children: turn.content
+										}),
+										turn.draftPost && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+											className: "rounded-lg border border-emerald-500/35 bg-slate-950/85 p-3 space-y-1.5",
+											children: [
+												/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+													className: "text-[11px] font-mono text-emerald-400 font-bold",
+													children: [
+														turn.draftPost.postType,
+														" · ",
+														turn.draftPost.ndtMethod
+													]
+												}),
+												/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+													className: "font-black text-white",
+													children: turn.draftPost.title
+												}),
+												/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+													className: "text-[11px] text-slate-300 line-clamp-3",
+													children: turn.draftPost.body
+												}),
+												/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+													type: "button",
+													onClick: () => {
+														dispatchApplyPostDraft({
+															postType: turn.draftPost.postType,
+															ndtMethod: turn.draftPost.ndtMethod,
+															title: turn.draftPost.title,
+															body: turn.draftPost.body,
+															tags: turn.draftPost.tags
+														});
+														onOpenClient("community");
+														setOpen(false);
+													},
+													className: "inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 text-[11px] font-bold text-white cursor-pointer",
+													children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FileCheck2, {
+														className: "w-3.5 h-3.5",
+														"aria-hidden": "true"
+													}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "إدراج المسودة في مجتمع INSCO" : "Insert Draft into Community" })]
+												})
+											]
+										}),
+										turn.actions && turn.actions.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+											className: "flex flex-wrap gap-1.5 pt-1",
+											children: turn.actions.map((act, aIdx) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+												type: "button",
+												onClick: () => executeCopilotAction(act, turn.draftPost),
+												className: "rounded-lg border border-cyan-500/40 bg-cyan-500/10 hover:bg-cyan-500/20 px-2.5 py-1 text-[11px] font-bold text-cyan-300 cursor-pointer",
+												children: act.label
+											}, aIdx))
+										})
+									]
+								}, idx)),
+								copilotError && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									role: "alert",
+									className: "rounded-lg border border-rose-500/40 bg-rose-500/10 p-3 text-xs text-rose-300 flex items-start gap-2",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TriangleAlert, { className: "w-4 h-4 shrink-0 mt-0.5" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: copilotError })]
+								})
+							]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
+							onSubmit: (e) => {
+								e.preventDefault();
+								sendCopilotPrompt();
+							},
+							className: "p-3 border-t border-slate-800 flex items-center gap-2",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+								type: "text",
+								value: copilotInput,
+								onChange: (e) => setCopilotInput(e.target.value),
+								placeholder: isAr ? "اسأل المساعد الذكي أو اطلب صياغة منشور / فحص..." : "Ask User Copilot anything across INSCO...",
+								className: "flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-white"
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+								type: "submit",
+								disabled: copilotLoading || copilotInput.trim().length < 2,
+								className: "inline-flex items-center gap-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-45 px-3.5 py-2 text-xs font-black text-white cursor-pointer",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Send, {
+									className: "w-3.5 h-3.5",
+									"aria-hidden": "true"
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: copilotLoading ? isAr ? "جاري..." : "Wait..." : isAr ? "إرسال" : "Send" })]
+							})]
+						})
+					]
+				}),
+				activeAgent === "manager" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "flex-1 flex flex-col min-h-0 overflow-y-auto p-4 space-y-4",
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "grid grid-cols-4 gap-2 text-center",
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "rounded-lg border border-slate-800 bg-slate-900 p-2",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+										className: "text-sm font-black text-white font-mono tabular-nums",
+										children: telemetry.totalRequests
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+										className: "text-[10px] text-slate-400",
+										children: isAr ? "الطلبات" : "Requests"
+									})]
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "rounded-lg border border-slate-800 bg-slate-900 p-2",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+										className: "text-sm font-black text-cyan-400 font-mono tabular-nums",
+										children: telemetry.totalCompanies
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+										className: "text-[10px] text-slate-400",
+										children: isAr ? "الشركات" : "Companies"
+									})]
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "rounded-lg border border-slate-800 bg-slate-900 p-2",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+										className: "text-sm font-black text-rose-400 font-mono tabular-nums",
+										children: telemetry.geofenceAlertCount
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+										className: "text-[10px] text-slate-400",
+										children: isAr ? "تنبيه نطاق" : "Geofence"
+									})]
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "rounded-lg border border-slate-800 bg-slate-900 p-2",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+										className: "text-sm font-black text-emerald-400 font-mono tabular-nums",
+										children: telemetry.communityPostsCount
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+										className: "text-[10px] text-slate-400",
+										children: isAr ? "المنشورات" : "Posts"
+									})]
+								})
+							]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+							className: "grid grid-cols-2 sm:grid-cols-3 gap-2",
+							children: [
+								{
+									id: "executive_audit",
+									ar: "مراجعة شاملة للموقع",
+									en: "Full Site Audit"
+								},
+								{
+									id: "moderate_community",
+									ar: "مراجعة وإشراف المجتمع",
+									en: "Moderate Community"
+								},
+								{
+									id: "geofence_brief",
+									ar: "تحليل تنبيهات الجيوفينس",
+									en: "Geofence Brief"
+								},
+								{
+									id: "triage_requests",
+									ar: "فرز طلبات العملاء",
+									en: "Triage Requests"
+								},
+								{
+									id: "draft_announcement",
+									ar: "صياغة إعلان رسمي",
+									en: "Draft Announcement"
+								}
+							].map((m) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+								type: "button",
+								disabled: managerLoading,
+								onClick: () => void triggerSiteManager(m.id),
+								className: `rounded-lg border px-2.5 py-2 text-[11px] font-bold transition cursor-pointer ${managerMode === m.id ? "border-amber-400 bg-amber-500/20 text-amber-300" : "border-slate-800 bg-slate-900 text-slate-200 hover:border-amber-400/60"}`,
+								children: isAr ? m.ar : m.en
+							}, m.id))
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
+							onSubmit: (e) => {
+								e.preventDefault();
+								triggerSiteManager("custom", managerInstruction);
+							},
+							className: "flex items-center gap-2",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+								type: "text",
+								value: managerInstruction,
+								onChange: (e) => setManagerInstruction(e.target.value),
+								placeholder: isAr ? "توجيه مخصص لوكيل إدارة الموقع..." : "Custom executive directive for Site Manager AI...",
+								className: "flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-white"
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+								type: "submit",
+								disabled: managerLoading,
+								className: "rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 px-3.5 py-2 text-xs font-black text-slate-950 cursor-pointer whitespace-nowrap",
+								children: managerLoading ? isAr ? "جاري التحليل..." : "Analyzing..." : isAr ? "تنفيذ" : "Run"
+							})]
+						}),
+						managerError && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							role: "alert",
+							className: "rounded-lg border border-rose-500/40 bg-rose-500/10 p-3 text-xs text-rose-300 flex items-start gap-2",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TriangleAlert, { className: "w-4 h-4 shrink-0 mt-0.5" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: managerError })]
+						}),
+						managerResult && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							"data-testid": "site-manager-result",
+							className: "space-y-3",
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "rounded-xl border border-slate-800 bg-slate-900/80 p-4 space-y-2",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "flex items-center justify-between gap-2 text-xs",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+											className: "font-black text-amber-300",
+											children: isAr ? "التقرير التنفيذي" : "Executive Brief"
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+											className: "font-mono text-[11px] font-bold text-emerald-400",
+											children: [
+												managerResult.healthStatus,
+												" · ",
+												managerResult.model
+											]
+										})]
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+										className: "text-xs text-slate-200 leading-relaxed whitespace-pre-line",
+										children: managerResult.summary
+									})]
+								}),
+								managerResult.priorityActions.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "space-y-2",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+										className: "text-xs font-black text-white",
+										children: isAr ? "الإجراءات ذات الأولوية" : "Priority Actions"
+									}), managerResult.priorityActions.map((act, idx) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "rounded-lg border border-slate-800 bg-slate-900/70 p-3 space-y-1.5 text-xs",
+										children: [
+											/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+												className: "flex items-center justify-between gap-2",
+												children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+													className: "font-bold text-white",
+													children: act.title
+												}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+													className: "font-mono text-[10px] uppercase text-amber-400",
+													children: act.severity
+												})]
+											}),
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+												className: "text-slate-300 text-[11px]",
+												children: act.detail
+											}),
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+												type: "button",
+												onClick: () => {
+													if (act.actionType === "open_requests") onOpenClient("requests");
+													else if (act.actionType === "open_timeclock") onOpenClient("timeclock");
+													else if (act.actionType === "open_community" || act.actionType === "publish_announcement") onOpenClient("community");
+													setOpen(false);
+												},
+												className: "text-[11px] font-bold text-cyan-400 hover:underline cursor-pointer",
+												children: isAr ? "الانتقال للقسم المعني ←" : "Go to target section →"
+											})
+										]
+									}, idx))]
+								}),
+								managerResult.flaggedPostIds.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "rounded-lg border border-rose-500/40 bg-rose-500/10 p-3 text-xs text-rose-200",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+										className: "font-bold",
+										children: isAr ? "منشورات مرشحة للمراجعة الإدارية: " : "Flagged Post IDs: "
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+										className: "font-mono",
+										children: managerResult.flaggedPostIds.join(", ")
+									})]
+								}),
+								managerResult.announcementDraft && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "rounded-xl border border-emerald-500/40 bg-slate-900 p-3.5 space-y-2 text-xs",
+									children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+											className: "flex items-center justify-between gap-2",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+												className: "font-black text-emerald-300",
+												children: managerResult.announcementDraft.title
+											}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+												type: "button",
+												onClick: () => {
+													const draftText = `${managerResult.announcementDraft.title}\n\n${managerResult.announcementDraft.body}`;
+													navigator.clipboard?.writeText(draftText);
+													setCopiedNotice(true);
+													window.setTimeout(() => setCopiedNotice(false), 2e3);
+												},
+												className: "inline-flex items-center gap-1 rounded border border-slate-700 px-2 py-1 text-[10px] text-slate-200 cursor-pointer",
+												children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Copy, {
+													className: "w-3 h-3",
+													"aria-hidden": "true"
+												}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: copiedNotice ? isAr ? "تم النسخ" : "Copied" : isAr ? "نسخ" : "Copy" })]
+											})]
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+											className: "text-slate-300 whitespace-pre-line text-[11px]",
+											children: managerResult.announcementDraft.body
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+											type: "button",
+											onClick: () => {
+												dispatchApplyPostDraft({
+													postType: "discussion",
+													ndtMethod: managerResult.announcementDraft.ndtMethod || "GENERAL",
+													title: managerResult.announcementDraft.title,
+													body: managerResult.announcementDraft.body,
+													tags: ["INSCO", "Management"]
+												});
+												onOpenClient("community");
+												setOpen(false);
+											},
+											className: "inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 text-[11px] font-bold text-white cursor-pointer",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FileCheck2, {
+												className: "w-3.5 h-3.5",
+												"aria-hidden": "true"
+											}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "فتح في محرر منشورات المجتمع" : "Open in Community Composer" })]
+										})
+									]
+								})
+							]
+						})
+					]
+				})
+			]
+		})]
+	})] });
+};
+//#endregion
 //#region src/academyTabs.ts
 /**
 * The academy tab list, in its own module.
@@ -78351,10 +79126,10 @@ function shouldOfferPortalChooser({ choice, hasAcademyHash, hasClientHash = fals
 }
 //#endregion
 //#region src/App.tsx
-var AcademyContent = import_react.lazy(() => __vitePreload(() => import("./AcademyContent-BBfCepQU.js").then((module) => ({ default: module.AcademyContent })), __vite__mapDeps([5,1,6,7,8,9,10,11,12,2])));
-var CompanyDemoPortal = import_react.lazy(() => __vitePreload(() => import("./CompanyDemoPortal-CXoUUiRc.js").then((module) => ({ default: module.CompanyDemoPortal })), __vite__mapDeps([13,1,6,7,8])));
-var ClientPortal = import_react.lazy(() => __vitePreload(() => import("./ClientPortal-CL1ci0fT.js").then((module) => ({ default: module.ClientPortal })), __vite__mapDeps([14,1,7,9,15,11])));
-var AdminPortal = import_react.lazy(() => __vitePreload(() => import("./AdminPortal-BOF8nCj_.js"), __vite__mapDeps([16,1,10,8,15,11])));
+var AcademyContent = import_react.lazy(() => __vitePreload(() => import("./AcademyContent-BLJVCkah.js").then((module) => ({ default: module.AcademyContent })), __vite__mapDeps([9,1,2,6,10,11,12,13,14,15,16,3,4])));
+var CompanyDemoPortal = import_react.lazy(() => __vitePreload(() => import("./CompanyDemoPortal-BPveqCh-.js").then((module) => ({ default: module.CompanyDemoPortal })), __vite__mapDeps([17,1,2,6,10,11,12])));
+var ClientPortal = import_react.lazy(() => __vitePreload(() => import("./ClientPortal-DNYHOy7J.js").then((module) => ({ default: module.ClientPortal })), __vite__mapDeps([18,1,2,6,11,14,19,15])));
+var AdminPortal = import_react.lazy(() => __vitePreload(() => import("./AdminPortal--TFu4cKs.js"), __vite__mapDeps([20,1,2,6,13,12,19,15])));
 function AcademyLoading({ isAr }) {
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 		role: "status",
@@ -78683,8 +79458,8 @@ var App = () => {
 		},
 		{
 			id: "community",
-			ar: "مجتمع الأعمال",
-			en: "Community"
+			ar: "مجتمع INSCO",
+			en: "INSCO Community"
 		},
 		{
 			id: "register",
@@ -78808,7 +79583,8 @@ var App = () => {
 						language,
 						portal,
 						trail,
-						onSwitchPortal: openPortal
+						onSwitchPortal: openPortal,
+						onOpenCommunity: () => openClient("community")
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("header", {
 						className: `border-b backdrop-blur-md transition-colors ${portal === "academy" ? isLight ? "border-slate-200 bg-white/95" : "border-amber-500/20 bg-[#0b0c1c]/95" : portal === "client" ? isLight ? "border-slate-200 bg-white/95" : "border-emerald-500/25 bg-slate-950/95" : isLight ? "border-slate-200 bg-white/95" : "border-slate-800 bg-slate-950/95"}`,
@@ -79082,6 +79858,14 @@ var App = () => {
 						})]
 					})]
 				})
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(InscoDualAiDock, {
+				language,
+				portal,
+				section: route.portal === "client" ? route.section : route.portal === "academy" && route.page === "section" ? route.section : route.portal === "company" ? route.page : void 0,
+				onOpenCompany: (sectionId) => openCompany(sectionId),
+				onOpenClient: (sec) => openClient(sec),
+				onOpenAcademy: (tab) => openAcademy(tab)
 			})
 		]
 	});
@@ -79102,4 +79886,4 @@ if (typeof window !== "undefined") {
 var container = document.getElementById("root");
 if (container) (0, import_client.createRoot)(container).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_react.StrictMode, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(App, {}) }));
 //#endregion
-export { updateCompanyRecord as $, ArrowLeft as $n, Sun as $t, isVerifiedAdminUser as A, FileCheck as An, string_default as At, signInClientPortalWithEmail as B, CircleCheck as Bn, ADMIN_HASH as Bt, createCompanyWithUniqueCode as C, KeyRound as Cn, normalizeUnitSystem as Ct, formatFirebaseAuthError as D, Flame as Dn, ENGINEERING_DISCIPLINES as Dt, detectUserAuthMethod as E, FlaskConical as En, useDefaultUnitSystem as Et, resendClientVerificationEmail as F, Download as Fn, Selection$1 as Ft, subscribeClientRequests as G, Calendar as Gn, require_jsx_runtime as Gt, signOutClientPortal as H, ChevronLeft as Hn, isAdminPassword as Ht, saveClientRegistration as I, Crosshair as In, root as It, subscribeCompanyAttendance as J, BriefcaseBusiness as Jn, Wrench as Jt, subscribeCommunityWorkspaces as K, Calculator as Kn, Zap as Kt, savePendingRegistrationDraft as L, Copy as Ln, range as Lt, loadPendingRegistrationDraft as M, Eye as Mn, rgb_default as Mt, observeClientPortalAuth as N, ExternalLink as Nn, constant_default as Nt, initializeStarterCompaniesArchive as O, Film as On, WORKSHOP_LABS as Ot, recordEmployeeAttendance as P, Earth as Pn, color$1 as Pt, subscribeMyCommunityWorkspace as Q, ArrowRight as Qn, Thermometer as Qt, sendClientPasswordReset as R, Compass as Rn, externalAdminLink as Rt, createCompanyReport as S, Layers as Sn, GE_APP_UNIT_OVERRIDE_KEY as St, deleteCompanyReport as T, FolderOpen as Tn, resolveCalculatorInitialUnitSystem as Tt, signUpClientPortalWithEmail as U, Check as Un, isQuoteStatus as Ut, signInClientPortalWithGoogle as V, ChevronRight as Vn, QUOTE_STATUSES as Vt, subscribeAllClientAccounts as W, Camera as Wn, __vitePreload as Wt, subscribeCompanyReports as X, Award as Xn, Trophy as Xt, subscribeCompanyEmployees as Y, BookOpen as Yn, Users as Yt, subscribeMyClientAccount as Z, ArrowUpRight as Zn, TriangleAlert as Zt, adminApproveAndLinkClientAccount as _, MapPin as _n, sanitizeReportNumber as _t, ACADEMY_SECTION_TABS as a, Ruler as an, formatCoordinates as at, createClientRequest as b, LogIn as bn, _typeof as bt, ACADEMY_TABS as c, Plus as cn, config_exports as ct, CtaButton as d, Pause as dn, drawVectorQrOnPdf as dt, Sparkles as en, Activity as er, updateCompanyReportStatus as et, EmployeeAttendanceTimeline as f, Navigation as fn, exportCompanyQrPassPdf as ft, CompanyQrBadge as g, Map$1 as gn, generateNextReportNumber as gt, clickableRow as h, Megaphone as hn, generateNextCompanyCode as ht, ACADEMY_SECTION_DEFAULT_TAB as i, Search as in, require_react as ir, evaluateGeofence as it, isVerifiedPortalUser as j, FileCheck2 as jn, number_default as jt, isPortalFirestoreReady as k, FileText as kn, useTheme as kt, readAcademyTab as l, Play as ln, db as lt, clickable as m, Menu as mn, generateNextBadgeCode as mt, ACADEMY_SECTIONS as n, ShieldAlert as nn, COMPANY_MEDIA as nr, upsertCommunityWorkspace as nt, academySectionLabel as o, RotateCcw as on, formatDistanceMeters as ot, CompanyQrModal as p, Moon as pn, generateCompanyQrPngDataUrl as pt, subscribeCompanies as q, Building2 as qn, X$2 as qt, ACADEMY_SECTION_COPY as r, Send as rn, require_react_dom as rr, DEFAULT_SITE_COORDS as rt, disciplineHash as s, QrCode as sn, resolveSiteCoordinates as st, AcademyPageHeader as t, ShieldCheck as tn, createLucideIcon as tr, updateEmployeeLiveLocation as tt, NDT_TEXTBOOKS as u, Phone as un, buildCompanyDossierUrl as ut, adminUpdateClientRequest as v, Mail as vn, sanitizeUpperCode as vt, createInitialCompanyFromRegistration as w, GraduationCap as wn, readDefaultUnitSystem as wt, createCompanyEmployee as x, LoaderCircle as xn, DEFAULT_UNIT_SYSTEM_CHANGE_EVENT as xt, clearPendingRegistrationDraft as y, LogOut as yn, E as yt, sendClientPhoneOtp as z, Clock as zn, ADMIN_API as zt };
+export { sendClientPhoneOtp as $, FileCheck2 as $n, number_default as $t, createClientRequest as A, Play as An, config_exports as At, endorseMemberWorkspace as B, Mail as Bn, sanitizeUpperCode as Bt, clickableRow as C, ShieldAlert as Cn, ArrowLeft as Cr, updateEmployeeLiveLocation as Ct, adminUpdateClientRequest as D, RotateCcw as Dn, formatCoordinates as Dt, adminApproveAndLinkClientAccount as E, Ruler as En, require_react_dom as Er, evaluateGeofence as Et, createCompanyWithUniqueCode as F, MessageSquare as Fn, generateCompanyQrPngDataUrl as Ft, isVerifiedPortalUser as G, KeyRound as Gn, normalizeUnitSystem as Gt, initializeStarterCompaniesArchive as H, LogIn as Hn, _typeof as Ht, createInitialCompanyFromRegistration as I, Menu as In, generateNextBadgeCode as It, recordEmployeeAttendance as J, FlaskConical as Jn, useDefaultUnitSystem as Jt, loadPendingRegistrationDraft as K, GraduationCap as Kn, readDefaultUnitSystem as Kt, deleteCommunityPost as L, Megaphone as Ln, generateNextCompanyCode as Lt, createCommunityPost as M, Pause as Mn, buildCompanyDossierUrl as Mt, createCompanyEmployee as N, Navigation as Nn, drawVectorQrOnPdf as Nt, clearPendingRegistrationDraft as O, QrCode as On, formatDistanceMeters as Ot, createCompanyReport as P, Moon as Pn, exportCompanyQrPassPdf as Pt, sendClientPasswordReset as Q, FileCheck as Qn, string_default as Qt, deleteCompanyReport as R, Map$1 as Rn, generateNextReportNumber as Rt, clickable as S, ShieldCheck as Sn, ArrowRight as Sr, updateCompanyReportStatus as St, addCommunityPostComment as T, Search as Tn, COMPANY_MEDIA as Tr, DEFAULT_SITE_COORDS as Tt, isPortalFirestoreReady as U, LoaderCircle as Un, DEFAULT_UNIT_SYSTEM_CHANGE_EVENT as Ut, formatFirebaseAuthError as V, LogOut as Vn, E as Vt, isVerifiedAdminUser as W, Layers as Wn, GE_APP_UNIT_OVERRIDE_KEY as Wt, saveClientRegistration as X, Film as Xn, WORKSHOP_LABS as Xt, resendClientVerificationEmail as Y, Flame as Yn, ENGINEERING_DISCIPLINES as Yt, savePendingRegistrationDraft as Z, FileText as Zn, useTheme as Zt, NDT_TEXTBOOKS as _, Trophy as _n, BriefcaseBusiness as _r, subscribePostComments as _t, ACADEMY_SECTION_TABS as a, range as an, Compass as ar, subscribeAllClientAccounts as at, getLocalWorkforceSnapshot as b, Sun as bn, Award as br, updateCommunityPostModeration as bt, ACADEMY_TABS as c, ADMIN_HASH as cn, ChevronUp as cr, subscribeCommunityPosts as ct, consumePendingPostDraft as d, isQuoteStatus as dn, ChevronDown as dr, subscribeCompanyAttendance as dt, rgb_default as en, ExternalLink as er, setCommunityPostReaction as et, dispatchOpenAiDock as f, __vitePreload as fn, Check as fr, subscribeCompanyEmployees as ft, runSiteManagerAgent as g, Users as gn, Building2 as gr, subscribeMyConnections as gt, runCommunityAssist as h, Wrench as hn, Calculator as hr, subscribeMyCommunityWorkspace as ht, ACADEMY_SECTION_DEFAULT_TAB as i, root as in, Copy as ir, signUpClientPortalWithEmail as it, createCommunityOpportunity as j, Phone as jn, db as jt, connectWithCommunityMember as k, Plus as kn, resolveSiteCoordinates as kt, readAcademyTab as l, QUOTE_STATUSES as ln, ChevronRight as lr, subscribeCommunityWorkspaces as lt, publishSiteTelemetrySnapshot as m, X$2 as mn, Calendar as mr, subscribeMyClientAccount as mt, ACADEMY_SECTIONS as n, color$1 as nn, Download as nr, signInClientPortalWithGoogle as nt, academySectionLabel as o, externalAdminLink as on, Clock as or, subscribeClientRequests as ot, getSiteTelemetrySnapshot as p, Zap as pn, Camera as pr, subscribeCompanyReports as pt, observeClientPortalAuth as q, FolderOpen as qn, resolveCalculatorInitialUnitSystem as qt, ACADEMY_SECTION_COPY as r, Selection$1 as rn, Crosshair as rr, signOutClientPortal as rt, disciplineHash as s, ADMIN_API as sn, CircleCheck as sr, subscribeCommunityOpportunities as st, AcademyPageHeader as t, constant_default as tn, Earth as tr, signInClientPortalWithEmail as tt, INSCO_APPLY_POST_DRAFT_EVENT as u, isAdminPassword as un, ChevronLeft as ur, subscribeCompanies as ut, CtaButton as v, TriangleAlert as vn, Box as vr, subscribePostReactions as vt, CompanyQrBadge as w, Send as wn, Activity as wr, upsertCommunityWorkspace as wt, CompanyQrModal as x, Sparkles as xn, ArrowUpRight as xr, updateCompanyRecord as xt, EmployeeAttendanceTimeline as y, Thermometer as yn, BookOpen as yr, updateCommunityOpportunityStatus as yt, detectUserAuthMethod as z, MapPin as zn, sanitizeReportNumber as zt };

@@ -13011,6 +13011,9 @@ function ra(t, n) {
 	}
 	return t;
 }
+function __PRIVATE_validatePositiveNumber(t, n) {
+	if (n <= 0) throw new e(ta.INVALID_ARGUMENT, `Function ${t}() requires a positive number, but it was: ${n}.`);
+}
 /**
 * @license
 * Copyright 2025 Google LLC
@@ -29277,6 +29280,35 @@ function query(e$1, t, ...n) {
 	const n = t, r = K("orderBy", e);
 	return QueryOrderByConstraint._create(r, n);
 }
+/**
+* A `QueryLimitConstraint` is used to limit the number of documents returned by
+* a Firestore query.
+* `QueryLimitConstraint`s are created by invoking {@link limit} or
+* {@link limitToLast} and can then be passed to {@link (query:1)} to create a new
+* query instance that also contains this `QueryLimitConstraint`.
+*/ var QueryLimitConstraint = class QueryLimitConstraint extends QueryConstraint {
+	/**
+	* @internal
+	*/
+	constructor(e, t, n) {
+		super(), this.type = e, this._limit = t, this._limitType = n;
+	}
+	static _create(e, t, n) {
+		return new QueryLimitConstraint(e, t, n);
+	}
+	_apply(e) {
+		return new Query(e.firestore, e.converter, __PRIVATE_queryWithLimit(e._query, this._limit, this._limitType));
+	}
+};
+/**
+* Creates a {@link QueryLimitConstraint} that only returns the first matching
+* documents.
+*
+* @param limit - The maximum number of items to return.
+* @returns The created {@link QueryLimitConstraint}.
+*/ function limit(e) {
+	return __PRIVATE_validatePositiveNumber("limit", e), QueryLimitConstraint._create("limit", e, "F");
+}
 function __PRIVATE_parseDocumentIdValue(e$1, t, n) {
 	if ("string" == typeof (n = getModularInstance(n))) {
 		if ("" === n) throw new e(ta.INVALID_ARGUMENT, "Invalid query. When querying with documentId(), you must provide a valid document ID, but it was an empty string.");
@@ -29542,6 +29574,31 @@ function updateDoc(e, t, n, ...r) {
 	return executeWrite(s, [o.toMutation(e._key, Precondition.exists(true))]);
 }
 /**
+* Deletes the document referred to by the specified `DocumentReference`.
+*
+* Note that the returned `Promise` does _not_ resolve until the document is
+* successfully deleted from the remote Firestore backend and, similarly, is not
+* rejected until the remote Firestore backend reports an error deleting the given
+* document. So if the client cannot reach the backend (for example, due to being
+* offline) then the returned `Promise` will not resolve for a potentially-long
+* time (for example, until the client has gone back online). That being said,
+* the given data _will_ be immediately deleted from the local cache and will be
+* reflected in future "get" operations as if it had been successfully
+* deleted from the remote Firestore server, a feature of Firestore called
+* "latency compensation". The document will _eventually_ be deleted from the remote
+* Firestore backend once a connection can be established. Therefore, it is
+* usually undesirable to `await` the `Promise` returned from this function
+* because the indefinite amount of time before which the promise resolves or
+* rejects can block application logic unnecessarily.
+*
+* @param reference - A reference to the document to delete.
+* @returns A `Promise` that resolves once the document has been successfully
+* deleted from the backend or rejects once the backend reports an error
+* deleting the document.
+*/ function deleteDoc(e) {
+	return executeWrite(ra(e.firestore, da), [new __PRIVATE_DeleteMutation(e._key, Precondition.none())]);
+}
+/**
 * Add a new document to specified `CollectionReference` with the given data,
 * assigning it a document ID automatically.
 *
@@ -29731,6 +29788,7 @@ var index_esm_exports = /* @__PURE__ */ __exportAll({
 	QueryCompositeFilterConstraint: () => QueryCompositeFilterConstraint,
 	QueryConstraint: () => QueryConstraint,
 	QueryFieldFilterConstraint: () => QueryFieldFilterConstraint,
+	QueryLimitConstraint: () => QueryLimitConstraint,
 	QueryOrderByConstraint: () => QueryOrderByConstraint,
 	QuerySnapshot: () => QuerySnapshot,
 	SnapshotMetadata: () => SnapshotMetadata,
@@ -29738,11 +29796,13 @@ var index_esm_exports = /* @__PURE__ */ __exportAll({
 	_DocumentKey: () => DocumentKey,
 	_cast: () => ra,
 	addDoc: () => addDoc,
+	deleteDoc: () => deleteDoc,
 	doc: () => doc,
 	ensureFirestoreConfigured: () => oa,
 	executeWrite: () => executeWrite,
 	getDocFromServer: () => getDocFromServer,
 	getDocs: () => getDocs,
+	limit: () => limit,
 	onSnapshot: () => onSnapshot,
 	orderBy: () => orderBy,
 	query: () => query,
@@ -29753,4 +29813,4 @@ var index_esm_exports = /* @__PURE__ */ __exportAll({
 	writeBatch: () => writeBatch
 });
 //#endregion
-export { FirebaseError as A, isCloudWorkstation as B, initializeApp as C, Component as D, Logger as E, getDefaultEmulatorHost as F, isReactNative as G, isEmpty$1 as H, getExperimentalSetting as I, querystringDecode as J, pingServer as K, getModularInstance as L, createSubscribe as M, deepEqual as N, Deferred as O, extractQuerystring as P, getUA as R, getApps as S, LogLevel as T, isIE as U, isCloudflareWorker as V, isMobileCordova as W, SDK_VERSION as _, onSnapshot as a, _registerComponent as b, setDoc as c, writeBatch as d, collection as f, serverTimestamp as g, increment as h, getDocs as i, base64Decode as j, ErrorFactory as k, updateDoc as l, getFirestore as m, addDoc as n, orderBy as o, doc as p, querystring as q, getDocFromServer as r, query as s, index_esm_exports as t, where as u, _getProvider as v, registerVersion as w, getApp as x, _isFirebaseServerApp as y, isBrowserExtension as z };
+export { Deferred as A, getUA as B, getApp as C, LogLevel as D, registerVersion as E, deepEqual as F, isIE as G, isCloudWorkstation as H, extractQuerystring as I, pingServer as J, isMobileCordova as K, getDefaultEmulatorHost as L, FirebaseError as M, base64Decode as N, Logger as O, createSubscribe as P, getExperimentalSetting as R, _registerComponent as S, initializeApp as T, isCloudflareWorker as U, isBrowserExtension as V, isEmpty$1 as W, querystringDecode as X, querystring as Y, increment as _, getDocs as a, _getProvider as b, orderBy as c, updateDoc as d, where as f, getFirestore as g, doc as h, getDocFromServer as i, ErrorFactory as j, Component as k, query as l, collection as m, addDoc as n, limit as o, writeBatch as p, isReactNative as q, deleteDoc as r, onSnapshot as s, index_esm_exports as t, setDoc as u, serverTimestamp as v, getApps as w, _isFirebaseServerApp as x, SDK_VERSION as y, getModularInstance as z };

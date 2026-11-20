@@ -1,7 +1,9 @@
 import { a as __toESM } from "./rolldown-runtime-oLLnCvco.js";
-import { Gt as require_jsx_runtime, Mn as Eye, Sn as Layers, ir as require_react } from "./index-CgqKVYxh.js";
-import { B as QuadraticBezierCurve3, C as LineCurve3, D as MathUtils, E as LineSegments, F as PerspectiveCamera, G as ShaderMaterial, H as RingGeometry, J as Sprite, L as PointLight, M as MeshStandardMaterial, O as Mesh, Q as Vector3, R as Points, S as LineBasicMaterial, T as LineLoop, U as SRGBColorSpace, V as Quaternion, W as Scene, X as TorusGeometry, Y as SpriteMaterial, Z as TubeGeometry, _ as GridHelper, a as BufferAttribute, c as CatmullRomCurve3, f as CylinderGeometry, g as FogExp2, i as BoxGeometry, k as MeshBasicMaterial, l as Clock, m as EdgesGeometry, n as WebGLRenderer, o as BufferGeometry, p as DirectionalLight, q as SphereGeometry, s as CanvasTexture, t as PMREMGenerator, u as Color, v as Group, x as Line, y as HemisphereLight, z as PointsMaterial } from "./three.module-5482Nant.js";
-import { n as Box, t as RoomEnvironment } from "./AcademyContent-BBfCepQU.js";
+import { n as require_react, t as require_jsx_runtime } from "./jsx-runtime-CJAQq89J.js";
+import { t as Eye } from "./eye-DyafRkmV.js";
+import { Wn as Layers, vr as Box } from "./index-DH-pY2ys.js";
+import { A as MathUtils, C as Line, D as LineLoop, F as MeshStandardMaterial, G as Quaternion, H as Points, M as MeshBasicMaterial, O as LineSegments, Q as ShaderMaterial, R as PerspectiveCamera, T as LineCurve3, U as PointsMaterial, V as PointLight, W as QuadraticBezierCurve3, X as SRGBColorSpace, Y as RingGeometry, Z as Scene, _ as FogExp2, a as BufferAttribute, at as TorusGeometry, b as HemisphereLight, c as CatmullRomCurve3, ct as Vector3, et as SphereGeometry, h as EdgesGeometry, i as BoxGeometry, j as Mesh, l as Clock, m as DirectionalLight, n as WebGLRenderer, nt as Sprite, o as BufferGeometry, ot as TubeGeometry, p as CylinderGeometry, rt as SpriteMaterial, s as CanvasTexture, t as PMREMGenerator, u as Color, v as GridHelper, w as LineBasicMaterial, y as Group } from "./three.module-KJ9Rnf9y.js";
+import { t as RoomEnvironment } from "./RoomEnvironment-dUxLHW9h.js";
 //#region src/components/academy/virtuallab/UtThreeScene.tsx
 var import_react = /* @__PURE__ */ __toESM(require_react(), 1);
 var import_jsx_runtime = require_jsx_runtime();

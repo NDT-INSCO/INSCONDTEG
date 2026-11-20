@@ -3399,6 +3399,26 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
         const formatLen = (mmVal: number) =>
           unitSystem === 'imperial' ? `${(mmVal / 25.4).toFixed(3)}"` : `${mmVal.toFixed(1)} mm`;
 
+        // Synchronize photon travel speed & stream cadence with active isotope / X-Ray intensity
+        const effectiveIntensityRhm =
+          selectedIsotope.category === 'gamma'
+            ? Math.max(0.2, calcResult.currentLiveActivityCi * selectedIsotope.gammaConstantRhmPerCi)
+            : Math.max(0.5, tubeMa * Math.pow(Math.max(60, tubeKv) / 180, 2) * 3.8);
+        const intensityNorm = Math.max(
+          0,
+          Math.min(1, Math.log10(Math.max(1, effectiveIntensityRhm)) / Math.log10(120))
+        );
+        const photonDurationSec = Number((3.1 - intensityNorm * 2.45).toFixed(2));
+        const streamCycleSec = Number((photonDurationSec * 0.62).toFixed(2));
+        const photonParticleCount = Math.max(4, Math.min(9, Math.round(4 + intensityNorm * 5)));
+        const photonExitOpacity = Number(
+          Math.max(0.22, Math.min(0.92, 0.22 + (beamDecayProfile.exitIntensityPct / 100) * 0.7)).toFixed(2)
+        );
+        const photonAccentColor = selectedIsotope.category === 'xray' ? '#38bdf8' : '#fbbf24';
+        const photonCoreColor = selectedIsotope.category === 'xray' ? '#e0f2fe' : '#fef3c7';
+        const photonTravelDx = filmPlaneX - (sourceCenterX + 6);
+        const photonLanePattern = [0, -0.52, 0.52, -0.24, 0.24, -0.68, 0.68, -0.1, 0.1];
+
         return (
           <div
             data-testid="ge-beam-intensity-decay-overlay"
@@ -3427,7 +3447,7 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                 </p>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 text-[11px] font-mono">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-mono">
                 <div className="px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
                   <span className="block text-[9px] uppercase tracking-wider text-slate-500">
                     {isAr ? 'معامل التوهين μ' : 'Linear μ (Steel)'}
@@ -3450,6 +3470,19 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                   </span>
                   <strong data-testid="ge-beam-decay-exit-pct" className="text-emerald-600 dark:text-emerald-400 tabular-nums">
                     {beamDecayProfile.exitIntensityPct.toFixed(2)}%
+                  </strong>
+                </div>
+                <div
+                  data-testid="ge-beam-photon-sync-hud"
+                  data-photon-duration={photonDurationSec}
+                  data-intensity-rhm={effectiveIntensityRhm.toFixed(2)}
+                  className="px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800"
+                >
+                  <span className="block text-[9px] uppercase tracking-wider text-slate-500">
+                    {isAr ? 'تدفق الفوتونات' : 'Photon Flux Sync'}
+                  </span>
+                  <strong className="text-amber-600 dark:text-amber-400 tabular-nums">
+                    {effectiveIntensityRhm.toFixed(1)} R/h · {photonDurationSec.toFixed(2)}s
                   </strong>
                 </div>
               </div>
@@ -3513,7 +3546,7 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                         <stop
                           key={`${pt.normX}-${idx}`}
                           offset={`${(pt.normX * 100).toFixed(1)}%`}
-                          stopColor="#f59e0b"
+                          stopColor={photonAccentColor}
                           stopOpacity={Math.max(0.06, Math.min(0.52, (pt.intensityPct / 100) * 0.52)).toFixed(3)}
                         />
                       ))}
@@ -3521,13 +3554,13 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
 
                   {/* SFD air-gap beam cone gradient */}
                   <linearGradient id="geSfdConeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#fbbf24" stopOpacity={isTimerRunning ? '0.68' : '0.45'} />
-                    <stop offset="100%" stopColor="#f59e0b" stopOpacity={isTimerRunning ? '0.38' : '0.24'} />
+                    <stop offset="0%" stopColor={photonAccentColor} stopOpacity={isTimerRunning ? '0.68' : '0.45'} />
+                    <stop offset="100%" stopColor={photonAccentColor} stopOpacity={isTimerRunning ? '0.38' : '0.24'} />
                   </linearGradient>
 
                   {/* Under-curve exponential area fill */}
                   <linearGradient id="geDecayAreaGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.34" />
+                    <stop offset="0%" stopColor={photonAccentColor} stopOpacity="0.34" />
                     <stop offset="65%" stopColor="#0ea5e9" stopOpacity="0.14" />
                     <stop offset="100%" stopColor="#020617" stopOpacity="0.02" />
                   </linearGradient>
@@ -3565,11 +3598,17 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                         y1={sourceCenterY}
                         x2={pathLeft}
                         y2={targetY}
-                        stroke="#fbbf24"
+                        stroke={photonAccentColor}
                         strokeWidth={idx === 1 ? '1.8' : '1.1'}
                         strokeDasharray="6 6"
                         opacity={isTimerRunning ? 0.95 : 0.65}
-                        className={idx === 1 ? 'ut-beam-flow' : 'ut-beam-flow-delayed'}
+                        className="rt-photon-beam-flow"
+                        style={
+                          {
+                            '--rt-photon-stream-duration': `${streamCycleSec}s`,
+                            '--rt-photon-delay': `${idx === 1 ? 0 : -(streamCycleSec * 0.45).toFixed(2)}s`
+                          } as React.CSSProperties
+                        }
                       />
                     );
                   })}
@@ -3591,17 +3630,17 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                   cx={sourceCenterX}
                   cy={sourceCenterY}
                   r={isTimerRunning ? '18' : '14'}
-                  fill="#f59e0b"
+                  fill={photonAccentColor}
                   opacity={isTimerRunning ? '0.28' : '0.16'}
                   className={isTimerRunning ? 'ut-beam-cone-pulse' : undefined}
                 />
-                <circle cx={sourceCenterX} cy={sourceCenterY} r="10" fill="#0f172a" stroke="#f59e0b" strokeWidth="2" />
-                <circle cx={sourceCenterX} cy={sourceCenterY} r="3.5" fill="#fbbf24" />
-                <text x={sourceCenterX} y={sourceCenterY + 26} fill="#fbbf24" fontSize="10" fontWeight="bold" fontFamily="monospace" textAnchor="middle">
+                <circle cx={sourceCenterX} cy={sourceCenterY} r="10" fill="#0f172a" stroke={photonAccentColor} strokeWidth="2" />
+                <circle cx={sourceCenterX} cy={sourceCenterY} r="3.5" fill={photonAccentColor} />
+                <text x={sourceCenterX} y={sourceCenterY + 26} fill={photonAccentColor} fontSize="10" fontWeight="bold" fontFamily="monospace" textAnchor="middle">
                   {selectedIsotope.chemicalSymbol}
                 </text>
                 <text x={sourceCenterX} y={sourceCenterY + 38} fill="#94a3b8" fontSize="8.5" fontFamily="monospace" textAnchor="middle">
-                  {sourceType.startsWith('xray') ? `${tubeKv}kV` : `${calcResult.currentLiveActivityCi}Ci`}
+                  {sourceType.startsWith('xray') ? `${tubeKv}kV · ${tubeMa}mA` : `${calcResult.currentLiveActivityCi}Ci`}
                 </text>
 
                 {/* SFD Dimension Span */}
@@ -3682,17 +3721,53 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
 
                 {/* Animated Traveling Photon Stream Across Material */}
                 <line
+                  data-testid="ge-beam-specimen-photon-stream"
                   x1={pathLeft}
                   y1={sourceCenterY}
                   x2={filmPlaneX}
                   y2={sourceCenterY}
-                  stroke="#fbbf24"
-                  strokeWidth="1.5"
-                  strokeDasharray="5 7"
+                  stroke={photonAccentColor}
+                  strokeWidth="1.6"
+                  strokeDasharray="6 6"
                   opacity={Math.max(0.28, Math.min(0.85, beamDecayProfile.exitIntensityPct / 100 + 0.25))}
-                  className="ut-beam-flow"
+                  className="rt-photon-beam-flow"
+                  style={
+                    {
+                      '--rt-photon-stream-duration': `${streamCycleSec}s`,
+                      '--rt-photon-delay': '0s'
+                    } as React.CSSProperties
+                  }
                   pointerEvents="none"
                 />
+
+                {/* Animated Discrete Radiation Photons Traveling Source -> Material -> Detector */}
+                <g data-testid="ge-beam-photon-particles" aria-hidden="true" pointerEvents="none">
+                  {Array.from({ length: photonParticleCount }).map((_, idx) => {
+                    const laneFactor = photonLanePattern[idx % photonLanePattern.length];
+                    const targetSpreadY = hasCollimator ? 52 : 70;
+                    const dy = Number((laneFactor * targetSpreadY).toFixed(1));
+                    const delaySec = Number((-(idx / photonParticleCount) * photonDurationSec).toFixed(2));
+                    return (
+                      <g
+                        key={idx}
+                        data-testid={`ge-beam-photon-particle-${idx}`}
+                        className="rt-photon-particle"
+                        style={
+                          {
+                            '--rt-dx': `${photonTravelDx}px`,
+                            '--rt-dy': `${dy}px`,
+                            '--rt-photon-duration': `${photonDurationSec}s`,
+                            '--rt-photon-delay': `${delaySec}s`,
+                            '--rt-photon-exit-opacity': `${photonExitOpacity}`
+                          } as React.CSSProperties
+                        }
+                      >
+                        <circle cx={sourceCenterX + 6} cy={sourceCenterY} r="5.5" fill={photonAccentColor} fillOpacity="0.28" />
+                        <circle cx={sourceCenterX + 6} cy={sourceCenterY} r="2.2" fill={photonCoreColor} />
+                      </g>
+                    );
+                  })}
+                </g>
 
                 {/* Intensity Horizontal Reference Grid (100%, 50%, 25%, 10%, 0%) */}
                 {[
@@ -3744,16 +3819,29 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                   );
                 })}
 
-                {/* Overlaid Exponential Beam Intensity Decay Curve + Area Fill */}
+                {/* Overlaid Exponential Beam Intensity Decay Curve + Synchronized Photon Flux Flow */}
                 <path d={areaD} fill="url(#geDecayAreaGrad)" pointerEvents="none" />
                 <path
                   data-testid="ge-beam-decay-curve-path"
                   d={curveD}
                   fill="none"
-                  stroke="#fbbf24"
+                  stroke={photonAccentColor}
                   strokeWidth="3"
                   strokeLinecap="round"
                   strokeLinejoin="round"
+                  pointerEvents="none"
+                />
+                <path
+                  data-testid="ge-beam-decay-curve-flow"
+                  d={curveD}
+                  fill="none"
+                  stroke={photonCoreColor}
+                  strokeWidth="2.2"
+                  strokeDasharray="10 18"
+                  strokeLinecap="round"
+                  opacity="0.92"
+                  className="rt-photon-curve-flow"
+                  style={{ '--rt-photon-duration': `${photonDurationSec}s` } as React.CSSProperties}
                   pointerEvents="none"
                 />
 

@@ -674,6 +674,15 @@
         "bio": { "type": "string", "maxLength": 600 },
         "companiesManaged": { "type": "number" },
         "isPublished": { "type": "boolean" },
+        "headline": { "type": "string", "maxLength": 160 },
+        "certifications": { "type": "string", "maxLength": 240 },
+        "yearsExperience": { "type": "number" },
+        "availabilityStatus": {
+          "type": "string",
+          "enum": ["active_field", "open_to_work", "hiring", "offering_services"]
+        },
+        "followersCount": { "type": "number" },
+        "endorsementsCount": { "type": "number" },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
@@ -684,6 +693,131 @@
         "sector",
         "companiesManaged",
         "isPublished",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "CommunityPost": {
+      "title": "CommunityPost",
+      "description": "LinkedIn + Facebook hybrid engineering feed post inside INSCO Community (zero PII)",
+      "type": "object",
+      "properties": {
+        "authorUid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "authorName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "authorHeadline": { "type": "string", "maxLength": 160 },
+        "authorOrg": { "type": "string", "minLength": 2, "maxLength": 160 },
+        "authorCompanyCode": { "type": "string", "maxLength": 32 },
+        "postType": {
+          "type": "string",
+          "enum": ["technical_case", "job_tender", "discussion", "equipment_review", "announcement"]
+        },
+        "ndtMethod": {
+          "type": "string",
+          "enum": ["GENERAL", "RT", "UT", "PAUT", "MT", "PT", "VT", "PWHT", "AR"]
+        },
+        "title": { "type": "string", "minLength": 3, "maxLength": 180 },
+        "body": { "type": "string", "minLength": 5, "maxLength": 3000 },
+        "tags": { "type": "array", "description": "Max 6 short hashtag labels" },
+        "technicalSnippet": { "type": "string", "maxLength": 600 },
+        "aiSummary": { "type": "string", "maxLength": 800 },
+        "likesCount": { "type": "number" },
+        "commentsCount": { "type": "number" },
+        "visibility": { "type": "string", "enum": ["public", "members_only"] },
+        "aiModerationStatus": { "type": "string", "enum": ["approved", "flagged"] },
+        "isPinnedAnnouncement": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "authorUid",
+        "authorName",
+        "authorOrg",
+        "postType",
+        "ndtMethod",
+        "title",
+        "body",
+        "likesCount",
+        "commentsCount",
+        "visibility",
+        "aiModerationStatus",
+        "isPinnedAnnouncement",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "CommunityPostComment": {
+      "title": "CommunityPostComment",
+      "description": "Threaded reply on a CommunityPost",
+      "type": "object",
+      "properties": {
+        "postId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "authorUid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "authorName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "authorHeadline": { "type": "string", "maxLength": 160 },
+        "body": { "type": "string", "minLength": 1, "maxLength": 1500 },
+        "isAiAssisted": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["postId", "authorUid", "authorName", "body", "isAiAssisted", "createdAt"]
+    },
+    "CommunityPostReaction": {
+      "title": "CommunityPostReaction",
+      "description": "Single-per-user multi-type reaction (like, insightful, verified, celebrate)",
+      "type": "object",
+      "properties": {
+        "postId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "reactionType": { "type": "string", "enum": ["like", "insightful", "verified", "celebrate"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["postId", "uid", "reactionType", "createdAt", "updatedAt"]
+    },
+    "CommunityConnection": {
+      "title": "CommunityConnection",
+      "description": "LinkedIn-style directional professional network connection between members",
+      "type": "object",
+      "properties": {
+        "fromUid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "toUid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "fromName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "toName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "status": { "type": "string", "enum": ["connected", "pending"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["fromUid", "toUid", "fromName", "toName", "status", "createdAt", "updatedAt"]
+    },
+    "CommunityOpportunity": {
+      "title": "CommunityOpportunity",
+      "description": "NDT jobs, inspection tenders, and equipment opportunities board (zero PII)",
+      "type": "object",
+      "properties": {
+        "authorUid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "authorName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "authorOrg": { "type": "string", "minLength": 2, "maxLength": 160 },
+        "companyCode": { "type": "string", "maxLength": 32 },
+        "opportunityType": { "type": "string", "enum": ["job", "tender", "equipment"] },
+        "title": { "type": "string", "minLength": 3, "maxLength": 180 },
+        "location": { "type": "string", "minLength": 2, "maxLength": 140 },
+        "methods": { "type": "array", "description": "Required NDT/PWHT methods (1 to 8)" },
+        "requirements": { "type": "string", "minLength": 5, "maxLength": 1500 },
+        "status": { "type": "string", "enum": ["open", "closed"] },
+        "visibility": { "type": "string", "enum": ["public"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "authorUid",
+        "authorName",
+        "authorOrg",
+        "opportunityType",
+        "title",
+        "location",
+        "methods",
+        "requirements",
+        "status",
+        "visibility",
         "createdAt",
         "updatedAt"
       ]
@@ -720,7 +854,27 @@
     },
     "/community_workspaces/{userId}": {
       "schema": { "$ref": "#/entities/CommunityWorkspaceProfile" },
-      "description": "Opt-in business management community profiles without PII (email/phone excluded)"
+      "description": "Opt-in LinkedIn-style engineering & business community profiles without PII (email/phone excluded)"
+    },
+    "/community_posts/{postId}": {
+      "schema": { "$ref": "#/entities/CommunityPost" },
+      "description": "Public/members INSCO Community technical posts, discussions, and pinned announcements (zero PII)"
+    },
+    "/community_posts/{postId}/comments/{commentId}": {
+      "schema": { "$ref": "#/entities/CommunityPostComment" },
+      "description": "Threaded replies on INSCO Community posts"
+    },
+    "/community_posts/{postId}/reactions/{userId}": {
+      "schema": { "$ref": "#/entities/CommunityPostReaction" },
+      "description": "User reactions per community post keyed by uid"
+    },
+    "/community_connections/{connectionId}": {
+      "schema": { "$ref": "#/entities/CommunityConnection" },
+      "description": "Professional network connections between INSCO Community members"
+    },
+    "/community_opportunities/{opportunityId}": {
+      "schema": { "$ref": "#/entities/CommunityOpportunity" },
+      "description": "NDT careers, tenders, and equipment opportunities board (zero PII)"
     }
   }
 }

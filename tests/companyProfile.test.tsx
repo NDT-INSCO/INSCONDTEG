@@ -96,6 +96,37 @@ test('CompanyHero renders official brochure facade in Arabic with metrics and PD
   assert.equal(pdfLink.getAttribute('href'), INSCO_COMPANY_DATA.pdfBrochureUrl);
 });
 
+test('CompanyHero mounts interactive 3D banner controls, switches techniques/presets, and collapses dock', async () => {
+  const ui = render(
+    <CompanyHero
+      language="en"
+      onNavigateToAcademy={() => {}}
+      onNavigateToSection={() => {}}
+    />
+  );
+
+  assert.ok(ui.getByTestId('company-hero-banner'));
+  const dock = ui.getByTestId('hero-3d-control-dock');
+  assert.ok(dock);
+
+  // Lazy-loaded InscoHero3dBanner resolves in JSDOM to its WebGL fallback without crashing
+  await waitFor(() => assert.ok(ui.getByTestId('insco-3d-banner-fallback')));
+
+  // Switch technique mode from PAUT Ultrasonic -> Gamma RT -> PWHT 65 kW
+  fireEvent.click(ui.getByRole('button', { name: /Gamma RT/i }));
+  assert.ok(ui.getAllByText(/Ir-192 \/ Se-75/i).length > 0);
+
+  fireEvent.click(ui.getByRole('button', { name: /PWHT 65 kW/i }));
+  assert.ok(ui.getAllByText(/760°C Programmed Soak/i).length > 0);
+
+  // Camera preset & collapse dock
+  fireEvent.click(ui.getByRole('button', { name: /Weld Root/i }));
+  fireEvent.click(ui.getByRole('button', { name: /Hide Controls/i }));
+  assert.ok(ui.getByRole('button', { name: /Show 3D Controls/i }));
+  fireEvent.click(ui.getByRole('button', { name: /Show 3D Controls/i }));
+  assert.ok(ui.getByRole('button', { name: /Hide Controls/i }));
+});
+
 test('CompanyServicesSection displays 12 NDT methods and 16 PWHT fleet details', () => {
   const ui = render(<CompanyServicesSection language="en" />);
 

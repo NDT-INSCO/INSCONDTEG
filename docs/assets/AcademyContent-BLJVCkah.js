@@ -1,13 +1,16 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/index-CgqKVYxh.js","assets/rolldown-runtime-oLLnCvco.js","assets/index.esm-DiiqkTPp.js","assets/index-P3uareFm.css","assets/UtThreeScene-9nkjiV7T.js","assets/three.module-5482Nant.js"])))=>i.map(i=>d[i]);
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/index-DH-pY2ys.js","assets/rolldown-runtime-oLLnCvco.js","assets/jsx-runtime-CJAQq89J.js","assets/eye-DyafRkmV.js","assets/index.esm-CF5M3rKe.js","assets/index-BuBjo2E2.css","assets/UtThreeScene-2hoVnHOl.js","assets/three.module-KJ9Rnf9y.js","assets/RoomEnvironment-dUxLHW9h.js"])))=>i.map(i=>d[i]);
 import { a as __toESM } from "./rolldown-runtime-oLLnCvco.js";
-import { A as Cpu, C as getDefectCodeTolerance, D as Maximize2, E as Volume2, O as Info, S as getAllDefectsCodeToleranceSchedule, T as VolumeX, _ as ALL_WELD_DEFECTS_CATALOG, a as gradeAndRecordWorkshopAttempt, b as drawComprehensiveDefectMorphology, c as SIMULATION_XP_MILESTONES, d as useSimulationHistory, f as useSimulationLevelUp, g as mapEducationalDefectToCatalogId, h as DefectToleranceTriggerBar, i as getWorkshopTrainingAttempts, j as CircleX, k as Gauge, l as calculateSimulationAttemptXp, m as DefectToleranceTooltip, n as renderModernPautSectorialScan, o as resetWorkshopTrainingAttempts, p as DefectToleranceModal, r as UtFlawDetectorDevice, s as subscribeWorkshopTrainingUpdates, t as PautOmniScanDevice, u as recordSimulationAttempt, v as INSPECTION_CODES_META, w as ZoomIn, x as drawUltrasonicBeamCone2D, y as computeUltrasonicBeamCone } from "./PautOmniScanDevice-tedsV26O.js";
-import { a as ChevronUp, i as Radar, n as UserCheck, o as ChevronDown, r as RefreshCw, t as UserPlus } from "./user-plus-iLOUjAYd.js";
-import { n as EyeOff, r as CircleAlert, t as RotateCw } from "./rotate-cw-DnNs5hC0.js";
-import { t as ClipboardCheck } from "./clipboard-check-Cd5inpU1.js";
-import { t as Trash2 } from "./trash-2-B20G7FEr.js";
-import { f as collection, g as serverTimestamp, n as addDoc } from "./index.esm-DiiqkTPp.js";
-import { $n as ArrowLeft, $t as Sun, An as FileCheck, At as string_default, Bn as CircleCheck, Ct as normalizeUnitSystem, Dn as Flame, Dt as ENGINEERING_DISCIPLINES, En as FlaskConical, Et as useDefaultUnitSystem, Fn as Download, Ft as Selection, Gn as Calendar, Gt as require_jsx_runtime, Hn as ChevronLeft, In as Crosshair, It as root, Jt as Wrench, Kn as Calculator, Kt as Zap, Ln as Copy, Lt as range, Mn as Eye, Mt as rgb_default, Nn as ExternalLink, Nt as constant_default$1, On as Film, Ot as WORKSHOP_LABS, Pt as color, Qn as ArrowRight, Qt as Thermometer, Rn as Compass, Sn as Layers, St as GE_APP_UNIT_OVERRIDE_KEY, Tt as resolveCalculatorInitialUnitSystem, Un as Check, Vn as ChevronRight, Wn as Camera, Wt as __vitePreload, Xn as Award, Xt as Trophy, Yn as BookOpen, Yt as Users, Zt as TriangleAlert, _n as MapPin, a as ACADEMY_SECTION_TABS, an as Ruler, c as ACADEMY_TABS, cn as Plus, dn as Pause, en as Sparkles, er as Activity, gn as Map$1, h as clickableRow, i as ACADEMY_SECTION_DEFAULT_TAB, in as Search, ir as require_react, jn as FileCheck2, jt as number_default, kn as FileText, kt as useTheme, l as readAcademyTab, ln as Play, lt as db, m as clickable, mn as Menu, n as ACADEMY_SECTIONS, nn as ShieldAlert, o as academySectionLabel, on as RotateCcw, pn as Moon, qn as Building2, qt as X, r as ACADEMY_SECTION_COPY, s as disciplineHash, t as AcademyPageHeader, tn as ShieldCheck, tr as createLucideIcon, u as NDT_TEXTBOOKS, wn as GraduationCap, wt as readDefaultUnitSystem, xt as DEFAULT_UNIT_SYSTEM_CHANGE_EVENT, yt as E, zn as Clock } from "./index-CgqKVYxh.js";
-import { A as MeshLambertMaterial, E as LineSegments, F as PerspectiveCamera, H as RingGeometry, I as PlaneGeometry, J as Sprite, K as Shape, L as PointLight, M as MeshStandardMaterial, N as Object3D, O as Mesh, P as Path$1, Q as Vector3, S as LineBasicMaterial, U as SRGBColorSpace, W as Scene, Y as SpriteMaterial, _ as GridHelper, b as InstancedMesh, d as ConeGeometry, f as CylinderGeometry, g as FogExp2, h as ExtrudeGeometry, i as BoxGeometry, j as MeshPhysicalMaterial, k as MeshBasicMaterial, l as Clock$1, m as EdgesGeometry, n as WebGLRenderer, o as BufferGeometry, p as DirectionalLight, s as CanvasTexture, t as PMREMGenerator, u as Color, v as Group, w as LineDashedMaterial, x as Line, y as HemisphereLight } from "./three.module-5482Nant.js";
+import { n as require_react, t as require_jsx_runtime } from "./jsx-runtime-CJAQq89J.js";
+import { n as createLucideIcon, t as Eye } from "./eye-DyafRkmV.js";
+import { A as Cpu, C as getDefectCodeTolerance, D as Maximize2, E as Volume2, O as Info, S as getAllDefectsCodeToleranceSchedule, T as VolumeX, _ as ALL_WELD_DEFECTS_CATALOG, a as gradeAndRecordWorkshopAttempt, b as drawComprehensiveDefectMorphology, c as SIMULATION_XP_MILESTONES, d as useSimulationHistory, f as useSimulationLevelUp, g as mapEducationalDefectToCatalogId, h as DefectToleranceTriggerBar, i as getWorkshopTrainingAttempts, j as CircleX, k as Gauge, l as calculateSimulationAttemptXp, m as DefectToleranceTooltip, n as renderModernPautSectorialScan, o as resetWorkshopTrainingAttempts, p as DefectToleranceModal, r as UtFlawDetectorDevice, s as subscribeWorkshopTrainingUpdates, t as PautOmniScanDevice, u as recordSimulationAttempt, v as INSPECTION_CODES_META, w as ZoomIn, x as drawUltrasonicBeamCone2D, y as computeUltrasonicBeamCone } from "./PautOmniScanDevice-B2E8v9Qc.js";
+import { n as EyeOff, r as CircleAlert, t as RotateCw } from "./rotate-cw-BZxM_76B.js";
+import { a as Radar, i as Radio, n as UserCheck, o as Flag, r as RefreshCw, s as CirclePlus, t as UserPlus } from "./user-plus-DvAXkYPB.js";
+import { t as ClipboardCheck } from "./clipboard-check-CejqIRPH.js";
+import { t as Trash2 } from "./trash-2-nZVRBPor.js";
+import { m as collection, n as addDoc, v as serverTimestamp } from "./index.esm-CF5M3rKe.js";
+import { $n as FileCheck2, $t as number_default, An as Play, C as clickableRow, Cn as ShieldAlert, Cr as ArrowLeft, Dn as RotateCcw, En as Ruler, Gt as normalizeUnitSystem, In as Menu, Jn as FlaskConical, Jt as useDefaultUnitSystem, Kn as GraduationCap, Kt as readDefaultUnitSystem, Mn as Pause, Pn as Moon, Qn as FileCheck, Qt as string_default, Rn as Map$1, S as clickable, Sn as ShieldCheck, Sr as ArrowRight, Tn as Search, Ut as DEFAULT_UNIT_SYSTEM_CHANGE_EVENT, Vt as E, Wn as Layers, Wt as GE_APP_UNIT_OVERRIDE_KEY, Xn as Film, Xt as WORKSHOP_LABS, Yn as Flame, Yt as ENGINEERING_DISCIPLINES, Zn as FileText, Zt as useTheme, _ as NDT_TEXTBOOKS, _n as Trophy, a as ACADEMY_SECTION_TABS, an as range, ar as Compass, bn as Sun, br as Award, c as ACADEMY_TABS, cr as ChevronUp, dr as ChevronDown, en as rgb_default, er as ExternalLink, fn as __vitePreload, fr as Check, gn as Users, gr as Building2, hn as Wrench, hr as Calculator, i as ACADEMY_SECTION_DEFAULT_TAB, in as root, ir as Copy, jt as db, kn as Plus, l as readAcademyTab, lr as ChevronRight, mn as X, mr as Calendar, n as ACADEMY_SECTIONS, nn as color, nr as Download, o as academySectionLabel, or as Clock, pn as Zap, pr as Camera, qt as resolveCalculatorInitialUnitSystem, r as ACADEMY_SECTION_COPY, rn as Selection, rr as Crosshair, s as disciplineHash, sr as CircleCheck, t as AcademyPageHeader, tn as constant_default$1, ur as ChevronLeft, vn as TriangleAlert, vr as Box, wr as Activity, xn as Sparkles, yn as Thermometer, yr as BookOpen, zn as MapPin } from "./index-DH-pY2ys.js";
+import { $ as Shape, B as PlaneGeometry, C as Line, E as LineDashedMaterial, F as MeshStandardMaterial, L as Path$1, M as MeshBasicMaterial, O as LineSegments, P as MeshPhysicalMaterial, R as PerspectiveCamera, V as PointLight, X as SRGBColorSpace, Y as RingGeometry, Z as Scene, _ as FogExp2, b as HemisphereLight, ct as Vector3, d as ConeGeometry, g as ExtrudeGeometry, h as EdgesGeometry, i as BoxGeometry, j as Mesh, l as Clock$1, m as DirectionalLight, n as WebGLRenderer, nt as Sprite, o as BufferGeometry, p as CylinderGeometry, rt as SpriteMaterial, s as CanvasTexture, t as PMREMGenerator, u as Color, v as GridHelper, w as LineBasicMaterial, y as Group } from "./three.module-KJ9Rnf9y.js";
+import { t as RoomEnvironment } from "./RoomEnvironment-dUxLHW9h.js";
 /**
 * @license lucide-react v0.546.0 - ISC
 *
@@ -101,26 +104,6 @@ var Bookmark = createLucideIcon("bookmark", [["path", {
 	d: "m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z",
 	key: "1fy3hk"
 }]]);
-/**
-* @license lucide-react v0.546.0 - ISC
-*
-* This source code is licensed under the ISC license.
-* See the LICENSE file in the root directory of this source tree.
-*/
-var Box = createLucideIcon("box", [
-	["path", {
-		d: "M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z",
-		key: "hh9hay"
-	}],
-	["path", {
-		d: "m3.3 7 8.7 5 8.7-5",
-		key: "g66t2b"
-	}],
-	["path", {
-		d: "M12 22V12",
-		key: "d0xqtd"
-	}]
-]);
 /**
 * @license lucide-react v0.546.0 - ISC
 *
@@ -235,28 +218,6 @@ var ChartColumn = createLucideIcon("chart-column", [
 	["path", {
 		d: "M8 17v-3",
 		key: "17ska0"
-	}]
-]);
-/**
-* @license lucide-react v0.546.0 - ISC
-*
-* This source code is licensed under the ISC license.
-* See the LICENSE file in the root directory of this source tree.
-*/
-var CirclePlus = createLucideIcon("circle-plus", [
-	["circle", {
-		cx: "12",
-		cy: "12",
-		r: "10",
-		key: "1mglay"
-	}],
-	["path", {
-		d: "M8 12h8",
-		key: "1wcyev"
-	}],
-	["path", {
-		d: "M12 8v8",
-		key: "napkw2"
 	}]
 ]);
 /**
@@ -407,16 +368,6 @@ var FileCode2 = createLucideIcon("file-code-2", [
 		key: "112psh"
 	}]
 ]);
-/**
-* @license lucide-react v0.546.0 - ISC
-*
-* This source code is licensed under the ISC license.
-* See the LICENSE file in the root directory of this source tree.
-*/
-var Flag = createLucideIcon("flag", [["path", {
-	d: "M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 7.333 2q2 0 3.067-.8A1 1 0 0 1 20 4v10a1 1 0 0 1-.4.8A6 6 0 0 1 16 16c-3 0-5-2-8-2a6 6 0 0 0-4 1.528",
-	key: "1jaruq"
-}]]);
 /**
 * @license lucide-react v0.546.0 - ISC
 *
@@ -879,36 +830,6 @@ var Radiation = createLucideIcon("radiation", [
 	["path", {
 		d: "M8 12a4 4 0 0 1 2-3.464L7.528 4.254a1 1 0 0 0-1.46-.305 10 10 0 0 0-4.006 6.94A1 1 0 0 0 3 12z",
 		key: "1l9i0b"
-	}]
-]);
-/**
-* @license lucide-react v0.546.0 - ISC
-*
-* This source code is licensed under the ISC license.
-* See the LICENSE file in the root directory of this source tree.
-*/
-var Radio = createLucideIcon("radio", [
-	["path", {
-		d: "M16.247 7.761a6 6 0 0 1 0 8.478",
-		key: "1fwjs5"
-	}],
-	["path", {
-		d: "M19.075 4.933a10 10 0 0 1 0 14.134",
-		key: "ehdyv1"
-	}],
-	["path", {
-		d: "M4.925 19.067a10 10 0 0 1 0-14.134",
-		key: "1q22gi"
-	}],
-	["path", {
-		d: "M7.753 16.239a6 6 0 0 1 0-8.478",
-		key: "r2q7qm"
-	}],
-	["circle", {
-		cx: "12",
-		cy: "12",
-		r: "2",
-		key: "1c9p78"
 	}]
 ]);
 /**
@@ -5507,7 +5428,7 @@ var firebaseHandlePromise = null;
 function getFirebase() {
 	if (!firebaseHandlePromise) firebaseHandlePromise = (async () => {
 		try {
-			const config = await __vitePreload(() => import("./index-CgqKVYxh.js").then((n) => n.ct), __vite__mapDeps([0,1,2,3]));
+			const config = await __vitePreload(() => import("./index-DH-pY2ys.js").then((n) => n.At), __vite__mapDeps([0,1,2,3,4,5]));
 			const db = config.db;
 			if (!config.isFirebaseConfigured || !db) return null;
 			return {
@@ -5607,13 +5528,13 @@ async function syncTopicsToFirestore(moduleId, topics, disciplineId) {
 	};
 	try {
 		const { doc, setDoc, serverTimestamp } = await __vitePreload(async () => {
-			const { doc, setDoc, serverTimestamp } = await import("./index.esm-DiiqkTPp.js").then((n) => n.t);
+			const { doc, setDoc, serverTimestamp } = await import("./index.esm-CF5M3rKe.js").then((n) => n.t);
 			return {
 				doc,
 				setDoc,
 				serverTimestamp
 			};
-		}, __vite__mapDeps([2,1]));
+		}, __vite__mapDeps([4,1]));
 		const userId = firebase.auth?.currentUser?.uid || getLocalUserId();
 		await setDoc(doc(firebase.db, "user_module_progress", `${userId}_${moduleId}`), {
 			userId,
@@ -5641,13 +5562,13 @@ async function syncModuleToFirestore(moduleId, score) {
 	if (!firebase?.db) return;
 	try {
 		const { doc, setDoc, serverTimestamp } = await __vitePreload(async () => {
-			const { doc, setDoc, serverTimestamp } = await import("./index.esm-DiiqkTPp.js").then((n) => n.t);
+			const { doc, setDoc, serverTimestamp } = await import("./index.esm-CF5M3rKe.js").then((n) => n.t);
 			return {
 				doc,
 				setDoc,
 				serverTimestamp
 			};
-		}, __vite__mapDeps([2,1]));
+		}, __vite__mapDeps([4,1]));
 		const userId = firebase.auth?.currentUser?.uid || getLocalUserId();
 		await setDoc(doc(firebase.db, "user_module_progress", `${userId}_${moduleId}`), {
 			userId,
@@ -10806,124 +10727,6 @@ var NdtAudioControlChip = ({ language, compact = false }) => {
 		})] })]
 	});
 };
-//#endregion
-//#region node_modules/three/examples/jsm/environments/RoomEnvironment.js
-/**
-* This class represents a scene with a basic room setup that can be used as
-* input for {@link PMREMGenerator#fromScene}. The resulting PMREM represents the room's
-* lighting and can be used for Image Based Lighting by assigning it to {@link Scene#environment}
-* or directly as an environment map to PBR materials.
-*
-* The implementation is based on the [EnvironmentScene](https://github.com/google/model-viewer/blob/master/packages/model-viewer/src/three-components/EnvironmentScene.ts)
-* component from the `model-viewer` project.
-*
-* ```js
-* const environment = new RoomEnvironment();
-* const pmremGenerator = new THREE.PMREMGenerator( renderer );
-*
-* const envMap = pmremGenerator.fromScene( environment ).texture;
-* scene.environment = envMap;
-* ```
-*
-* @augments Scene
-* @three_import import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-*/
-var RoomEnvironment = class extends Scene {
-	constructor() {
-		super();
-		this.name = "RoomEnvironment";
-		this.position.y = -3.5;
-		const geometry = new BoxGeometry();
-		geometry.deleteAttribute("uv");
-		const roomMaterial = new MeshStandardMaterial({ side: 1 });
-		const boxMaterial = new MeshStandardMaterial();
-		const mainLight = new PointLight(16777215, 900, 28, 2);
-		mainLight.position.set(.418, 16.199, .3);
-		this.add(mainLight);
-		const room = new Mesh(geometry, roomMaterial);
-		room.position.set(-.757, 13.219, .717);
-		room.scale.set(31.713, 28.305, 28.591);
-		this.add(room);
-		const boxes = new InstancedMesh(geometry, boxMaterial, 6);
-		const transform = new Object3D();
-		transform.position.set(-10.906, 2.009, 1.846);
-		transform.rotation.set(0, -.195, 0);
-		transform.scale.set(2.328, 7.905, 4.651);
-		transform.updateMatrix();
-		boxes.setMatrixAt(0, transform.matrix);
-		transform.position.set(-5.607, -.754, -.758);
-		transform.rotation.set(0, .994, 0);
-		transform.scale.set(1.97, 1.534, 3.955);
-		transform.updateMatrix();
-		boxes.setMatrixAt(1, transform.matrix);
-		transform.position.set(6.167, .857, 7.803);
-		transform.rotation.set(0, .561, 0);
-		transform.scale.set(3.927, 6.285, 3.687);
-		transform.updateMatrix();
-		boxes.setMatrixAt(2, transform.matrix);
-		transform.position.set(-2.017, .018, 6.124);
-		transform.rotation.set(0, .333, 0);
-		transform.scale.set(2.002, 4.566, 2.064);
-		transform.updateMatrix();
-		boxes.setMatrixAt(3, transform.matrix);
-		transform.position.set(2.291, -.756, -2.621);
-		transform.rotation.set(0, -.286, 0);
-		transform.scale.set(1.546, 1.552, 1.496);
-		transform.updateMatrix();
-		boxes.setMatrixAt(4, transform.matrix);
-		transform.position.set(-2.193, -.369, -5.547);
-		transform.rotation.set(0, .516, 0);
-		transform.scale.set(3.875, 3.487, 2.986);
-		transform.updateMatrix();
-		boxes.setMatrixAt(5, transform.matrix);
-		this.add(boxes);
-		const light1 = new Mesh(geometry, createAreaLightMaterial(50));
-		light1.position.set(-16.116, 14.37, 8.208);
-		light1.scale.set(.1, 2.428, 2.739);
-		this.add(light1);
-		const light2 = new Mesh(geometry, createAreaLightMaterial(50));
-		light2.position.set(-16.109, 18.021, -8.207);
-		light2.scale.set(.1, 2.425, 2.751);
-		this.add(light2);
-		const light3 = new Mesh(geometry, createAreaLightMaterial(17));
-		light3.position.set(14.904, 12.198, -1.832);
-		light3.scale.set(.15, 4.265, 6.331);
-		this.add(light3);
-		const light4 = new Mesh(geometry, createAreaLightMaterial(43));
-		light4.position.set(-.462, 8.89, 14.52);
-		light4.scale.set(4.38, 5.441, .088);
-		this.add(light4);
-		const light5 = new Mesh(geometry, createAreaLightMaterial(20));
-		light5.position.set(3.235, 11.486, -12.541);
-		light5.scale.set(2.5, 2, .1);
-		this.add(light5);
-		const light6 = new Mesh(geometry, createAreaLightMaterial(100));
-		light6.position.set(0, 20, 0);
-		light6.scale.set(1, .1, 1);
-		this.add(light6);
-	}
-	/**
-	* Frees internal resources. This method should be called
-	* when the environment is no longer required.
-	*/
-	dispose() {
-		const resources = /* @__PURE__ */ new Set();
-		this.traverse((object) => {
-			if (object.isMesh) {
-				resources.add(object.geometry);
-				resources.add(object.material);
-			}
-		});
-		for (const resource of resources) resource.dispose();
-	}
-};
-function createAreaLightMaterial(intensity) {
-	return new MeshLambertMaterial({
-		color: 0,
-		emissive: 16777215,
-		emissiveIntensity: intensity
-	});
-}
 //#endregion
 //#region src/components/academy/virtuallab/V1V2ThreeScene.tsx
 function disposeObjectTree(obj) {
@@ -29462,6 +29265,26 @@ var GeRadiographicExposureTimeApp = ({ language, onApplyTimeToLab, onClose, clas
 				};
 				const matBaseFill = materialId === "copper_brass" ? "rgba(217, 119, 6, 0.22)" : materialId === "aluminum" ? "rgba(148, 163, 184, 0.22)" : materialId === "titanium" ? "rgba(167, 139, 250, 0.20)" : "rgba(56, 189, 248, 0.16)";
 				const formatLen = (mmVal) => unitSystem === "imperial" ? `${(mmVal / 25.4).toFixed(3)}"` : `${mmVal.toFixed(1)} mm`;
+				const effectiveIntensityRhm = selectedIsotope.category === "gamma" ? Math.max(.2, calcResult.currentLiveActivityCi * selectedIsotope.gammaConstantRhmPerCi) : Math.max(.5, tubeMa * Math.pow(Math.max(60, tubeKv) / 180, 2) * 3.8);
+				const intensityNorm = Math.max(0, Math.min(1, Math.log10(Math.max(1, effectiveIntensityRhm)) / Math.log10(120)));
+				const photonDurationSec = Number((3.1 - intensityNorm * 2.45).toFixed(2));
+				const streamCycleSec = Number((photonDurationSec * .62).toFixed(2));
+				const photonParticleCount = Math.max(4, Math.min(9, Math.round(4 + intensityNorm * 5)));
+				const photonExitOpacity = Number(Math.max(.22, Math.min(.92, .22 + beamDecayProfile.exitIntensityPct / 100 * .7)).toFixed(2));
+				const photonAccentColor = selectedIsotope.category === "xray" ? "#38bdf8" : "#fbbf24";
+				const photonCoreColor = selectedIsotope.category === "xray" ? "#e0f2fe" : "#fef3c7";
+				const photonTravelDx = 554;
+				const photonLanePattern = [
+					0,
+					-.52,
+					.52,
+					-.24,
+					.24,
+					-.68,
+					.68,
+					-.1,
+					.1
+				];
 				return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 					"data-testid": "ge-beam-intensity-decay-overlay",
 					className: "rounded-3xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-5 sm:p-6 space-y-4",
@@ -29497,7 +29320,7 @@ var GeRadiographicExposureTimeApp = ({ language, onApplyTimeToLab, onClose, clas
 								]
 							})]
 						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-							className: "grid grid-cols-3 gap-2 text-[11px] font-mono",
+							className: "grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-mono",
 							children: [
 								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 									className: "px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800",
@@ -29530,6 +29353,24 @@ var GeRadiographicExposureTimeApp = ({ language, onApplyTimeToLab, onClose, clas
 										"data-testid": "ge-beam-decay-exit-pct",
 										className: "text-emerald-600 dark:text-emerald-400 tabular-nums",
 										children: [beamDecayProfile.exitIntensityPct.toFixed(2), "%"]
+									})]
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									"data-testid": "ge-beam-photon-sync-hud",
+									"data-photon-duration": photonDurationSec,
+									"data-intensity-rhm": effectiveIntensityRhm.toFixed(2),
+									className: "px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+										className: "block text-[9px] uppercase tracking-wider text-slate-500",
+										children: isAr ? "تدفق الفوتونات" : "Photon Flux Sync"
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", {
+										className: "text-amber-600 dark:text-amber-400 tabular-nums",
+										children: [
+											effectiveIntensityRhm.toFixed(1),
+											" R/h · ",
+											photonDurationSec.toFixed(2),
+											"s"
+										]
 									})]
 								})
 							]
@@ -29606,7 +29447,7 @@ var GeRadiographicExposureTimeApp = ({ language, onApplyTimeToLab, onClose, clas
 										y2: "0%",
 										children: beamDecayProfile.points.filter((_, i, arr) => i === 0 || i === arr.length - 1 || i % 6 === 0).map((pt, idx) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("stop", {
 											offset: `${(pt.normX * 100).toFixed(1)}%`,
-											stopColor: "#f59e0b",
+											stopColor: photonAccentColor,
 											stopOpacity: Math.max(.06, Math.min(.52, pt.intensityPct / 100 * .52)).toFixed(3)
 										}, `${pt.normX}-${idx}`))
 									}),
@@ -29618,11 +29459,11 @@ var GeRadiographicExposureTimeApp = ({ language, onApplyTimeToLab, onClose, clas
 										y2: "0%",
 										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("stop", {
 											offset: "0%",
-											stopColor: "#fbbf24",
+											stopColor: photonAccentColor,
 											stopOpacity: isTimerRunning ? "0.68" : "0.45"
 										}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("stop", {
 											offset: "100%",
-											stopColor: "#f59e0b",
+											stopColor: photonAccentColor,
 											stopOpacity: isTimerRunning ? "0.38" : "0.24"
 										})]
 									}),
@@ -29635,7 +29476,7 @@ var GeRadiographicExposureTimeApp = ({ language, onApplyTimeToLab, onClose, clas
 										children: [
 											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("stop", {
 												offset: "0%",
-												stopColor: "#f59e0b",
+												stopColor: photonAccentColor,
 												stopOpacity: "0.34"
 											}),
 											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("stop", {
@@ -29696,11 +29537,15 @@ var GeRadiographicExposureTimeApp = ({ language, onApplyTimeToLab, onClose, clas
 											y1: sourceCenterY,
 											x2: pathLeft,
 											y2: targetY,
-											stroke: "#fbbf24",
+											stroke: photonAccentColor,
 											strokeWidth: idx === 1 ? "1.8" : "1.1",
 											strokeDasharray: "6 6",
 											opacity: isTimerRunning ? .95 : .65,
-											className: idx === 1 ? "ut-beam-flow" : "ut-beam-flow-delayed"
+											className: "rt-photon-beam-flow",
+											style: {
+												"--rt-photon-stream-duration": `${streamCycleSec}s`,
+												"--rt-photon-delay": `${idx === 1 ? 0 : -(streamCycleSec * .45).toFixed(2)}s`
+											}
 										}, idx);
 									})
 								}),
@@ -29742,7 +29587,7 @@ var GeRadiographicExposureTimeApp = ({ language, onApplyTimeToLab, onClose, clas
 									cx: sourceCenterX,
 									cy: sourceCenterY,
 									r: isTimerRunning ? "18" : "14",
-									fill: "#f59e0b",
+									fill: photonAccentColor,
 									opacity: isTimerRunning ? "0.28" : "0.16",
 									className: isTimerRunning ? "ut-beam-cone-pulse" : void 0
 								}),
@@ -29751,19 +29596,19 @@ var GeRadiographicExposureTimeApp = ({ language, onApplyTimeToLab, onClose, clas
 									cy: sourceCenterY,
 									r: "10",
 									fill: "#0f172a",
-									stroke: "#f59e0b",
+									stroke: photonAccentColor,
 									strokeWidth: "2"
 								}),
 								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
 									cx: sourceCenterX,
 									cy: sourceCenterY,
 									r: "3.5",
-									fill: "#fbbf24"
+									fill: photonAccentColor
 								}),
 								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("text", {
 									x: sourceCenterX,
 									y: 162,
-									fill: "#fbbf24",
+									fill: photonAccentColor,
 									fontSize: "10",
 									fontWeight: "bold",
 									fontFamily: "monospace",
@@ -29777,7 +29622,7 @@ var GeRadiographicExposureTimeApp = ({ language, onApplyTimeToLab, onClose, clas
 									fontSize: "8.5",
 									fontFamily: "monospace",
 									textAnchor: "middle",
-									children: sourceType.startsWith("xray") ? `${tubeKv}kV` : `${calcResult.currentLiveActivityCi}Ci`
+									children: sourceType.startsWith("xray") ? `${tubeKv}kV · ${tubeMa}mA` : `${calcResult.currentLiveActivityCi}Ci`
 								}),
 								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
 									x1: sourceCenterX,
@@ -29884,16 +29729,54 @@ var GeRadiographicExposureTimeApp = ({ language, onApplyTimeToLab, onClose, clas
 									pointerEvents: "none"
 								}),
 								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
+									"data-testid": "ge-beam-specimen-photon-stream",
 									x1: pathLeft,
 									y1: sourceCenterY,
 									x2: filmPlaneX,
 									y2: sourceCenterY,
-									stroke: "#fbbf24",
-									strokeWidth: "1.5",
-									strokeDasharray: "5 7",
+									stroke: photonAccentColor,
+									strokeWidth: "1.6",
+									strokeDasharray: "6 6",
 									opacity: Math.max(.28, Math.min(.85, beamDecayProfile.exitIntensityPct / 100 + .25)),
-									className: "ut-beam-flow",
+									className: "rt-photon-beam-flow",
+									style: {
+										"--rt-photon-stream-duration": `${streamCycleSec}s`,
+										"--rt-photon-delay": "0s"
+									},
 									pointerEvents: "none"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("g", {
+									"data-testid": "ge-beam-photon-particles",
+									"aria-hidden": "true",
+									pointerEvents: "none",
+									children: Array.from({ length: photonParticleCount }).map((_, idx) => {
+										const laneFactor = photonLanePattern[idx % photonLanePattern.length];
+										const dy = Number((laneFactor * (hasCollimator ? 52 : 70)).toFixed(1));
+										const delaySec = Number((-(idx / photonParticleCount) * photonDurationSec).toFixed(2));
+										return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("g", {
+											"data-testid": `ge-beam-photon-particle-${idx}`,
+											className: "rt-photon-particle",
+											style: {
+												"--rt-dx": `${photonTravelDx}px`,
+												"--rt-dy": `${dy}px`,
+												"--rt-photon-duration": `${photonDurationSec}s`,
+												"--rt-photon-delay": `${delaySec}s`,
+												"--rt-photon-exit-opacity": `${photonExitOpacity}`
+											},
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+												cx: 52,
+												cy: sourceCenterY,
+												r: "5.5",
+												fill: photonAccentColor,
+												fillOpacity: "0.28"
+											}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+												cx: 52,
+												cy: sourceCenterY,
+												r: "2.2",
+												fill: photonCoreColor
+											})]
+										}, idx);
+									})
 								}),
 								[
 									{
@@ -29983,10 +29866,23 @@ var GeRadiographicExposureTimeApp = ({ language, onApplyTimeToLab, onClose, clas
 									"data-testid": "ge-beam-decay-curve-path",
 									d: curveD,
 									fill: "none",
-									stroke: "#fbbf24",
+									stroke: photonAccentColor,
 									strokeWidth: "3",
 									strokeLinecap: "round",
 									strokeLinejoin: "round",
+									pointerEvents: "none"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", {
+									"data-testid": "ge-beam-decay-curve-flow",
+									d: curveD,
+									fill: "none",
+									stroke: photonCoreColor,
+									strokeWidth: "2.2",
+									strokeDasharray: "10 18",
+									strokeLinecap: "round",
+									opacity: "0.92",
+									className: "rt-photon-curve-flow",
+									style: { "--rt-photon-duration": `${photonDurationSec}s` },
 									pointerEvents: "none"
 								}),
 								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
@@ -38105,6 +38001,11 @@ function selectAsmeIqiDesignation(wallMm) {
 	if (wallMm <= 25.4) return "ASME 1B (#9 · 0.32 mm)";
 	return "ASME 1B (#10 · 0.40 mm)";
 }
+function mapRtModeToDetailed(mode) {
+	if (mode === "panoramic") return "panoramic";
+	if (mode === "elliptical") return "elliptical";
+	return "dwdi_superimposed";
+}
 var NdtCameraArOverlayLab = ({ language, initialOverlayDiscipline = "rt_exposure", initialRtTechnique = "panoramic", initialPipeOdMm = 219.1, initialWallMm = 9.5, initialSfdMm = 450, initialFocalSpotMm = 3, initialAxialOffsetMm = 95 }) => {
 	const isAr = language === "ar";
 	const { isLight } = useTheme();
@@ -38126,11 +38027,13 @@ var NdtCameraArOverlayLab = ({ language, initialOverlayDiscipline = "rt_exposure
 	const [showCompleteRtCodes, setShowCompleteRtCodes] = (0, import_react.useState)(false);
 	const [overlayDiscipline, setOverlayDiscipline] = (0, import_react.useState)(initialOverlayDiscipline);
 	const [rtTechnique, setRtTechnique] = (0, import_react.useState)(initialRtTechnique);
+	const [rtDetailedGeometry, setRtDetailedGeometry] = (0, import_react.useState)(() => mapRtModeToDetailed(initialRtTechnique));
 	const [pipeOdMm, setPipeOdMm] = (0, import_react.useState)(initialPipeOdMm);
 	const [wallMm, setWallMm] = (0, import_react.useState)(initialWallMm);
 	const [sfdMm, setSfdMm] = (0, import_react.useState)(initialSfdMm);
 	const [focalSpotMm, setFocalSpotMm] = (0, import_react.useState)(initialFocalSpotMm);
 	const [axialOffsetMm, setAxialOffsetMm] = (0, import_react.useState)(initialAxialOffsetMm);
+	const [utTechnique, setUtTechnique] = (0, import_react.useState)("angle_shear");
 	const [utRefractedAngleDeg, setUtRefractedAngleDeg] = (0, import_react.useState)(60);
 	const [utProbeStandOffRatio, setUtProbeStandOffRatio] = (0, import_react.useState)(1);
 	const [vtMeasuredCapMm, setVtMeasuredCapMm] = (0, import_react.useState)(2.4);
@@ -38147,6 +38050,7 @@ var NdtCameraArOverlayLab = ({ language, initialOverlayDiscipline = "rt_exposure
 	const [loggedXpBanner, setLoggedXpBanner] = (0, import_react.useState)(null);
 	(0, import_react.useEffect)(() => {
 		setRtTechnique(initialRtTechnique);
+		setRtDetailedGeometry(mapRtModeToDetailed(initialRtTechnique));
 	}, [initialRtTechnique]);
 	(0, import_react.useEffect)(() => {
 		setPipeOdMm(initialPipeOdMm);
@@ -38294,14 +38198,15 @@ var NdtCameraArOverlayLab = ({ language, initialOverlayDiscipline = "rt_exposure
 		setAnchorY(Math.round(normY));
 	};
 	const rtHudPhysics = (0, import_react.useMemo)(() => {
-		const effectiveSfd = rtTechnique === "panoramic" ? Math.max(25, Math.round(pipeOdMm / 2)) : sfdMm;
-		const objToFilm = rtTechnique === "elliptical" ? pipeOdMm + 2 : wallMm + 2;
-		const rayDist = rtTechnique === "elliptical" ? Math.sqrt(effectiveSfd * effectiveSfd + axialOffsetMm * axialOffsetMm) : effectiveSfd;
+		const isSingleWall = rtDetailedGeometry === "panoramic" || rtDetailedGeometry === "swsi_plate";
+		const effectiveSfd = rtDetailedGeometry === "panoramic" ? Math.max(25, Math.round(pipeOdMm / 2)) : rtDetailedGeometry === "dwsi_contact" ? Math.max(pipeOdMm + 15, Math.round(pipeOdMm * 1.15)) : sfdMm;
+		const objToFilm = isSingleWall ? wallMm + 2 : pipeOdMm + 2;
+		const rayDist = rtDetailedGeometry === "elliptical" ? Math.sqrt(effectiveSfd * effectiveSfd + axialOffsetMm * axialOffsetMm) : effectiveSfd;
 		const sod = Math.max(15, rayDist - objToFilm);
 		const ugMm = Number((focalSpotMm * objToFilm / sod).toFixed(3));
-		const maxUgMm = getAsmeMaxUgMm(rtTechnique === "elliptical" ? wallMm * 2 : wallMm);
+		const maxUgMm = getAsmeMaxUgMm(isSingleWall ? wallMm : wallMm * 2);
 		const passesUg = ugMm <= maxUgMm;
-		const tiltDeg = rtTechnique === "elliptical" ? Number((Math.atan2(axialOffsetMm, effectiveSfd) * 180 / Math.PI).toFixed(1)) : 0;
+		const tiltDeg = rtDetailedGeometry === "elliptical" ? Number((Math.atan2(axialOffsetMm, effectiveSfd) * 180 / Math.PI).toFixed(1)) : 0;
 		const iqiLabel = selectAsmeIqiDesignation(wallMm);
 		return {
 			effectiveSfd,
@@ -38310,10 +38215,11 @@ var NdtCameraArOverlayLab = ({ language, initialOverlayDiscipline = "rt_exposure
 			maxUgMm,
 			passesUg,
 			tiltDeg,
-			iqiLabel
+			iqiLabel,
+			wallFactorLabel: isSingleWall ? "1T" : "2T"
 		};
 	}, [
-		rtTechnique,
+		rtDetailedGeometry,
 		pipeOdMm,
 		wallMm,
 		sfdMm,
@@ -38400,7 +38306,7 @@ var NdtCameraArOverlayLab = ({ language, initialOverlayDiscipline = "rt_exposure
 			ctx.fillRect(0, 636, 1280, 84);
 			ctx.fillStyle = "#10b981";
 			ctx.font = "bold 20px monospace";
-			const summaryLine = overlayDiscipline === "rt_exposure" ? `INSCO NDT AR · RT (${rtTechnique.toUpperCase()}) · OD ${pipeOdMm}mm · t ${wallMm}mm · SFD ${rtHudPhysics.effectiveSfd}mm · Ug ${rtHudPhysics.ugMm}mm` : overlayDiscipline === "ut_skip_beam" ? `INSCO NDT AR · UT ${utRefractedAngleDeg}° · t ${wallMm}mm · 1/2 Skip ${utHudPhysics.halfSkipMm}mm · SP ${utHudPhysics.soundPathMm}mm · Depth ${utHudPhysics.reflectorDepthMm}mm` : `INSCO NDT AR · VT/MT · Cap ${vtMeasuredCapMm}mm (Max ${vtMtHudPhysics.maxCapAllowedMm}mm) · Yoke ${mtYokeSpacingMm}mm @ ${mtOrientationDeg}°`;
+			const summaryLine = overlayDiscipline === "rt_exposure" ? `INSCO NDT AR · RT (${rtDetailedGeometry.toUpperCase()} · ${rtHudPhysics.wallFactorLabel}) · OD ${pipeOdMm}mm · t ${wallMm}mm · SFD ${rtHudPhysics.effectiveSfd}mm · Ug ${rtHudPhysics.ugMm}mm` : overlayDiscipline === "ut_skip_beam" ? `INSCO NDT AR · UT (${utTechnique.toUpperCase()}) ${utTechnique === "angle_shear" ? `${utRefractedAngleDeg}° ` : ""}· t ${wallMm}mm · ½S ${utHudPhysics.halfSkipMm}mm · SP ${utHudPhysics.soundPathMm}mm` : `INSCO NDT AR · VT/MT · Cap ${vtMeasuredCapMm}mm (Max ${vtMtHudPhysics.maxCapAllowedMm}mm) · Yoke ${mtYokeSpacingMm}mm @ ${mtOrientationDeg}°`;
 			ctx.fillText(summaryLine, 28, 672);
 			ctx.fillStyle = "#94a3b8";
 			ctx.font = "15px monospace";
@@ -38412,7 +38318,7 @@ var NdtCameraArOverlayLab = ({ language, initialOverlayDiscipline = "rt_exposure
 				setCapturedSnapshotUrl("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==");
 			}
 		}
-		const ndtMethod = overlayDiscipline === "rt_exposure" ? "RT" : overlayDiscipline === "ut_skip_beam" ? "UT" : "MT";
+		const ndtMethod = overlayDiscipline === "rt_exposure" ? "RT" : overlayDiscipline === "ut_skip_beam" ? utTechnique === "paut_sscan" ? "PAUT" : "UT" : "MT";
 		const passesCode = overlayDiscipline === "rt_exposure" ? rtHudPhysics.passesUg : overlayDiscipline === "ut_skip_beam" ? true : vtMtHudPhysics.capPasses && vtMtHudPhysics.yokeValid;
 		const record = recordSimulationAttempt({
 			simulatorId: `ndt_ar_camera_${overlayDiscipline}`,
@@ -38423,9 +38329,9 @@ var NdtCameraArOverlayLab = ({ language, initialOverlayDiscipline = "rt_exposure
 			},
 			ndtMethod,
 			defectTypes: [{
-				id: overlayDiscipline,
-				ar: overlayDiscipline === "rt_exposure" ? `معايرة تصوير إشعاعي (${rtTechnique})` : overlayDiscipline === "ut_skip_beam" ? `توقيع مسار الموجات ${utRefractedAngleDeg}°` : "فحص بصري وجسيمات مغناطيسية",
-				en: overlayDiscipline === "rt_exposure" ? `RT Exposure Alignment (${rtTechnique})` : overlayDiscipline === "ut_skip_beam" ? `UT ${utRefractedAngleDeg}° Skip Plotting` : "VT Cap Gauge & MT Yoke Alignment"
+				id: overlayDiscipline === "rt_exposure" ? rtDetailedGeometry : overlayDiscipline === "ut_skip_beam" ? utTechnique : overlayDiscipline,
+				ar: overlayDiscipline === "rt_exposure" ? `معايرة تصوير إشعاعي (${rtDetailedGeometry})` : overlayDiscipline === "ut_skip_beam" ? `توقيع موجات فوق صوتية (${utTechnique})` : "فحص بصري وجسيمات مغناطيسية",
+				en: overlayDiscipline === "rt_exposure" ? `RT Exposure Alignment (${rtDetailedGeometry})` : overlayDiscipline === "ut_skip_beam" ? `UT AR Beam Overlay (${utTechnique})` : "VT Cap Gauge & MT Yoke Alignment"
 			}],
 			status: passesCode ? "PASS" : "FAIL",
 			codeVerdict: passesCode ? "ACCEPT" : "REJECT",
@@ -38768,7 +38674,7 @@ var NdtCameraArOverlayLab = ({ language, initialOverlayDiscipline = "rt_exposure
 											overlayDiscipline === "rt_exposure" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("g", {
 												"data-testid": "ar-svg-rt-group",
 												children: [
-													rtTechnique === "panoramic" ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+													rtDetailedGeometry === "panoramic" ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
 														/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
 															cx: "0",
 															cy: "0",
@@ -38776,13 +38682,14 @@ var NdtCameraArOverlayLab = ({ language, initialOverlayDiscipline = "rt_exposure
 															fill: "none",
 															stroke: "#fbbf24",
 															strokeWidth: "3.5",
-															strokeDasharray: "12 6"
+															strokeDasharray: "12 6",
+															className: "ut-beam-flow"
 														}),
 														/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
 															cx: "0",
 															cy: "0",
 															r: "152",
-															fill: "none",
+															fill: "rgba(245, 158, 11, 0.08)",
 															stroke: "#38bdf8",
 															strokeWidth: "2"
 														}),
@@ -38795,19 +38702,31 @@ var NdtCameraArOverlayLab = ({ language, initialOverlayDiscipline = "rt_exposure
 															225,
 															270,
 															315
-														].map((deg) => {
+														].map((deg, idx) => {
 															const rad = deg * Math.PI / 180;
 															const x2 = Math.round(Math.cos(rad) * 172);
 															const y2 = Math.round(Math.sin(rad) * 172);
-															return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
+															return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("g", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
 																x1: "0",
 																y1: "0",
 																x2,
 																y2,
 																stroke: "#f59e0b",
-																strokeWidth: "1.8",
-																strokeDasharray: "5 5"
-															}, deg);
+																strokeWidth: "2",
+																strokeDasharray: "6 4",
+																className: "ut-beam-flow-fast"
+															}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+																cx: "0",
+																cy: "0",
+																r: "3.2",
+																fill: "#fef08a",
+																className: "ut-wave-packet",
+																style: {
+																	["--beam-dx"]: `${x2}px`,
+																	["--beam-dy"]: `${y2}px`,
+																	["--beam-delay"]: `${(idx * .16).toFixed(2)}s`
+																}
+															})] }, deg);
 														}),
 														/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
 															cx: "0",
@@ -38819,25 +38738,142 @@ var NdtCameraArOverlayLab = ({ language, initialOverlayDiscipline = "rt_exposure
 														}),
 														/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("text", {
 															x: "0",
-															y: "-22",
+															y: "-24",
 															textAnchor: "middle",
 															fill: "#fef08a",
-															fontSize: "15",
+															fontSize: "14",
 															fontFamily: "monospace",
 															fontWeight: "bold",
 															children: [
-																"PANORAMA 360° · SFD = ",
+																"PANORAMA 360° (1T) · SFD = ",
 																rtHudPhysics.effectiveSfd,
 																" mm"
 															]
 														})
-													] }) : rtTechnique === "elliptical" ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+													] }) : rtDetailedGeometry === "swsi_plate" ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+														/* @__PURE__ */ (0, import_jsx_runtime.jsx)("polygon", {
+															points: "0,-195 -195,58 195,58",
+															fill: "rgba(16, 185, 129, 0.11)",
+															stroke: "#10b981",
+															strokeWidth: "2.5",
+															strokeDasharray: "8 5",
+															className: "ut-beam-flow"
+														}),
+														/* @__PURE__ */ (0, import_jsx_runtime.jsx)("rect", {
+															x: "-210",
+															y: "20",
+															width: "420",
+															height: "34",
+															rx: "3",
+															fill: "rgba(51, 65, 85, 0.5)",
+															stroke: "#94a3b8",
+															strokeWidth: "1.5"
+														}),
+														/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
+															x1: "0",
+															y1: "-195",
+															x2: "0",
+															y2: "68",
+															stroke: "#fbbf24",
+															strokeWidth: "2.5",
+															strokeDasharray: "6 4",
+															className: "ut-beam-flow-fast"
+														}),
+														/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+															cx: "0",
+															cy: "-195",
+															r: "3.5",
+															fill: "#a7f3d0",
+															className: "ut-wave-packet",
+															style: {
+																["--beam-dx"]: "0px",
+																["--beam-dy"]: "255px"
+															}
+														}),
+														/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+															cx: "0",
+															cy: "-195",
+															r: "11",
+															fill: "#10b981",
+															stroke: "#020617",
+															strokeWidth: "3"
+														}),
+														/* @__PURE__ */ (0, import_jsx_runtime.jsx)("rect", {
+															x: "-200",
+															y: "60",
+															width: "400",
+															height: "16",
+															rx: "4",
+															fill: "rgba(15, 23, 42, 0.88)",
+															stroke: "#38bdf8",
+															strokeWidth: "2"
+														}),
+														/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("text", {
+															x: "0",
+															y: "-214",
+															textAnchor: "middle",
+															fill: "#6ee7b7",
+															fontSize: "14",
+															fontFamily: "monospace",
+															fontWeight: "bold",
+															children: [
+																"SWSI PLATE / 1T · SFD = ",
+																rtHudPhysics.effectiveSfd,
+																" mm"
+															]
+														})
+													] }) : rtDetailedGeometry === "dwsi_contact" ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+														/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+															cx: "0",
+															cy: "5",
+															r: "92",
+															fill: "rgba(56, 189, 248, 0.08)",
+															stroke: "#38bdf8",
+															strokeWidth: "2.5"
+														}),
+														/* @__PURE__ */ (0, import_jsx_runtime.jsx)("polygon", {
+															points: "0,-90 -145,98 145,98",
+															fill: "rgba(251, 191, 36, 0.11)",
+															stroke: "#fbbf24",
+															strokeWidth: "2",
+															strokeDasharray: "6 4",
+															className: "ut-beam-flow"
+														}),
+														/* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", {
+															d: "M -92 38 A 96 96 0 0 0 92 38",
+															fill: "none",
+															stroke: "#10b981",
+															strokeWidth: "5"
+														}),
+														/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+															cx: "0",
+															cy: "-90",
+															r: "11",
+															fill: "#f59e0b",
+															stroke: "#020617",
+															strokeWidth: "3"
+														}),
+														/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("text", {
+															x: "0",
+															y: "-112",
+															textAnchor: "middle",
+															fill: "#fde68a",
+															fontSize: "14",
+															fontFamily: "monospace",
+															fontWeight: "bold",
+															children: [
+																"DWSI CONTACT (2T) · FILM-SIDE IQI · SFD=",
+																rtHudPhysics.effectiveSfd,
+																"mm"
+															]
+														})
+													] }) : rtDetailedGeometry === "elliptical" ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
 														/* @__PURE__ */ (0, import_jsx_runtime.jsx)("ellipse", {
 															cx: "0",
 															cy: "40",
 															rx: "165",
 															ry: "58",
-															fill: "rgba(6, 182, 212, 0.10)",
+															fill: "rgba(6, 182, 212, 0.12)",
 															stroke: "#22d3ee",
 															strokeWidth: "3"
 														}),
@@ -38848,7 +38884,8 @@ var NdtCameraArOverlayLab = ({ language, initialOverlayDiscipline = "rt_exposure
 															y2: "40",
 															stroke: "#fbbf24",
 															strokeWidth: "2",
-															strokeDasharray: "6 4"
+															strokeDasharray: "6 4",
+															className: "ut-beam-flow"
 														}),
 														/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
 															x1: "-130",
@@ -38857,7 +38894,8 @@ var NdtCameraArOverlayLab = ({ language, initialOverlayDiscipline = "rt_exposure
 															y2: "40",
 															stroke: "#fbbf24",
 															strokeWidth: "2",
-															strokeDasharray: "6 4"
+															strokeDasharray: "6 4",
+															className: "ut-beam-flow"
 														}),
 														/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
 															x1: "-130",
@@ -38865,7 +38903,20 @@ var NdtCameraArOverlayLab = ({ language, initialOverlayDiscipline = "rt_exposure
 															x2: "0",
 															y2: "40",
 															stroke: "#10b981",
-															strokeWidth: "2.5"
+															strokeWidth: "2.5",
+															strokeDasharray: "6 3",
+															className: "ut-beam-flow-fast"
+														}),
+														/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+															cx: "-130",
+															cy: "-185",
+															r: "3.5",
+															fill: "#67e8f9",
+															className: "ut-wave-packet",
+															style: {
+																["--beam-dx"]: "130px",
+																["--beam-dy"]: "225px"
+															}
 														}),
 														/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
 															cx: "-130",
@@ -38884,7 +38935,7 @@ var NdtCameraArOverlayLab = ({ language, initialOverlayDiscipline = "rt_exposure
 															fontFamily: "monospace",
 															fontWeight: "bold",
 															children: [
-																"DWDI ELLIPSE · Offset L=",
+																"DWDI ELLIPSE (2T) · Offset L=",
 																axialOffsetMm,
 																"mm (θ=",
 																rtHudPhysics.tiltDeg,
@@ -38897,15 +38948,38 @@ var NdtCameraArOverlayLab = ({ language, initialOverlayDiscipline = "rt_exposure
 															fill: "rgba(16, 185, 129, 0.09)",
 															stroke: "#10b981",
 															strokeWidth: "2.5",
-															strokeDasharray: "8 5"
+															strokeDasharray: "8 5",
+															className: "ut-beam-flow"
+														}),
+														/* @__PURE__ */ (0, import_jsx_runtime.jsx)("ellipse", {
+															cx: "0",
+															cy: "5",
+															rx: "135",
+															ry: "52",
+															fill: "rgba(56, 189, 248, 0.08)",
+															stroke: "#38bdf8",
+															strokeWidth: "2"
 														}),
 														/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
 															x1: "0",
 															y1: "-200",
 															x2: "0",
-															y2: "95",
+															y2: "82",
 															stroke: "#fbbf24",
-															strokeWidth: "3"
+															strokeWidth: "3",
+															strokeDasharray: "6 4",
+															className: "ut-beam-flow-fast"
+														}),
+														/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+															cx: "0",
+															cy: "-200",
+															r: "3.5",
+															fill: "#fde68a",
+															className: "ut-wave-packet",
+															style: {
+																["--beam-dx"]: "0px",
+																["--beam-dy"]: "280px"
+															}
 														}),
 														/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
 															cx: "0",
@@ -38934,7 +39008,7 @@ var NdtCameraArOverlayLab = ({ language, initialOverlayDiscipline = "rt_exposure
 															fontFamily: "monospace",
 															fontWeight: "bold",
 															children: [
-																"0° STRAIGHT (STREET) · SFD = ",
+																"DWDI SUPERIMPOSED 0° (2T) · SFD = ",
 																rtHudPhysics.effectiveSfd,
 																" mm"
 															]
@@ -39047,61 +39121,12 @@ var NdtCameraArOverlayLab = ({ language, initialOverlayDiscipline = "rt_exposure
 														strokeWidth: "2",
 														strokeDasharray: "10 5"
 													}),
-													/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("g", {
-														transform: "translate(0, -45)",
+													utTechnique === "normal_0" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("g", {
+														"data-testid": "ar-ut-normal-0",
 														children: [
-															/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
-																x1: "120",
-																y1: "-16",
-																x2: "120",
-																y2: "8",
-																stroke: "#22d3ee",
-																strokeWidth: "2.5"
-															}),
-															/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("text", {
-																x: "120",
-																y: "-22",
-																textAnchor: "middle",
-																fill: "#22d3ee",
-																fontSize: "13",
-																fontFamily: "monospace",
-																fontWeight: "bold",
-																children: [
-																	"½S = ",
-																	utHudPhysics.halfSkipMm,
-																	" mm"
-																]
-															}),
-															/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
-																x1: "240",
-																y1: "-16",
-																x2: "240",
-																y2: "8",
-																stroke: "#a78bfa",
-																strokeWidth: "2.5"
-															}),
-															/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("text", {
-																x: "240",
-																y: "-22",
-																textAnchor: "middle",
-																fill: "#c4b5fd",
-																fontSize: "13",
-																fontFamily: "monospace",
-																fontWeight: "bold",
-																children: [
-																	"1S = ",
-																	utHudPhysics.fullSkipMm,
-																	" mm"
-																]
-															})
-														]
-													}),
-													(() => {
-														const probeX = Math.round(120 * utProbeStandOffRatio);
-														return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("g", { children: [
 															/* @__PURE__ */ (0, import_jsx_runtime.jsx)("rect", {
-																x: probeX - 24,
-																y: -82,
+																x: "-24",
+																y: "-82",
 																width: "48",
 																height: "37",
 																rx: "5",
@@ -39109,32 +39134,371 @@ var NdtCameraArOverlayLab = ({ language, initialOverlayDiscipline = "rt_exposure
 																stroke: "#e0f2fe",
 																strokeWidth: "2"
 															}),
-															/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("text", {
-																x: probeX,
-																y: -59,
+															/* @__PURE__ */ (0, import_jsx_runtime.jsx)("text", {
+																x: "0",
+																y: "-59",
 																textAnchor: "middle",
 																fill: "#ffffff",
 																fontSize: "13",
 																fontFamily: "monospace",
 																fontWeight: "bold",
-																children: [utRefractedAngleDeg, "°"]
+																children: "0° L"
 															}),
-															/* @__PURE__ */ (0, import_jsx_runtime.jsx)("polyline", {
-																points: `${probeX},-45 ${probeX - 120},45 ${probeX - 240},-45`,
-																fill: "none",
+															/* @__PURE__ */ (0, import_jsx_runtime.jsx)("polygon", {
+																points: "-18,-45 18,-45 28,45 -28,45",
+																fill: "rgba(16, 185, 129, 0.18)",
+																className: "ut-beam-cone-pulse"
+															}),
+															/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
+																x1: "0",
+																y1: "-45",
+																x2: "0",
+																y2: "45",
 																stroke: "#10b981",
-																strokeWidth: "3.5"
+																strokeWidth: "3.5",
+																strokeDasharray: "8 4",
+																className: "ut-beam-flow-fast"
 															}),
 															/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
 																cx: "0",
-																cy: utProbeStandOffRatio <= 1.4 ? 42 : -38,
-																r: "10",
-																fill: "rgba(244, 63, 94, 0.35)",
-																stroke: "#f43f5e",
-																strokeWidth: "2.5"
+																cy: "-45",
+																r: "4",
+																fill: "#6ee7b7",
+																className: "ut-wave-packet",
+																style: {
+																	["--beam-dx"]: "0px",
+																	["--beam-dy"]: "90px"
+																}
+															}),
+															/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+																cx: "0",
+																cy: "45",
+																r: "7",
+																fill: "none",
+																stroke: "#38bdf8",
+																strokeWidth: "2",
+																className: "ut-interface-ripple"
 															})
-														] });
-													})(),
+														]
+													}),
+													utTechnique === "angle_shear" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("g", {
+														"data-testid": "ar-ut-angle-shear",
+														children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("g", {
+															transform: "translate(0, -45)",
+															children: [
+																/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
+																	x1: "120",
+																	y1: "-16",
+																	x2: "120",
+																	y2: "8",
+																	stroke: "#22d3ee",
+																	strokeWidth: "2.5"
+																}),
+																/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("text", {
+																	x: "120",
+																	y: "-22",
+																	textAnchor: "middle",
+																	fill: "#22d3ee",
+																	fontSize: "13",
+																	fontFamily: "monospace",
+																	fontWeight: "bold",
+																	children: [
+																		"½S = ",
+																		utHudPhysics.halfSkipMm,
+																		" mm"
+																	]
+																}),
+																/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
+																	x1: "240",
+																	y1: "-16",
+																	x2: "240",
+																	y2: "8",
+																	stroke: "#a78bfa",
+																	strokeWidth: "2.5"
+																}),
+																/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("text", {
+																	x: "240",
+																	y: "-22",
+																	textAnchor: "middle",
+																	fill: "#c4b5fd",
+																	fontSize: "13",
+																	fontFamily: "monospace",
+																	fontWeight: "bold",
+																	children: [
+																		"1S = ",
+																		utHudPhysics.fullSkipMm,
+																		" mm"
+																	]
+																})
+															]
+														}), (() => {
+															const probeX = Math.round(120 * utProbeStandOffRatio);
+															const bounceX = probeX - 120;
+															const endX = probeX - 240;
+															return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("g", { children: [
+																/* @__PURE__ */ (0, import_jsx_runtime.jsx)("rect", {
+																	x: probeX - 24,
+																	y: -82,
+																	width: "48",
+																	height: "37",
+																	rx: "5",
+																	fill: "#0284c7",
+																	stroke: "#e0f2fe",
+																	strokeWidth: "2"
+																}),
+																/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("text", {
+																	x: probeX,
+																	y: -59,
+																	textAnchor: "middle",
+																	fill: "#ffffff",
+																	fontSize: "13",
+																	fontFamily: "monospace",
+																	fontWeight: "bold",
+																	children: [utRefractedAngleDeg, "°"]
+																}),
+																/* @__PURE__ */ (0, import_jsx_runtime.jsx)("polyline", {
+																	points: `${probeX},-45 ${bounceX},45 ${endX},-45`,
+																	fill: "none",
+																	stroke: "#10b981",
+																	strokeWidth: "3.5",
+																	strokeDasharray: "8 5",
+																	className: "ut-beam-flow"
+																}),
+																/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+																	cx: probeX,
+																	cy: -45,
+																	r: "4",
+																	fill: "#a7f3d0",
+																	className: "ut-wave-packet",
+																	style: {
+																		["--beam-dx"]: "-120px",
+																		["--beam-dy"]: "90px"
+																	}
+																}),
+																/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+																	cx: bounceX,
+																	cy: 45,
+																	r: "9",
+																	fill: "none",
+																	stroke: "#22d3ee",
+																	strokeWidth: "2",
+																	className: "ut-interface-ripple"
+																}),
+																/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+																	cx: "0",
+																	cy: utProbeStandOffRatio <= 1.4 ? 42 : -38,
+																	r: "10",
+																	fill: "rgba(244, 63, 94, 0.35)",
+																	stroke: "#f43f5e",
+																	strokeWidth: "2.5"
+																})
+															] });
+														})()]
+													}),
+													utTechnique === "tofd" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("g", {
+														"data-testid": "ar-ut-tofd",
+														children: [
+															/* @__PURE__ */ (0, import_jsx_runtime.jsx)("rect", {
+																x: "-125",
+																y: "-82",
+																width: "44",
+																height: "37",
+																rx: "5",
+																fill: "#0284c7",
+																stroke: "#e0f2fe",
+																strokeWidth: "2"
+															}),
+															/* @__PURE__ */ (0, import_jsx_runtime.jsx)("text", {
+																x: "-103",
+																y: "-59",
+																textAnchor: "middle",
+																fill: "#fff",
+																fontSize: "12",
+																fontFamily: "monospace",
+																fontWeight: "bold",
+																children: "Tx"
+															}),
+															/* @__PURE__ */ (0, import_jsx_runtime.jsx)("rect", {
+																x: "81",
+																y: "-82",
+																width: "44",
+																height: "37",
+																rx: "5",
+																fill: "#0d9488",
+																stroke: "#ccfbf1",
+																strokeWidth: "2"
+															}),
+															/* @__PURE__ */ (0, import_jsx_runtime.jsx)("text", {
+																x: "103",
+																y: "-59",
+																textAnchor: "middle",
+																fill: "#fff",
+																fontSize: "12",
+																fontFamily: "monospace",
+																fontWeight: "bold",
+																children: "Rx"
+															}),
+															/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
+																x1: "-103",
+																y1: "-42",
+																x2: "103",
+																y2: "-42",
+																stroke: "#38bdf8",
+																strokeWidth: "3",
+																strokeDasharray: "6 4",
+																className: "ut-beam-flow-fast"
+															}),
+															/* @__PURE__ */ (0, import_jsx_runtime.jsx)("polyline", {
+																points: "-103,-45 0,45 103,-45",
+																fill: "none",
+																stroke: "#94a3b8",
+																strokeWidth: "2.5",
+																strokeDasharray: "7 5",
+																className: "ut-beam-flow"
+															}),
+															/* @__PURE__ */ (0, import_jsx_runtime.jsx)("polyline", {
+																points: "-103,-45 0,2 103,-45",
+																fill: "none",
+																stroke: "#f59e0b",
+																strokeWidth: "3",
+																strokeDasharray: "5 4",
+																className: "ut-beam-flow-fast"
+															}),
+															/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+																cx: "0",
+																cy: "2",
+																r: "8",
+																fill: "none",
+																stroke: "#fbbf24",
+																strokeWidth: "2",
+																className: "ut-interface-ripple"
+															}),
+															/* @__PURE__ */ (0, import_jsx_runtime.jsx)("text", {
+																x: "0",
+																y: "72",
+																textAnchor: "middle",
+																fill: "#fde68a",
+																fontSize: "12",
+																fontFamily: "monospace",
+																fontWeight: "bold",
+																children: "TOFD DUAL PROBE · LATERAL + TIP DIFFRACTION + BACKWALL"
+															})
+														]
+													}),
+													utTechnique === "paut_sscan" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("g", {
+														"data-testid": "ar-ut-paut-sscan",
+														children: [
+															/* @__PURE__ */ (0, import_jsx_runtime.jsx)("rect", {
+																x: "92",
+																y: "-86",
+																width: "64",
+																height: "41",
+																rx: "6",
+																fill: "#4f46e5",
+																stroke: "#e0e7ff",
+																strokeWidth: "2"
+															}),
+															/* @__PURE__ */ (0, import_jsx_runtime.jsx)("text", {
+																x: "124",
+																y: "-61",
+																textAnchor: "middle",
+																fill: "#fff",
+																fontSize: "12",
+																fontFamily: "monospace",
+																fontWeight: "bold",
+																children: "PAUT 64E"
+															}),
+															[
+																40,
+																48,
+																55,
+																62,
+																70
+															].map((ang, i) => {
+																const targetX = Math.round(124 - Math.tan(ang * Math.PI / 180) * 90);
+																return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
+																	x1: "124",
+																	y1: "-45",
+																	x2: targetX,
+																	y2: "45",
+																	stroke: i === 2 ? "#fbbf24" : "#22d3ee",
+																	strokeWidth: i === 2 ? "3" : "1.8",
+																	strokeDasharray: "6 4",
+																	className: "ut-beam-flow-fast"
+																}, ang);
+															}),
+															/* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", {
+																d: "M 45 -18 Q 20 -5 -18 14",
+																fill: "none",
+																stroke: "#67e8f9",
+																strokeWidth: "3",
+																className: "ut-paut-wavefront",
+																style: { ["--paut-depth"]: "42px" }
+															}),
+															/* @__PURE__ */ (0, import_jsx_runtime.jsx)("text", {
+																x: "124",
+																y: "72",
+																textAnchor: "middle",
+																fill: "#67e8f9",
+																fontSize: "12",
+																fontFamily: "monospace",
+																fontWeight: "bold",
+																children: "PAUT S-SCAN FAN 40°–70°"
+															})
+														]
+													}),
+													utTechnique === "creep_surface" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("g", {
+														"data-testid": "ar-ut-creep-surface",
+														children: [
+															/* @__PURE__ */ (0, import_jsx_runtime.jsx)("rect", {
+																x: "-175",
+																y: "-82",
+																width: "52",
+																height: "37",
+																rx: "5",
+																fill: "#b45309",
+																stroke: "#fef3c7",
+																strokeWidth: "2"
+															}),
+															/* @__PURE__ */ (0, import_jsx_runtime.jsx)("text", {
+																x: "-149",
+																y: "-59",
+																textAnchor: "middle",
+																fill: "#fff",
+																fontSize: "12",
+																fontFamily: "monospace",
+																fontWeight: "bold",
+																children: "CREEP"
+															}),
+															/* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", {
+																d: "M -123 -42 Q -60 -34 15 -42",
+																fill: "none",
+																stroke: "#fbbf24",
+																strokeWidth: "4",
+																strokeDasharray: "6 4",
+																className: "ut-beam-flow-fast"
+															}),
+															/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+																cx: "0",
+																cy: "-42",
+																r: "8",
+																fill: "none",
+																stroke: "#f43f5e",
+																strokeWidth: "2",
+																className: "ut-interface-ripple"
+															}),
+															/* @__PURE__ */ (0, import_jsx_runtime.jsx)("text", {
+																x: "0",
+																y: "72",
+																textAnchor: "middle",
+																fill: "#fbbf24",
+																fontSize: "12",
+																fontFamily: "monospace",
+																fontWeight: "bold",
+																children: "CREEPING SUB-SURFACE OD WAVE (HAZ / TOE CRACK)"
+															})
+														]
+													}),
 													/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("g", {
 														transform: "translate(-330, -195)",
 														children: [
@@ -39170,7 +39534,9 @@ var NdtCameraArOverlayLab = ({ language, initialOverlayDiscipline = "rt_exposure
 																fontFamily: "monospace",
 																fontWeight: "bold",
 																children: [
-																	"LIVE A-SCAN · FSH ",
+																	"LIVE A-SCAN · ",
+																	utTechnique.toUpperCase(),
+																	" · ",
 																	utHudPhysics.echoFshPct,
 																	"%"
 																]
@@ -39496,26 +39862,43 @@ var NdtCameraArOverlayLab = ({ language, initialOverlayDiscipline = "rt_exposure
 								overlayDiscipline === "rt_exposure" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
 									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 										className: "text-xs font-bold mb-1.5",
-										children: isAr ? "تقنية التصوير المتراكبة" : "Overlay RT Technique"
+										children: isAr ? "جميع تكنيكات التصوير الإشعاعي (AR RT Techniques)" : "All RT Exposure Geometries (AR)"
 									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-										className: "grid grid-cols-3 gap-1.5",
+										className: "grid grid-cols-2 sm:grid-cols-3 gap-1.5",
 										children: [
 											{
+												id: "swsi_plate",
+												label: "SWSI (1T Plate)",
+												rtMode: "straight"
+											},
+											{
 												id: "panoramic",
-												label: "Panorama"
+												label: "360° Panorama",
+												rtMode: "panoramic"
+											},
+											{
+												id: "dwsi_contact",
+												label: "DWSI Contact",
+												rtMode: "straight"
 											},
 											{
 												id: "elliptical",
-												label: "Ellipse"
+												label: "DWDI Ellipse",
+												rtMode: "elliptical"
 											},
 											{
-												id: "straight",
-												label: "Street 0°"
+												id: "dwdi_superimposed",
+												label: "DWDI 0° Street",
+												rtMode: "straight"
 											}
 										].map((item) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
 											type: "button",
-											onClick: () => setRtTechnique(item.id),
-											className: `px-2 py-1.5 rounded-lg border text-xs font-bold transition cursor-pointer whitespace-nowrap ${rtTechnique === item.id ? "bg-emerald-500 text-slate-950 border-emerald-400 font-black" : "border-slate-600/40 hover:border-emerald-400"}`,
+											"data-testid": `ar-rt-tech-${item.id}`,
+											onClick: () => {
+												setRtDetailedGeometry(item.id);
+												setRtTechnique(item.rtMode);
+											},
+											className: `px-2 py-1.5 rounded-lg border text-[11px] font-bold transition cursor-pointer whitespace-nowrap ${rtDetailedGeometry === item.id ? "bg-emerald-500 text-slate-950 border-emerald-400 font-black" : "border-slate-600/40 hover:border-emerald-400"}`,
 											children: item.label
 										}, item.id))
 									})] }),
@@ -39535,7 +39918,7 @@ var NdtCameraArOverlayLab = ({ language, initialOverlayDiscipline = "rt_exposure
 										onChange: (e) => setPipeOdMm(Number(e.target.value)),
 										className: "w-full accent-amber-500 cursor-pointer"
 									})] }),
-									rtTechnique !== "panoramic" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									rtDetailedGeometry !== "panoramic" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 										className: "flex justify-between text-xs font-bold mb-1",
 										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "المسافة البؤرية (SFD)" : "Source-to-Film (SFD)" }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
 											className: "font-mono text-cyan-500",
@@ -39551,7 +39934,7 @@ var NdtCameraArOverlayLab = ({ language, initialOverlayDiscipline = "rt_exposure
 										onChange: (e) => setSfdMm(Number(e.target.value)),
 										className: "w-full accent-cyan-500 cursor-pointer"
 									})] }),
-									rtTechnique === "elliptical" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									rtDetailedGeometry === "elliptical" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 										className: "flex justify-between text-xs font-bold mb-1",
 										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "الإزاحة المحورية (Offset L)" : "Axial Offset (L)" }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
 											className: "font-mono text-cyan-500",
@@ -39569,6 +39952,39 @@ var NdtCameraArOverlayLab = ({ language, initialOverlayDiscipline = "rt_exposure
 									})] })
 								] }),
 								overlayDiscipline === "ut_skip_beam" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+									className: "text-xs font-bold mb-1.5",
+									children: isAr ? "جميع تكنيكات الموجات فوق الصوتية (AR UT)" : "All UT / PAUT Techniques (AR)"
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+									className: "grid grid-cols-2 sm:grid-cols-3 gap-1.5",
+									children: [
+										{
+											id: "normal_0",
+											label: "0° Normal (L)"
+										},
+										{
+											id: "angle_shear",
+											label: "Shear 45/60/70°"
+										},
+										{
+											id: "tofd",
+											label: "TOFD Dual-Probe"
+										},
+										{
+											id: "paut_sscan",
+											label: "PAUT S-Scan"
+										},
+										{
+											id: "creep_surface",
+											label: "Creep Surface"
+										}
+									].map((tech) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+										type: "button",
+										"data-testid": `ar-ut-tech-${tech.id}`,
+										onClick: () => setUtTechnique(tech.id),
+										className: `px-2 py-1.5 rounded-lg border text-[11px] font-bold transition cursor-pointer whitespace-nowrap ${utTechnique === tech.id ? "bg-cyan-500 text-slate-950 border-cyan-400 font-black" : "border-slate-600/40 hover:border-cyan-400"}`,
+										children: tech.label
+									}, tech.id))
+								})] }), utTechnique === "angle_shear" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 									className: "text-xs font-bold mb-1.5",
 									children: isAr ? "زاوية انكسار المجس (Probe Angle)" : "Refracted Probe Angle"
 								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
@@ -39603,7 +40019,7 @@ var NdtCameraArOverlayLab = ({ language, initialOverlayDiscipline = "rt_exposure
 									value: utProbeStandOffRatio,
 									onChange: (e) => setUtProbeStandOffRatio(Number(e.target.value)),
 									className: "w-full accent-cyan-500 cursor-pointer"
-								})] })] }),
+								})] })] })] }),
 								overlayDiscipline === "vt_mt_gauge" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
 									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 										className: "flex justify-between text-xs font-bold mb-1",
@@ -41731,7 +42147,7 @@ var DigitalLabSideSettingsPanel = ({ language, activeBlockType, transducerFreqMH
 };
 //#endregion
 //#region src/components/academy/VirtualLab.tsx
-var UtThreeScene = (0, import_react.lazy)(() => __vitePreload(() => import("./UtThreeScene-9nkjiV7T.js").then((module) => ({ default: module.UtThreeScene })), __vite__mapDeps([4,1,0,2,3,5])));
+var UtThreeScene = (0, import_react.lazy)(() => __vitePreload(() => import("./UtThreeScene-2hoVnHOl.js").then((module) => ({ default: module.UtThreeScene })), __vite__mapDeps([6,1,2,3,0,4,5,7,8])));
 var ANGLE_WELD_COUPON_FLAWS = {
 	incomplete_penetration: {
 		id: "incomplete_penetration",
@@ -81057,4 +81473,4 @@ var AcademyContent = ({ language, route, onOpenHash, onTabChange }) => {
 	});
 };
 //#endregion
-export { AcademyContent, Box as n, RoomEnvironment as t };
+export { AcademyContent };

@@ -26,6 +26,18 @@ import { ArCompleteRtCodeSimulator } from './ArCompleteRtCodeSimulator';
 
 export type NdtArOverlayDiscipline = 'rt_exposure' | 'ut_skip_beam' | 'vt_mt_gauge';
 export type CameraStreamState = 'idle' | 'requesting' | 'active' | 'error' | 'calibration_feed';
+export type RtDetailedGeometry =
+  | 'swsi_plate'
+  | 'panoramic'
+  | 'dwsi_contact'
+  | 'elliptical'
+  | 'dwdi_superimposed';
+export type UtArTechniqueMode =
+  | 'normal_0'
+  | 'angle_shear'
+  | 'tofd'
+  | 'paut_sscan'
+  | 'creep_surface';
 
 export interface NdtCameraArOverlayLabProps {
   language: Language;
@@ -50,6 +62,12 @@ function selectAsmeIqiDesignation(wallMm: number): string {
   if (wallMm <= 19.0) return 'ASME 1B (#8 · 0.25 mm)';
   if (wallMm <= 25.4) return 'ASME 1B (#9 · 0.32 mm)';
   return 'ASME 1B (#10 · 0.40 mm)';
+}
+
+function mapRtModeToDetailed(mode: RtExposureTechniqueMode): RtDetailedGeometry {
+  if (mode === 'panoramic') return 'panoramic';
+  if (mode === 'elliptical') return 'elliptical';
+  return 'dwdi_superimposed';
 }
 
 export const NdtCameraArOverlayLab: React.FC<NdtCameraArOverlayLabProps> = ({
@@ -90,13 +108,17 @@ export const NdtCameraArOverlayLab: React.FC<NdtCameraArOverlayLabProps> = ({
   const [overlayDiscipline, setOverlayDiscipline] =
     useState<NdtArOverlayDiscipline>(initialOverlayDiscipline);
   const [rtTechnique, setRtTechnique] = useState<RtExposureTechniqueMode>(initialRtTechnique);
+  const [rtDetailedGeometry, setRtDetailedGeometry] = useState<RtDetailedGeometry>(() =>
+    mapRtModeToDetailed(initialRtTechnique)
+  );
   const [pipeOdMm, setPipeOdMm] = useState<number>(initialPipeOdMm);
   const [wallMm, setWallMm] = useState<number>(initialWallMm);
   const [sfdMm, setSfdMm] = useState<number>(initialSfdMm);
   const [focalSpotMm, setFocalSpotMm] = useState<number>(initialFocalSpotMm);
   const [axialOffsetMm, setAxialOffsetMm] = useState<number>(initialAxialOffsetMm);
 
-  // UT Angle-Beam Specific Parameters
+  // UT All-Techniques AR Specific Parameters
+  const [utTechnique, setUtTechnique] = useState<UtArTechniqueMode>('angle_shear');
   const [utRefractedAngleDeg, setUtRefractedAngleDeg] = useState<45 | 60 | 70>(60);
   const [utProbeStandOffRatio, setUtProbeStandOffRatio] = useState<number>(1.0); // 1.0 = Half-skip (root), 2.0 = Full-skip (cap)
 
@@ -124,6 +146,7 @@ export const NdtCameraArOverlayLab: React.FC<NdtCameraArOverlayLabProps> = ({
   // Sync incoming RT props when parent workbench changes parameters
   useEffect(() => {
     setRtTechnique(initialRtTechnique);
+    setRtDetailedGeometry(mapRtModeToDetailed(initialRtTechnique));
   }, [initialRtTechnique]);
 
   useEffect(() => {
@@ -352,20 +375,25 @@ export const NdtCameraArOverlayLab: React.FC<NdtCameraArOverlayLabProps> = ({
 
   // Physics Calculations for Active NDT Overlay
   const rtHudPhysics = useMemo(() => {
+    const isSingleWall =
+      rtDetailedGeometry === 'panoramic' || rtDetailedGeometry === 'swsi_plate';
     const effectiveSfd =
-      rtTechnique === 'panoramic' ? Math.max(25, Math.round(pipeOdMm / 2)) : sfdMm;
-    const objToFilm =
-      rtTechnique === 'elliptical' ? pipeOdMm + 2 : wallMm + 2;
+      rtDetailedGeometry === 'panoramic'
+        ? Math.max(25, Math.round(pipeOdMm / 2))
+        : rtDetailedGeometry === 'dwsi_contact'
+          ? Math.max(pipeOdMm + 15, Math.round(pipeOdMm * 1.15))
+          : sfdMm;
+    const objToFilm = isSingleWall ? wallMm + 2 : pipeOdMm + 2;
     const rayDist =
-      rtTechnique === 'elliptical'
+      rtDetailedGeometry === 'elliptical'
         ? Math.sqrt(effectiveSfd * effectiveSfd + axialOffsetMm * axialOffsetMm)
         : effectiveSfd;
     const sod = Math.max(15, rayDist - objToFilm);
     const ugMm = Number(((focalSpotMm * objToFilm) / sod).toFixed(3));
-    const maxUgMm = getAsmeMaxUgMm(rtTechnique === 'elliptical' ? wallMm * 2 : wallMm);
+    const maxUgMm = getAsmeMaxUgMm(isSingleWall ? wallMm : wallMm * 2);
     const passesUg = ugMm <= maxUgMm;
     const tiltDeg =
-      rtTechnique === 'elliptical'
+      rtDetailedGeometry === 'elliptical'
         ? Number(((Math.atan2(axialOffsetMm, effectiveSfd) * 180) / Math.PI).toFixed(1))
         : 0;
     const iqiLabel = selectAsmeIqiDesignation(wallMm);
@@ -377,8 +405,9 @@ export const NdtCameraArOverlayLab: React.FC<NdtCameraArOverlayLabProps> = ({
       passesUg,
       tiltDeg,
       iqiLabel,
+      wallFactorLabel: isSingleWall ? '1T' : '2T',
     };
-  }, [rtTechnique, pipeOdMm, wallMm, sfdMm, focalSpotMm, axialOffsetMm]);
+  }, [rtDetailedGeometry, pipeOdMm, wallMm, sfdMm, focalSpotMm, axialOffsetMm]);
 
   const utHudPhysics = useMemo(() => {
     const rad = (utRefractedAngleDeg * Math.PI) / 180;
@@ -490,9 +519,9 @@ export const NdtCameraArOverlayLab: React.FC<NdtCameraArOverlayLabProps> = ({
 
       const summaryLine =
         overlayDiscipline === 'rt_exposure'
-          ? `INSCO NDT AR · RT (${rtTechnique.toUpperCase()}) · OD ${pipeOdMm}mm · t ${wallMm}mm · SFD ${rtHudPhysics.effectiveSfd}mm · Ug ${rtHudPhysics.ugMm}mm`
+          ? `INSCO NDT AR · RT (${rtDetailedGeometry.toUpperCase()} · ${rtHudPhysics.wallFactorLabel}) · OD ${pipeOdMm}mm · t ${wallMm}mm · SFD ${rtHudPhysics.effectiveSfd}mm · Ug ${rtHudPhysics.ugMm}mm`
           : overlayDiscipline === 'ut_skip_beam'
-          ? `INSCO NDT AR · UT ${utRefractedAngleDeg}° · t ${wallMm}mm · 1/2 Skip ${utHudPhysics.halfSkipMm}mm · SP ${utHudPhysics.soundPathMm}mm · Depth ${utHudPhysics.reflectorDepthMm}mm`
+          ? `INSCO NDT AR · UT (${utTechnique.toUpperCase()}) ${utTechnique === 'angle_shear' ? `${utRefractedAngleDeg}° ` : ''}· t ${wallMm}mm · ½S ${utHudPhysics.halfSkipMm}mm · SP ${utHudPhysics.soundPathMm}mm`
           : `INSCO NDT AR · VT/MT · Cap ${vtMeasuredCapMm}mm (Max ${vtMtHudPhysics.maxCapAllowedMm}mm) · Yoke ${mtYokeSpacingMm}mm @ ${mtOrientationDeg}°`;
 
       ctx.fillText(summaryLine, 28, 672);
@@ -517,7 +546,9 @@ export const NdtCameraArOverlayLab: React.FC<NdtCameraArOverlayLabProps> = ({
       overlayDiscipline === 'rt_exposure'
         ? 'RT'
         : overlayDiscipline === 'ut_skip_beam'
-        ? 'UT'
+        ? utTechnique === 'paut_sscan'
+          ? 'PAUT'
+          : 'UT'
         : 'MT';
 
     const passesCode =
@@ -537,18 +568,18 @@ export const NdtCameraArOverlayLab: React.FC<NdtCameraArOverlayLabProps> = ({
       ndtMethod,
       defectTypes: [
         {
-          id: overlayDiscipline,
+          id: overlayDiscipline === 'rt_exposure' ? rtDetailedGeometry : overlayDiscipline === 'ut_skip_beam' ? utTechnique : overlayDiscipline,
           ar:
             overlayDiscipline === 'rt_exposure'
-              ? `معايرة تصوير إشعاعي (${rtTechnique})`
+              ? `معايرة تصوير إشعاعي (${rtDetailedGeometry})`
               : overlayDiscipline === 'ut_skip_beam'
-              ? `توقيع مسار الموجات ${utRefractedAngleDeg}°`
+              ? `توقيع موجات فوق صوتية (${utTechnique})`
               : 'فحص بصري وجسيمات مغناطيسية',
           en:
             overlayDiscipline === 'rt_exposure'
-              ? `RT Exposure Alignment (${rtTechnique})`
+              ? `RT Exposure Alignment (${rtDetailedGeometry})`
               : overlayDiscipline === 'ut_skip_beam'
-              ? `UT ${utRefractedAngleDeg}° Skip Plotting`
+              ? `UT AR Beam Overlay (${utTechnique})`
               : 'VT Cap Gauge & MT Yoke Alignment',
         },
       ],
@@ -913,10 +944,10 @@ export const NdtCameraArOverlayLab: React.FC<NdtCameraArOverlayLabProps> = ({
                 opacity={hudOpacity}
                 transform={`translate(${anchorX}, ${anchorY}) rotate(${overlayRotationDeg}) scale(${scaleFactor})`}
               >
-                {/* MODE 1: RT RADIATION CONE, PIPE OD, SFD & ASME IQI OVERLAY */}
+                {/* MODE 1: ALL 5 RT EXPOSURE TECHNIQUES, BEAM CONE, SFD & ASME IQI OVERLAY */}
                 {overlayDiscipline === 'rt_exposure' && (
                   <g data-testid="ar-svg-rt-group">
-                    {rtTechnique === 'panoramic' ? (
+                    {rtDetailedGeometry === 'panoramic' ? (
                       <>
                         {/* 360° Panoramic Circumferential Pipe Ring & Spider Center */}
                         <circle
@@ -927,48 +958,163 @@ export const NdtCameraArOverlayLab: React.FC<NdtCameraArOverlayLabProps> = ({
                           stroke="#fbbf24"
                           strokeWidth="3.5"
                           strokeDasharray="12 6"
+                          className="ut-beam-flow"
                         />
                         <circle
                           cx="0"
                           cy="0"
                           r="152"
-                          fill="none"
+                          fill="rgba(245, 158, 11, 0.08)"
                           stroke="#38bdf8"
                           strokeWidth="2"
                         />
-                        {/* Radial 360° Gamma Rays */}
-                        {[0, 45, 90, 135, 180, 225, 270, 315].map((deg) => {
+                        {/* Radial 360° Animated Gamma Rays */}
+                        {[0, 45, 90, 135, 180, 225, 270, 315].map((deg, idx) => {
                           const rad = (deg * Math.PI) / 180;
                           const x2 = Math.round(Math.cos(rad) * 172);
                           const y2 = Math.round(Math.sin(rad) * 172);
                           return (
-                            <line
-                              key={deg}
-                              x1="0"
-                              y1="0"
-                              x2={x2}
-                              y2={y2}
-                              stroke="#f59e0b"
-                              strokeWidth="1.8"
-                              strokeDasharray="5 5"
-                            />
+                            <g key={deg}>
+                              <line
+                                x1="0"
+                                y1="0"
+                                x2={x2}
+                                y2={y2}
+                                stroke="#f59e0b"
+                                strokeWidth="2"
+                                strokeDasharray="6 4"
+                                className="ut-beam-flow-fast"
+                              />
+                              <circle
+                                cx="0"
+                                cy="0"
+                                r="3.2"
+                                fill="#fef08a"
+                                className="ut-wave-packet"
+                                style={{
+                                  ['--beam-dx' as string]: `${x2}px`,
+                                  ['--beam-dy' as string]: `${y2}px`,
+                                  ['--beam-delay' as string]: `${(idx * 0.16).toFixed(2)}s`,
+                                }}
+                              />
+                            </g>
                           );
                         })}
                         {/* Central Isotope Focal Spot */}
                         <circle cx="0" cy="0" r="12" fill="#f59e0b" stroke="#020617" strokeWidth="3" />
                         <text
                           x="0"
-                          y="-22"
+                          y="-24"
                           textAnchor="middle"
                           fill="#fef08a"
-                          fontSize="15"
+                          fontSize="14"
                           fontFamily="monospace"
                           fontWeight="bold"
                         >
-                          PANORAMA 360° · SFD = {rtHudPhysics.effectiveSfd} mm
+                          PANORAMA 360° (1T) · SFD = {rtHudPhysics.effectiveSfd} mm
                         </text>
                       </>
-                    ) : rtTechnique === 'elliptical' ? (
+                    ) : rtDetailedGeometry === 'swsi_plate' ? (
+                      <>
+                        {/* SWSI Single-Wall Single-Image (Flat Weld / Large Pipe Segment) */}
+                        <polygon
+                          points="0,-195 -195,58 195,58"
+                          fill="rgba(16, 185, 129, 0.11)"
+                          stroke="#10b981"
+                          strokeWidth="2.5"
+                          strokeDasharray="8 5"
+                          className="ut-beam-flow"
+                        />
+                        <rect
+                          x="-210"
+                          y="20"
+                          width="420"
+                          height="34"
+                          rx="3"
+                          fill="rgba(51, 65, 85, 0.5)"
+                          stroke="#94a3b8"
+                          strokeWidth="1.5"
+                        />
+                        <line
+                          x1="0"
+                          y1="-195"
+                          x2="0"
+                          y2="68"
+                          stroke="#fbbf24"
+                          strokeWidth="2.5"
+                          strokeDasharray="6 4"
+                          className="ut-beam-flow-fast"
+                        />
+                        <circle
+                          cx="0"
+                          cy="-195"
+                          r="3.5"
+                          fill="#a7f3d0"
+                          className="ut-wave-packet"
+                          style={{ ['--beam-dx' as string]: '0px', ['--beam-dy' as string]: '255px' }}
+                        />
+                        <circle cx="0" cy="-195" r="11" fill="#10b981" stroke="#020617" strokeWidth="3" />
+                        <rect
+                          x="-200"
+                          y="60"
+                          width="400"
+                          height="16"
+                          rx="4"
+                          fill="rgba(15, 23, 42, 0.88)"
+                          stroke="#38bdf8"
+                          strokeWidth="2"
+                        />
+                        <text
+                          x="0"
+                          y="-214"
+                          textAnchor="middle"
+                          fill="#6ee7b7"
+                          fontSize="14"
+                          fontFamily="monospace"
+                          fontWeight="bold"
+                        >
+                          SWSI PLATE / 1T · SFD = {rtHudPhysics.effectiveSfd} mm
+                        </text>
+                      </>
+                    ) : rtDetailedGeometry === 'dwsi_contact' ? (
+                      <>
+                        {/* DWSI Double-Wall Single-Image (Contact / Close Source at OD Top) */}
+                        <circle
+                          cx="0"
+                          cy="5"
+                          r="92"
+                          fill="rgba(56, 189, 248, 0.08)"
+                          stroke="#38bdf8"
+                          strokeWidth="2.5"
+                        />
+                        <polygon
+                          points="0,-90 -145,98 145,98"
+                          fill="rgba(251, 191, 36, 0.11)"
+                          stroke="#fbbf24"
+                          strokeWidth="2"
+                          strokeDasharray="6 4"
+                          className="ut-beam-flow"
+                        />
+                        <path
+                          d="M -92 38 A 96 96 0 0 0 92 38"
+                          fill="none"
+                          stroke="#10b981"
+                          strokeWidth="5"
+                        />
+                        <circle cx="0" cy="-90" r="11" fill="#f59e0b" stroke="#020617" strokeWidth="3" />
+                        <text
+                          x="0"
+                          y="-112"
+                          textAnchor="middle"
+                          fill="#fde68a"
+                          fontSize="14"
+                          fontFamily="monospace"
+                          fontWeight="bold"
+                        >
+                          DWSI CONTACT (2T) · FILM-SIDE IQI · SFD={rtHudPhysics.effectiveSfd}mm
+                        </text>
+                      </>
+                    ) : rtDetailedGeometry === 'elliptical' ? (
                       <>
                         {/* DWDI Elliptical Offset Source & Tilted Beam Cone */}
                         <ellipse
@@ -976,11 +1122,10 @@ export const NdtCameraArOverlayLab: React.FC<NdtCameraArOverlayLabProps> = ({
                           cy="40"
                           rx="165"
                           ry="58"
-                          fill="rgba(6, 182, 212, 0.10)"
+                          fill="rgba(6, 182, 212, 0.12)"
                           stroke="#22d3ee"
                           strokeWidth="3"
                         />
-                        {/* Offset Source Position */}
                         <line
                           x1="-130"
                           y1="-185"
@@ -989,6 +1134,7 @@ export const NdtCameraArOverlayLab: React.FC<NdtCameraArOverlayLabProps> = ({
                           stroke="#fbbf24"
                           strokeWidth="2"
                           strokeDasharray="6 4"
+                          className="ut-beam-flow"
                         />
                         <line
                           x1="-130"
@@ -998,6 +1144,7 @@ export const NdtCameraArOverlayLab: React.FC<NdtCameraArOverlayLabProps> = ({
                           stroke="#fbbf24"
                           strokeWidth="2"
                           strokeDasharray="6 4"
+                          className="ut-beam-flow"
                         />
                         <line
                           x1="-130"
@@ -1006,6 +1153,16 @@ export const NdtCameraArOverlayLab: React.FC<NdtCameraArOverlayLabProps> = ({
                           y2="40"
                           stroke="#10b981"
                           strokeWidth="2.5"
+                          strokeDasharray="6 3"
+                          className="ut-beam-flow-fast"
+                        />
+                        <circle
+                          cx="-130"
+                          cy="-185"
+                          r="3.5"
+                          fill="#67e8f9"
+                          className="ut-wave-packet"
+                          style={{ ['--beam-dx' as string]: '130px', ['--beam-dy' as string]: '225px' }}
                         />
                         <circle
                           cx="-130"
@@ -1024,20 +1181,47 @@ export const NdtCameraArOverlayLab: React.FC<NdtCameraArOverlayLabProps> = ({
                           fontFamily="monospace"
                           fontWeight="bold"
                         >
-                          DWDI ELLIPSE · Offset L={axialOffsetMm}mm (θ={rtHudPhysics.tiltDeg}°)
+                          DWDI ELLIPSE (2T) · Offset L={axialOffsetMm}mm (θ={rtHudPhysics.tiltDeg}°)
                         </text>
                       </>
                     ) : (
                       <>
-                        {/* 0° Perpendicular Straight / Street Beam Cone */}
+                        {/* DWDI Superimposed 0° Perpendicular Straight / Street Beam Cone */}
                         <polygon
                           points="0,-200 -210,75 210,75"
                           fill="rgba(16, 185, 129, 0.09)"
                           stroke="#10b981"
                           strokeWidth="2.5"
                           strokeDasharray="8 5"
+                          className="ut-beam-flow"
                         />
-                        <line x1="0" y1="-200" x2="0" y2="95" stroke="#fbbf24" strokeWidth="3" />
+                        <ellipse
+                          cx="0"
+                          cy="5"
+                          rx="135"
+                          ry="52"
+                          fill="rgba(56, 189, 248, 0.08)"
+                          stroke="#38bdf8"
+                          strokeWidth="2"
+                        />
+                        <line
+                          x1="0"
+                          y1="-200"
+                          x2="0"
+                          y2="82"
+                          stroke="#fbbf24"
+                          strokeWidth="3"
+                          strokeDasharray="6 4"
+                          className="ut-beam-flow-fast"
+                        />
+                        <circle
+                          cx="0"
+                          cy="-200"
+                          r="3.5"
+                          fill="#fde68a"
+                          className="ut-wave-packet"
+                          style={{ ['--beam-dx' as string]: '0px', ['--beam-dy' as string]: '280px' }}
+                        />
                         <circle
                           cx="0"
                           cy="-200"
@@ -1065,7 +1249,7 @@ export const NdtCameraArOverlayLab: React.FC<NdtCameraArOverlayLabProps> = ({
                           fontFamily="monospace"
                           fontWeight="bold"
                         >
-                          0° STRAIGHT (STREET) · SFD = {rtHudPhysics.effectiveSfd} mm
+                          DWDI SUPERIMPOSED 0° (2T) · SFD = {rtHudPhysics.effectiveSfd} mm
                         </text>
                       </>
                     )}
@@ -1136,7 +1320,7 @@ export const NdtCameraArOverlayLab: React.FC<NdtCameraArOverlayLabProps> = ({
                   </g>
                 )}
 
-                {/* MODE 2: UT / PAUT ANGLE-BEAM SKIP RULER & LIVE MINI A-SCAN OVERLAY */}
+                {/* MODE 2: ALL UT TECHNIQUES (0° NORMAL, SHEAR SKIP, TOFD, PAUT S-SCAN, CREEPING WAVE) */}
                 {overlayDiscipline === 'ut_skip_beam' && (
                   <g data-testid="ar-svg-ut-group">
                     {/* Weld Centerline & V-Bevel Reference */}
@@ -1167,82 +1351,161 @@ export const NdtCameraArOverlayLab: React.FC<NdtCameraArOverlayLabProps> = ({
                       strokeDasharray="10 5"
                     />
 
-                    {/* Calibrated Half-Skip (½S) & Full-Skip (1S) Standoff Ticks */}
-                    <g transform="translate(0, -45)">
-                      <line x1="120" y1="-16" x2="120" y2="8" stroke="#22d3ee" strokeWidth="2.5" />
-                      <text
-                        x="120"
-                        y="-22"
-                        textAnchor="middle"
-                        fill="#22d3ee"
-                        fontSize="13"
-                        fontFamily="monospace"
-                        fontWeight="bold"
-                      >
-                        ½S = {utHudPhysics.halfSkipMm} mm
-                      </text>
+                    {/* Technique 1: 0° Normal Beam Longitudinal */}
+                    {utTechnique === 'normal_0' && (
+                      <g data-testid="ar-ut-normal-0">
+                        <rect x="-24" y="-82" width="48" height="37" rx="5" fill="#0284c7" stroke="#e0f2fe" strokeWidth="2" />
+                        <text x="0" y="-59" textAnchor="middle" fill="#ffffff" fontSize="13" fontFamily="monospace" fontWeight="bold">0° L</text>
+                        <polygon points="-18,-45 18,-45 28,45 -28,45" fill="rgba(16, 185, 129, 0.18)" className="ut-beam-cone-pulse" />
+                        <line x1="0" y1="-45" x2="0" y2="45" stroke="#10b981" strokeWidth="3.5" strokeDasharray="8 4" className="ut-beam-flow-fast" />
+                        <circle
+                          cx="0"
+                          cy="-45"
+                          r="4"
+                          fill="#6ee7b7"
+                          className="ut-wave-packet"
+                          style={{ ['--beam-dx' as string]: '0px', ['--beam-dy' as string]: '90px' }}
+                        />
+                        <circle cx="0" cy="45" r="7" fill="none" stroke="#38bdf8" strokeWidth="2" className="ut-interface-ripple" />
+                      </g>
+                    )}
 
-                      <line x1="240" y1="-16" x2="240" y2="8" stroke="#a78bfa" strokeWidth="2.5" />
-                      <text
-                        x="240"
-                        y="-22"
-                        textAnchor="middle"
-                        fill="#c4b5fd"
-                        fontSize="13"
-                        fontFamily="monospace"
-                        fontWeight="bold"
-                      >
-                        1S = {utHudPhysics.fullSkipMm} mm
-                      </text>
-                    </g>
-
-                    {/* Dynamic Angle-Beam Probe Wedge & Refracted Ray Path */}
-                    {(() => {
-                      const probeX = Math.round(120 * utProbeStandOffRatio);
-                      return (
-                        <g>
-                          {/* Probe Housing */}
-                          <rect
-                            x={probeX - 24}
-                            y={-82}
-                            width="48"
-                            height="37"
-                            rx="5"
-                            fill="#0284c7"
-                            stroke="#e0f2fe"
-                            strokeWidth="2"
-                          />
-                          <text
-                            x={probeX}
-                            y={-59}
-                            textAnchor="middle"
-                            fill="#ffffff"
-                            fontSize="13"
-                            fontFamily="monospace"
-                            fontWeight="bold"
-                          >
-                            {utRefractedAngleDeg}°
+                    {/* Technique 2: Angle-Beam Shear Wave Half/Full Skip */}
+                    {utTechnique === 'angle_shear' && (
+                      <g data-testid="ar-ut-angle-shear">
+                        <g transform="translate(0, -45)">
+                          <line x1="120" y1="-16" x2="120" y2="8" stroke="#22d3ee" strokeWidth="2.5" />
+                          <text x="120" y="-22" textAnchor="middle" fill="#22d3ee" fontSize="13" fontFamily="monospace" fontWeight="bold">
+                            ½S = {utHudPhysics.halfSkipMm} mm
                           </text>
-
-                          {/* Leg 1 & Leg 2 Shear Wave Path */}
-                          <polyline
-                            points={`${probeX},-45 ${probeX - 120},45 ${probeX - 240},-45`}
-                            fill="none"
-                            stroke="#10b981"
-                            strokeWidth="3.5"
-                          />
-                          {/* Target Reflector Circle on Weld Zone */}
-                          <circle
-                            cx="0"
-                            cy={utProbeStandOffRatio <= 1.4 ? 42 : -38}
-                            r="10"
-                            fill="rgba(244, 63, 94, 0.35)"
-                            stroke="#f43f5e"
-                            strokeWidth="2.5"
-                          />
+                          <line x1="240" y1="-16" x2="240" y2="8" stroke="#a78bfa" strokeWidth="2.5" />
+                          <text x="240" y="-22" textAnchor="middle" fill="#c4b5fd" fontSize="13" fontFamily="monospace" fontWeight="bold">
+                            1S = {utHudPhysics.fullSkipMm} mm
+                          </text>
                         </g>
-                      );
-                    })()}
+                        {(() => {
+                          const probeX = Math.round(120 * utProbeStandOffRatio);
+                          const bounceX = probeX - 120;
+                          const endX = probeX - 240;
+                          return (
+                            <g>
+                              <rect x={probeX - 24} y={-82} width="48" height="37" rx="5" fill="#0284c7" stroke="#e0f2fe" strokeWidth="2" />
+                              <text x={probeX} y={-59} textAnchor="middle" fill="#ffffff" fontSize="13" fontFamily="monospace" fontWeight="bold">
+                                {utRefractedAngleDeg}°
+                              </text>
+                              <polyline
+                                points={`${probeX},-45 ${bounceX},45 ${endX},-45`}
+                                fill="none"
+                                stroke="#10b981"
+                                strokeWidth="3.5"
+                                strokeDasharray="8 5"
+                                className="ut-beam-flow"
+                              />
+                              <circle
+                                cx={probeX}
+                                cy={-45}
+                                r="4"
+                                fill="#a7f3d0"
+                                className="ut-wave-packet"
+                                style={{ ['--beam-dx' as string]: '-120px', ['--beam-dy' as string]: '90px' }}
+                              />
+                              <circle
+                                cx={bounceX}
+                                cy={45}
+                                r="9"
+                                fill="none"
+                                stroke="#22d3ee"
+                                strokeWidth="2"
+                                className="ut-interface-ripple"
+                              />
+                              <circle
+                                cx="0"
+                                cy={utProbeStandOffRatio <= 1.4 ? 42 : -38}
+                                r="10"
+                                fill="rgba(244, 63, 94, 0.35)"
+                                stroke="#f43f5e"
+                                strokeWidth="2.5"
+                              />
+                            </g>
+                          );
+                        })()}
+                      </g>
+                    )}
+
+                    {/* Technique 3: TOFD Dual Probe Time-of-Flight Diffraction */}
+                    {utTechnique === 'tofd' && (
+                      <g data-testid="ar-ut-tofd">
+                        <rect x="-125" y="-82" width="44" height="37" rx="5" fill="#0284c7" stroke="#e0f2fe" strokeWidth="2" />
+                        <text x="-103" y="-59" textAnchor="middle" fill="#fff" fontSize="12" fontFamily="monospace" fontWeight="bold">Tx</text>
+                        <rect x="81" y="-82" width="44" height="37" rx="5" fill="#0d9488" stroke="#ccfbf1" strokeWidth="2" />
+                        <text x="103" y="-59" textAnchor="middle" fill="#fff" fontSize="12" fontFamily="monospace" fontWeight="bold">Rx</text>
+                        {/* Lateral Wave */}
+                        <line x1="-103" y1="-42" x2="103" y2="-42" stroke="#38bdf8" strokeWidth="3" strokeDasharray="6 4" className="ut-beam-flow-fast" />
+                        {/* Back-Wall Wave */}
+                        <polyline points="-103,-45 0,45 103,-45" fill="none" stroke="#94a3b8" strokeWidth="2.5" strokeDasharray="7 5" className="ut-beam-flow" />
+                        {/* Tip Diffraction Wavefront */}
+                        <polyline points="-103,-45 0,2 103,-45" fill="none" stroke="#f59e0b" strokeWidth="3" strokeDasharray="5 4" className="ut-beam-flow-fast" />
+                        <circle cx="0" cy="2" r="8" fill="none" stroke="#fbbf24" strokeWidth="2" className="ut-interface-ripple" />
+                        <text x="0" y="72" textAnchor="middle" fill="#fde68a" fontSize="12" fontFamily="monospace" fontWeight="bold">
+                          TOFD DUAL PROBE · LATERAL + TIP DIFFRACTION + BACKWALL
+                        </text>
+                      </g>
+                    )}
+
+                    {/* Technique 4: PAUT Phased Array Sectorial S-Scan (40°-70°) */}
+                    {utTechnique === 'paut_sscan' && (
+                      <g data-testid="ar-ut-paut-sscan">
+                        <rect x="92" y="-86" width="64" height="41" rx="6" fill="#4f46e5" stroke="#e0e7ff" strokeWidth="2" />
+                        <text x="124" y="-61" textAnchor="middle" fill="#fff" fontSize="12" fontFamily="monospace" fontWeight="bold">PAUT 64E</text>
+                        {[40, 48, 55, 62, 70].map((ang, i) => {
+                          const targetX = Math.round(124 - Math.tan((ang * Math.PI) / 180) * 90);
+                          return (
+                            <line
+                              key={ang}
+                              x1="124"
+                              y1="-45"
+                              x2={targetX}
+                              y2="45"
+                              stroke={i === 2 ? '#fbbf24' : '#22d3ee'}
+                              strokeWidth={i === 2 ? '3' : '1.8'}
+                              strokeDasharray="6 4"
+                              className="ut-beam-flow-fast"
+                            />
+                          );
+                        })}
+                        <path
+                          d="M 45 -18 Q 20 -5 -18 14"
+                          fill="none"
+                          stroke="#67e8f9"
+                          strokeWidth="3"
+                          className="ut-paut-wavefront"
+                          style={{ ['--paut-depth' as string]: '42px' }}
+                        />
+                        <text x="124" y="72" textAnchor="middle" fill="#67e8f9" fontSize="12" fontFamily="monospace" fontWeight="bold">
+                          PAUT S-SCAN FAN 40°–70°
+                        </text>
+                      </g>
+                    )}
+
+                    {/* Technique 5: Sub-Surface / Creeping Wave */}
+                    {utTechnique === 'creep_surface' && (
+                      <g data-testid="ar-ut-creep-surface">
+                        <rect x="-175" y="-82" width="52" height="37" rx="5" fill="#b45309" stroke="#fef3c7" strokeWidth="2" />
+                        <text x="-149" y="-59" textAnchor="middle" fill="#fff" fontSize="12" fontFamily="monospace" fontWeight="bold">CREEP</text>
+                        <path
+                          d="M -123 -42 Q -60 -34 15 -42"
+                          fill="none"
+                          stroke="#fbbf24"
+                          strokeWidth="4"
+                          strokeDasharray="6 4"
+                          className="ut-beam-flow-fast"
+                        />
+                        <circle cx="0" cy="-42" r="8" fill="none" stroke="#f43f5e" strokeWidth="2" className="ut-interface-ripple" />
+                        <text x="0" y="72" textAnchor="middle" fill="#fbbf24" fontSize="12" fontFamily="monospace" fontWeight="bold">
+                          CREEPING SUB-SURFACE OD WAVE (HAZ / TOE CRACK)
+                        </text>
+                      </g>
+                    )}
 
                     {/* Live Miniature A-Scan HUD Inset */}
                     <g transform="translate(-330, -195)">
@@ -1256,9 +1519,7 @@ export const NdtCameraArOverlayLab: React.FC<NdtCameraArOverlayLabProps> = ({
                         stroke="#22d3ee"
                         strokeWidth="2"
                       />
-                      {/* Gate A Bar */}
                       <line x1="78" y1="36" x2="165" y2="36" stroke="#f43f5e" strokeWidth="3" />
-                      {/* Simulated RF/Rectified Echo Spike */}
                       <polyline
                         points={`12,94 65,94 95,92 112,${94 - Math.round(utHudPhysics.echoFshPct * 0.72)} 128,92 175,94 222,94`}
                         fill="none"
@@ -1273,7 +1534,7 @@ export const NdtCameraArOverlayLab: React.FC<NdtCameraArOverlayLabProps> = ({
                         fontFamily="monospace"
                         fontWeight="bold"
                       >
-                        LIVE A-SCAN · FSH {utHudPhysics.echoFshPct}%
+                        LIVE A-SCAN · {utTechnique.toUpperCase()} · {utHudPhysics.echoFshPct}%
                       </text>
                       <text x="12" y="106" fill="#cbd5e1" fontSize="10" fontFamily="monospace">
                         SP:{utHudPhysics.soundPathMm}mm · SD:{utHudPhysics.surfaceDistMm}mm · D:{utHudPhysics.reflectorDepthMm}mm
@@ -1654,22 +1915,28 @@ export const NdtCameraArOverlayLab: React.FC<NdtCameraArOverlayLabProps> = ({
               <>
                 <div>
                   <div className="text-xs font-bold mb-1.5">
-                    {isAr ? 'تقنية التصوير المتراكبة' : 'Overlay RT Technique'}
+                    {isAr ? 'جميع تكنيكات التصوير الإشعاعي (AR RT Techniques)' : 'All RT Exposure Geometries (AR)'}
                   </div>
-                  <div className="grid grid-cols-3 gap-1.5">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
                     {(
                       [
-                        { id: 'panoramic', label: 'Panorama' },
-                        { id: 'elliptical', label: 'Ellipse' },
-                        { id: 'straight', label: 'Street 0°' },
+                        { id: 'swsi_plate', label: 'SWSI (1T Plate)', rtMode: 'straight' },
+                        { id: 'panoramic', label: '360° Panorama', rtMode: 'panoramic' },
+                        { id: 'dwsi_contact', label: 'DWSI Contact', rtMode: 'straight' },
+                        { id: 'elliptical', label: 'DWDI Ellipse', rtMode: 'elliptical' },
+                        { id: 'dwdi_superimposed', label: 'DWDI 0° Street', rtMode: 'straight' },
                       ] as const
                     ).map((item) => (
                       <button
                         key={item.id}
                         type="button"
-                        onClick={() => setRtTechnique(item.id)}
-                        className={`px-2 py-1.5 rounded-lg border text-xs font-bold transition cursor-pointer whitespace-nowrap ${
-                          rtTechnique === item.id
+                        data-testid={`ar-rt-tech-${item.id}`}
+                        onClick={() => {
+                          setRtDetailedGeometry(item.id);
+                          setRtTechnique(item.rtMode);
+                        }}
+                        className={`px-2 py-1.5 rounded-lg border text-[11px] font-bold transition cursor-pointer whitespace-nowrap ${
+                          rtDetailedGeometry === item.id
                             ? 'bg-emerald-500 text-slate-950 border-emerald-400 font-black'
                             : 'border-slate-600/40 hover:border-emerald-400'
                         }`}
@@ -1697,7 +1964,7 @@ export const NdtCameraArOverlayLab: React.FC<NdtCameraArOverlayLabProps> = ({
                   />
                 </div>
 
-                {rtTechnique !== 'panoramic' && (
+                {rtDetailedGeometry !== 'panoramic' && (
                   <div>
                     <div className="flex justify-between text-xs font-bold mb-1">
                       <span>{isAr ? 'المسافة البؤرية (SFD)' : 'Source-to-Film (SFD)'}</span>
@@ -1716,7 +1983,7 @@ export const NdtCameraArOverlayLab: React.FC<NdtCameraArOverlayLabProps> = ({
                   </div>
                 )}
 
-                {rtTechnique === 'elliptical' && (
+                {rtDetailedGeometry === 'elliptical' && (
                   <div>
                     <div className="flex justify-between text-xs font-bold mb-1">
                       <span>{isAr ? 'الإزاحة المحورية (Offset L)' : 'Axial Offset (L)'}</span>
@@ -1741,46 +2008,81 @@ export const NdtCameraArOverlayLab: React.FC<NdtCameraArOverlayLabProps> = ({
               <>
                 <div>
                   <div className="text-xs font-bold mb-1.5">
-                    {isAr ? 'زاوية انكسار المجس (Probe Angle)' : 'Refracted Probe Angle'}
+                    {isAr ? 'جميع تكنيكات الموجات فوق الصوتية (AR UT)' : 'All UT / PAUT Techniques (AR)'}
                   </div>
-                  <div className="grid grid-cols-3 gap-1.5">
-                    {([45, 60, 70] as const).map((deg) => (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                    {(
+                      [
+                        { id: 'normal_0', label: '0° Normal (L)' },
+                        { id: 'angle_shear', label: 'Shear 45/60/70°' },
+                        { id: 'tofd', label: 'TOFD Dual-Probe' },
+                        { id: 'paut_sscan', label: 'PAUT S-Scan' },
+                        { id: 'creep_surface', label: 'Creep Surface' },
+                      ] as const
+                    ).map((tech) => (
                       <button
-                        key={deg}
+                        key={tech.id}
                         type="button"
-                        onClick={() => setUtRefractedAngleDeg(deg)}
-                        className={`px-2 py-1.5 rounded-lg border text-xs font-bold transition cursor-pointer ${
-                          utRefractedAngleDeg === deg
+                        data-testid={`ar-ut-tech-${tech.id}`}
+                        onClick={() => setUtTechnique(tech.id)}
+                        className={`px-2 py-1.5 rounded-lg border text-[11px] font-bold transition cursor-pointer whitespace-nowrap ${
+                          utTechnique === tech.id
                             ? 'bg-cyan-500 text-slate-950 border-cyan-400 font-black'
                             : 'border-slate-600/40 hover:border-cyan-400'
                         }`}
                       >
-                        {deg}° Shear
+                        {tech.label}
                       </button>
                     ))}
                   </div>
                 </div>
 
-                <div>
-                  <div className="flex justify-between text-xs font-bold mb-1">
-                    <span>
-                      {isAr ? 'موقع البروب على السطح (Skip Ratio)' : 'Surface Probe Standoff'}
-                    </span>
-                    <span className="font-mono text-cyan-500">
-                      {utProbeStandOffRatio.toFixed(2)} × ½S ({utHudPhysics.surfaceDistMm} mm)
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    aria-label="UT Probe Standoff"
-                    min={0.5}
-                    max={2.2}
-                    step={0.05}
-                    value={utProbeStandOffRatio}
-                    onChange={(e) => setUtProbeStandOffRatio(Number(e.target.value))}
-                    className="w-full accent-cyan-500 cursor-pointer"
-                  />
-                </div>
+                {utTechnique === 'angle_shear' && (
+                  <>
+                    <div>
+                      <div className="text-xs font-bold mb-1.5">
+                        {isAr ? 'زاوية انكسار المجس (Probe Angle)' : 'Refracted Probe Angle'}
+                      </div>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {([45, 60, 70] as const).map((deg) => (
+                          <button
+                            key={deg}
+                            type="button"
+                            onClick={() => setUtRefractedAngleDeg(deg)}
+                            className={`px-2 py-1.5 rounded-lg border text-xs font-bold transition cursor-pointer ${
+                              utRefractedAngleDeg === deg
+                                ? 'bg-cyan-500 text-slate-950 border-cyan-400 font-black'
+                                : 'border-slate-600/40 hover:border-cyan-400'
+                            }`}
+                          >
+                            {deg}° Shear
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-xs font-bold mb-1">
+                        <span>
+                          {isAr ? 'موقع البروب على السطح (Skip Ratio)' : 'Surface Probe Standoff'}
+                        </span>
+                        <span className="font-mono text-cyan-500">
+                          {utProbeStandOffRatio.toFixed(2)} × ½S ({utHudPhysics.surfaceDistMm} mm)
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        aria-label="UT Probe Standoff"
+                        min={0.5}
+                        max={2.2}
+                        step={0.05}
+                        value={utProbeStandOffRatio}
+                        onChange={(e) => setUtProbeStandOffRatio(Number(e.target.value))}
+                        className="w-full accent-cyan-500 cursor-pointer"
+                      />
+                    </div>
+                  </>
+                )}
               </>
             )}
 

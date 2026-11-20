@@ -20,6 +20,7 @@ import {
   doc,
   getDocs,
   increment,
+  limit,
   onSnapshot,
   orderBy,
   query,
@@ -55,6 +56,16 @@ import {
   type ClientRegistrationDraftInput,
   type ClientRequest,
   type ClientRequestStatus,
+  type CommunityAvailabilityStatus,
+  type CommunityConnection,
+  type CommunityNdtMethod,
+  type CommunityOpportunity,
+  type CommunityOpportunityType,
+  type CommunityPost,
+  type CommunityPostComment,
+  type CommunityPostReaction,
+  type CommunityPostType,
+  type CommunityReactionType,
   type CommunityWorkspaceProfile,
   type CompanyEmployee,
   type CompanyInspectionReport,
@@ -1353,6 +1364,10 @@ export async function upsertCommunityWorkspace(
     bio?: string;
     companiesManaged: number;
     isPublished: boolean;
+    headline?: string;
+    certifications?: string;
+    yearsExperience?: number;
+    availabilityStatus?: CommunityAvailabilityStatus;
   },
   existing: CommunityWorkspaceProfile | null
 ): Promise<void> {
@@ -1360,38 +1375,59 @@ export async function upsertCommunityWorkspace(
   const path = `community_workspaces/${user.uid}`;
   const docRef = doc(db, 'community_workspaces', user.uid);
 
+  const sharedFields = {
+    displayName: clampStr(input.displayName, BLUEPRINT_LIMITS.SHORT_NAME_MAX),
+    organizationName: clampStr(input.organizationName, 160),
+    sector: clampStr(input.sector, 100),
+    city: clampStr(input.city, 100),
+    companyCode: sanitizeUpperCode(input.companyCode ?? ''),
+    specialtyTrades: clampStr(input.specialtyTrades, 300),
+    bio: clampStr(input.bio, 600),
+    companiesManaged: Math.max(0, Math.min(10_000, Math.round(input.companiesManaged))),
+    isPublished: Boolean(input.isPublished),
+    ...(input.headline !== undefined && {
+      headline: clampStr(input.headline, BLUEPRINT_LIMITS.COMMUNITY_HEADLINE_MAX),
+    }),
+    ...(input.certifications !== undefined && {
+      certifications: clampStr(input.certifications, BLUEPRINT_LIMITS.COMMUNITY_CERTS_MAX),
+    }),
+    ...(typeof input.yearsExperience === 'number' &&
+      Number.isFinite(input.yearsExperience) && {
+        yearsExperience: Math.max(0, Math.min(70, Math.round(input.yearsExperience))),
+      }),
+    ...(input.availabilityStatus !== undefined && {
+      availabilityStatus: input.availabilityStatus,
+    }),
+    updatedAt: serverTimestamp(),
+  };
+
   try {
     if (!existing) {
       await setDoc(docRef, {
         uid: user.uid,
-        displayName: clampStr(input.displayName, BLUEPRINT_LIMITS.SHORT_NAME_MAX),
-        organizationName: clampStr(input.organizationName, 160),
-        sector: clampStr(input.sector, 100),
-        city: clampStr(input.city, 100),
-        companyCode: sanitizeUpperCode(input.companyCode ?? ''),
-        specialtyTrades: clampStr(input.specialtyTrades, 300),
-        bio: clampStr(input.bio, 600),
-        companiesManaged: Math.max(0, Math.min(10_000, Math.round(input.companiesManaged))),
-        isPublished: Boolean(input.isPublished),
+        ...sharedFields,
+        followersCount: 0,
+        endorsementsCount: 0,
         createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
       });
     } else {
-      await updateDoc(docRef, {
-        displayName: clampStr(input.displayName, BLUEPRINT_LIMITS.SHORT_NAME_MAX),
-        organizationName: clampStr(input.organizationName, 160),
-        sector: clampStr(input.sector, 100),
-        city: clampStr(input.city, 100),
-        companyCode: sanitizeUpperCode(input.companyCode ?? ''),
-        specialtyTrades: clampStr(input.specialtyTrades, 300),
-        bio: clampStr(input.bio, 600),
-        companiesManaged: Math.max(0, Math.min(10_000, Math.round(input.companiesManaged))),
-        isPublished: Boolean(input.isPublished),
-        updatedAt: serverTimestamp(),
-      });
+      await updateDoc(docRef, sharedFields);
     }
   } catch (err) {
     handleFirestoreError(err, existing ? OperationType.UPDATE : OperationType.CREATE, path);
+  }
+}
+
+export async function endorseMemberWorkspace(targetUid: string): Promise<void> {
+  if (!db) throw new Error('Firestore not initialized');
+  const path = `community_workspaces/${targetUid}`;
+  try {
+    await updateDoc(doc(db, 'community_workspaces', targetUid), {
+      endorsementsCount: increment(1),
+      updatedAt: serverTimestamp(),
+    });
+  } catch (err) {
+    handleFirestoreError(err, OperationType.UPDATE, path);
   }
 }
 
@@ -1450,4 +1486,450 @@ export function subscribeCommunityWorkspaces(
     }
   );
 }
+
+/* -------------------------------------------------------------------------- */
+/* 8. INSCO Community Social Feed, Comments, Reactions & Opportunities        */
+/* -------------------------------------------------------------------------- */
+
+export async function createCommunityPost(
+  user: User,
+  input: {
+    authorName: string;
+    authorHeadline?: string;
+    authorOrg: string;
+    authorCompanyCode?: string;
+    postType: CommunityPostType;
+    ndtMethod: CommunityNdtMethod;
+    title: string;
+    body: string;
+    tags?: string[];
+    technicalSnippet?: string;
+    aiSummary?: string;
+    visibility?: 'public' | 'members_only';
+    isPinnedAnnouncement?: boolean;
+  }
+): Promise<CommunityPost> {
+  if (!db) throw new Error('Firestore not initialized');
+  const postRef = doc(collection(db, 'community_posts'));
+  const path = `community_posts/${postRef.id}`;
+
+  const cleanTags = (input.tags ?? [])
+    .map(t => clampStr(t.replace(/^#/, ''), 32))
+    .filter(Boolean)
+    .slice(0, BLUEPRINT_LIMITS.COMMUNITY_MAX_TAGS);
+
+  const allowPinned = isVerifiedAdminUser(user) && Boolean(input.isPinnedAnnouncement);
+
+  const payload: Omit<CommunityPost, 'id'> = {
+    authorUid: user.uid,
+    authorName: clampStr(input.authorName, BLUEPRINT_LIMITS.SHORT_NAME_MAX),
+    ...(input.authorHeadline && {
+      authorHeadline: clampStr(input.authorHeadline, BLUEPRINT_LIMITS.COMMUNITY_HEADLINE_MAX),
+    }),
+    authorOrg: clampStr(input.authorOrg, 160),
+    ...(input.authorCompanyCode && {
+      authorCompanyCode: sanitizeUpperCode(input.authorCompanyCode),
+    }),
+    postType: input.postType,
+    ndtMethod: input.ndtMethod,
+    title: clampStr(input.title, BLUEPRINT_LIMITS.COMMUNITY_POST_TITLE_MAX),
+    body: clampStr(input.body, BLUEPRINT_LIMITS.COMMUNITY_POST_BODY_MAX),
+    ...(cleanTags.length > 0 && { tags: cleanTags }),
+    ...(input.technicalSnippet && {
+      technicalSnippet: clampStr(input.technicalSnippet, BLUEPRINT_LIMITS.COMMUNITY_SNIPPET_MAX),
+    }),
+    ...(input.aiSummary && {
+      aiSummary: clampStr(input.aiSummary, BLUEPRINT_LIMITS.COMMUNITY_AI_SUMMARY_MAX),
+    }),
+    likesCount: 0,
+    commentsCount: 0,
+    visibility: input.visibility ?? 'public',
+    aiModerationStatus: 'approved',
+    isPinnedAnnouncement: allowPinned,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  };
+
+  try {
+    await setDoc(postRef, payload);
+  } catch (err) {
+    handleFirestoreError(err, OperationType.CREATE, path);
+  }
+
+  return { id: postRef.id, ...payload };
+}
+
+export async function updateCommunityPostModeration(
+  postId: string,
+  updates: {
+    aiModerationStatus?: 'approved' | 'flagged';
+    isPinnedAnnouncement?: boolean;
+    aiSummary?: string;
+  }
+): Promise<void> {
+  if (!db) throw new Error('Firestore not initialized');
+  const path = `community_posts/${postId}`;
+  try {
+    await updateDoc(doc(db, 'community_posts', postId), {
+      ...(updates.aiModerationStatus !== undefined && {
+        aiModerationStatus: updates.aiModerationStatus,
+      }),
+      ...(updates.isPinnedAnnouncement !== undefined && {
+        isPinnedAnnouncement: updates.isPinnedAnnouncement,
+      }),
+      ...(updates.aiSummary !== undefined && {
+        aiSummary: clampStr(updates.aiSummary, BLUEPRINT_LIMITS.COMMUNITY_AI_SUMMARY_MAX),
+      }),
+      updatedAt: serverTimestamp(),
+    });
+  } catch (err) {
+    handleFirestoreError(err, OperationType.UPDATE, path);
+  }
+}
+
+export async function deleteCommunityPost(postId: string): Promise<void> {
+  if (!db) throw new Error('Firestore not initialized');
+  const path = `community_posts/${postId}`;
+  try {
+    await deleteDoc(doc(db, 'community_posts', postId));
+  } catch (err) {
+    handleFirestoreError(err, OperationType.DELETE, path);
+  }
+}
+
+function createdAtMs(ts: unknown): number {
+  if (ts && typeof ts === 'object' && 'toMillis' in ts && typeof (ts as { toMillis: () => number }).toMillis === 'function') {
+    return (ts as { toMillis: () => number }).toMillis();
+  }
+  return 0;
+}
+
+export function subscribeCommunityPosts(
+  isAdmin: boolean,
+  onData: (posts: CommunityPost[]) => void,
+  onError?: (error: Error) => void
+): Unsubscribe {
+  if (!db) {
+    onData([]);
+    return () => {};
+  }
+  const path = 'community_posts';
+  const q = isAdmin
+    ? query(collection(db, 'community_posts'), orderBy('createdAt', 'desc'), limit(60))
+    : query(collection(db, 'community_posts'), where('visibility', '==', 'public'), limit(60));
+
+  return onSnapshot(
+    q,
+    snap => {
+      const list = snap.docs.map(d => ({
+        id: d.id,
+        ...(d.data() as Omit<CommunityPost, 'id'>),
+      }));
+      list.sort((a, b) => {
+        if (a.isPinnedAnnouncement !== b.isPinnedAnnouncement) {
+          return a.isPinnedAnnouncement ? -1 : 1;
+        }
+        return createdAtMs(b.createdAt) - createdAtMs(a.createdAt);
+      });
+      onData(list);
+    },
+    err => {
+      try {
+        handleFirestoreError(err, OperationType.LIST, path);
+      } catch (wrapped) {
+        onError?.(wrapped instanceof Error ? wrapped : new Error(String(wrapped)));
+      }
+    }
+  );
+}
+
+export async function setCommunityPostReaction(
+  user: User,
+  postId: string,
+  reactionType: CommunityReactionType,
+  existingReaction: CommunityPostReaction | null
+): Promise<void> {
+  if (!db) throw new Error('Firestore not initialized');
+  const path = `community_posts/${postId}/reactions/${user.uid}`;
+  const postRef = doc(db, 'community_posts', postId);
+  const reactRef = doc(db, 'community_posts', postId, 'reactions', user.uid);
+  const batch = writeBatch(db);
+
+  if (existingReaction && existingReaction.reactionType === reactionType) {
+    batch.delete(reactRef);
+    batch.update(postRef, {
+      likesCount: increment(-1),
+      updatedAt: serverTimestamp(),
+    });
+  } else if (existingReaction) {
+    batch.update(reactRef, {
+      reactionType,
+      updatedAt: serverTimestamp(),
+    });
+  } else {
+    batch.set(reactRef, {
+      postId,
+      uid: user.uid,
+      reactionType,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    batch.update(postRef, {
+      likesCount: increment(1),
+      updatedAt: serverTimestamp(),
+    });
+  }
+
+  try {
+    await batch.commit();
+  } catch (err) {
+    handleFirestoreError(err, OperationType.UPDATE, path);
+  }
+}
+
+export function subscribePostReactions(
+  postId: string,
+  onData: (reactions: CommunityPostReaction[]) => void,
+  onError?: (error: Error) => void
+): Unsubscribe {
+  if (!db) {
+    onData([]);
+    return () => {};
+  }
+  const path = `community_posts/${postId}/reactions`;
+  return onSnapshot(
+    collection(db, 'community_posts', postId, 'reactions'),
+    snap => {
+      onData(snap.docs.map(d => d.data() as CommunityPostReaction));
+    },
+    err => {
+      try {
+        handleFirestoreError(err, OperationType.LIST, path);
+      } catch (wrapped) {
+        onError?.(wrapped instanceof Error ? wrapped : new Error(String(wrapped)));
+      }
+    }
+  );
+}
+
+export async function addCommunityPostComment(
+  user: User,
+  postId: string,
+  input: {
+    authorName: string;
+    authorHeadline?: string;
+    body: string;
+    isAiAssisted?: boolean;
+  }
+): Promise<void> {
+  if (!db) throw new Error('Firestore not initialized');
+  const commentRef = doc(collection(db, 'community_posts', postId, 'comments'));
+  const path = `community_posts/${postId}/comments/${commentRef.id}`;
+  const batch = writeBatch(db);
+
+  batch.set(commentRef, {
+    postId,
+    authorUid: user.uid,
+    authorName: clampStr(input.authorName, BLUEPRINT_LIMITS.SHORT_NAME_MAX),
+    ...(input.authorHeadline && {
+      authorHeadline: clampStr(input.authorHeadline, BLUEPRINT_LIMITS.COMMUNITY_HEADLINE_MAX),
+    }),
+    body: clampStr(input.body, BLUEPRINT_LIMITS.COMMUNITY_COMMENT_MAX),
+    isAiAssisted: Boolean(input.isAiAssisted),
+    createdAt: serverTimestamp(),
+  });
+  batch.update(doc(db, 'community_posts', postId), {
+    commentsCount: increment(1),
+    updatedAt: serverTimestamp(),
+  });
+
+  try {
+    await batch.commit();
+  } catch (err) {
+    handleFirestoreError(err, OperationType.CREATE, path);
+  }
+}
+
+export function subscribePostComments(
+  postId: string,
+  onData: (comments: CommunityPostComment[]) => void,
+  onError?: (error: Error) => void
+): Unsubscribe {
+  if (!db) {
+    onData([]);
+    return () => {};
+  }
+  const path = `community_posts/${postId}/comments`;
+  return onSnapshot(
+    query(collection(db, 'community_posts', postId, 'comments'), orderBy('createdAt', 'asc')),
+    snap => {
+      onData(
+        snap.docs.map(d => ({
+          id: d.id,
+          ...(d.data() as Omit<CommunityPostComment, 'id'>),
+        }))
+      );
+    },
+    err => {
+      try {
+        handleFirestoreError(err, OperationType.LIST, path);
+      } catch (wrapped) {
+        onError?.(wrapped instanceof Error ? wrapped : new Error(String(wrapped)));
+      }
+    }
+  );
+}
+
+export async function connectWithCommunityMember(
+  user: User,
+  fromName: string,
+  target: { uid: string; displayName: string }
+): Promise<void> {
+  if (!db) throw new Error('Firestore not initialized');
+  if (user.uid === target.uid) return;
+  const connId = `${user.uid}_${target.uid}`;
+  const path = `community_connections/${connId}`;
+  try {
+    await setDoc(doc(db, 'community_connections', connId), {
+      fromUid: user.uid,
+      toUid: target.uid,
+      fromName: clampStr(fromName, BLUEPRINT_LIMITS.SHORT_NAME_MAX),
+      toName: clampStr(target.displayName, BLUEPRINT_LIMITS.SHORT_NAME_MAX),
+      status: 'connected',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  } catch (err) {
+    handleFirestoreError(err, OperationType.CREATE, path);
+  }
+}
+
+export function subscribeMyConnections(
+  uid: string,
+  onData: (connections: CommunityConnection[]) => void,
+  onError?: (error: Error) => void
+): Unsubscribe {
+  if (!db) {
+    onData([]);
+    return () => {};
+  }
+  const path = 'community_connections';
+  const q = query(collection(db, 'community_connections'), where('fromUid', '==', uid));
+  return onSnapshot(
+    q,
+    snap => {
+      onData(
+        snap.docs.map(d => ({
+          id: d.id,
+          ...(d.data() as Omit<CommunityConnection, 'id'>),
+        }))
+      );
+    },
+    err => {
+      try {
+        handleFirestoreError(err, OperationType.LIST, path);
+      } catch (wrapped) {
+        onError?.(wrapped instanceof Error ? wrapped : new Error(String(wrapped)));
+      }
+    }
+  );
+}
+
+export async function createCommunityOpportunity(
+  user: User,
+  input: {
+    authorName: string;
+    authorOrg: string;
+    companyCode?: string;
+    opportunityType: CommunityOpportunityType;
+    title: string;
+    location: string;
+    methods: string[];
+    requirements: string;
+  }
+): Promise<CommunityOpportunity> {
+  if (!db) throw new Error('Firestore not initialized');
+  const oppRef = doc(collection(db, 'community_opportunities'));
+  const path = `community_opportunities/${oppRef.id}`;
+  const cleanMethods = input.methods
+    .map(m => clampStr(m, 32))
+    .filter(Boolean)
+    .slice(0, 8);
+  const methods = cleanMethods.length > 0 ? cleanMethods : ['GENERAL'];
+
+  const payload: Omit<CommunityOpportunity, 'id'> = {
+    authorUid: user.uid,
+    authorName: clampStr(input.authorName, BLUEPRINT_LIMITS.SHORT_NAME_MAX),
+    authorOrg: clampStr(input.authorOrg, 160),
+    ...(input.companyCode && { companyCode: sanitizeUpperCode(input.companyCode) }),
+    opportunityType: input.opportunityType,
+    title: clampStr(input.title, 180),
+    location: clampStr(input.location, 140),
+    methods,
+    requirements: clampStr(input.requirements, 1500),
+    status: 'open',
+    visibility: 'public',
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  };
+
+  try {
+    await setDoc(oppRef, payload);
+  } catch (err) {
+    handleFirestoreError(err, OperationType.CREATE, path);
+  }
+
+  return { id: oppRef.id, ...payload };
+}
+
+export async function updateCommunityOpportunityStatus(
+  opportunityId: string,
+  status: 'open' | 'closed'
+): Promise<void> {
+  if (!db) throw new Error('Firestore not initialized');
+  const path = `community_opportunities/${opportunityId}`;
+  try {
+    await updateDoc(doc(db, 'community_opportunities', opportunityId), {
+      status,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (err) {
+    handleFirestoreError(err, OperationType.UPDATE, path);
+  }
+}
+
+export function subscribeCommunityOpportunities(
+  onData: (opportunities: CommunityOpportunity[]) => void,
+  onError?: (error: Error) => void
+): Unsubscribe {
+  if (!db) {
+    onData([]);
+    return () => {};
+  }
+  const path = 'community_opportunities';
+  const q = query(
+    collection(db, 'community_opportunities'),
+    where('visibility', '==', 'public'),
+    limit(40)
+  );
+  return onSnapshot(
+    q,
+    snap => {
+      const list = snap.docs.map(d => ({
+        id: d.id,
+        ...(d.data() as Omit<CommunityOpportunity, 'id'>),
+      }));
+      list.sort((a, b) => createdAtMs(b.createdAt) - createdAtMs(a.createdAt));
+      onData(list);
+    },
+    err => {
+      try {
+        handleFirestoreError(err, OperationType.LIST, path);
+      } catch (wrapped) {
+        onError?.(wrapped instanceof Error ? wrapped : new Error(String(wrapped)));
+      }
+    }
+  );
+}
+
 

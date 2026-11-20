@@ -434,6 +434,28 @@ body {
   will-change: transform, opacity;
 }
 
+@keyframes rt4dDecayWavefront {
+  0% {
+    transform: translateX(0px);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.92;
+  }
+  84% {
+    opacity: 0.65;
+  }
+  100% {
+    transform: translateX(var(--rt-4d-wavefront-span, 396px));
+    opacity: 0;
+  }
+}
+
+.rt-4d-decay-wavefront {
+  animation: rt4dDecayWavefront var(--rt-4d-wave-duration, 2.2s) cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  will-change: transform, opacity;
+}
+
 /* Respect users who ask the OS to reduce motion: the flip/scale affordances
    become instant instead of animated. */
 @media (prefers-reduced-motion: reduce) {

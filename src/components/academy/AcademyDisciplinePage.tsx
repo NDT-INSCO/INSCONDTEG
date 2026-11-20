@@ -6,6 +6,8 @@ import { useUserCourseProgress } from '../../utils/userCourseProgressStore';
 import { AcademyPageHeader } from './AcademyShell';
 import { DisciplineCurriculumView } from './DisciplineCurriculumView';
 import { disciplineHash } from '../../utils/portalRoutes';
+import { mapDisciplineToAr4dBranch } from '../../data/workshopAr4dBranchesData';
+import { setPendingAr4dBranch } from '../../utils/workshopAr4dSelection';
 
 interface AcademyDisciplinePageProps {
   language: Language;
@@ -115,15 +117,27 @@ export const AcademyDisciplinePage: React.FC<AcademyDisciplinePageProps> = ({
               onClick={() => onOpenHash('#academy/practice')}
               className="inline-flex items-center gap-1.5 rounded-lg border border-[#303961] bg-[#10132b] hover:border-cyan-400/60 px-3.5 py-2 text-xs font-bold text-cyan-200 transition cursor-pointer whitespace-nowrap"
             >
-              <Wrench className="w-4 h-4" aria-hidden="true" />
+              <Wrench className="w-4 h-4 shrink-0" aria-hidden="true" />
               <span>{isAr ? 'معامل التخصص' : 'Discipline labs'}</span>
+            </button>
+            <button
+              type="button"
+              data-testid={`discipline-ar4d-launch-${discipline.id}`}
+              onClick={() => {
+                setPendingAr4dBranch(mapDisciplineToAr4dBranch(discipline.id));
+                onOpenHash('#sim_labs_ar');
+              }}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 px-3.5 py-2 text-xs font-black text-slate-950 transition cursor-pointer whitespace-nowrap"
+            >
+              <Layers className="w-4 h-4 shrink-0" aria-hidden="true" />
+              <span>{isAr ? 'محاكي التخصص AR + 4D' : 'Branch AR + 4D Sim'}</span>
             </button>
             <button
               type="button"
               onClick={() => onOpenHash('#academy/test')}
               className="inline-flex items-center gap-1.5 rounded-lg border border-[#303961] bg-[#10132b] hover:border-cyan-400/60 px-3.5 py-2 text-xs font-bold text-cyan-200 transition cursor-pointer whitespace-nowrap"
             >
-              <Award className="w-4 h-4" aria-hidden="true" />
+              <Award className="w-4 h-4 shrink-0" aria-hidden="true" />
               <span>{isAr ? 'اختبارات التخصص' : 'Discipline tests'}</span>
             </button>
           </>

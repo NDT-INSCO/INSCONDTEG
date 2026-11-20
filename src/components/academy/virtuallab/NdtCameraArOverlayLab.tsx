@@ -23,6 +23,9 @@ import { useTheme } from '../../../utils/themeStore';
 import { recordSimulationAttempt, SimulationNdtMethod } from '../../../utils/simulationHistoryStore';
 import { RtExposureTechniqueMode, getAsmeMaxUgMm } from '../../../data/rtTechniquesPhysics';
 import { ArCompleteRtCodeSimulator } from './ArCompleteRtCodeSimulator';
+import { WorkshopAr4dAllBranchesLab } from './WorkshopAr4dAllBranchesLab';
+import { consumePendingAr4dBranch } from '../../../utils/workshopAr4dSelection';
+import type { WorkshopAr4dBranchId } from '../../../data/workshopAr4dBranchesData';
 
 export type NdtArOverlayDiscipline = 'rt_exposure' | 'ut_skip_beam' | 'vt_mt_gauge';
 export type CameraStreamState = 'idle' | 'requesting' | 'active' | 'error' | 'calibration_feed';
@@ -103,6 +106,12 @@ export const NdtCameraArOverlayLab: React.FC<NdtCameraArOverlayLabProps> = ({
 
   // Toggle into the Complete AR RT Techniques, 18 Film Defects & All-Codes Acceptance Simulator
   const [showCompleteRtCodes, setShowCompleteRtCodes] = useState<boolean>(false);
+  const [preselectedAr4dBranch] = useState<WorkshopAr4dBranchId | null>(() =>
+    consumePendingAr4dBranch()
+  );
+  const [showAllBranchesAr4d, setShowAllBranchesAr4d] = useState<boolean>(
+    () => Boolean(preselectedAr4dBranch)
+  );
 
   // NDT Technical Overlay Mode & Synced Parameters
   const [overlayDiscipline, setOverlayDiscipline] =
@@ -624,6 +633,18 @@ export const NdtCameraArOverlayLab: React.FC<NdtCameraArOverlayLabProps> = ({
     );
   }
 
+  if (showAllBranchesAr4d) {
+    return (
+      <section data-testid="ndt-camera-ar-overlay-lab" className="space-y-4">
+        <WorkshopAr4dAllBranchesLab
+          language={language}
+          initialBranchId={preselectedAr4dBranch ?? 'ut_paut'}
+          onBackToQuickAr={() => setShowAllBranchesAr4d(false)}
+        />
+      </section>
+    );
+  }
+
   return (
     <section
       data-testid="ndt-camera-ar-overlay-lab"
@@ -671,11 +692,29 @@ export const NdtCameraArOverlayLab: React.FC<NdtCameraArOverlayLabProps> = ({
             }}
             className="px-4 py-2.5 rounded-xl bg-teal-400 hover:bg-teal-300 text-slate-950 font-black text-xs sm:text-sm transition cursor-pointer flex items-center gap-2 whitespace-nowrap shadow-sm"
           >
-            <Layers className="w-4 h-4" />
+            <Layers className="w-4 h-4 shrink-0" />
             <span>
               {isAr
                 ? 'محاكي AR الشامل لتكنيكات وعيوب وأكواد RT'
                 : 'Full AR RT Techniques, Defects & All Codes'}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            data-testid="launch-ar-4d-all-branches-btn"
+            onClick={() => {
+              stopMediaTracks();
+              setStreamState('idle');
+              setShowAllBranchesAr4d(true);
+            }}
+            className="px-4 py-2.5 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-black text-xs sm:text-sm transition cursor-pointer flex items-center gap-2 shadow-sm"
+          >
+            <Layers className="w-4 h-4 shrink-0" />
+            <span>
+              {isAr
+                ? 'محاكيات الورشة AR + 4D لجميع الفروع (8)'
+                : 'All 8 Branches AR + 4D Workshop'}
             </span>
           </button>
 

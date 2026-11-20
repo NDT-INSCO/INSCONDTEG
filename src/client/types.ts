@@ -161,6 +161,12 @@ export interface AttendanceLog {
   createdAt?: unknown;
 }
 
+export type CommunityAvailabilityStatus =
+  | 'active_field'
+  | 'open_to_work'
+  | 'hiring'
+  | 'offering_services';
+
 export interface CommunityWorkspaceProfile {
   uid: string;
   displayName: string;
@@ -172,6 +178,104 @@ export interface CommunityWorkspaceProfile {
   bio?: string;
   companiesManaged: number;
   isPublished: boolean;
+  headline?: string;
+  certifications?: string;
+  yearsExperience?: number;
+  availabilityStatus?: CommunityAvailabilityStatus;
+  followersCount?: number;
+  endorsementsCount?: number;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+}
+
+export type CommunityPostType =
+  | 'technical_case'
+  | 'job_tender'
+  | 'discussion'
+  | 'equipment_review'
+  | 'announcement';
+
+export type CommunityNdtMethod =
+  | 'GENERAL'
+  | 'RT'
+  | 'UT'
+  | 'PAUT'
+  | 'MT'
+  | 'PT'
+  | 'VT'
+  | 'PWHT'
+  | 'AR';
+
+export type CommunityReactionType = 'like' | 'insightful' | 'verified' | 'celebrate';
+
+export interface CommunityPost {
+  id: string;
+  authorUid: string;
+  authorName: string;
+  authorHeadline?: string;
+  authorOrg: string;
+  authorCompanyCode?: string;
+  postType: CommunityPostType;
+  ndtMethod: CommunityNdtMethod;
+  title: string;
+  body: string;
+  tags?: string[];
+  technicalSnippet?: string;
+  aiSummary?: string;
+  likesCount: number;
+  commentsCount: number;
+  visibility: 'public' | 'members_only';
+  aiModerationStatus: 'approved' | 'flagged';
+  isPinnedAnnouncement: boolean;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+}
+
+export interface CommunityPostComment {
+  id: string;
+  postId: string;
+  authorUid: string;
+  authorName: string;
+  authorHeadline?: string;
+  body: string;
+  isAiAssisted: boolean;
+  createdAt?: unknown;
+}
+
+export interface CommunityPostReaction {
+  postId: string;
+  uid: string;
+  reactionType: CommunityReactionType;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+}
+
+export interface CommunityConnection {
+  id: string;
+  fromUid: string;
+  toUid: string;
+  fromName: string;
+  toName: string;
+  status: 'connected' | 'pending';
+  createdAt?: unknown;
+  updatedAt?: unknown;
+}
+
+export type CommunityOpportunityType = 'job' | 'tender' | 'equipment';
+
+export interface CommunityOpportunity {
+  id: string;
+  authorUid: string;
+  authorName: string;
+  authorOrg: string;
+  companyCode?: string;
+  opportunityType: CommunityOpportunityType;
+  title: string;
+  location: string;
+  methods: string[];
+  requirements: string;
+  status: 'open' | 'closed';
+  visibility: 'public';
   createdAt?: unknown;
   updatedAt?: unknown;
 }
@@ -247,6 +351,14 @@ export const BLUEPRINT_LIMITS = {
   MAX_TECH_FIELDS: 30,
   MIN_GEOFENCE_RADIUS_M: 50,
   MAX_GEOFENCE_RADIUS_M: 50_000,
+  COMMUNITY_POST_TITLE_MAX: 180,
+  COMMUNITY_POST_BODY_MAX: 3000,
+  COMMUNITY_COMMENT_MAX: 1500,
+  COMMUNITY_SNIPPET_MAX: 600,
+  COMMUNITY_AI_SUMMARY_MAX: 800,
+  COMMUNITY_HEADLINE_MAX: 160,
+  COMMUNITY_CERTS_MAX: 240,
+  COMMUNITY_MAX_TAGS: 6,
 } as const;
 
 export function sanitizeUpperCode(raw: string): string {

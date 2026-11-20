@@ -105,7 +105,7 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
     { labelAr: 'طلبات العملاء الجدد', labelEn: 'New client requests', action: client('requests') },
     { labelAr: 'أرشيف الشركات والملفات', labelEn: 'Coded companies & dossiers', action: client('companies') },
     { labelAr: 'بوابة الحضور والانصراف', labelEn: 'Worker time-clock', action: client('timeclock') },
-    { labelAr: 'مجتمع إدارة الأعمال', labelEn: 'Business community', action: client('community') },
+    { labelAr: 'مجتمع INSCO الهندسي', labelEn: 'INSCO Community', action: client('community') },
     { labelAr: 'التسجيل وربط الكود', labelEn: 'Registration & code link', action: client('register') },
   ];
 

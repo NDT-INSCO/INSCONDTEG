@@ -1,7 +1,9 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/InteractiveInspectionHologram-BbyaU5S2.js","assets/rolldown-runtime-oLLnCvco.js","assets/index-CgqKVYxh.js","assets/index.esm-DiiqkTPp.js","assets/index-P3uareFm.css","assets/three.module-5482Nant.js"])))=>i.map(i=>d[i]);
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/InteractiveInspectionHologram-BU7b98_i.js","assets/rolldown-runtime-oLLnCvco.js","assets/jsx-runtime-CJAQq89J.js","assets/eye-DyafRkmV.js","assets/index-DH-pY2ys.js","assets/index.esm-CF5M3rKe.js","assets/index-BuBjo2E2.css","assets/three.module-KJ9Rnf9y.js"])))=>i.map(i=>d[i]);
 import { a as __toESM } from "./rolldown-runtime-oLLnCvco.js";
-import { A as Cpu, D as Maximize2, j as CircleX, k as Gauge, r as UtFlawDetectorDevice, t as PautOmniScanDevice } from "./PautOmniScanDevice-tedsV26O.js";
-import { $n as ArrowLeft, $t as Sun, Bn as CircleCheck, Dn as Flame, En as FlaskConical, Gt as require_jsx_runtime, Mn as Eye, Qn as ArrowRight, Qt as Thermometer, Sn as Layers, Wt as __vitePreload, Zn as ArrowUpRight, d as CtaButton, dn as Pause, en as Sparkles, er as Activity, ir as require_react, ln as Play, nr as COMPANY_MEDIA, on as RotateCcw, tn as ShieldCheck, tr as createLucideIcon, wn as GraduationCap } from "./index-CgqKVYxh.js";
+import { n as require_react, t as require_jsx_runtime } from "./jsx-runtime-CJAQq89J.js";
+import { n as createLucideIcon, t as Eye } from "./eye-DyafRkmV.js";
+import { A as Cpu, D as Maximize2, j as CircleX, k as Gauge, r as UtFlawDetectorDevice, t as PautOmniScanDevice } from "./PautOmniScanDevice-B2E8v9Qc.js";
+import { An as Play, Cr as ArrowLeft, Dn as RotateCcw, Jn as FlaskConical, Kn as GraduationCap, Mn as Pause, Sn as ShieldCheck, Sr as ArrowRight, Tr as COMPANY_MEDIA, Wn as Layers, Yn as Flame, bn as Sun, fn as __vitePreload, sr as CircleCheck, v as CtaButton, wr as Activity, xn as Sparkles, xr as ArrowUpRight, yn as Thermometer } from "./index-DH-pY2ys.js";
 /**
 * @license lucide-react v0.546.0 - ISC
 *
@@ -34,7 +36,7 @@ var ScanLine = createLucideIcon("scan-line", [
 //#region src/components/company/AdvancedMotionVisualizerSection.tsx
 var import_react = /* @__PURE__ */ __toESM(require_react(), 1);
 var import_jsx_runtime = require_jsx_runtime();
-var InteractiveInspectionHologram = import_react.lazy(() => __vitePreload(() => import("./InteractiveInspectionHologram-BbyaU5S2.js").then((module) => ({ default: module.InteractiveInspectionHologram })), __vite__mapDeps([0,1,2,3,4,5])));
+var InteractiveInspectionHologram = import_react.lazy(() => __vitePreload(() => import("./InteractiveInspectionHologram-BU7b98_i.js").then((module) => ({ default: module.InteractiveInspectionHologram })), __vite__mapDeps([0,1,2,3,4,5,6,7])));
 var AdvancedMotionVisualizerSection = ({ language }) => {
 	const isAr = language === "ar";
 	const [selectedGalleryImg, setSelectedGalleryImg] = (0, import_react.useState)(null);

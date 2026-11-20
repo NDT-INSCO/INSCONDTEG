@@ -1,9 +1,11 @@
 import { a as __toESM } from "./rolldown-runtime-oLLnCvco.js";
-import { t as Bell } from "./bell-DvVNupS8.js";
-import { a as ChevronUp, i as Radar, n as UserCheck, o as ChevronDown, r as RefreshCw, t as UserPlus } from "./user-plus-iLOUjAYd.js";
-import { n as LayoutDashboard, r as ClipboardList, t as Save } from "./save-ljqf60QX.js";
-import { t as Trash2 } from "./trash-2-B20G7FEr.js";
-import { $ as updateCompanyRecord, $n as ArrowLeft, A as isVerifiedAdminUser, B as signInClientPortalWithEmail, Bn as CircleCheck, C as createCompanyWithUniqueCode, Cn as KeyRound, D as formatFirebaseAuthError, E as detectUserAuthMethod, F as resendClientVerificationEmail, Fn as Download, G as subscribeClientRequests, Gn as Calendar, Gt as require_jsx_runtime, H as signOutClientPortal, I as saveClientRegistration, J as subscribeCompanyAttendance, Jn as BriefcaseBusiness, K as subscribeCommunityWorkspaces, L as savePendingRegistrationDraft, Ln as Copy, M as loadPendingRegistrationDraft, Mn as Eye, N as observeClientPortalAuth, O as initializeStarterCompaniesArchive, P as recordEmployeeAttendance, Pn as Earth, Q as subscribeMyCommunityWorkspace, Qn as ArrowRight, R as sendClientPasswordReset, Rn as Compass, S as createCompanyReport, Sn as Layers, T as deleteCompanyReport, Tn as FolderOpen, U as signUpClientPortalWithEmail, Un as Check, V as signInClientPortalWithGoogle, W as subscribeAllClientAccounts, Wn as Camera, X as subscribeCompanyReports, Y as subscribeCompanyEmployees, Yt as Users, Z as subscribeMyClientAccount, Zt as TriangleAlert, _ as adminApproveAndLinkClientAccount, _n as MapPin, _t as sanitizeReportNumber, at as formatCoordinates, b as createClientRequest, bn as LogIn, cn as Plus, dt as drawVectorQrOnPdf, en as Sparkles, et as updateCompanyReportStatus, f as EmployeeAttendanceTimeline, fn as Navigation, ft as exportCompanyQrPassPdf, g as CompanyQrBadge, gt as generateNextReportNumber, ht as generateNextCompanyCode, in as Search, ir as require_react, it as evaluateGeofence, j as isVerifiedPortalUser, k as isPortalFirestoreReady, kn as FileText, mt as generateNextBadgeCode, nn as ShieldAlert, nt as upsertCommunityWorkspace, on as RotateCcw, ot as formatDistanceMeters, p as CompanyQrModal, pt as generateCompanyQrPngDataUrl, q as subscribeCompanies, qn as Building2, qt as X, rn as Send, rr as require_react_dom, rt as DEFAULT_SITE_COORDS, sn as QrCode, st as resolveSiteCoordinates, tn as ShieldCheck, tr as createLucideIcon, tt as updateEmployeeLiveLocation, un as Phone, ut as buildCompanyDossierUrl, v as adminUpdateClientRequest, vn as Mail, vt as sanitizeUpperCode, w as createInitialCompanyFromRegistration, x as createCompanyEmployee, y as clearPendingRegistrationDraft, yn as LogOut, yt as E, z as sendClientPhoneOtp, zn as Clock } from "./index-CgqKVYxh.js";
+import { n as require_react, t as require_jsx_runtime } from "./jsx-runtime-CJAQq89J.js";
+import { n as createLucideIcon, t as Eye } from "./eye-DyafRkmV.js";
+import { t as Bell } from "./bell-JTqmyOK0.js";
+import { a as Radar, i as Radio, n as UserCheck, o as Flag, r as RefreshCw, s as CirclePlus, t as UserPlus } from "./user-plus-DvAXkYPB.js";
+import { n as LayoutDashboard, r as ClipboardList, t as Save } from "./save-i6p7a9jN.js";
+import { t as Trash2 } from "./trash-2-nZVRBPor.js";
+import { $ as sendClientPhoneOtp, A as createClientRequest, B as endorseMemberWorkspace, Bn as Mail, Bt as sanitizeUpperCode, Cn as ShieldAlert, Cr as ArrowLeft, Ct as updateEmployeeLiveLocation, D as adminUpdateClientRequest, Dn as RotateCcw, Dt as formatCoordinates, E as adminApproveAndLinkClientAccount, Er as require_react_dom, Et as evaluateGeofence, F as createCompanyWithUniqueCode, Fn as MessageSquare, Ft as generateCompanyQrPngDataUrl, G as isVerifiedPortalUser, Gn as KeyRound, H as initializeStarterCompaniesArchive, Hn as LogIn, I as createInitialCompanyFromRegistration, It as generateNextBadgeCode, J as recordEmployeeAttendance, K as loadPendingRegistrationDraft, L as deleteCommunityPost, Lt as generateNextCompanyCode, M as createCommunityPost, Mt as buildCompanyDossierUrl, N as createCompanyEmployee, Nn as Navigation, Nt as drawVectorQrOnPdf, O as clearPendingRegistrationDraft, On as QrCode, Ot as formatDistanceMeters, P as createCompanyReport, Pt as exportCompanyQrPassPdf, Q as sendClientPasswordReset, R as deleteCompanyReport, Rt as generateNextReportNumber, Sn as ShieldCheck, Sr as ArrowRight, St as updateCompanyReportStatus, T as addCommunityPostComment, Tn as Search, Tt as DEFAULT_SITE_COORDS, U as isPortalFirestoreReady, V as formatFirebaseAuthError, Vn as LogOut, Vt as E, W as isVerifiedAdminUser, Wn as Layers, X as saveClientRegistration, Y as resendClientVerificationEmail, Z as savePendingRegistrationDraft, Zn as FileText, _r as BriefcaseBusiness, _t as subscribePostComments, ar as Compass, at as subscribeAllClientAccounts, b as getLocalWorkforceSnapshot, br as Award, bt as updateCommunityPostModeration, cr as ChevronUp, ct as subscribeCommunityPosts, d as consumePendingPostDraft, dr as ChevronDown, dt as subscribeCompanyAttendance, et as setCommunityPostReaction, f as dispatchOpenAiDock, fr as Check, ft as subscribeCompanyEmployees, g as runSiteManagerAgent, gn as Users, gr as Building2, gt as subscribeMyConnections, h as runCommunityAssist, hn as Wrench, ht as subscribeMyCommunityWorkspace, ir as Copy, it as signUpClientPortalWithEmail, j as createCommunityOpportunity, jn as Phone, k as connectWithCommunityMember, kn as Plus, kt as resolveSiteCoordinates, lt as subscribeCommunityWorkspaces, m as publishSiteTelemetrySnapshot, mn as X, mr as Calendar, mt as subscribeMyClientAccount, nr as Download, nt as signInClientPortalWithGoogle, or as Clock, ot as subscribeClientRequests, p as getSiteTelemetrySnapshot, pr as Camera, pt as subscribeCompanyReports, q as observeClientPortalAuth, qn as FolderOpen, rt as signOutClientPortal, sr as CircleCheck, st as subscribeCommunityOpportunities, tr as Earth, tt as signInClientPortalWithEmail, u as INSCO_APPLY_POST_DRAFT_EVENT, ut as subscribeCompanies, vn as TriangleAlert, vt as subscribePostReactions, w as CompanyQrBadge, wn as Send, wt as upsertCommunityWorkspace, x as CompanyQrModal, xn as Sparkles, xt as updateCompanyRecord, y as EmployeeAttendanceTimeline, yt as updateCommunityOpportunityStatus, z as detectUserAuthMethod, zn as MapPin, zt as sanitizeReportNumber } from "./index-DH-pY2ys.js";
 /**
 * @license lucide-react v0.546.0 - ISC
 *
@@ -157,6 +159,26 @@ var FolderPlus = createLucideIcon("folder-plus", [
 * This source code is licensed under the ISC license.
 * See the LICENSE file in the root directory of this source tree.
 */
+var Lightbulb = createLucideIcon("lightbulb", [
+	["path", {
+		d: "M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5",
+		key: "1gvzjb"
+	}],
+	["path", {
+		d: "M9 18h6",
+		key: "x1upvd"
+	}],
+	["path", {
+		d: "M10 22h4",
+		key: "ceow96"
+	}]
+]);
+/**
+* @license lucide-react v0.546.0 - ISC
+*
+* This source code is licensed under the ISC license.
+* See the LICENSE file in the root directory of this source tree.
+*/
 var Link2 = createLucideIcon("link-2", [
 	["path", {
 		d: "M9 17H7A5 5 0 0 1 7 7h2",
@@ -194,6 +216,65 @@ var MailCheck = createLucideIcon("mail-check", [
 		key: "1b14m6"
 	}]
 ]);
+/**
+* @license lucide-react v0.546.0 - ISC
+*
+* This source code is licensed under the ISC license.
+* See the LICENSE file in the root directory of this source tree.
+*/
+var MessageSquarePlus = createLucideIcon("message-square-plus", [
+	["path", {
+		d: "M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z",
+		key: "18887p"
+	}],
+	["path", {
+		d: "M12 8v6",
+		key: "1ib9pf"
+	}],
+	["path", {
+		d: "M9 11h6",
+		key: "1fldmi"
+	}]
+]);
+/**
+* @license lucide-react v0.546.0 - ISC
+*
+* This source code is licensed under the ISC license.
+* See the LICENSE file in the root directory of this source tree.
+*/
+var PenLine = createLucideIcon("pen-line", [["path", {
+	d: "M13 21h8",
+	key: "1jsn5i"
+}], ["path", {
+	d: "M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z",
+	key: "1a8usu"
+}]]);
+/**
+* @license lucide-react v0.546.0 - ISC
+*
+* This source code is licensed under the ISC license.
+* See the LICENSE file in the root directory of this source tree.
+*/
+var Pin$1 = createLucideIcon("pin", [["path", {
+	d: "M12 17v5",
+	key: "bb1du9"
+}], ["path", {
+	d: "M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z",
+	key: "1nkz8b"
+}]]);
+/**
+* @license lucide-react v0.546.0 - ISC
+*
+* This source code is licensed under the ISC license.
+* See the LICENSE file in the root directory of this source tree.
+*/
+var ThumbsUp = createLucideIcon("thumbs-up", [["path", {
+	d: "M7 10v12",
+	key: "1qc93n"
+}], ["path", {
+	d: "M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z",
+	key: "emmmcr"
+}]]);
 /**
 * @license lucide-react v0.546.0 - ISC
 *
@@ -9740,309 +9821,1972 @@ var EmployeeTimeClockPortal = ({ language, currentUid, companies, selectedCompan
 	});
 };
 //#endregion
-//#region src/components/client/CommunityWorkspacesHub.tsx
-var CommunityWorkspacesHub = ({ language, user, account, myProfile, directoryProfiles, companies, onOpenCompanies, onOpenTimeClock }) => {
+//#region src/components/community/InscoCommunityFeedCard.tsx
+var POST_TYPE_LABEL = {
+	technical_case: {
+		ar: "دراسة حالة فنية",
+		en: "Technical Case"
+	},
+	job_tender: {
+		ar: "وظيفة / مناقصة",
+		en: "Job / Tender"
+	},
+	discussion: {
+		ar: "نقاش هندسي",
+		en: "Discussion"
+	},
+	equipment_review: {
+		ar: "تقييم معدات",
+		en: "Equipment Review"
+	},
+	announcement: {
+		ar: "إعلان إداري",
+		en: "Official Announcement"
+	}
+};
+var REACTION_OPTIONS = [
+	{
+		type: "like",
+		labelAr: "أعجبني",
+		labelEn: "Like",
+		Icon: ThumbsUp
+	},
+	{
+		type: "insightful",
+		labelAr: "رؤية هندسية",
+		labelEn: "Insightful",
+		Icon: Lightbulb
+	},
+	{
+		type: "verified",
+		labelAr: "دقيق كودياً",
+		labelEn: "Tech Verified",
+		Icon: ShieldCheck
+	},
+	{
+		type: "celebrate",
+		labelAr: "تهنئة",
+		labelEn: "Celebrate",
+		Icon: Award
+	}
+];
+var InscoCommunityFeedCard = ({ language, post, user, currentAuthorName, currentAuthorHeadline, isAdmin, onRequireSignIn }) => {
 	const isAr = language === "ar";
-	const [displayName, setDisplayName] = (0, import_react.useState)(myProfile?.displayName || account?.fullName || user.displayName || "");
-	const [organizationName, setOrganizationName] = (0, import_react.useState)(myProfile?.organizationName || account?.organizationName || (companies[0] ? isAr ? companies[0].nameAr : companies[0].nameEn : ""));
-	const [sector, setSector] = (0, import_react.useState)(myProfile?.sector || account?.sector || "NDT & Industrial Inspection");
-	const [city, setCity] = (0, import_react.useState)(myProfile?.city || "Cairo, Egypt");
-	const [companyCode, setCompanyCode] = (0, import_react.useState)(myProfile?.companyCode || companies[0]?.companyCode || "");
-	const [specialtyTrades, setSpecialtyTrades] = (0, import_react.useState)(myProfile?.specialtyTrades || "RT, UT, PAUT, PWHT, QA/QC");
-	const [bio, setBio] = (0, import_react.useState)(myProfile?.bio || "");
-	const [isPublished, setIsPublished] = (0, import_react.useState)(myProfile?.isPublished ?? true);
-	const [saving, setSaving] = (0, import_react.useState)(false);
-	const [statusMsg, setStatusMsg] = (0, import_react.useState)(null);
-	const [errorMsg, setErrorMsg] = (0, import_react.useState)(null);
-	const [searchTerm, setSearchTerm] = (0, import_react.useState)("");
+	const [commentsOpen, setCommentsOpen] = (0, import_react.useState)(false);
+	const [comments, setComments] = (0, import_react.useState)([]);
+	const [reactions, setReactions] = (0, import_react.useState)([]);
+	const [commentText, setCommentText] = (0, import_react.useState)("");
+	const [submittingComment, setSubmittingComment] = (0, import_react.useState)(false);
+	const [aiAnalysis, setAiAnalysis] = (0, import_react.useState)(post.aiSummary ?? null);
+	const [aiLoading, setAiLoading] = (0, import_react.useState)(false);
+	const [aiError, setAiError] = (0, import_react.useState)(null);
+	const [reacting, setReacting] = (0, import_react.useState)(false);
 	(0, import_react.useEffect)(() => {
-		if (myProfile) {
-			setDisplayName(myProfile.displayName);
-			setOrganizationName(myProfile.organizationName);
-			setSector(myProfile.sector);
-			setCity(myProfile.city || "");
-			setCompanyCode(myProfile.companyCode || "");
-			setSpecialtyTrades(myProfile.specialtyTrades || "");
-			setBio(myProfile.bio || "");
-			setIsPublished(myProfile.isPublished);
+		setAiAnalysis(post.aiSummary ?? null);
+	}, [post.aiSummary]);
+	(0, import_react.useEffect)(() => {
+		if (!post.id) return;
+		const unsubReactions = subscribePostReactions(post.id, setReactions);
+		let unsubComments = () => {};
+		if (commentsOpen) unsubComments = subscribePostComments(post.id, setComments);
+		return () => {
+			unsubReactions();
+			unsubComments();
+		};
+	}, [post.id, commentsOpen]);
+	const myReaction = user ? reactions.find((r) => r.uid === user.uid) ?? null : null;
+	const displayLikesCount = Math.max(post.likesCount ?? 0, reactions.length);
+	const isAuthor = Boolean(user && user.uid === post.authorUid);
+	const handleReact = async (reactionType) => {
+		if (!user) {
+			onRequireSignIn?.();
+			return;
 		}
-	}, [myProfile]);
-	const handleSave = async (e) => {
+		if (reacting) return;
+		setReacting(true);
+		try {
+			await setCommunityPostReaction(user, post.id, reactionType, myReaction);
+		} finally {
+			setReacting(false);
+		}
+	};
+	const handleAddComment = async (e, isAiAssisted = false) => {
 		e.preventDefault();
+		if (!user) {
+			onRequireSignIn?.();
+			return;
+		}
+		const clean = commentText.trim();
+		if (!clean || submittingComment) return;
+		setSubmittingComment(true);
+		try {
+			await addCommunityPostComment(user, post.id, {
+				authorName: currentAuthorName,
+				authorHeadline: currentAuthorHeadline,
+				body: clean,
+				isAiAssisted
+			});
+			setCommentText("");
+			setCommentsOpen(true);
+		} finally {
+			setSubmittingComment(false);
+		}
+	};
+	const handleAiSummarizeOrCheck = async (action) => {
+		setAiLoading(true);
+		setAiError(null);
+		try {
+			const res = await runCommunityAssist({
+				action,
+				language,
+				ndtMethod: post.ndtMethod,
+				title: post.title,
+				body: post.body
+			});
+			setAiAnalysis(res.reply);
+			if (isAdmin && !post.aiSummary) updateCommunityPostModeration(post.id, { aiSummary: res.reply }).catch(() => {});
+		} catch (err) {
+			setAiError(err instanceof Error ? err.message : String(err));
+		} finally {
+			setAiLoading(false);
+		}
+	};
+	const handleSuggestReply = async () => {
+		if (!user) {
+			onRequireSignIn?.();
+			return;
+		}
+		setAiLoading(true);
+		setAiError(null);
+		setCommentsOpen(true);
+		try {
+			const res = await runCommunityAssist({
+				action: "suggest_reply",
+				language,
+				ndtMethod: post.ndtMethod,
+				title: post.title,
+				body: post.body
+			});
+			setCommentText(res.body || res.reply);
+		} catch (err) {
+			setAiError(err instanceof Error ? err.message : String(err));
+		} finally {
+			setAiLoading(false);
+		}
+	};
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", {
+		"data-testid": `community-post-${post.id}`,
+		className: `rounded-xl border p-4 sm:p-5 space-y-3 transition ${post.isPinnedAnnouncement ? "border-amber-500/45 bg-slate-900/90" : post.aiModerationStatus === "flagged" ? "border-rose-500/45 bg-slate-900/80" : "border-slate-800 bg-slate-900/70"}`,
+		children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "flex items-start justify-between gap-3",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "min-w-0 space-y-0.5",
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex flex-wrap items-center gap-2",
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									className: "text-sm font-black text-white",
+									children: post.authorName
+								}),
+								post.isPinnedAnnouncement && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+									className: "inline-flex items-center gap-1 rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold text-amber-300",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Pin$1, {
+										className: "w-3 h-3",
+										"aria-hidden": "true"
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "مثبت إدارياً" : "Pinned" })]
+								}),
+								post.aiModerationStatus === "flagged" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+									className: "inline-flex items-center gap-1 rounded bg-rose-500/15 px-1.5 py-0.5 text-[10px] font-bold text-rose-300",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Flag, {
+										className: "w-3 h-3",
+										"aria-hidden": "true"
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "قيد المراجعة" : "Flagged" })]
+								})
+							]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "text-xs text-slate-400",
+							children: [
+								post.authorHeadline ? `${post.authorHeadline} · ` : "",
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									className: "text-slate-300 font-semibold",
+									children: post.authorOrg
+								}),
+								post.authorCompanyCode ? ` · ${post.authorCompanyCode}` : ""
+							]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "text-[11px] font-mono text-cyan-400",
+							children: [
+								POST_TYPE_LABEL[post.postType]?.[isAr ? "ar" : "en"] ?? post.postType,
+								" · ",
+								post.ndtMethod
+							]
+						})
+					]
+				}), (isAdmin || isAuthor) && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "flex items-center gap-1 shrink-0",
+					children: [isAdmin && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+						type: "button",
+						title: isAr ? "تثبيت / إلغاء تثبيت الإعلان" : "Toggle Pinned Announcement",
+						onClick: () => void updateCommunityPostModeration(post.id, { isPinnedAnnouncement: !post.isPinnedAnnouncement }),
+						className: "p-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-300 hover:text-amber-300 cursor-pointer",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Pin$1, {
+							className: "w-3.5 h-3.5",
+							"aria-hidden": "true"
+						})
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+						type: "button",
+						title: isAr ? "تمييز للمراجعة / اعتماد" : "Toggle Moderation Flag",
+						onClick: () => void updateCommunityPostModeration(post.id, { aiModerationStatus: post.aiModerationStatus === "flagged" ? "approved" : "flagged" }),
+						className: "p-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-300 hover:text-rose-300 cursor-pointer",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Flag, {
+							className: "w-3.5 h-3.5",
+							"aria-hidden": "true"
+						})
+					})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+						type: "button",
+						title: isAr ? "حذف المنشور" : "Delete Post",
+						onClick: () => void deleteCommunityPost(post.id),
+						className: "p-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-400 hover:text-rose-400 cursor-pointer",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Trash2, {
+							className: "w-3.5 h-3.5",
+							"aria-hidden": "true"
+						})
+					})]
+				})]
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "space-y-2",
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", {
+						className: "text-base font-black text-white leading-snug",
+						children: post.title
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "text-xs sm:text-sm text-slate-200 leading-relaxed whitespace-pre-line",
+						children: post.body
+					}),
+					post.technicalSnippet && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+						className: "rounded-lg border border-slate-800 bg-slate-950/90 p-3 font-mono text-[11px] text-emerald-300 overflow-x-auto",
+						children: post.technicalSnippet
+					}),
+					post.tags && post.tags.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+						className: "flex flex-wrap gap-2 text-[11px] font-mono text-cyan-400",
+						children: post.tags.map((tag) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: ["#", tag] }, tag))
+					})
+				]
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "flex flex-wrap items-center gap-2 pt-1",
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+						type: "button",
+						onClick: () => void handleAiSummarizeOrCheck("summarize_post"),
+						disabled: aiLoading,
+						className: "inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/35 bg-cyan-500/10 hover:bg-cyan-500/20 px-2.5 py-1 text-[11px] font-bold text-cyan-300 cursor-pointer disabled:opacity-50 whitespace-nowrap",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Sparkles, {
+							className: "w-3 h-3",
+							"aria-hidden": "true"
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "تلخيص AI" : "AI Summary" })]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+						type: "button",
+						onClick: () => void handleAiSummarizeOrCheck("code_check"),
+						disabled: aiLoading,
+						className: "inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/35 bg-emerald-500/10 hover:bg-emerald-500/20 px-2.5 py-1 text-[11px] font-bold text-emerald-300 cursor-pointer disabled:opacity-50 whitespace-nowrap",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CircleCheck, {
+							className: "w-3 h-3",
+							"aria-hidden": "true"
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "تحقق من الكود AI" : "AI Code Check" })]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+						type: "button",
+						onClick: () => void handleSuggestReply(),
+						disabled: aiLoading,
+						className: "inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-950 hover:border-amber-400 px-2.5 py-1 text-[11px] font-semibold text-slate-300 cursor-pointer disabled:opacity-50 whitespace-nowrap",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Sparkles, {
+							className: "w-3 h-3 text-amber-400",
+							"aria-hidden": "true"
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "اقترح تعليقاً هندسياً" : "Draft Technical Reply" })]
+					})
+				]
+			}),
+			aiError && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+				role: "alert",
+				className: "rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-300",
+				children: aiError
+			}),
+			aiAnalysis && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "rounded-lg border border-cyan-500/30 bg-slate-950/80 p-3 space-y-1",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "flex items-center gap-1.5 text-[11px] font-mono font-bold text-cyan-400",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Sparkles, {
+						className: "w-3.5 h-3.5",
+						"aria-hidden": "true"
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "تحليل المساعد الذكي INSCO" : "INSCO AI Technical Brief" })]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+					className: "text-xs text-slate-200 leading-relaxed whitespace-pre-line",
+					children: aiAnalysis
+				})]
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "pt-2 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+					className: "flex flex-wrap items-center gap-1.5",
+					children: REACTION_OPTIONS.map((opt) => {
+						const active = myReaction?.reactionType === opt.type;
+						const Icon = opt.Icon;
+						return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+							type: "button",
+							onClick: () => void handleReact(opt.type),
+							disabled: reacting,
+							className: `inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-[11px] font-bold transition cursor-pointer whitespace-nowrap ${active ? "border-emerald-400 bg-emerald-500/20 text-emerald-300" : "border-slate-800 bg-slate-950/70 text-slate-300 hover:border-slate-600"}`,
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, {
+								className: "w-3.5 h-3.5",
+								"aria-hidden": "true"
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? opt.labelAr : opt.labelEn })]
+						}, opt.type);
+					})
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "flex items-center gap-3 text-xs text-slate-400 font-mono tabular-nums",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+						displayLikesCount,
+						" ",
+						isAr ? "تفاعل" : "reactions"
+					] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+						type: "button",
+						onClick: () => setCommentsOpen((o) => !o),
+						className: "inline-flex items-center gap-1.5 text-slate-300 hover:text-cyan-300 font-sans font-semibold cursor-pointer",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MessageSquare, {
+							className: "w-3.5 h-3.5",
+							"aria-hidden": "true"
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+							Math.max(post.commentsCount ?? 0, comments.length),
+							" ",
+							isAr ? "تعليقات" : "Comments"
+						] })]
+					})]
+				})]
+			}),
+			commentsOpen && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "pt-3 border-t border-slate-800/60 space-y-3",
+				children: [comments.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+					className: "text-xs text-slate-400",
+					children: isAr ? "لا توجد تعليقات بعد. كن أول من يشارك برأيه الفني." : "No comments yet. Start the engineering discussion."
+				}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+					className: "space-y-2",
+					children: comments.map((c) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "rounded-lg border border-slate-800 bg-slate-950/70 p-2.5 space-y-1",
+						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "flex items-center justify-between gap-2 text-[11px]",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									className: "font-bold text-white",
+									children: c.authorName
+								}), c.isAiAssisted && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									className: "font-mono text-[10px] text-cyan-400",
+									children: "AI-Assisted"
+								})]
+							}),
+							c.authorHeadline && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+								className: "text-[10px] text-slate-400",
+								children: c.authorHeadline
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								className: "text-xs text-slate-200 whitespace-pre-line",
+								children: c.body
+							})
+						]
+					}, c.id))
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
+					onSubmit: (e) => void handleAddComment(e),
+					className: "flex items-center gap-2",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+						type: "text",
+						value: commentText,
+						onChange: (e) => setCommentText(e.target.value),
+						placeholder: user ? isAr ? "اكتب تعليقاً أو استفساراً هندسياً..." : "Write a technical comment or question..." : isAr ? "سجّل الدخول لإضافة تعليق" : "Sign in to post a comment",
+						className: "flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-white"
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+						type: "submit",
+						disabled: submittingComment || !commentText.trim(),
+						className: "inline-flex items-center gap-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-45 px-3 py-2 text-xs font-bold text-white cursor-pointer whitespace-nowrap",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Send, {
+							className: "w-3.5 h-3.5",
+							"aria-hidden": "true"
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "إرسال" : "Reply" })]
+					})]
+				})]
+			})
+		]
+	});
+};
+//#endregion
+//#region src/components/community/InscoCommunityOpportunitiesBoard.tsx
+var ALL_METHODS = [
+	"RT",
+	"UT",
+	"PAUT",
+	"MT",
+	"PT",
+	"VT",
+	"PWHT",
+	"PMI"
+];
+var InscoCommunityOpportunitiesBoard = ({ language, user, authorName, authorOrg, companyCode, opportunities, onRequireSignIn }) => {
+	const isAr = language === "ar";
+	const [filterType, setFilterType] = (0, import_react.useState)("all");
+	const [composerOpen, setComposerOpen] = (0, import_react.useState)(false);
+	const [opportunityType, setOpportunityType] = (0, import_react.useState)("job");
+	const [title, setTitle] = (0, import_react.useState)("");
+	const [location, setLocation] = (0, import_react.useState)("");
+	const [selectedMethods, setSelectedMethods] = (0, import_react.useState)(["RT", "UT"]);
+	const [requirements, setRequirements] = (0, import_react.useState)("");
+	const [saving, setSaving] = (0, import_react.useState)(false);
+	const [errorMsg, setErrorMsg] = (0, import_react.useState)(null);
+	const toggleMethod = (m) => {
+		setSelectedMethods((prev) => prev.includes(m) ? prev.length > 1 ? prev.filter((x) => x !== m) : prev : [...prev, m]);
+	};
+	const handlePublish = async (e) => {
+		e.preventDefault();
+		if (!user) {
+			onRequireSignIn?.();
+			return;
+		}
 		setErrorMsg(null);
-		setStatusMsg(null);
-		if (displayName.trim().length < 2 || organizationName.trim().length < 2) {
-			setErrorMsg(isAr ? "يرجى إدخال اسم المسؤول واسم الجهة/الشركة." : "Please enter your display name and organization name.");
+		if (title.trim().length < 3 || requirements.trim().length < 5) {
+			setErrorMsg(isAr ? "يرجى إدخال عنوان واضح والمتطلبات الفنية." : "Please enter a clear title and technical requirements.");
 			return;
 		}
 		setSaving(true);
 		try {
-			await upsertCommunityWorkspace(user, {
-				displayName: displayName.trim(),
-				organizationName: organizationName.trim(),
-				sector: sector.trim() || "Industrial",
-				city: city.trim(),
-				companyCode: companyCode.trim(),
-				specialtyTrades: specialtyTrades.trim(),
-				bio: bio.trim(),
-				companiesManaged: companies.length,
-				isPublished
-			}, myProfile);
-			setStatusMsg(isAr ? "تم تحديث بطاقة مساحة العمل في مجتمع إدارة الأعمال." : "Community workspace profile updated.");
+			await createCommunityOpportunity(user, {
+				authorName,
+				authorOrg,
+				companyCode,
+				opportunityType,
+				title: title.trim(),
+				location: location.trim() || "Egypt / MENA",
+				methods: selectedMethods,
+				requirements: requirements.trim()
+			});
+			setTitle("");
+			setLocation("");
+			setRequirements("");
+			setComposerOpen(false);
 		} catch (err) {
 			setErrorMsg(err instanceof Error ? err.message : String(err));
 		} finally {
 			setSaving(false);
 		}
 	};
-	const filteredDirectory = directoryProfiles.filter((profile) => {
-		const q = searchTerm.trim().toLowerCase();
-		if (!q) return true;
-		return profile.organizationName.toLowerCase().includes(q) || profile.displayName.toLowerCase().includes(q) || profile.sector.toLowerCase().includes(q) || (profile.city ?? "").toLowerCase().includes(q) || (profile.specialtyTrades ?? "").toLowerCase().includes(q);
-	});
+	const filtered = opportunities.filter((o) => filterType === "all" ? true : o.opportunityType === filterType);
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-		"data-testid": "community-workspaces-hub",
-		className: "space-y-5",
+		"data-testid": "community-opportunities-board",
+		className: "space-y-4",
 		children: [
 			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-				className: "rounded-xl border border-slate-800 bg-slate-900/70 p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					className: "space-y-1",
-					children: [
-						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-							className: "inline-flex items-center gap-2 text-[11px] font-mono uppercase tracking-wider text-cyan-400",
-							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Users, {
-								className: "w-3.5 h-3.5",
-								"aria-hidden": "true"
-							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "كوميونتي إدارة الأعمال المتكامل" : "Integrated Multi-User Business Community" })]
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
-							className: "text-lg font-black text-white",
-							children: isAr ? "مساحة الأعمال المشتركة، الشركات المسجلة، ومتابعة الفرق الميدانية" : "Operator Workspace Profile & Published Business Directory"
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-							className: "text-xs text-slate-400",
-							children: isAr ? "كل حساب مشترك يمتلك أدواته الخاصة لإدارة شركاته، تتبع موظفيه بالخرائط، والنشر الاختياري في دليل المجتمع." : "Every registered account operates its own coded companies, GPS crew tracking, and optional public community profile."
-						})
-					]
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					className: "flex flex-wrap items-center gap-2",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
-						type: "button",
-						onClick: onOpenCompanies,
-						className: "inline-flex items-center gap-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 px-3.5 py-2 text-xs font-bold text-white cursor-pointer whitespace-nowrap",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Building2, { className: "w-3.5 h-3.5" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? `شركاتي (${companies.length})` : `My Companies (${companies.length})` })]
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
-						type: "button",
-						onClick: onOpenTimeClock,
-						className: "inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 px-3.5 py-2 text-xs font-bold text-emerald-300 cursor-pointer whitespace-nowrap",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Clock, { className: "w-3.5 h-3.5" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "بوابة الحضور والانصراف" : "Worker Time-Clock" })]
-					})]
+				className: "rounded-xl border border-slate-800 bg-slate-900/70 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", {
+					className: "text-sm font-black text-white",
+					children: isAr ? "بوابة الوظائف والمناقصات الهندسية (NDT & PWHT)" : "NDT Jobs, Inspection Tenders & Equipment Board"
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+					className: "text-xs text-slate-400",
+					children: isAr ? "فرص التوظيف للمفتشين المعتمدين، عقود المقاولات الصناعية، وتأجير المعدات." : "Certified inspector roles, industrial inspection tenders, and equipment mobilization."
+				})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+					type: "button",
+					onClick: () => {
+						if (!user) onRequireSignIn?.();
+						else setComposerOpen((o) => !o);
+					},
+					className: "inline-flex items-center gap-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 px-3.5 py-2 text-xs font-black text-slate-950 cursor-pointer whitespace-nowrap",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CirclePlus, {
+						className: "w-3.5 h-3.5",
+						"aria-hidden": "true"
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "نشر فرصة / مناقصة" : "Post Job / Tender" })]
 				})]
 			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
-				onSubmit: handleSave,
-				className: "rounded-xl border border-slate-800 bg-slate-900/60 p-5 space-y-4",
+			composerOpen && user && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
+				onSubmit: (e) => void handlePublish(e),
+				className: "rounded-xl border border-amber-500/40 bg-slate-900/80 p-4 space-y-3 text-xs",
 				children: [
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-						className: "flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", {
-							className: "text-sm font-black text-white",
-							children: isAr ? "ملف مساحة العمل الخاص بحسابك (بلا بيانات شخصية حساسة)" : "Your Business Community Profile (Zero-PII)"
+						className: "grid grid-cols-1 sm:grid-cols-3 gap-3",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", {
+							className: "space-y-1",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+								className: "text-slate-400 block",
+								children: isAr ? "نوع الفرصة" : "Opportunity Type"
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("select", {
+								value: opportunityType,
+								onChange: (e) => setOpportunityType(e.target.value),
+								className: "w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-white",
+								children: [
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", {
+										value: "job",
+										children: isAr ? "وظيفة مهندس / مفتش NDT" : "NDT Job / Inspector Role"
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", {
+										value: "tender",
+										children: isAr ? "مناقصة / تعاقد مشروع" : "Inspection Tender / Subcontract"
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", {
+										value: "equipment",
+										children: isAr ? "توفير / طلب معدات" : "Equipment Mobilization"
+									})
+								]
+							})]
 						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", {
-							className: "inline-flex items-center gap-2 text-xs text-slate-200 cursor-pointer",
-							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
-								type: "checkbox",
-								checked: isPublished,
-								onChange: (e) => setIsPublished(e.target.checked),
-								className: "accent-emerald-500"
-							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "نشر في دليل مجتمع المنصة" : "Publish in Community Directory" })]
+							className: "space-y-1 sm:col-span-2",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+								className: "text-slate-400 block",
+								children: isAr ? "العنوان *" : "Title *"
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+								type: "text",
+								required: true,
+								value: title,
+								onChange: (e) => setTitle(e.target.value),
+								placeholder: isAr ? "مثال: مطلوب مفتش PAUT Level II لمحطة كهرباء" : "e.g. PAUT Level II Inspector for Combined-Cycle Plant",
+								className: "w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-white"
+							})]
 						})]
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-						className: "grid grid-cols-1 md:grid-cols-3 gap-3 text-xs",
-						children: [
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", {
-								className: "space-y-1",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-									className: "text-slate-400 block",
-									children: isAr ? "اسم المدير / المشغّل *" : "Operator Name *"
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
-									type: "text",
-									required: true,
-									value: displayName,
-									onChange: (e) => setDisplayName(e.target.value),
-									className: "w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-white"
-								})]
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", {
-								className: "space-y-1",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-									className: "text-slate-400 block",
-									children: isAr ? "اسم المنشأة / القسم *" : "Organization / Division *"
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
-									type: "text",
-									required: true,
-									value: organizationName,
-									onChange: (e) => setOrganizationName(e.target.value),
-									className: "w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-white"
-								})]
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", {
-								className: "space-y-1",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-									className: "text-slate-400 block",
-									children: isAr ? "القطاع / التخصص *" : "Industry Sector *"
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
-									type: "text",
-									required: true,
-									value: sector,
-									onChange: (e) => setSector(e.target.value),
-									className: "w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-white"
-								})]
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", {
-								className: "space-y-1",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-									className: "text-slate-400 block",
-									children: isAr ? "المدينة / نطاق التشغيل" : "City / Region"
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
-									type: "text",
-									value: city,
-									onChange: (e) => setCity(e.target.value),
-									className: "w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-white"
-								})]
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", {
-								className: "space-y-1",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-									className: "text-slate-400 block",
-									children: isAr ? "الكود التعريفي الأساسي" : "Primary Company Code"
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
-									type: "text",
-									value: companyCode,
-									onChange: (e) => setCompanyCode(e.target.value.toUpperCase()),
-									className: "w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-xs text-cyan-300"
-								})]
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", {
-								className: "space-y-1",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-									className: "text-slate-400 block",
-									children: isAr ? "الخدمات / المهارات الفنية" : "Technical Capabilities"
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
-									type: "text",
-									value: specialtyTrades,
-									onChange: (e) => setSpecialtyTrades(e.target.value),
-									className: "w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-white"
-								})]
-							})
-						]
+						className: "grid grid-cols-1 sm:grid-cols-2 gap-3",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", {
+							className: "space-y-1",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+								className: "text-slate-400 block",
+								children: isAr ? "الموقع / الدولة *" : "Location *"
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+								type: "text",
+								required: true,
+								value: location,
+								onChange: (e) => setLocation(e.target.value),
+								placeholder: "Suez / Jubail / Abu Dhabi",
+								className: "w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-white"
+							})]
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "space-y-1",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+								className: "text-slate-400 block",
+								children: isAr ? "طرق الفحص المطلوبة" : "Required Methods"
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+								className: "flex flex-wrap gap-1.5",
+								children: ALL_METHODS.map((m) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+									type: "button",
+									onClick: () => toggleMethod(m),
+									className: `px-2 py-1 rounded border font-mono text-[11px] font-bold cursor-pointer ${selectedMethods.includes(m) ? "border-cyan-400 bg-cyan-500/20 text-cyan-300" : "border-slate-700 bg-slate-950 text-slate-400"}`,
+									children: m
+								}, m))
+							})]
+						})]
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", {
-						className: "block space-y-1 text-xs",
+						className: "block space-y-1",
 						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
 							className: "text-slate-400 block",
-							children: isAr ? "نبذة عن القسم والفرق الميدانية" : "Workspace Summary"
+							children: isAr ? "المتطلبات والاعتمادات *" : "Requirements & Standards *"
 						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("textarea", {
-							rows: 2,
-							value: bio,
-							onChange: (e) => setBio(e.target.value),
+							rows: 3,
+							required: true,
+							value: requirements,
+							onChange: (e) => setRequirements(e.target.value),
 							className: "w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-white"
 						})]
 					}),
 					errorMsg && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 						role: "alert",
-						className: "rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-300",
+						className: "rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-rose-300",
 						children: errorMsg
 					}),
-					statusMsg && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-						role: "status",
-						className: "rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300 flex items-center gap-2",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CircleCheck, { className: "w-4 h-4 shrink-0" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: statusMsg })]
-					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-						className: "flex justify-end",
-						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "flex justify-end gap-2",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+							type: "button",
+							onClick: () => setComposerOpen(false),
+							className: "rounded-lg border border-slate-700 px-3 py-1.5 text-slate-300 cursor-pointer",
+							children: isAr ? "إلغاء" : "Cancel"
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
 							type: "submit",
 							disabled: saving,
-							className: "inline-flex items-center gap-2 rounded-lg bg-amber-500 hover:bg-amber-400 px-4 py-2 text-xs font-black text-slate-950 cursor-pointer",
-							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Save, {
-								className: "w-3.5 h-3.5",
-								"aria-hidden": "true"
-							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: saving ? isAr ? "جاري الحفظ..." : "Saving..." : isAr ? "حفظ بطاقة المجتمع" : "Save Community Card" })]
-						})
+							className: "rounded-lg bg-emerald-600 hover:bg-emerald-500 px-4 py-1.5 font-bold text-white cursor-pointer",
+							children: saving ? isAr ? "جاري النشر..." : "Publishing..." : isAr ? "نشر الفرصة" : "Publish Opportunity"
+						})]
 					})
 				]
 			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-				className: "rounded-xl border border-slate-800 bg-slate-900/60 p-5 space-y-4",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					className: "flex flex-col sm:flex-row sm:items-center justify-between gap-3",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-						className: "flex items-center gap-2 text-sm font-black text-white",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Earth, {
-							className: "w-4 h-4 text-emerald-400",
-							"aria-hidden": "true"
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? `دليل الشركات والمشتركين (${filteredDirectory.length})` : `Community Member Workspaces (${filteredDirectory.length})` })]
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
-						type: "search",
-						value: searchTerm,
-						onChange: (e) => setSearchTerm(e.target.value),
-						placeholder: isAr ? "ابحث باسم الشركة، القطاع، أو المدينة..." : "Filter by organization, sector, or city...",
-						className: "w-full sm:w-72 rounded-lg border border-slate-700 bg-slate-950 px-3 py-1.5 text-xs text-white"
-					})]
-				}), filteredDirectory.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-					className: "rounded-lg border border-dashed border-slate-800 bg-slate-950/60 p-8 text-center text-xs text-slate-400",
-					children: isAr ? "لا توجد حسابات منشورة مطابقة حالياً. احفظ بطاقتك لتظهر في دليل المجتمع." : "No published community workspaces match yet. Save and publish your workspace card above."
-				}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-					className: "grid grid-cols-1 md:grid-cols-2 gap-3",
-					children: filteredDirectory.map((member) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-						className: "rounded-xl border border-slate-800 bg-slate-950/75 p-4 space-y-2",
-						children: [
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								className: "flex items-start justify-between gap-2",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-									className: "text-sm font-black text-white",
-									children: member.organizationName
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-									className: "text-xs text-slate-400",
-									children: member.displayName
-								})] }), member.companyCode && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-									className: "rounded border border-cyan-500/35 bg-cyan-500/10 px-2 py-0.5 font-mono text-[10px] font-bold text-cyan-300",
-									children: member.companyCode
-								})]
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-								className: "text-[11px] text-emerald-300 font-semibold",
-								children: member.sector
-							}),
-							member.bio && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-								className: "text-xs text-slate-300 line-clamp-2",
-								children: member.bio
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								className: "flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800/80 text-[11px] text-slate-400",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
-									className: "inline-flex items-center gap-1",
-									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MapPin, {
-										className: "w-3 h-3 text-slate-500",
-										"aria-hidden": "true"
-									}), member.city || "-"]
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
-									className: "font-mono tabular-nums",
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+				className: "flex flex-wrap items-center gap-1.5",
+				children: [
+					{
+						id: "all",
+						ar: "الكل",
+						en: "All"
+					},
+					{
+						id: "job",
+						ar: "وظائف",
+						en: "Jobs"
+					},
+					{
+						id: "tender",
+						ar: "مناقصات ومشاريع",
+						en: "Tenders"
+					},
+					{
+						id: "equipment",
+						ar: "معدات",
+						en: "Equipment"
+					}
+				].map((tab) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+					type: "button",
+					onClick: () => setFilterType(tab.id),
+					className: `px-3 py-1.5 rounded-lg border text-xs font-bold cursor-pointer ${filterType === tab.id ? "border-cyan-400 bg-cyan-500/20 text-cyan-300" : "border-slate-800 bg-slate-900 text-slate-300 hover:border-slate-600"}`,
+					children: isAr ? tab.ar : tab.en
+				}, tab.id))
+			}),
+			filtered.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+				className: "rounded-xl border border-dashed border-slate-800 bg-slate-900/50 p-8 text-center text-xs text-slate-400",
+				children: isAr ? "لا توجد فرص أو مناقصات منشورة حالياً في هذا القسم." : "No published jobs, tenders, or equipment postings in this category yet."
+			}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+				className: "grid grid-cols-1 md:grid-cols-2 gap-3",
+				children: filtered.map((opp) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "rounded-xl border border-slate-800 bg-slate-900/70 p-4 space-y-2.5",
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex items-start justify-between gap-2",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "flex items-center gap-1.5 text-[11px] font-mono text-amber-400",
 									children: [
-										member.companiesManaged,
-										" ",
-										isAr ? "شركات مدارة" : "companies"
+										opp.opportunityType === "equipment" ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Wrench, {
+											className: "w-3.5 h-3.5",
+											"aria-hidden": "true"
+										}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(BriefcaseBusiness, {
+											className: "w-3.5 h-3.5",
+											"aria-hidden": "true"
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: opp.opportunityType.toUpperCase() }),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "·" }),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+											className: opp.status === "open" ? "text-emerald-400" : "text-slate-500",
+											children: opp.status.toUpperCase()
+										})
 									]
-								})]
-							})
-						]
-					}, member.uid))
-				})]
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h4", {
+									className: "text-sm font-black text-white mt-0.5",
+									children: opp.title
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "text-xs text-slate-400",
+									children: [
+										opp.authorOrg,
+										" · ",
+										opp.authorName
+									]
+								})
+							] }), user && user.uid === opp.authorUid && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+								type: "button",
+								onClick: () => void updateCommunityOpportunityStatus(opp.id, opp.status === "open" ? "closed" : "open"),
+								className: "rounded border border-slate-700 bg-slate-950 px-2 py-1 text-[11px] text-slate-300 hover:border-cyan-400 cursor-pointer",
+								children: opp.status === "open" ? isAr ? "إغلاق" : "Close" : isAr ? "إعادة فتح" : "Reopen"
+							})]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+							className: "text-xs text-slate-200 leading-relaxed line-clamp-3",
+							children: opp.requirements
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800/80 text-[11px] text-slate-400",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+								className: "inline-flex items-center gap-1",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MapPin, {
+									className: "w-3 h-3",
+									"aria-hidden": "true"
+								}), opp.location]
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+								className: "inline-flex items-center gap-1 font-mono text-cyan-300",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CircleCheck, {
+									className: "w-3 h-3 text-emerald-400",
+									"aria-hidden": "true"
+								}), opp.methods.join(" · ")]
+							})]
+						})
+					]
+				}, opp.id))
 			})
 		]
+	});
+};
+//#endregion
+//#region src/components/client/CommunityWorkspacesHub.tsx
+var NDT_METHOD_OPTIONS = [
+	"GENERAL",
+	"RT",
+	"UT",
+	"PAUT",
+	"MT",
+	"PT",
+	"VT",
+	"PWHT",
+	"AR"
+];
+var AVAILABILITY_LABELS = {
+	active_field: {
+		ar: "في مهمة ميدانية حالياً",
+		en: "Active in Field"
+	},
+	open_to_work: {
+		ar: "متاح للتوظيف / التعاقد",
+		en: "Open to Work"
+	},
+	hiring: {
+		ar: "نبحث عن مفتشين / كوادر",
+		en: "Hiring Inspectors"
+	},
+	offering_services: {
+		ar: "نقدم خدمات فحص ومعالجة",
+		en: "Offering NDT/PWHT Services"
+	}
+};
+var CommunityWorkspacesHub = ({ language, user, account, myProfile, directoryProfiles, companies, posts = [], opportunities = [], connections = [], isAdmin = false, onRequireSignIn, onOpenCompanies, onOpenTimeClock }) => {
+	const isAr = language === "ar";
+	const [activeTab, setActiveTab] = (0, import_react.useState)("feed");
+	const [displayName, setDisplayName] = (0, import_react.useState)(myProfile?.displayName || account?.fullName || user?.displayName || "");
+	const [headline, setHeadline] = (0, import_react.useState)(myProfile?.headline || account?.jobTitle || "");
+	const [organizationName, setOrganizationName] = (0, import_react.useState)(myProfile?.organizationName || account?.organizationName || (companies[0] ? isAr ? companies[0].nameAr : companies[0].nameEn : ""));
+	const [sector, setSector] = (0, import_react.useState)(myProfile?.sector || account?.sector || "NDT & Industrial Inspection");
+	const [city, setCity] = (0, import_react.useState)(myProfile?.city || account?.cityGovernorate || "Cairo, Egypt");
+	const [companyCode, setCompanyCode] = (0, import_react.useState)(myProfile?.companyCode || account?.assignedCompanyCode || companies[0]?.companyCode || "");
+	const [certifications, setCertifications] = (0, import_react.useState)(myProfile?.certifications || "ASNT NDT Level II/III · ISO 9712 · ASME Sec V");
+	const [yearsExperience, setYearsExperience] = (0, import_react.useState)(myProfile?.yearsExperience ?? 5);
+	const [availabilityStatus, setAvailabilityStatus] = (0, import_react.useState)(myProfile?.availabilityStatus ?? "active_field");
+	const [specialtyTrades, setSpecialtyTrades] = (0, import_react.useState)(myProfile?.specialtyTrades || "RT, UT, PAUT, PWHT, QA/QC");
+	const [bio, setBio] = (0, import_react.useState)(myProfile?.bio || "");
+	const [isPublished, setIsPublished] = (0, import_react.useState)(myProfile?.isPublished ?? true);
+	const [savingProfile, setSavingProfile] = (0, import_react.useState)(false);
+	const [profileStatusMsg, setProfileStatusMsg] = (0, import_react.useState)(null);
+	const [profileErrorMsg, setProfileErrorMsg] = (0, import_react.useState)(null);
+	const [postType, setPostType] = (0, import_react.useState)("technical_case");
+	const [ndtMethod, setNdtMethod] = (0, import_react.useState)("RT");
+	const [postTitle, setPostTitle] = (0, import_react.useState)("");
+	const [postBody, setPostBody] = (0, import_react.useState)("");
+	const [postTagsInput, setPostTagsInput] = (0, import_react.useState)("");
+	const [technicalSnippet, setTechnicalSnippet] = (0, import_react.useState)("");
+	const [publishingPost, setPublishingPost] = (0, import_react.useState)(false);
+	const [composerError, setComposerError] = (0, import_react.useState)(null);
+	const [composerNotice, setComposerNotice] = (0, import_react.useState)(null);
+	const [aiDrafting, setAiDrafting] = (0, import_react.useState)(false);
+	const [feedTypeFilter, setFeedTypeFilter] = (0, import_react.useState)("all");
+	const [feedMethodFilter, setFeedMethodFilter] = (0, import_react.useState)("ALL");
+	const [feedSearch, setFeedSearch] = (0, import_react.useState)("");
+	const [networkSearch, setNetworkSearch] = (0, import_react.useState)("");
+	const [connectingUid, setConnectingUid] = (0, import_react.useState)(null);
+	const [endorsedUids, setEndorsedUids] = (0, import_react.useState)({});
+	const [managerLoading, setManagerLoading] = (0, import_react.useState)(false);
+	const [managerError, setManagerError] = (0, import_react.useState)(null);
+	const [managerReport, setManagerReport] = (0, import_react.useState)(null);
+	const [publishingAnnouncement, setPublishingAnnouncement] = (0, import_react.useState)(false);
+	(0, import_react.useEffect)(() => {
+		if (myProfile) {
+			setDisplayName(myProfile.displayName);
+			setHeadline(myProfile.headline || "");
+			setOrganizationName(myProfile.organizationName);
+			setSector(myProfile.sector);
+			setCity(myProfile.city || "");
+			setCompanyCode(myProfile.companyCode || "");
+			setCertifications(myProfile.certifications || "");
+			setYearsExperience(myProfile.yearsExperience ?? 5);
+			setAvailabilityStatus(myProfile.availabilityStatus ?? "active_field");
+			setSpecialtyTrades(myProfile.specialtyTrades || "");
+			setBio(myProfile.bio || "");
+			setIsPublished(myProfile.isPublished);
+		} else if (account || user) {
+			setDisplayName((prev) => prev || account?.fullName || user?.displayName || "");
+			setHeadline((prev) => prev || account?.jobTitle || "");
+			setOrganizationName((prev) => prev || account?.organizationName || "");
+			setCompanyCode((prev) => prev || account?.assignedCompanyCode || companies[0]?.companyCode || "");
+		}
+	}, [
+		myProfile,
+		account,
+		user,
+		companies
+	]);
+	(0, import_react.useEffect)(() => {
+		const applyDraft = (detail) => {
+			setActiveTab("feed");
+			setPostType(detail.postType);
+			const upperMethod = (detail.ndtMethod || "GENERAL").toUpperCase();
+			setNdtMethod(NDT_METHOD_OPTIONS.includes(upperMethod) ? upperMethod : "GENERAL");
+			setPostTitle(detail.title);
+			setPostBody(detail.body);
+			setPostTagsInput((detail.tags || []).join(", "));
+			setComposerNotice(isAr ? "تم تعبئة مسودة المنشور من المساعد الذكي — راجعها ثم اضغط نشر." : "Draft loaded from AI Copilot — review and click Publish.");
+		};
+		const pending = consumePendingPostDraft();
+		if (pending) applyDraft(pending);
+		const handler = (ev) => {
+			const custom = ev;
+			if (custom.detail) applyDraft(custom.detail);
+		};
+		window.addEventListener(INSCO_APPLY_POST_DRAFT_EVENT, handler);
+		return () => window.removeEventListener(INSCO_APPLY_POST_DRAFT_EVENT, handler);
+	}, [isAr]);
+	const activeAuthorName = displayName.trim() || account?.fullName || user?.displayName || (isAr ? "مهندس INSCO" : "INSCO Engineer");
+	const activeAuthorOrg = organizationName.trim() || account?.organizationName || (companies[0] ? isAr ? companies[0].nameAr : companies[0].nameEn : "INSCO Network");
+	const connectedUidSet = (0, import_react.useMemo)(() => new Set(connections.map((c) => c.toUid)), [connections]);
+	const handleSaveProfile = async (e) => {
+		e.preventDefault();
+		if (!user) {
+			onRequireSignIn?.();
+			return;
+		}
+		setProfileErrorMsg(null);
+		setProfileStatusMsg(null);
+		if (displayName.trim().length < 2 || organizationName.trim().length < 2) {
+			setProfileErrorMsg(isAr ? "يرجى إدخال الاسم الكامل واسم الجهة/الشركة." : "Please enter your full name and organization name.");
+			return;
+		}
+		setSavingProfile(true);
+		try {
+			await upsertCommunityWorkspace(user, {
+				displayName: displayName.trim(),
+				headline: headline.trim(),
+				organizationName: organizationName.trim(),
+				sector: sector.trim() || "Industrial NDT",
+				city: city.trim(),
+				companyCode: companyCode.trim(),
+				certifications: certifications.trim(),
+				yearsExperience: Number.isFinite(yearsExperience) ? yearsExperience : 0,
+				availabilityStatus,
+				specialtyTrades: specialtyTrades.trim(),
+				bio: bio.trim(),
+				companiesManaged: companies.length,
+				isPublished
+			}, myProfile);
+			setProfileStatusMsg(isAr ? "تم حفظ ملفك المهني في مجتمع INSCO بنجاح." : "Your INSCO Community LinkedIn profile has been updated.");
+		} catch (err) {
+			setProfileErrorMsg(err instanceof Error ? err.message : String(err));
+		} finally {
+			setSavingProfile(false);
+		}
+	};
+	const handleComposerAiAssist = async (action) => {
+		setComposerError(null);
+		setComposerNotice(null);
+		const seedText = postBody.trim() || postTitle.trim() || (isAr ? `مشاركة حالة فحص هندسية باستخدام تقنية ${ndtMethod} وفق معيار ASME Sec V` : `Technical field inspection insight using ${ndtMethod} under ASME Sec V`);
+		setAiDrafting(true);
+		try {
+			const res = await runCommunityAssist({
+				action,
+				language,
+				ndtMethod,
+				title: postTitle.trim() || void 0,
+				body: seedText
+			});
+			if (action === "code_check") {
+				setTechnicalSnippet(res.technicalSnippet || res.reply.slice(0, 560));
+				setComposerNotice(res.reply);
+			} else {
+				if (res.title) setPostTitle(res.title);
+				if (res.body) setPostBody(res.body);
+				else if (res.reply) setPostBody(res.reply);
+				if (res.tags && res.tags.length > 0) setPostTagsInput(res.tags.join(", "));
+				if (res.technicalSnippet) setTechnicalSnippet(res.technicalSnippet);
+				setComposerNotice(isAr ? "تم إنشاء الصياغة الهندسية عبر Gemini AI." : "Draft refined by INSCO AI.");
+			}
+		} catch (err) {
+			setComposerError(err instanceof Error ? err.message : String(err));
+		} finally {
+			setAiDrafting(false);
+		}
+	};
+	const handlePublishPost = async (e) => {
+		e.preventDefault();
+		if (!user) {
+			onRequireSignIn?.();
+			return;
+		}
+		setComposerError(null);
+		setComposerNotice(null);
+		if (postTitle.trim().length < 3 || postBody.trim().length < 8) {
+			setComposerError(isAr ? "يرجى كتابة عنوان واضح ومحتوى تقني لا يقل عن 8 أحرف." : "Please provide a clear title and at least 8 characters of post content.");
+			return;
+		}
+		const tags = postTagsInput.split(/[,\s]+/).map((t) => t.replace(/^#/, "").trim()).filter(Boolean).slice(0, 6);
+		setPublishingPost(true);
+		try {
+			await createCommunityPost(user, {
+				authorName: activeAuthorName,
+				authorHeadline: headline.trim() || void 0,
+				authorOrg: activeAuthorOrg,
+				authorCompanyCode: companyCode.trim() || void 0,
+				postType,
+				ndtMethod,
+				title: postTitle.trim(),
+				body: postBody.trim(),
+				tags,
+				technicalSnippet: technicalSnippet.trim() || void 0,
+				visibility: "public",
+				isPinnedAnnouncement: isAdmin && postType === "announcement"
+			});
+			setPostTitle("");
+			setPostBody("");
+			setPostTagsInput("");
+			setTechnicalSnippet("");
+			setComposerNotice(isAr ? "تم نشر منشورك في مجتمع INSCO بنجاح." : "Post published to INSCO Community.");
+		} catch (err) {
+			setComposerError(err instanceof Error ? err.message : String(err));
+		} finally {
+			setPublishingPost(false);
+		}
+	};
+	const handleConnectMember = async (member) => {
+		if (!user) {
+			onRequireSignIn?.();
+			return;
+		}
+		if (connectingUid || member.uid === user.uid) return;
+		setConnectingUid(member.uid);
+		try {
+			await connectWithCommunityMember(user, activeAuthorName, {
+				uid: member.uid,
+				displayName: member.displayName
+			});
+		} finally {
+			setConnectingUid(null);
+		}
+	};
+	const handleEndorseMember = async (member) => {
+		if (!user) {
+			onRequireSignIn?.();
+			return;
+		}
+		if (endorsedUids[member.uid] || member.uid === user.uid) return;
+		setEndorsedUids((prev) => ({
+			...prev,
+			[member.uid]: true
+		}));
+		try {
+			await endorseMemberWorkspace(member.uid);
+		} catch {
+			setEndorsedUids((prev) => ({
+				...prev,
+				[member.uid]: false
+			}));
+		}
+	};
+	const handleRunSiteManagerPulse = async (mode) => {
+		setManagerLoading(true);
+		setManagerError(null);
+		try {
+			const telemetry = getSiteTelemetrySnapshot();
+			const res = await runSiteManagerAgent({
+				instruction: mode === "moderate_community" ? isAr ? "راجع منشورات المجتمع وحدد أي منشورات تحتاج متابعة إدارية أو تثبيت." : "Audit recent community posts, identify items needing moderation or pinning." : mode === "draft_announcement" ? isAr ? "صُغ إعلاناً رسمياً احترافياً من إدارة INSCO للمجتمع الهندسي حول السلامة وجودة الاختبارات." : "Draft an official INSCO Management announcement for the engineering community." : isAr ? "قدم ملخصاً تنفيذياً لإدارة الموقع والمجتمع وطلبات العملاء وتنبيهات الجيوفينس." : "Provide an executive brief covering site operations, client requests, geofence alerts, and community activity.",
+				language,
+				mode,
+				telemetry
+			});
+			setManagerReport(res);
+		} catch (err) {
+			setManagerError(err instanceof Error ? err.message : String(err));
+		} finally {
+			setManagerLoading(false);
+		}
+	};
+	const handlePublishAiAnnouncement = async () => {
+		if (!user || !isAdmin || !managerReport?.announcementDraft) return;
+		setPublishingAnnouncement(true);
+		try {
+			await createCommunityPost(user, {
+				authorName: activeAuthorName,
+				authorHeadline: isAr ? "إدارة عمليات INSCO" : "INSCO Site Management",
+				authorOrg: "INSCO Operations",
+				postType: "announcement",
+				ndtMethod: NDT_METHOD_OPTIONS.includes(managerReport.announcementDraft.ndtMethod) ? managerReport.announcementDraft.ndtMethod : "GENERAL",
+				title: managerReport.announcementDraft.title,
+				body: managerReport.announcementDraft.body,
+				tags: ["INSCO", "Official"],
+				visibility: "public",
+				isPinnedAnnouncement: true
+			});
+			setActiveTab("feed");
+		} finally {
+			setPublishingAnnouncement(false);
+		}
+	};
+	const filteredPosts = (0, import_react.useMemo)(() => {
+		const q = feedSearch.trim().toLowerCase();
+		return posts.filter((p) => {
+			if (feedTypeFilter !== "all" && p.postType !== feedTypeFilter) return false;
+			if (feedMethodFilter !== "ALL" && p.ndtMethod !== feedMethodFilter) return false;
+			if (!q) return true;
+			return p.title.toLowerCase().includes(q) || p.body.toLowerCase().includes(q) || p.authorName.toLowerCase().includes(q) || p.authorOrg.toLowerCase().includes(q) || (p.tags ?? []).some((t) => t.toLowerCase().includes(q));
+		});
+	}, [
+		posts,
+		feedTypeFilter,
+		feedMethodFilter,
+		feedSearch
+	]);
+	const filteredDirectory = (0, import_react.useMemo)(() => {
+		const q = networkSearch.trim().toLowerCase();
+		if (!q) return directoryProfiles;
+		return directoryProfiles.filter((profile) => {
+			return profile.organizationName.toLowerCase().includes(q) || profile.displayName.toLowerCase().includes(q) || (profile.headline ?? "").toLowerCase().includes(q) || (profile.certifications ?? "").toLowerCase().includes(q) || profile.sector.toLowerCase().includes(q) || (profile.city ?? "").toLowerCase().includes(q) || (profile.specialtyTrades ?? "").toLowerCase().includes(q);
+		});
+	}, [directoryProfiles, networkSearch]);
+	const openOpportunities = (0, import_react.useMemo)(() => opportunities.filter((o) => o.status === "open").slice(0, 3), [opportunities]);
+	const suggestedMembers = (0, import_react.useMemo)(() => directoryProfiles.filter((m) => m.uid !== user?.uid && !connectedUidSet.has(m.uid)).slice(0, 4), [
+		directoryProfiles,
+		user?.uid,
+		connectedUidSet
+	]);
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		"data-testid": "community-workspaces-hub",
+		className: "space-y-5",
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+			className: "rounded-xl border border-slate-800 bg-slate-900/80 p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4",
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "space-y-1",
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "inline-flex items-center gap-2 text-[11px] font-mono uppercase tracking-wider text-cyan-400",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Users, {
+							className: "w-3.5 h-3.5",
+							"aria-hidden": "true"
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "مجتمع INSCO الهندسي · شبكة مهنية تفاعلية مدعومة بـ AI" : "INSCO Engineering Community · LinkedIn + Facebook + Dual AI Hub" })]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
+						className: "text-lg sm:text-xl font-black text-white",
+						children: isAr ? "منصة التواصل المهني لمفتشي ومهندسي الفحص غير التدميري والمعالجة الحرارية" : "Professional NDT, PAUT & PWHT Social Network & Opportunity Exchange"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "text-xs text-slate-400 max-w-3xl",
+						children: isAr ? "شارك دراسات الحالة الميدانية، تفاعل وعلّق مع الزملاء، استعن بالمساعد الذكي في صياغة التقارير والمنشورات، وتابع الوظائف والمناقصات وتنبيهات مدير الموقع الذكي." : "Share field cases, connect with certified inspectors, draft with Gemini AI Copilot, explore NDT jobs & tenders, and review Site Manager AI briefs."
+					})
+				]
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "flex flex-wrap items-center gap-2 shrink-0",
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+						type: "button",
+						onClick: () => dispatchOpenAiDock({
+							agent: "copilot",
+							prompt: isAr ? "ساعدني في استخدام مجتمع INSCO وصياغة منشور تقني احترافي." : "Help me craft a high-impact post in INSCO Community."
+						}),
+						className: "inline-flex items-center gap-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 px-3.5 py-2 text-xs font-black text-white cursor-pointer whitespace-nowrap",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Sparkles, {
+							className: "w-3.5 h-3.5",
+							"aria-hidden": "true"
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "اسأل المساعد الذكي" : "Ask User Copilot" })]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+						type: "button",
+						onClick: onOpenCompanies,
+						className: "inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-950 hover:border-cyan-400 px-3 py-2 text-xs font-bold text-slate-200 cursor-pointer whitespace-nowrap",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Building2, {
+							className: "w-3.5 h-3.5 text-cyan-400",
+							"aria-hidden": "true"
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? `شركاتي (${companies.length})` : `Companies (${companies.length})` })]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+						type: "button",
+						onClick: onOpenTimeClock,
+						className: "inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 px-3 py-2 text-xs font-bold text-emerald-300 cursor-pointer whitespace-nowrap",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Clock, {
+							className: "w-3.5 h-3.5",
+							"aria-hidden": "true"
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "الحضور الميداني" : "Time-Clock" })]
+					})
+				]
+			})]
+		}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+			className: "grid grid-cols-1 lg:grid-cols-12 gap-5 items-start",
+			children: [
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("aside", {
+					className: "lg:col-span-3 space-y-4",
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "rounded-xl border border-slate-800 bg-slate-900/75 p-4 space-y-3",
+						children: [user ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "flex items-start justify-between gap-2",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "min-w-0",
+									children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+											className: "text-sm font-black text-white truncate",
+											children: activeAuthorName
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+											className: "text-xs text-cyan-300 font-semibold truncate",
+											children: headline || (isAr ? "مهندس / مشغّل فحص صناعي" : "NDT / Industrial Specialist")
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+											className: "text-[11px] text-slate-400 truncate mt-0.5",
+											children: [activeAuthorOrg, companyCode ? ` · ${companyCode}` : ""]
+										})
+									]
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Award, {
+									className: "w-5 h-5 text-amber-400 shrink-0",
+									"aria-hidden": "true"
+								})]
+							}),
+							certifications && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+								className: "text-[11px] font-mono text-emerald-300 border-t border-slate-800 pt-2",
+								children: certifications
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "grid grid-cols-2 gap-2 pt-2 border-t border-slate-800 text-center",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "rounded-lg bg-slate-950/70 p-2",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+										className: "text-sm font-black text-white font-mono tabular-nums",
+										children: connections.length
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+										className: "text-[10px] text-slate-400",
+										children: isAr ? "شبكة التواصل" : "Connections"
+									})]
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "rounded-lg bg-slate-950/70 p-2",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+										className: "text-sm font-black text-amber-400 font-mono tabular-nums",
+										children: myProfile?.endorsementsCount ?? 0
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+										className: "text-[10px] text-slate-400",
+										children: isAr ? "تزكيات المهارة" : "Endorsements"
+									})]
+								})]
+							})
+						] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "space-y-2.5",
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+									className: "text-sm font-black text-white",
+									children: isAr ? "تصفح مجتمع INSCO" : "Guest Community View"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+									className: "text-xs text-slate-400 leading-relaxed",
+									children: isAr ? "سجّل الدخول لنشر الحالات الفنية، التفاعل مع الزملاء، وبناء ملفك المهني (LinkedIn)." : "Sign in to publish field cases, react to peers, endorse skills, and post jobs."
+								}),
+								onRequireSignIn && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+									type: "button",
+									onClick: onRequireSignIn,
+									className: "w-full inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-3 py-2 text-xs font-black text-white cursor-pointer",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(LogIn, {
+										className: "w-3.5 h-3.5",
+										"aria-hidden": "true"
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "تسجيل الدخول / إنشاء حساب" : "Sign In / Join Community" })]
+								})
+							]
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("nav", {
+							"aria-label": isAr ? "أقسام مجتمع INSCO" : "INSCO Community Sections",
+							className: "space-y-1 pt-2 border-t border-slate-800",
+							children: [
+								{
+									id: "feed",
+									ar: "ساحة المنشورات والنقاشات",
+									en: "Community Feed",
+									Icon: MessageSquarePlus,
+									count: posts.length
+								},
+								{
+									id: "network",
+									ar: "الشبكة المهنية (LinkedIn)",
+									en: "Engineering Network",
+									Icon: Users,
+									count: directoryProfiles.length
+								},
+								{
+									id: "opportunities",
+									ar: "الوظائف والمناقصات",
+									en: "Jobs & Tenders",
+									Icon: BriefcaseBusiness,
+									count: opportunities.length
+								},
+								{
+									id: "profile",
+									ar: "ملفي المهني والاعتمادات",
+									en: "Edit My Profile",
+									Icon: PenLine
+								}
+							].map((tab) => {
+								const Icon = tab.Icon;
+								const active = activeTab === tab.id;
+								return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+									type: "button",
+									onClick: () => setActiveTab(tab.id),
+									className: `w-full flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-xs font-bold transition cursor-pointer ${active ? "bg-emerald-600 text-white" : "text-slate-300 hover:bg-slate-800 hover:text-white"}`,
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+										className: "flex items-center gap-2 truncate",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, {
+											className: "w-3.5 h-3.5 shrink-0",
+											"aria-hidden": "true"
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+											className: "truncate",
+											children: isAr ? tab.ar : tab.en
+										})]
+									}), typeof tab.count === "number" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+										className: "font-mono tabular-nums text-[11px] opacity-85",
+										children: tab.count
+									})]
+								}, tab.id);
+							})
+						})]
+					})
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
+					className: "lg:col-span-6 space-y-4",
+					children: [
+						activeTab === "feed" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
+								onSubmit: (e) => void handlePublishPost(e),
+								"data-testid": "community-post-composer",
+								className: "rounded-xl border border-slate-800 bg-slate-900/75 p-4 space-y-3",
+								children: [
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2.5",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+											className: "text-xs font-black text-white",
+											children: isAr ? "شارك دراسة حالة، نقاشاً هندسياً، أو مناقصة فنية" : "Start a Technical Post, Case Study, or Discussion"
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+											className: "flex flex-wrap items-center gap-1.5",
+											children: [
+												/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+													type: "button",
+													disabled: aiDrafting,
+													onClick: () => void handleComposerAiAssist("draft_from_topic"),
+													className: "inline-flex items-center gap-1 rounded-lg border border-cyan-500/40 bg-cyan-500/10 hover:bg-cyan-500/20 px-2.5 py-1 text-[11px] font-bold text-cyan-300 cursor-pointer disabled:opacity-50 whitespace-nowrap",
+													children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Sparkles, {
+														className: "w-3 h-3",
+														"aria-hidden": "true"
+													}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "صياغة بـ AI" : "AI Draft" })]
+												}),
+												/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+													type: "button",
+													disabled: aiDrafting,
+													onClick: () => void handleComposerAiAssist("enhance_post"),
+													className: "inline-flex items-center gap-1 rounded-lg border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 px-2.5 py-1 text-[11px] font-bold text-emerald-300 cursor-pointer disabled:opacity-50 whitespace-nowrap",
+													children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Sparkles, {
+														className: "w-3 h-3",
+														"aria-hidden": "true"
+													}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "تحسين الأسلوب AI" : "AI Polish" })]
+												}),
+												/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+													type: "button",
+													disabled: aiDrafting,
+													onClick: () => void handleComposerAiAssist("code_check"),
+													className: "inline-flex items-center gap-1 rounded-lg border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1 text-[11px] font-bold text-amber-300 cursor-pointer disabled:opacity-50 whitespace-nowrap",
+													children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ShieldCheck, {
+														className: "w-3 h-3",
+														"aria-hidden": "true"
+													}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "مرجع الكود AI" : "Add Code Ref" })]
+												})
+											]
+										})]
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("select", {
+											"aria-label": isAr ? "تصنيف المنشور" : "Post Category",
+											value: postType,
+											onChange: (e) => setPostType(e.target.value),
+											className: "rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-white",
+											children: [
+												/* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", {
+													value: "technical_case",
+													children: isAr ? "دراسة حالة فنية (Technical Case)" : "Technical Case Study"
+												}),
+												/* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", {
+													value: "discussion",
+													children: isAr ? "نقاش هندسي (Discussion)" : "Engineering Discussion"
+												}),
+												/* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", {
+													value: "equipment_review",
+													children: isAr ? "تقييم معدات وأجهزة" : "Equipment & Calibration Review"
+												}),
+												/* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", {
+													value: "job_tender",
+													children: isAr ? "فرصة عمل / تعاقد" : "Job / Inspection Tender"
+												}),
+												isAdmin && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", {
+													value: "announcement",
+													children: isAr ? "إعلان رسمي مثبت (إداري)" : "Pinned Official Announcement"
+												})
+											]
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("select", {
+											"aria-label": isAr ? "تخصص NDT" : "NDT Method",
+											value: ndtMethod,
+											onChange: (e) => setNdtMethod(e.target.value),
+											className: "rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-xs text-cyan-300",
+											children: NDT_METHOD_OPTIONS.map((m) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", {
+												value: m,
+												children: m
+											}, m))
+										})]
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+										type: "text",
+										value: postTitle,
+										onChange: (e) => setPostTitle(e.target.value),
+										placeholder: isAr ? "عنوان المنشور أو المشكلة الهندسية..." : "Post headline (e.g. PAUT Sectorial Scan angle selection on 32mm P91 weld)...",
+										className: "w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-white"
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("textarea", {
+										rows: 3,
+										value: postBody,
+										onChange: (e) => setPostBody(e.target.value),
+										placeholder: isAr ? "اشرح الملاحظة الفنية، بارامترات الفحص، أو اكتب موضوعاً واضغط \"صياغة بـ AI\"..." : "Describe the inspection scenario, parameters, or write a quick topic and click AI Draft...",
+										className: "w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-white"
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+											type: "text",
+											value: postTagsInput,
+											onChange: (e) => setPostTagsInput(e.target.value),
+											placeholder: isAr ? "وسوم: ASME, PAUT, RT (اختياري)" : "Tags: ASME, PAUT, RT (optional)",
+											className: "rounded-lg border border-slate-700 bg-slate-950 px-3 py-1.5 text-xs text-slate-200"
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+											type: "text",
+											value: technicalSnippet,
+											onChange: (e) => setTechnicalSnippet(e.target.value),
+											placeholder: isAr ? "مقتطف تقني: مثال SFD=650mm / Angle 60°" : "Tech parameter snippet (optional)",
+											className: "rounded-lg border border-slate-700 bg-slate-950 px-3 py-1.5 font-mono text-xs text-emerald-300"
+										})]
+									}),
+									composerError && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+										role: "alert",
+										className: "rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-300",
+										children: composerError
+									}),
+									composerNotice && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+										role: "status",
+										className: "rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-200",
+										children: composerNotice
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "flex items-center justify-between gap-2 pt-1",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+											className: "text-[11px] text-slate-400",
+											children: user ? isAr ? `النشر باسم: ${activeAuthorName}` : `Posting as ${activeAuthorName}` : isAr ? "سجّل الدخول لنشر منشورك في الساحة" : "Sign in required to publish"
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+											type: "submit",
+											disabled: publishingPost,
+											className: "inline-flex items-center gap-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 px-4 py-2 text-xs font-black text-slate-950 cursor-pointer whitespace-nowrap",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MessageSquarePlus, {
+												className: "w-3.5 h-3.5",
+												"aria-hidden": "true"
+											}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: publishingPost ? isAr ? "جاري النشر..." : "Publishing..." : isAr ? "نشر في مجتمع INSCO" : "Publish Post" })]
+										})]
+									})
+								]
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "rounded-xl border border-slate-800 bg-slate-900/60 p-3 space-y-2.5",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "flex flex-col sm:flex-row sm:items-center justify-between gap-2",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+										className: "flex flex-wrap items-center gap-1.5",
+										children: [
+											{
+												id: "all",
+												ar: "الكل",
+												en: "All"
+											},
+											{
+												id: "technical_case",
+												ar: "حالات فنية",
+												en: "Tech Cases"
+											},
+											{
+												id: "discussion",
+												ar: "نقاشات",
+												en: "Discussions"
+											},
+											{
+												id: "job_tender",
+												ar: "وظائف ومناقصات",
+												en: "Jobs"
+											},
+											{
+												id: "equipment_review",
+												ar: "معدات",
+												en: "Equipment"
+											},
+											{
+												id: "announcement",
+												ar: "إعلانات الإدارة",
+												en: "Official"
+											}
+										].map((tab) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+											type: "button",
+											onClick: () => setFeedTypeFilter(tab.id),
+											className: `px-2.5 py-1 rounded-lg border text-[11px] font-bold cursor-pointer ${feedTypeFilter === tab.id ? "border-emerald-400 bg-emerald-500/20 text-emerald-300" : "border-slate-800 bg-slate-950 text-slate-300 hover:border-slate-600"}`,
+											children: isAr ? tab.ar : tab.en
+										}, tab.id))
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "relative",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Search, {
+											className: "w-3.5 h-3.5 text-slate-500 absolute start-2.5 top-2.5",
+											"aria-hidden": "true"
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+											type: "search",
+											value: feedSearch,
+											onChange: (e) => setFeedSearch(e.target.value),
+											placeholder: isAr ? "بحث في المنشورات..." : "Search feed...",
+											className: "w-full sm:w-44 rounded-lg border border-slate-700 bg-slate-950 ps-8 pe-3 py-1.5 text-xs text-white"
+										})]
+									})]
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+									className: "flex flex-wrap items-center gap-1",
+									children: ["ALL", ...NDT_METHOD_OPTIONS].map((method) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+										type: "button",
+										onClick: () => setFeedMethodFilter(method),
+										className: `px-2 py-0.5 rounded font-mono text-[10px] font-bold cursor-pointer ${feedMethodFilter === method ? "bg-cyan-500 text-slate-950" : "bg-slate-950 text-slate-400 hover:text-white"}`,
+										children: method
+									}, method))
+								})]
+							}),
+							filteredPosts.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "rounded-xl border border-dashed border-slate-800 bg-slate-900/50 p-8 text-center space-y-3",
+								children: [
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Radio, {
+										className: "w-8 h-8 text-cyan-400 mx-auto",
+										"aria-hidden": "true"
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+										className: "text-sm font-black text-white",
+										children: isAr ? "لا توجد منشورات مطابقة في الساحة حتى الآن" : "No matching community posts yet"
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+										className: "text-xs text-slate-400 max-w-md mx-auto",
+										children: isAr ? "ابدأ بنشر أول دراسة حالة فنية أو سؤال هندسي، أو دع المساعد الذكي يكتب مسودة جاهزة لك." : "Publish the first NDT field case study or question, or let Gemini AI draft one for you in seconds."
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+										type: "button",
+										onClick: () => void handleComposerAiAssist("draft_from_topic"),
+										className: "inline-flex items-center gap-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 px-3.5 py-2 text-xs font-bold text-white cursor-pointer",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Sparkles, {
+											className: "w-3.5 h-3.5",
+											"aria-hidden": "true"
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "اكتب أول منشور بالذكاء الاصطناعي" : "Draft First Post with AI" })]
+									})
+								]
+							}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+								className: "space-y-4",
+								children: filteredPosts.map((post) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(InscoCommunityFeedCard, {
+									language,
+									post,
+									user,
+									currentAuthorName: activeAuthorName,
+									currentAuthorHeadline: headline || void 0,
+									isAdmin,
+									onRequireSignIn
+								}, post.id))
+							})
+						] }),
+						activeTab === "network" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "rounded-xl border border-slate-800 bg-slate-900/70 p-5 space-y-4",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "flex flex-col sm:flex-row sm:items-center justify-between gap-3",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "flex items-center gap-2 text-sm font-black text-white",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Earth, {
+										className: "w-4 h-4 text-emerald-400",
+										"aria-hidden": "true"
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? `شبكة المهندسين والشركات (${filteredDirectory.length})` : `Engineering & Business Network (${filteredDirectory.length})` })]
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+									type: "search",
+									value: networkSearch,
+									onChange: (e) => setNetworkSearch(e.target.value),
+									placeholder: isAr ? "ابحث بالاسم، الاعتماد، الشركة أو المدينة..." : "Search name, ASNT cert, organization, or city...",
+									className: "w-full sm:w-64 rounded-lg border border-slate-700 bg-slate-950 px-3 py-1.5 text-xs text-white"
+								})]
+							}), filteredDirectory.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+								className: "rounded-lg border border-dashed border-slate-800 bg-slate-950/60 p-8 text-center text-xs text-slate-400",
+								children: isAr ? "لا توجد ملفات مهنية منشورة مطابقة حالياً." : "No published professional profiles match your filter yet."
+							}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+								className: "grid grid-cols-1 md:grid-cols-2 gap-3",
+								children: filteredDirectory.map((member) => {
+									const isSelf = Boolean(user && user.uid === member.uid);
+									const isConnected = connectedUidSet.has(member.uid);
+									const avail = member.availabilityStatus ? AVAILABILITY_LABELS[member.availabilityStatus] : null;
+									return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "rounded-xl border border-slate-800 bg-slate-950/75 p-4 space-y-2.5 flex flex-col justify-between",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+											className: "space-y-1.5",
+											children: [
+												/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+													className: "flex items-start justify-between gap-2",
+													children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+														className: "min-w-0",
+														children: [
+															/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+																className: "text-sm font-black text-white truncate",
+																children: member.displayName
+															}),
+															/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+																className: "text-xs text-cyan-300 font-semibold truncate",
+																children: member.headline || member.organizationName
+															}),
+															/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+																className: "text-[11px] text-slate-400 truncate",
+																children: member.organizationName
+															})
+														]
+													}), member.companyCode && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+														className: "rounded border border-cyan-500/35 bg-cyan-500/10 px-2 py-0.5 font-mono text-[10px] font-bold text-cyan-300 shrink-0",
+														children: member.companyCode
+													})]
+												}),
+												/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+													className: "text-[11px] text-emerald-300 font-semibold",
+													children: [member.sector, typeof member.yearsExperience === "number" ? ` · ${member.yearsExperience} ${isAr ? "سنة خبرة" : "yrs exp"}` : ""]
+												}),
+												member.certifications && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+													className: "text-[11px] font-mono text-amber-300",
+													children: member.certifications
+												}),
+												avail && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+													className: "text-[11px] text-slate-300",
+													children: isAr ? avail.ar : avail.en
+												}),
+												member.bio && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+													className: "text-xs text-slate-300 line-clamp-2",
+													children: member.bio
+												})
+											]
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+											className: "pt-2 border-t border-slate-800/80 space-y-2",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+												className: "flex items-center justify-between text-[11px] text-slate-400",
+												children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+													className: "inline-flex items-center gap-1",
+													children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MapPin, {
+														className: "w-3 h-3 text-slate-500",
+														"aria-hidden": "true"
+													}), member.city || "-"]
+												}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+													className: "font-mono tabular-nums",
+													children: [
+														member.endorsementsCount ?? 0,
+														" ",
+														isAr ? "تزكية" : "endorsements"
+													]
+												})]
+											}), !isSelf && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+												className: "flex items-center gap-2",
+												children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+													type: "button",
+													disabled: isConnected || connectingUid === member.uid,
+													onClick: () => void handleConnectMember(member),
+													className: `flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-bold cursor-pointer ${isConnected ? "border border-emerald-500/40 bg-emerald-500/15 text-emerald-300" : "bg-cyan-600 hover:bg-cyan-500 text-white"}`,
+													children: isConnected ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(UserCheck, {
+														className: "w-3.5 h-3.5",
+														"aria-hidden": "true"
+													}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "متصل" : "Connected" })] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(UserPlus, {
+														className: "w-3.5 h-3.5",
+														"aria-hidden": "true"
+													}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "تواصل" : "Connect" })] })
+												}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+													type: "button",
+													disabled: Boolean(endorsedUids[member.uid]),
+													onClick: () => void handleEndorseMember(member),
+													className: "inline-flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-900 hover:border-amber-400 px-2.5 py-1.5 text-[11px] font-bold text-amber-300 cursor-pointer disabled:opacity-50",
+													children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ThumbsUp, {
+														className: "w-3 h-3",
+														"aria-hidden": "true"
+													}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "تزكية" : "Endorse" })]
+												})]
+											})]
+										})]
+									}, member.uid);
+								})
+							})]
+						}),
+						activeTab === "opportunities" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(InscoCommunityOpportunitiesBoard, {
+							language,
+							user,
+							authorName: activeAuthorName,
+							authorOrg: activeAuthorOrg,
+							companyCode: companyCode || void 0,
+							opportunities,
+							onRequireSignIn
+						}),
+						activeTab === "profile" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
+							onSubmit: (e) => void handleSaveProfile(e),
+							className: "rounded-xl border border-slate-800 bg-slate-900/70 p-5 space-y-4",
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", {
+										className: "text-sm font-black text-white",
+										children: isAr ? "ملفك المهني على مجتمع INSCO (بيانات مهنية بدون معلومات حساسة)" : "Your INSCO LinkedIn Engineering Profile (Zero-PII)"
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", {
+										className: "inline-flex items-center gap-2 text-xs text-slate-200 cursor-pointer",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+											type: "checkbox",
+											checked: isPublished,
+											onChange: (e) => setIsPublished(e.target.checked),
+											className: "accent-emerald-500"
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "نشر في دليل المجتمع" : "Publish in Directory" })]
+									})]
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs",
+									children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", {
+											className: "space-y-1",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+												className: "text-slate-400 block",
+												children: isAr ? "الاسم المهني *" : "Display Name *"
+											}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+												type: "text",
+												required: true,
+												value: displayName,
+												onChange: (e) => setDisplayName(e.target.value),
+												className: "w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-white"
+											})]
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", {
+											className: "space-y-1",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+												className: "text-slate-400 block",
+												children: isAr ? "المسمى المهني (Headline)" : "Professional Headline"
+											}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+												type: "text",
+												value: headline,
+												onChange: (e) => setHeadline(e.target.value),
+												placeholder: isAr ? "مثال: Senior PAUT & RT Level III Inspector" : "e.g. Senior PAUT / RT Level III Inspector",
+												className: "w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-white"
+											})]
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", {
+											className: "space-y-1",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+												className: "text-slate-400 block",
+												children: isAr ? "اسم الشركة / الجهة *" : "Organization *"
+											}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+												type: "text",
+												required: true,
+												value: organizationName,
+												onChange: (e) => setOrganizationName(e.target.value),
+												className: "w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-white"
+											})]
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", {
+											className: "space-y-1",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+												className: "text-slate-400 block",
+												children: isAr ? "القطاع / التخصص *" : "Industry Sector *"
+											}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+												type: "text",
+												required: true,
+												value: sector,
+												onChange: (e) => setSector(e.target.value),
+												className: "w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-white"
+											})]
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", {
+											className: "space-y-1",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+												className: "text-slate-400 block",
+												children: isAr ? "الاعتمادات والشهادات (ASNT / ISO)" : "Certifications (ASNT / ISO)"
+											}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+												type: "text",
+												value: certifications,
+												onChange: (e) => setCertifications(e.target.value),
+												className: "w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-emerald-300 font-mono"
+											})]
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", {
+											className: "space-y-1",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+												className: "text-slate-400 block",
+												children: isAr ? "سنوات الخبرة" : "Years Experience"
+											}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+												type: "number",
+												min: 0,
+												max: 65,
+												value: yearsExperience,
+												onChange: (e) => setYearsExperience(Number(e.target.value) || 0),
+												className: "w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-white font-mono"
+											})]
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", {
+											className: "space-y-1",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+												className: "text-slate-400 block",
+												children: isAr ? "حالة التوافر المهني" : "Availability Status"
+											}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("select", {
+												value: availabilityStatus,
+												onChange: (e) => setAvailabilityStatus(e.target.value),
+												className: "w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-white",
+												children: Object.entries(AVAILABILITY_LABELS).map(([k, v]) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", {
+													value: k,
+													children: isAr ? v.ar : v.en
+												}, k))
+											})]
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", {
+											className: "space-y-1",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+												className: "text-slate-400 block",
+												children: isAr ? "المدينة / نطاق العمل" : "City / Region"
+											}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+												type: "text",
+												value: city,
+												onChange: (e) => setCity(e.target.value),
+												className: "w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-white"
+											})]
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", {
+											className: "space-y-1",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+												className: "text-slate-400 block",
+												children: isAr ? "الكود التعريفي للشركة" : "Company Code"
+											}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+												type: "text",
+												value: companyCode,
+												onChange: (e) => setCompanyCode(e.target.value.toUpperCase()),
+												className: "w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-xs text-cyan-300"
+											})]
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", {
+											className: "space-y-1",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+												className: "text-slate-400 block",
+												children: isAr ? "المهارات والتكنيكات" : "Technical Capabilities"
+											}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+												type: "text",
+												value: specialtyTrades,
+												onChange: (e) => setSpecialtyTrades(e.target.value),
+												className: "w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-white"
+											})]
+										})
+									]
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", {
+									className: "block space-y-1 text-xs",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+										className: "text-slate-400 block",
+										children: isAr ? "نبذة مهنية ومشاريع بارزة" : "Executive Summary & Projects"
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("textarea", {
+										rows: 3,
+										value: bio,
+										onChange: (e) => setBio(e.target.value),
+										className: "w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-white"
+									})]
+								}),
+								profileErrorMsg && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+									role: "alert",
+									className: "rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-300",
+									children: profileErrorMsg
+								}),
+								profileStatusMsg && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									role: "status",
+									className: "rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300 flex items-center gap-2",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CircleCheck, { className: "w-4 h-4 shrink-0" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: profileStatusMsg })]
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+									className: "flex justify-end",
+									children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+										type: "submit",
+										disabled: savingProfile,
+										className: "inline-flex items-center gap-2 rounded-lg bg-amber-500 hover:bg-amber-400 px-4 py-2 text-xs font-black text-slate-950 cursor-pointer",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Save, {
+											className: "w-3.5 h-3.5",
+											"aria-hidden": "true"
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: savingProfile ? isAr ? "جاري الحفظ..." : "Saving..." : isAr ? "حفظ الملف المهني" : "Save Profile" })]
+									})
+								})
+							]
+						})
+					]
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("aside", {
+					className: "lg:col-span-3 space-y-4",
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							"data-testid": "site-manager-ai-pulse",
+							className: "rounded-xl border border-amber-500/35 bg-slate-900/80 p-4 space-y-3",
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "flex items-center justify-between gap-2",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "flex items-center gap-1.5 text-xs font-black text-amber-300",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ShieldAlert, {
+											className: "w-4 h-4 shrink-0",
+											"aria-hidden": "true"
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "وكيل إدارة الموقع AI" : "Site Manager AI" })]
+									}), managerReport && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+										className: "font-mono text-[10px] font-bold text-emerald-300",
+										children: managerReport.healthStatus
+									})]
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+									className: "text-[11px] text-slate-300 leading-relaxed",
+									children: isAr ? "وكيل إداري ذكي يراقب جودة منشورات المجتمع، طلبات العملاء، وتنبيهات الجيوفينس ويصوغ الإعلانات الرسمية." : "Executive AI Director monitoring community moderation, client requests, geofence alerts & announcements."
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "grid grid-cols-1 gap-1.5",
+									children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+											type: "button",
+											disabled: managerLoading,
+											onClick: () => void handleRunSiteManagerPulse("executive_audit"),
+											className: "w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 px-3 py-1.5 text-xs font-black text-slate-950 cursor-pointer",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Sparkles, {
+												className: "w-3.5 h-3.5",
+												"aria-hidden": "true"
+											}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: managerLoading ? isAr ? "جاري الفحص الشامل..." : "Running Audit..." : isAr ? "تشغيل تقرير إدارة الموقع" : "Run Site Manager Audit" })]
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+											className: "grid grid-cols-2 gap-1.5",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+												type: "button",
+												disabled: managerLoading,
+												onClick: () => void handleRunSiteManagerPulse("moderate_community"),
+												className: "rounded-lg border border-slate-700 bg-slate-950 hover:border-cyan-400 px-2 py-1.5 text-[11px] font-bold text-slate-200 cursor-pointer",
+												children: isAr ? "فحص المنشورات" : "Audit Posts"
+											}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+												type: "button",
+												disabled: managerLoading,
+												onClick: () => void handleRunSiteManagerPulse("draft_announcement"),
+												className: "rounded-lg border border-slate-700 bg-slate-950 hover:border-amber-400 px-2 py-1.5 text-[11px] font-bold text-slate-200 cursor-pointer",
+												children: isAr ? "صياغة إعلان" : "Draft Notice"
+											})]
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+											type: "button",
+											onClick: () => dispatchOpenAiDock({ agent: "manager" }),
+											className: "text-[11px] font-semibold text-cyan-400 hover:underline text-center pt-0.5 cursor-pointer",
+											children: isAr ? "فتح غرفة تحكم الوكيل الإداري ←" : "Open Full Manager Console →"
+										})
+									]
+								}),
+								managerError && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+									role: "alert",
+									className: "rounded-lg border border-rose-500/40 bg-rose-500/10 p-2.5 text-[11px] text-rose-300",
+									children: managerError
+								}),
+								managerReport && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "rounded-lg border border-slate-800 bg-slate-950/85 p-3 space-y-2 text-xs",
+									children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+											className: "text-slate-200 leading-relaxed whitespace-pre-line",
+											children: managerReport.summary
+										}),
+										managerReport.priorityActions.slice(0, 3).map((act, idx) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+											className: "border-t border-slate-800 pt-1.5 text-[11px]",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+												className: "font-bold text-amber-300",
+												children: act.title
+											}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+												className: "text-slate-400",
+												children: act.detail
+											})]
+										}, idx)),
+										managerReport.announcementDraft && isAdmin && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+											type: "button",
+											disabled: publishingAnnouncement,
+											onClick: () => void handlePublishAiAnnouncement(),
+											className: "w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-2.5 py-1.5 text-[11px] font-bold text-white cursor-pointer",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Pin$1, {
+												className: "w-3 h-3",
+												"aria-hidden": "true"
+											}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "نشر وتثبيت الإعلان المقترح" : "Publish Pinned AI Announcement" })]
+										})
+									]
+								})
+							]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "rounded-xl border border-slate-800 bg-slate-900/70 p-4 space-y-3",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "flex items-center justify-between text-xs font-black text-white",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "خبراء ومهندسون مقترحون" : "Suggested Peers" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+									type: "button",
+									onClick: () => setActiveTab("network"),
+									className: "text-[11px] font-semibold text-cyan-400 hover:underline cursor-pointer",
+									children: isAr ? "عرض الكل" : "See all"
+								})]
+							}), suggestedMembers.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								className: "text-[11px] text-slate-400",
+								children: isAr ? "انضم الآن بدعوة مهندسي شركتك لتوسيع شبكة التواصل." : "Invite inspectors from your project teams to grow the network."
+							}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+								className: "space-y-2.5",
+								children: suggestedMembers.map((m) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "flex items-center justify-between gap-2 border-b border-slate-800/80 pb-2 last:border-0 last:pb-0",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "min-w-0",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+											className: "text-xs font-bold text-white truncate",
+											children: m.displayName
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+											className: "text-[10px] text-slate-400 truncate",
+											children: m.headline || m.organizationName
+										})]
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+										type: "button",
+										onClick: () => void handleConnectMember(m),
+										className: "rounded-lg border border-cyan-500/40 bg-cyan-500/10 hover:bg-cyan-500/20 px-2 py-1 text-[10px] font-bold text-cyan-300 cursor-pointer shrink-0",
+										children: isAr ? "تواصل" : "Connect"
+									})]
+								}, m.uid))
+							})]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "rounded-xl border border-slate-800 bg-slate-900/70 p-4 space-y-3",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "flex items-center justify-between text-xs font-black text-white",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isAr ? "فرص ومناقصات مفتوحة" : "Open Opportunities" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+									type: "button",
+									onClick: () => setActiveTab("opportunities"),
+									className: "text-[11px] font-semibold text-amber-400 hover:underline cursor-pointer",
+									children: isAr ? "البوابة الكاملة" : "Board"
+								})]
+							}), openOpportunities.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								className: "text-[11px] text-slate-400",
+								children: isAr ? "لا توجد فرص مفتوحة حالياً — يمكنك نشر فرصة من تبويب الوظائف." : "No open postings right now — publish one from the Jobs & Tenders tab."
+							}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+								className: "space-y-2",
+								children: openOpportunities.map((o) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+									type: "button",
+									onClick: () => setActiveTab("opportunities"),
+									className: "w-full text-start rounded-lg border border-slate-800 bg-slate-950/70 hover:border-amber-400/50 p-2.5 space-y-0.5 cursor-pointer",
+									children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+											className: "text-xs font-bold text-white line-clamp-1",
+											children: o.title
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+											className: "text-[10px] text-slate-400",
+											children: [
+												o.authorOrg,
+												" · ",
+												o.location
+											]
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+											className: "text-[10px] font-mono text-cyan-400",
+											children: o.methods.join(" · ")
+										})
+									]
+								}, o.id))
+							})]
+						})
+					]
+				})
+			]
+		})]
 	});
 };
 //#endregion
@@ -10065,6 +11809,10 @@ var ClientPortal = ({ language, section, companyId, onNavigateSection, onOpenCom
 	const [selectedWorkforceCompanyId, setSelectedWorkforceCompanyId] = (0, import_react.useState)("");
 	const [myCommunityProfile, setMyCommunityProfile] = (0, import_react.useState)(null);
 	const [communityDirectory, setCommunityDirectory] = (0, import_react.useState)([]);
+	const [communityPosts, setCommunityPosts] = (0, import_react.useState)([]);
+	const [communityOpportunities, setCommunityOpportunities] = (0, import_react.useState)([]);
+	const [myConnections, setMyConnections] = (0, import_react.useState)([]);
+	const [guestAuthOpen, setGuestAuthOpen] = (0, import_react.useState)(false);
 	const [updatingLocation, setUpdatingLocation] = (0, import_react.useState)(false);
 	const [reportsLoading, setReportsLoading] = (0, import_react.useState)(false);
 	const [loadingData, setLoadingData] = (0, import_react.useState)(false);
@@ -10076,8 +11824,25 @@ var ClientPortal = ({ language, section, companyId, onNavigateSection, onOpenCom
 		return observeClientPortalAuth((current) => {
 			setUser(current);
 			setAuthReady(true);
+			if (current) setGuestAuthOpen(false);
 		});
 	}, []);
+	(0, import_react.useEffect)(() => {
+		if (!firebaseReady) {
+			setCommunityDirectory([]);
+			setCommunityPosts([]);
+			setCommunityOpportunities([]);
+			return;
+		}
+		const unsubDirectory = subscribeCommunityWorkspaces(isAdmin, setCommunityDirectory, () => {});
+		const unsubPosts = subscribeCommunityPosts(isAdmin, setCommunityPosts, () => {});
+		const unsubOpps = subscribeCommunityOpportunities(setCommunityOpportunities, () => {});
+		return () => {
+			unsubDirectory();
+			unsubPosts();
+			unsubOpps();
+		};
+	}, [firebaseReady, isAdmin]);
 	(0, import_react.useEffect)(() => {
 		if (!authReady || !user || !isVerifiedUser || !firebaseReady) {
 			setMyAccount(null);
@@ -10085,13 +11850,13 @@ var ClientPortal = ({ language, section, companyId, onNavigateSection, onOpenCom
 			setRequests([]);
 			setCompanies([]);
 			setMyCommunityProfile(null);
-			setCommunityDirectory([]);
+			setMyConnections([]);
 			return;
 		}
 		setLoadingData(true);
 		const unsubAccount = subscribeMyClientAccount(user.uid, setMyAccount, setRuntimeError);
 		const unsubMyCommunity = subscribeMyCommunityWorkspace(user.uid, setMyCommunityProfile, setRuntimeError);
-		const unsubDirectory = subscribeCommunityWorkspaces(isAdmin, setCommunityDirectory, setRuntimeError);
+		const unsubConnections = subscribeMyConnections(user.uid, setMyConnections, () => {});
 		const unsubRequests = subscribeClientRequests(user.uid, isAdmin, (data) => {
 			setRequests(data);
 			setLoadingData(false);
@@ -10104,7 +11869,7 @@ var ClientPortal = ({ language, section, companyId, onNavigateSection, onOpenCom
 		return () => {
 			unsubAccount();
 			unsubMyCommunity();
-			unsubDirectory();
+			unsubConnections();
 			unsubRequests();
 			unsubCompanies();
 			unsubAllAccounts();
@@ -10115,6 +11880,46 @@ var ClientPortal = ({ language, section, companyId, onNavigateSection, onOpenCom
 		isVerifiedUser,
 		isAdmin,
 		firebaseReady
+	]);
+	(0, import_react.useEffect)(() => {
+		const localLogs = getLocalWorkforceSnapshot().logs;
+		const outsideAlerts = (activeCompanyAttendance.length > 0 ? activeCompanyAttendance : localLogs).filter((l) => l.geofenceStatus === "outside_geofence");
+		publishSiteTelemetrySnapshot({
+			totalRequests: requests.length,
+			newRequests: requests.filter((r) => r.status === "new").length,
+			urgentRequests: requests.filter((r) => r.urgency !== "standard").length,
+			totalCompanies: companies.length,
+			activeTestingCompanies: companies.filter((c) => c.hasActiveTestingDossier).length,
+			pendingAccounts: allAccounts.filter((a) => a.approvalStatus === "pending").length,
+			geofenceAlertCount: outsideAlerts.length,
+			recentGeofenceAlerts: outsideAlerts.slice(0, 6).map((a) => ({
+				employeeName: a.employeeName,
+				companyCode: a.companyCode,
+				distanceMeters: a.distanceFromSiteMeters,
+				radiusMeters: a.geofenceRadiusMeters,
+				timestampIso: a.timestampIso
+			})),
+			communityPostsCount: communityPosts.length,
+			communityMembersCount: communityDirectory.length,
+			opportunitiesCount: communityOpportunities.length,
+			recentPosts: communityPosts.slice(0, 8).map((p) => ({
+				id: p.id,
+				title: p.title,
+				ndtMethod: p.ndtMethod,
+				postType: p.postType,
+				authorOrg: p.authorOrg,
+				excerpt: p.body.slice(0, 220),
+				aiModerationStatus: p.aiModerationStatus
+			}))
+		});
+	}, [
+		requests,
+		companies,
+		allAccounts,
+		activeCompanyAttendance,
+		communityPosts,
+		communityDirectory,
+		communityOpportunities
 	]);
 	(0, import_react.useEffect)(() => {
 		if (!authReady || !user || !isVerifiedUser || !firebaseReady || myAccount || committingPendingDraft) return;
@@ -10263,11 +12068,36 @@ var ClientPortal = ({ language, section, companyId, onNavigateSection, onOpenCom
 		children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 			"data-testid": "client-portal-root",
 			className: "max-w-7xl mx-auto px-4 sm:px-6 py-6",
-			children: !user ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ClientAuthOnboardingCard, {
+			children: !user && section === "community" && !guestAuthOpen ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CommunityWorkspacesHub, {
 				language,
-				firebaseReady,
-				authReady,
-				onOpenCompanyPortal
+				user: null,
+				account: null,
+				myProfile: null,
+				directoryProfiles: communityDirectory,
+				companies: [],
+				posts: communityPosts,
+				opportunities: communityOpportunities,
+				connections: [],
+				isAdmin: false,
+				onRequireSignIn: () => setGuestAuthOpen(true),
+				onOpenCompanies: () => setGuestAuthOpen(true),
+				onOpenTimeClock: () => setGuestAuthOpen(true)
+			}) : !user ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "space-y-4",
+				children: [guestAuthOpen && section === "community" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+					className: "flex justify-end",
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+						type: "button",
+						onClick: () => setGuestAuthOpen(false),
+						className: "rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-cyan-400 cursor-pointer",
+						children: isAr ? "العودة إلى مجتمع INSCO ←" : "← Back to INSCO Community"
+					})
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ClientAuthOnboardingCard, {
+					language,
+					firebaseReady,
+					authReady,
+					onOpenCompanyPortal
+				})]
 			}) : !isVerifiedUser ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 				className: "max-w-2xl mx-auto rounded-2xl border border-amber-500/40 bg-slate-900/80 p-6 sm:p-8 space-y-4",
 				children: [
@@ -10612,6 +12442,13 @@ var ClientPortal = ({ language, section, companyId, onNavigateSection, onOpenCom
 							myProfile: myCommunityProfile,
 							directoryProfiles: communityDirectory,
 							companies,
+							posts: communityPosts,
+							opportunities: communityOpportunities,
+							connections: myConnections,
+							requests,
+							attendanceLogs: activeCompanyAttendance,
+							isAdmin,
+							onRequireSignIn: () => setGuestAuthOpen(true),
 							onOpenCompanies: () => onNavigateSection("companies"),
 							onOpenTimeClock: () => onNavigateSection("timeclock")
 						}),

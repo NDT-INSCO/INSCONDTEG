@@ -1,5 +1,5 @@
 import React from 'react';
-import { BriefcaseBusiness, Building2, GraduationCap, ChevronLeft, ChevronRight } from 'lucide-react';
+import { BriefcaseBusiness, Building2, GraduationCap, ChevronLeft, ChevronRight, Users } from 'lucide-react';
 import type { Language } from '../types';
 import type { PortalId } from '../utils/portalRoutes';
 
@@ -15,6 +15,7 @@ interface PortalSwitchBarProps {
   /** Portal › section › page, from the left (RTL) or right (LTR). */
   trail?: PortalTrailStep[];
   onSwitchPortal: (portal: PortalId) => void;
+  onOpenCommunity?: () => void;
 }
 
 /**
@@ -25,6 +26,7 @@ export const PortalSwitchBar: React.FC<PortalSwitchBarProps> = ({
   portal,
   trail = [],
   onSwitchPortal,
+  onOpenCommunity,
 }) => {
   const isAr = language === 'ar';
   const Chevron = isAr ? ChevronLeft : ChevronRight;
@@ -87,6 +89,16 @@ export const PortalSwitchBar: React.FC<PortalSwitchBarProps> = ({
             {door('client', 'بوابة العملاء', 'Client portal', 'العملاء', 'Clients', BriefcaseBusiness)}
             {door('academy', 'أكاديمية إنسكو', 'INSCO Academy', 'الأكاديمية', 'Academy', GraduationCap)}
           </div>
+          {onOpenCommunity && (
+            <button
+              type="button"
+              onClick={onOpenCommunity}
+              className="inline-flex items-center gap-1 rounded-md border border-cyan-500/35 bg-cyan-500/10 hover:bg-cyan-500/20 px-2.5 py-1 text-[11px] font-bold text-cyan-300 transition cursor-pointer whitespace-nowrap"
+            >
+              <Users className="w-3 h-3" aria-hidden="true" />
+              <span>{isAr ? 'مجتمع INSCO' : 'INSCO Community'}</span>
+            </button>
+          )}
         </div>
 
         {steps.length > 0 && (

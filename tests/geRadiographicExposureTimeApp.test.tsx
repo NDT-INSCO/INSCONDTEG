@@ -1431,6 +1431,36 @@ test('GeRadiographicExposureTimeApp renders live beam intensity decay overlay on
   assert.ok((probeHud.textContent || '').includes('Exit Plane Readout'));
 });
 
+test('GeRadiographicExposureTimeApp synchronizes CSS photon flow animation speed on SVG beam decay path with isotope intensity', () => {
+  localStorage.removeItem('ge_app_unit_system');
+  const ui = render(<GeRadiographicExposureTimeApp language="en" />);
+
+  const syncHud = ui.getByTestId('ge-beam-photon-sync-hud');
+  const curveFlow = ui.getByTestId('ge-beam-decay-curve-flow');
+  const specimenStream = ui.getByTestId('ge-beam-specimen-photon-stream');
+  const firstPhoton = ui.getByTestId('ge-beam-photon-particle-0');
+
+  assert.ok(curveFlow.classList.contains('rt-photon-curve-flow'));
+  assert.ok(specimenStream.classList.contains('rt-photon-beam-flow'));
+  assert.ok(firstPhoton.classList.contains('rt-photon-particle'));
+
+  const getPhotonDuration = () => Number(syncHud.getAttribute('data-photon-duration'));
+  const irDuration = getPhotonDuration();
+  assert.ok(Number.isFinite(irDuration) && irDuration > 0);
+  assert.equal(curveFlow.style.getPropertyValue('--rt-photon-duration'), `${irDuration}s`);
+  assert.equal(firstPhoton.style.getPropertyValue('--rt-photon-duration'), `${irDuration}s`);
+
+  // Switch to high-intensity Co-60 (Γ = 1.30) -> photon flow speeds up (shorter cycle duration)
+  fireEvent.change(ui.getByTestId('ge-select-source-type'), { target: { value: 'co60' } });
+  const coDuration = getPhotonDuration();
+  assert.ok(coDuration < irDuration, `Expected Co-60 photon duration (${coDuration}s) < Ir-192 (${irDuration}s)`);
+
+  // Switch to low-intensity Yb-169 (Γ = 0.125) -> photon flow slows down (longer cycle duration)
+  fireEvent.change(ui.getByTestId('ge-select-source-type'), { target: { value: 'yb169' } });
+  const ybDuration = getPhotonDuration();
+  assert.ok(ybDuration > irDuration, `Expected Yb-169 photon duration (${ybDuration}s) > Ir-192 (${irDuration}s)`);
+});
+
 
 
 

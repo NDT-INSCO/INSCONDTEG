@@ -12,7 +12,10 @@ import { RtShootingTechniquesSimulator } from './RtShootingTechniquesSimulator';
 import { NdtCameraArOverlayLab } from './NdtCameraArOverlayLab';
 import { GeRadiographicExposureTimeApp } from './GeRadiographicExposureTimeApp';
 import { WorkshopTrainingResultsPanel } from './WorkshopTrainingResultsPanel';
+import { WorkshopAr4dAllBranchesLab } from './WorkshopAr4dAllBranchesLab';
 import { VirtualLab } from '../VirtualLab';
+import { consumePendingAr4dBranch } from '../../../utils/workshopAr4dSelection';
+import type { WorkshopAr4dBranchId } from '../../../data/workshopAr4dBranchesData';
 import {
   Activity,
   Atom,
@@ -24,6 +27,7 @@ import {
   Clock,
   Compass,
   Eye,
+  Layers,
   Radio,
   Ruler,
   TrendingDown,
@@ -36,6 +40,10 @@ interface NdtVirtualLabWorkbenchProps {
 export const NdtVirtualLabWorkbench: React.FC<NdtVirtualLabWorkbenchProps> = ({ language }) => {
   const isAr = language === 'ar';
 
+  const [initialAr4dBranch] = useState<WorkshopAr4dBranchId | null>(() =>
+    consumePendingAr4dBranch()
+  );
+
   const [activeLabMode, setActiveLabMode] = useState<
     | 'weld_ray_tracing'
     | 'rt_gamma_xray_lab'
@@ -47,8 +55,9 @@ export const NdtVirtualLabWorkbench: React.FC<NdtVirtualLabWorkbenchProps> = ({ 
     | 'paut_phased_array'
     | 'beam_cone_defects'
     | 'ar_camera_ndt'
+    | 'ar_4d_all_branches'
     | 'ge_exposure_calc'
-  >('weld_ray_tracing');
+  >(() => (initialAr4dBranch ? 'ar_4d_all_branches' : 'weld_ray_tracing'));
   const [activeTheoryTab, setActiveTheoryTab] = useState<'acoustics' | 'calibration' | 'acceptance'>('acoustics');
   const [completedMissions, setCompletedMissions] = useState<string[]>([]);
 
@@ -175,11 +184,29 @@ export const NdtVirtualLabWorkbench: React.FC<NdtVirtualLabWorkbenchProps> = ({ 
                   : 'bg-slate-950 text-cyan-300 border-cyan-500/40 hover:text-white hover:border-cyan-400'
               }`}
             >
-              <Camera className="w-4 h-4" />
+              <Camera className="w-4 h-4 shrink-0" />
               <span>
                 {isAr
                   ? 'استخدام الكاميرا وتراكب NDT الحي (AR)'
                   : 'Live Camera NDT Overlay (AR)'}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              data-testid="lab-mode-ar-4d-all-branches"
+              onClick={() => setActiveLabMode('ar_4d_all_branches')}
+              className={`px-3.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition cursor-pointer flex items-center gap-2 border ${
+                activeLabMode === 'ar_4d_all_branches'
+                  ? 'bg-teal-400 text-slate-950 font-black border-teal-300 shadow-lg shadow-teal-950/50'
+                  : 'bg-slate-950 text-teal-300 border-teal-500/40 hover:text-white hover:border-teal-400'
+              }`}
+            >
+              <Layers className="w-4 h-4 shrink-0" />
+              <span>
+                {isAr
+                  ? 'جميع محاكيات الورشة AR + 4D (8 فروع)'
+                  : 'All 8 Branches AR + 4D Workshop'}
               </span>
             </button>
 
@@ -336,6 +363,11 @@ export const NdtVirtualLabWorkbench: React.FC<NdtVirtualLabWorkbenchProps> = ({ 
         <NdtCameraArOverlayLab
           language={language}
           initialOverlayDiscipline="ut_skip_beam"
+        />
+      ) : activeLabMode === 'ar_4d_all_branches' ? (
+        <WorkshopAr4dAllBranchesLab
+          language={language}
+          initialBranchId={initialAr4dBranch ?? 'ut_paut'}
         />
       ) : (
         <BeamConeAndDefectExplorer

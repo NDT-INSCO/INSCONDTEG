@@ -435,6 +435,135 @@ export const interpolateBeamDecayAtNorm = (profile: BeamDecayProfile, normX: num
   };
 };
 
+export interface Ge4dDecayShiftSnapshot {
+  dayOffset: number;
+  maxHorizonDays: number;
+  halfLifeDays: number;
+  halfLivesElapsed: number;
+  isGammaIsotope: boolean;
+  baseCalibrationDate: string;
+  projectedDateStr: string;
+  decayFraction: number;
+  decayPercentRemaining: number;
+  liveActivityCi: number;
+  initialActivityCi: number;
+  doseRate1mRhm: number;
+  exposureTimeMultiplier: number;
+  day0Result: GeExposureResult;
+  shiftedResult: GeExposureResult;
+  perimeterShrinkPct: number;
+  uncompensatedDensityHd: number;
+  isUncompensatedUnderexposed: boolean;
+  shiftedBeamPoints: BeamDecayPoint[];
+  shiftedExitIntensityPct: number;
+  photonDurationSec: number;
+  streamCycleSec: number;
+  photonParticleCount: number;
+  wavefrontDurationSec: number;
+}
+
+const addDaysIsoDate = (isoDate: string, deltaDays: number): string => {
+  const parsed = new Date(`${isoDate}T00:00:00Z`);
+  const baseMs = Number.isNaN(parsed.getTime()) ? new Date('2026-10-06T00:00:00Z').getTime() : parsed.getTime();
+  const next = new Date(baseMs + Math.round(deltaDays) * 86400000);
+  return next.toISOString().slice(0, 10);
+};
+
+export const compute4dDecayShiftSnapshot = (
+  input: GeExposureInput,
+  beamProfile: BeamDecayProfile,
+  dayOffset4d: number
+): Ge4dDecayShiftSnapshot => {
+  const isotope = GE_ISOTOPES[input.sourceType];
+  const isGammaIsotope = isotope.category === 'gamma' && isotope.halfLifeDays > 0;
+  const halfLifeDays = isGammaIsotope ? isotope.halfLifeDays : 365;
+  const maxHorizonDays = isGammaIsotope ? Math.max(2, Math.round(halfLifeDays * 2)) : 365;
+  const dayOffset = Math.max(0, Math.min(maxHorizonDays, Math.round(dayOffset4d)));
+
+  const baseCalibrationDate = Number.isNaN(new Date(`${input.initialCalibrationDate}T00:00:00Z`).getTime())
+    ? '2026-10-06'
+    : input.initialCalibrationDate;
+  const projectedDateStr = addDaysIsoDate(baseCalibrationDate, dayOffset);
+
+  const day0Result = calculateGeRadiographicExposure({
+    ...input,
+    initialCalibrationDate: baseCalibrationDate,
+    measurementDate: baseCalibrationDate
+  });
+  const shiftedResult = calculateGeRadiographicExposure({
+    ...input,
+    initialCalibrationDate: baseCalibrationDate,
+    measurementDate: projectedDateStr
+  });
+
+  const decayFraction = isGammaIsotope ? shiftedResult.decayFractionRemaining : 1;
+  const decayPercentRemaining = Number((decayFraction * 100).toFixed(1));
+  const halfLivesElapsed = isGammaIsotope ? Number((dayOffset / halfLifeDays).toFixed(2)) : 0;
+
+  const doseRate1mRhm = isGammaIsotope
+    ? Number(Math.max(0.15, shiftedResult.currentLiveActivityCi * isotope.gammaConstantRhmPerCi).toFixed(2))
+    : Number(
+        Math.max(
+          0.5,
+          (input.tubeMa ?? 4.0) * Math.pow(Math.max(60, input.tubeKv ?? 220) / 180, 2) * 3.8
+        ).toFixed(2)
+      );
+
+  const exposureTimeMultiplier = Number(
+    (shiftedResult.calculatedTotalSeconds / Math.max(0.01, day0Result.calculatedTotalSeconds)).toFixed(2)
+  );
+  const perimeterShrinkPct = Number(
+    (
+      (1 -
+        shiftedResult.controlledAreaPerimeter2mR_Meters /
+          Math.max(0.01, day0Result.controlledAreaPerimeter2mR_Meters)) *
+      100
+    ).toFixed(1)
+  );
+
+  const uncompensatedDensityHd = Number((input.targetOpticalDensity * decayFraction).toFixed(2));
+  const isUncompensatedUnderexposed = uncompensatedDensityHd < 2.0;
+
+  const shiftedBeamPoints: BeamDecayPoint[] = beamProfile.points.map((pt) => ({
+    ...pt,
+    intensityPct: Number((pt.intensityPct * decayFraction).toFixed(2))
+  }));
+  const shiftedExitIntensityPct = Number((beamProfile.exitIntensityPct * decayFraction).toFixed(2));
+
+  const intensityNorm = Math.max(0, Math.min(1, Math.log10(Math.max(1, doseRate1mRhm)) / Math.log10(120)));
+  const photonDurationSec = Number((3.1 - intensityNorm * 2.45).toFixed(2));
+  const streamCycleSec = Number((photonDurationSec * 0.62).toFixed(2));
+  const photonParticleCount = Math.max(3, Math.min(9, Math.round(3 + intensityNorm * 6)));
+  const wavefrontDurationSec = Number((2.5 - intensityNorm * 1.1).toFixed(2));
+
+  return {
+    dayOffset,
+    maxHorizonDays,
+    halfLifeDays,
+    halfLivesElapsed,
+    isGammaIsotope,
+    baseCalibrationDate,
+    projectedDateStr,
+    decayFraction,
+    decayPercentRemaining,
+    liveActivityCi: shiftedResult.currentLiveActivityCi,
+    initialActivityCi: input.initialActivityCi,
+    doseRate1mRhm,
+    exposureTimeMultiplier,
+    day0Result,
+    shiftedResult,
+    perimeterShrinkPct,
+    uncompensatedDensityHd,
+    isUncompensatedUnderexposed,
+    shiftedBeamPoints,
+    shiftedExitIntensityPct,
+    photonDurationSec,
+    streamCycleSec,
+    photonParticleCount,
+    wavefrontDurationSec
+  };
+};
+
 export type GeConversionFormulaKind =
   | 'quick_thickness'
   | 'quick_sfd'
@@ -936,6 +1065,12 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
   // Interactive Scrub Probe along Live Beam Intensity Decay Overlay
   const [beamHoverNormX, setBeamHoverNormX] = useState<number | null>(null);
 
+  // 4D Time-Based Isotope Decay Animation Overlay State
+  const [is4dViewActive, setIs4dViewActive] = useState<boolean>(false);
+  const [is4dPlaying, setIs4dPlaying] = useState<boolean>(false);
+  const [playbackSpeed4d, setPlaybackSpeed4d] = useState<0.5 | 1 | 2>(1);
+  const [dayOffset4d, setDayOffset4d] = useState<number>(30);
+
   // Audio tone helper
   const playBeep = (freq: number = 880, durationMs: number = 180) => {
     if (!soundEnabled) return;
@@ -963,7 +1098,7 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
   };
 
   // Compute Results dynamically
-  const calcResult: GeExposureResult = useMemo(() => {
+  const exposureInput: GeExposureInput = useMemo(() => {
     const multiFilmConfig: GeMultiFilmConfig = {
       mode: filmLoadingMode,
       primaryFilmId: filmId,
@@ -972,7 +1107,7 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
       wideLatitudeGoverning: wideLatitudeGov
     };
 
-    const input: GeExposureInput = {
+    return {
       sourceType,
       materialId,
       filmId,
@@ -991,7 +1126,6 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
       hasCollimator,
       multiFilmConfig
     };
-    return calculateGeRadiographicExposure(input);
   }, [
     sourceType,
     materialId,
@@ -1015,6 +1149,11 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
     wideLatitudeGov
   ]);
 
+  const calcResult: GeExposureResult = useMemo(
+    () => calculateGeRadiographicExposure(exposureInput),
+    [exposureInput]
+  );
+
   // Live Beer-Lambert / HVL Beam Intensity Decay Profile along the Exposure Path
   const beamDecayProfile: BeamDecayProfile = useMemo(() => {
     return computeBeamDecayProfile({
@@ -1030,6 +1169,47 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
     if (beamHoverNormX === null) return null;
     return interpolateBeamDecayAtNorm(beamDecayProfile, beamHoverNormX);
   }, [beamDecayProfile, beamHoverNormX]);
+
+  const shift4d: Ge4dDecayShiftSnapshot = useMemo(
+    () => compute4dDecayShiftSnapshot(exposureInput, beamDecayProfile, dayOffset4d),
+    [exposureInput, beamDecayProfile, dayOffset4d]
+  );
+
+  // Clamp 4D offset when isotope horizon shrinks
+  useEffect(() => {
+    if (dayOffset4d > shift4d.maxHorizonDays) {
+      setDayOffset4d(shift4d.maxHorizonDays);
+    }
+  }, [dayOffset4d, shift4d.maxHorizonDays]);
+
+  // 4D Time-Based Decay Auto-Playback Loop
+  useEffect(() => {
+    if (!is4dViewActive || !is4dPlaying) return;
+    const stepDays = Math.max(1, Math.round((shift4d.maxHorizonDays / 60) * playbackSpeed4d));
+    const timer = setInterval(() => {
+      setDayOffset4d((prev) => {
+        const next = prev + stepDays;
+        return next > shift4d.maxHorizonDays ? 0 : next;
+      });
+    }, 180);
+    if (typeof (timer as { unref?: () => void }).unref === 'function') {
+      (timer as { unref: () => void }).unref();
+    }
+    return () => clearInterval(timer);
+  }, [is4dViewActive, is4dPlaying, playbackSpeed4d, shift4d.maxHorizonDays]);
+
+  const handleToggle4dView = () => {
+    setIs4dViewActive((prev) => {
+      const next = !prev;
+      if (next) {
+        const clampedCurrent = Math.max(0, Math.min(shift4d.maxHorizonDays, calcResult.decayDaysElapsed || 30));
+        setDayOffset4d(clampedCurrent);
+      } else {
+        setIs4dPlaying(false);
+      }
+      return next;
+    });
+  };
 
   const toggleUnitSystem = (targetUnit: GeUnitSystem) => {
     if (targetUnit !== unitSystem) {
@@ -3366,14 +3546,26 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
         const normToX = (normX: number) => pathLeft + normX * pathWidth;
         const intensityToY = (pct: number) => plotBottom - (Math.max(0, Math.min(100, pct)) / 100) * plotHeight;
 
-        const curveD = beamDecayProfile.points
+        const baselineCurveD = beamDecayProfile.points
+          .map((pt, idx) => `${idx === 0 ? 'M' : 'L'} ${normToX(pt.normX).toFixed(1)} ${intensityToY(pt.intensityPct).toFixed(1)}`)
+          .join(' ');
+        const activeCurvePoints = is4dViewActive ? shift4d.shiftedBeamPoints : beamDecayProfile.points;
+        const curveD = activeCurvePoints
           .map((pt, idx) => `${idx === 0 ? 'M' : 'L'} ${normToX(pt.normX).toFixed(1)} ${intensityToY(pt.intensityPct).toFixed(1)}`)
           .join(' ');
         const areaD = `${curveD} L ${normToX(1).toFixed(1)} ${plotBottom} L ${normToX(0).toFixed(1)} ${plotBottom} Z`;
 
-        const activePoint = beamDecayProbePoint ?? beamDecayProfile.points[beamDecayProfile.points.length - 1];
+        const activeDecayScale = is4dViewActive ? shift4d.decayFraction : 1;
+        const displayedExitPct = is4dViewActive ? shift4d.shiftedExitIntensityPct : beamDecayProfile.exitIntensityPct;
+        const baseProbePoint = beamDecayProbePoint ?? beamDecayProfile.points[beamDecayProfile.points.length - 1];
+        const activePoint: BeamDecayPoint = is4dViewActive
+          ? {
+              ...baseProbePoint,
+              intensityPct: Number((baseProbePoint.intensityPct * activeDecayScale).toFixed(2))
+            }
+          : baseProbePoint;
         const probeSvgX = beamDecayProbePoint ? normToX(beamDecayProbePoint.normX) : null;
-        const probeSvgY = beamDecayProbePoint ? intensityToY(beamDecayProbePoint.intensityPct) : null;
+        const probeSvgY = beamDecayProbePoint ? intensityToY(activePoint.intensityPct) : null;
 
         const handlePointerInspect = (e: React.MouseEvent<SVGRectElement>) => {
           const rect = e.currentTarget.getBoundingClientRect();
@@ -3399,25 +3591,33 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
         const formatLen = (mmVal: number) =>
           unitSystem === 'imperial' ? `${(mmVal / 25.4).toFixed(3)}"` : `${mmVal.toFixed(1)} mm`;
 
-        // Synchronize photon travel speed & stream cadence with active isotope / X-Ray intensity
-        const effectiveIntensityRhm =
-          selectedIsotope.category === 'gamma'
+        // Synchronize photon travel speed & stream cadence with active isotope / 4D decayed intensity
+        const effectiveIntensityRhm = is4dViewActive
+          ? shift4d.doseRate1mRhm
+          : selectedIsotope.category === 'gamma'
             ? Math.max(0.2, calcResult.currentLiveActivityCi * selectedIsotope.gammaConstantRhmPerCi)
             : Math.max(0.5, tubeMa * Math.pow(Math.max(60, tubeKv) / 180, 2) * 3.8);
         const intensityNorm = Math.max(
           0,
           Math.min(1, Math.log10(Math.max(1, effectiveIntensityRhm)) / Math.log10(120))
         );
-        const photonDurationSec = Number((3.1 - intensityNorm * 2.45).toFixed(2));
-        const streamCycleSec = Number((photonDurationSec * 0.62).toFixed(2));
-        const photonParticleCount = Math.max(4, Math.min(9, Math.round(4 + intensityNorm * 5)));
+        const photonDurationSec = is4dViewActive
+          ? shift4d.photonDurationSec
+          : Number((3.1 - intensityNorm * 2.45).toFixed(2));
+        const streamCycleSec = is4dViewActive
+          ? shift4d.streamCycleSec
+          : Number((photonDurationSec * 0.62).toFixed(2));
+        const photonParticleCount = is4dViewActive
+          ? shift4d.photonParticleCount
+          : Math.max(4, Math.min(9, Math.round(4 + intensityNorm * 5)));
         const photonExitOpacity = Number(
-          Math.max(0.22, Math.min(0.92, 0.22 + (beamDecayProfile.exitIntensityPct / 100) * 0.7)).toFixed(2)
+          Math.max(0.2, Math.min(0.92, 0.2 + (displayedExitPct / 100) * 0.72)).toFixed(2)
         );
         const photonAccentColor = selectedIsotope.category === 'xray' ? '#38bdf8' : '#fbbf24';
         const photonCoreColor = selectedIsotope.category === 'xray' ? '#e0f2fe' : '#fef3c7';
         const photonTravelDx = filmPlaneX - (sourceCenterX + 6);
         const photonLanePattern = [0, -0.52, 0.52, -0.24, 0.24, -0.68, 0.68, -0.1, 0.1];
+        const sourceConeOpacityMultiplier = is4dViewActive ? Math.max(0.28, activeDecayScale) : 1;
 
         return (
           <div
@@ -3426,8 +3626,8 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
           >
             {/* Header & Quantitative Telemetry Strip */}
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-slate-100">
+              <div className="space-y-1.5">
+                <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-slate-900 dark:text-slate-100">
                   <Activity className="w-4 h-4 text-amber-500 shrink-0" />
                   <span>
                     {isAr
@@ -3439,10 +3639,28 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                       {isAr ? 'بث حي' : 'Beam Active'}
                     </span>
                   )}
+                  <button
+                    type="button"
+                    data-testid="ge-4d-view-toggle"
+                    aria-pressed={is4dViewActive}
+                    onClick={handleToggle4dView}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono font-bold transition-colors ${
+                      is4dViewActive
+                        ? 'bg-cyan-500/15 border-cyan-500 text-cyan-700 dark:text-cyan-300'
+                        : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-cyan-500/60'
+                    }`}
+                  >
+                    <Layers className="w-3.5 h-3.5 shrink-0" />
+                    <span>{isAr ? 'عرض 4D الزمني للاضمحلال' : '4D Decay View'}</span>
+                    <span className="px-1 py-0.5 rounded bg-slate-900/10 dark:bg-white/10 text-[9px] uppercase">
+                      {is4dViewActive ? (isAr ? 'مفعّل' : 'ON') : isAr ? 'إيقاف' : 'OFF'}
+                    </span>
+                  </button>
                 </div>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                  I(x) = I₀ · 0.5^(x_eq / HVL) · {selectedIsotope.chemicalSymbol} (HVL {formatLen(beamDecayProfile.effectiveHvlMm)}) ·{' '}
-                  {selectedMaterial.nameEn.split('(')[0].trim()} (R={beamDecayProfile.rFactor.toFixed(2)}) ·{' '}
+                  I(x,t) = I₀(0)·0.5^(t/T½)·0.5^(x_eq/HVL) · {selectedIsotope.chemicalSymbol} (HVL{' '}
+                  {formatLen(beamDecayProfile.effectiveHvlMm)}) · {selectedMaterial.nameEn.split('(')[0].trim()} (R=
+                  {beamDecayProfile.rFactor.toFixed(2)}) ·{' '}
                   {beamDecayProfile.wallsPenetrated === 2 ? (isAr ? 'جدار مزدوج' : '2-Wall Path') : isAr ? 'جدار مفرد' : '1-Wall Path'}
                 </p>
               </div>
@@ -3466,10 +3684,10 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                 </div>
                 <div className="px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
                   <span className="block text-[9px] uppercase tracking-wider text-slate-500">
-                    {isAr ? 'الشدة الخارجة للفيلم' : 'Exit Intensity I/I₀'}
+                    {is4dViewActive ? (isAr ? 'الشدة الخارجة I(t)/I₀' : '4D Exit I(t)/I₀') : isAr ? 'الشدة الخارجة للفيلم' : 'Exit Intensity I/I₀'}
                   </span>
                   <strong data-testid="ge-beam-decay-exit-pct" className="text-emerald-600 dark:text-emerald-400 tabular-nums">
-                    {beamDecayProfile.exitIntensityPct.toFixed(2)}%
+                    {displayedExitPct.toFixed(2)}%
                   </strong>
                 </div>
                 <div
@@ -3488,6 +3706,249 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
               </div>
             </div>
 
+            {/* 4D Time-Based Decay Control Bar & Parameter Shift HUD */}
+            {is4dViewActive && (
+              <div className="space-y-3">
+                <div
+                  data-testid="ge-4d-controls-bar"
+                  className="rounded-2xl border border-cyan-500/35 bg-white dark:bg-slate-900/95 p-3.5 sm:p-4 space-y-3"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        data-testid="ge-4d-play-btn"
+                        onClick={() => setIs4dPlaying((p) => !p)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition-colors"
+                      >
+                        {is4dPlaying ? (
+                          <Pause className="w-3.5 h-3.5 shrink-0" />
+                        ) : (
+                          <Play className="w-3.5 h-3.5 shrink-0" />
+                        )}
+                        <span>
+                          {is4dPlaying
+                            ? isAr
+                              ? 'إيقاف العرض 4D'
+                              : 'Pause 4D Decay'
+                            : isAr
+                              ? 'تشغيل محاكاة 4D'
+                              : 'Play 4D Decay'}
+                        </span>
+                      </button>
+
+                      <div className="inline-flex items-center rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden text-[11px] font-mono">
+                        {([0.5, 1, 2] as const).map((spd) => (
+                          <button
+                            key={spd}
+                            type="button"
+                            data-testid={`ge-4d-speed-${spd}`}
+                            onClick={() => setPlaybackSpeed4d(spd)}
+                            className={`px-2 py-1 font-bold transition-colors ${
+                              playbackSpeed4d === spd
+                                ? 'bg-cyan-500/20 text-cyan-700 dark:text-cyan-300'
+                                : 'bg-transparent text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                            }`}
+                          >
+                            {spd}x
+                          </button>
+                        ))}
+                      </div>
+
+                      <button
+                        type="button"
+                        data-testid="ge-4d-reset-btn"
+                        onClick={() => {
+                          setIs4dPlaying(false);
+                          setDayOffset4d(0);
+                        }}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5 shrink-0" />
+                        <span>{isAr ? 'يوم الصفر t₀' : 'Reset t₀'}</span>
+                      </button>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[11px] font-mono text-slate-600 dark:text-slate-300 tabular-nums">
+                        {isAr ? 'اليوم:' : 'Timeline:'}{' '}
+                        <strong className="text-cyan-600 dark:text-cyan-400">
+                          t = +{shift4d.dayOffset}d
+                        </strong>{' '}
+                        ({shift4d.projectedDateStr})
+                        {shift4d.isGammaIsotope && (
+                          <span className="text-slate-500 dark:text-slate-400">
+                            {' '}
+                            · {shift4d.halfLivesElapsed.toFixed(2)} T½
+                          </span>
+                        )}
+                      </span>
+                      <button
+                        type="button"
+                        data-testid="ge-4d-apply-date-btn"
+                        onClick={() => setMeasurementDate(shift4d.projectedDateStr)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-700 dark:text-amber-300 text-[11px] font-mono font-bold hover:bg-amber-500/25 transition-colors"
+                      >
+                        <Calendar className="w-3.5 h-3.5 shrink-0" />
+                        <span>{isAr ? 'تطبيق تاريخ 4D على اللقطة' : 'Apply 4D Date to Shot'}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Continuous 4D Timeline Scrubber & Half-Life Milestones */}
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <div className="flex-1 flex items-center gap-2.5">
+                      <span className="text-[10px] font-mono text-slate-500 shrink-0 tabular-nums">0d</span>
+                      <input
+                        type="range"
+                        data-testid="ge-4d-day-scrubber"
+                        aria-label={isAr ? 'شريط التمرير الزمني 4D بالأيام' : '4D Decay Day Scrubber'}
+                        min={0}
+                        max={shift4d.maxHorizonDays}
+                        step={1}
+                        value={shift4d.dayOffset}
+                        onChange={(e) => {
+                          setIs4dPlaying(false);
+                          setDayOffset4d(Number(e.target.value));
+                        }}
+                        className="w-full accent-cyan-500 cursor-pointer"
+                      />
+                      <span className="text-[10px] font-mono text-slate-500 shrink-0 tabular-nums">
+                        {shift4d.maxHorizonDays}d
+                      </span>
+                    </div>
+
+                    {shift4d.isGammaIsotope ? (
+                      <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-mono">
+                        {[
+                          { id: 't0', label: 't₀ (100%)', days: 0 },
+                          { id: 'half', label: '½ T½ (71%)', days: Math.round(shift4d.halfLifeDays * 0.5) },
+                          { id: '1hl', label: '1 T½ (50%)', days: Math.round(shift4d.halfLifeDays) },
+                          { id: '2hl', label: '2 T½ (25%)', days: shift4d.maxHorizonDays }
+                        ].map((m) => (
+                          <button
+                            key={m.id}
+                            type="button"
+                            data-testid={`ge-4d-milestone-${m.id}`}
+                            onClick={() => {
+                              setIs4dPlaying(false);
+                              setDayOffset4d(m.days);
+                            }}
+                            className={`px-2 py-1 rounded-lg border transition-colors tabular-nums ${
+                              Math.abs(shift4d.dayOffset - m.days) <= 1
+                                ? 'bg-cyan-500/20 border-cyan-500 text-cyan-700 dark:text-cyan-300 font-bold'
+                                : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-cyan-500/40'
+                            }`}
+                          >
+                            {m.label}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-[11px] font-mono text-sky-600 dark:text-sky-400">
+                        {isAr ? 'أنبوب X-Ray بجهد ثابت (لا يضمحل زمنياً)' : 'Constant-Potential X-Ray Tube (0% calendar decay)'}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Live 4D Parameter Shift HUD */}
+                <div
+                  data-testid="ge-4d-shift-hud"
+                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 text-xs font-mono"
+                >
+                  <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 space-y-1">
+                    <span className="text-[10px] uppercase tracking-wider text-slate-500 flex items-center gap-1">
+                      <Radio className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                      <span>{isAr ? 'النشاط الإشعاعي A(t)' : 'Source Activity A(t)'}</span>
+                    </span>
+                    <div className="flex items-baseline justify-between gap-2 tabular-nums">
+                      <strong data-testid="ge-4d-live-activity" className="text-sm text-amber-600 dark:text-amber-400">
+                        {shift4d.isGammaIsotope ? `${shift4d.liveActivityCi.toFixed(2)} Ci` : `${tubeKv} kV`}
+                      </strong>
+                      <span className="text-[11px] text-slate-500">
+                        {shift4d.decayPercentRemaining.toFixed(1)}% / {shift4d.initialActivityCi} Ci
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 space-y-1">
+                    <span className="text-[10px] uppercase tracking-wider text-slate-500 flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 text-cyan-500 shrink-0" />
+                      <span>{isAr ? 'انزياح زمن التعريض' : 'Compensated Exposure'}</span>
+                    </span>
+                    <div className="flex items-baseline justify-between gap-2 tabular-nums">
+                      <strong data-testid="ge-4d-shifted-exposure" className="text-sm text-cyan-600 dark:text-cyan-400">
+                        {shift4d.shiftedResult.formattedDuration}
+                      </strong>
+                      <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300">
+                        {shift4d.exposureTimeMultiplier.toFixed(2)}× t₀
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 space-y-1">
+                    <span className="text-[10px] uppercase tracking-wider text-slate-500 flex items-center gap-1">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                      <span>{isAr ? 'حد الحاجز 2 mR/hr' : '2 mR/hr Boundary'}</span>
+                    </span>
+                    <div className="flex items-baseline justify-between gap-2 tabular-nums">
+                      <strong data-testid="ge-4d-shifted-perimeter" className="text-sm text-emerald-600 dark:text-emerald-400">
+                        {shift4d.shiftedResult.controlledAreaPerimeter2mR_Meters.toFixed(1)} m
+                      </strong>
+                      <span className="text-[11px] text-slate-500">
+                        -{Math.max(0, shift4d.perimeterShrinkPct).toFixed(1)}% vs t₀
+                      </span>
+                    </div>
+                  </div>
+
+                  <div
+                    className={`rounded-2xl border p-3 space-y-1 ${
+                      shift4d.isUncompensatedUnderexposed
+                        ? 'border-red-500/45 bg-red-500/10'
+                        : 'border-emerald-500/40 bg-emerald-500/10'
+                    }`}
+                  >
+                    <span className="text-[10px] uppercase tracking-wider text-slate-600 dark:text-slate-300 flex items-center gap-1">
+                      {shift4d.isUncompensatedUnderexposed ? (
+                        <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                      ) : (
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                      )}
+                      <span>{isAr ? 'كثافة الفيلم بدون تعويض' : 'Uncompensated OD'}</span>
+                    </span>
+                    <div className="flex items-baseline justify-between gap-2 tabular-nums">
+                      <strong
+                        data-testid="ge-4d-uncompensated-od"
+                        className={`text-sm ${
+                          shift4d.isUncompensatedUnderexposed
+                            ? 'text-red-600 dark:text-red-400'
+                            : 'text-emerald-600 dark:text-emerald-400'
+                        }`}
+                      >
+                        {shift4d.uncompensatedDensityHd.toFixed(2)} H&D
+                      </strong>
+                      <span
+                        className={`text-[10px] font-bold uppercase ${
+                          shift4d.isUncompensatedUnderexposed
+                            ? 'text-red-600 dark:text-red-400'
+                            : 'text-emerald-600 dark:text-emerald-400'
+                        }`}
+                      >
+                        {shift4d.isUncompensatedUnderexposed
+                          ? isAr
+                            ? 'ضعيف < 2.0'
+                            : 'UNDER < 2.0'
+                          : isAr
+                            ? 'مقبول ≥ 2.0'
+                            : 'PASS ≥ 2.0'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Interactive SVG Exposure Path + Overlaid Decay Curve */}
             <div className="relative overflow-x-auto rounded-2xl bg-slate-950 border border-slate-800 p-3 sm:p-4">
               {/* Live Scrubbing / Exit Probe HUD */}
@@ -3496,7 +3957,7 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                 className="flex flex-wrap items-center justify-between gap-2 mb-2 px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800 text-[11px] font-mono"
               >
                 <div className="flex items-center gap-1.5 text-slate-300">
-                  <Crosshair className="w-3.5 h-3.5 text-amber-400" />
+                  <Crosshair className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                   <span className="text-slate-400">
                     {beamDecayProbePoint
                       ? isAr
@@ -3520,7 +3981,8 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                     HVL: <strong className="text-amber-400">{activePoint.hvlAtDepth.toFixed(2)}</strong>
                   </span>
                   <span className="text-slate-300">
-                    I(x)/I₀: <strong className="text-emerald-400">{activePoint.intensityPct.toFixed(2)}%</strong>
+                    {is4dViewActive ? 'I(x,t)/I₀:' : 'I(x)/I₀:'}{' '}
+                    <strong className="text-emerald-400">{activePoint.intensityPct.toFixed(2)}%</strong>
                   </span>
                   {activePoint.inCavity && (
                     <span className="px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 text-[10px]">
@@ -3540,27 +4002,42 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                 <defs>
                   {/* Exponential beam brightness attenuation gradient mapped cleanly to curve points */}
                   <linearGradient id="geBeamPathAttenuationGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                    {beamDecayProfile.points
+                    {activeCurvePoints
                       .filter((_, i, arr) => i === 0 || i === arr.length - 1 || i % 6 === 0)
                       .map((pt, idx) => (
                         <stop
                           key={`${pt.normX}-${idx}`}
                           offset={`${(pt.normX * 100).toFixed(1)}%`}
-                          stopColor={photonAccentColor}
-                          stopOpacity={Math.max(0.06, Math.min(0.52, (pt.intensityPct / 100) * 0.52)).toFixed(3)}
+                          stopColor={is4dViewActive ? '#22d3ee' : photonAccentColor}
+                          stopOpacity={Math.max(0.04, Math.min(0.52, (pt.intensityPct / 100) * 0.52)).toFixed(3)}
                         />
                       ))}
                   </linearGradient>
 
+                  {/* 4D Temporal Decay Wavefront sweeping gradient */}
+                  <linearGradient id="ge4dWavefrontGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#22d3ee" stopOpacity="0" />
+                    <stop offset="55%" stopColor="#22d3ee" stopOpacity="0.32" />
+                    <stop offset="100%" stopColor="#67e8f9" stopOpacity="0.82" />
+                  </linearGradient>
+
                   {/* SFD air-gap beam cone gradient */}
                   <linearGradient id="geSfdConeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor={photonAccentColor} stopOpacity={isTimerRunning ? '0.68' : '0.45'} />
-                    <stop offset="100%" stopColor={photonAccentColor} stopOpacity={isTimerRunning ? '0.38' : '0.24'} />
+                    <stop
+                      offset="0%"
+                      stopColor={photonAccentColor}
+                      stopOpacity={((isTimerRunning ? 0.68 : 0.45) * sourceConeOpacityMultiplier).toFixed(2)}
+                    />
+                    <stop
+                      offset="100%"
+                      stopColor={photonAccentColor}
+                      stopOpacity={((isTimerRunning ? 0.38 : 0.24) * sourceConeOpacityMultiplier).toFixed(2)}
+                    />
                   </linearGradient>
 
                   {/* Under-curve exponential area fill */}
                   <linearGradient id="geDecayAreaGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor={photonAccentColor} stopOpacity="0.34" />
+                    <stop offset="0%" stopColor={is4dViewActive ? '#22d3ee' : photonAccentColor} stopOpacity="0.34" />
                     <stop offset="65%" stopColor="#0ea5e9" stopOpacity="0.14" />
                     <stop offset="100%" stopColor="#020617" stopOpacity="0.02" />
                   </linearGradient>
@@ -3571,7 +4048,13 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                   {sourceType.startsWith('xray') ? 'X-RAY TUBE & SFD' : 'ISOTOPE SOURCE & SFD'}
                 </text>
                 <text x={pathLeft + pathWidth / 2} y="18" fill="#e2e8f0" fontSize="10.5" fontWeight="bold" fontFamily="monospace" textAnchor="middle">
-                  {isAr ? 'مقطع المعدن + منحنى توهين شدة الحزمة' : 'MATERIAL CROSS-SECTION + BEAM DECAY OVERLAY'}
+                  {is4dViewActive
+                    ? isAr
+                      ? `مسار 4D الزمني (t=+${shift4d.dayOffset}d · ${(activeDecayScale * 100).toFixed(0)}%)`
+                      : `4D TEMPORAL BEAM DECAY (t=+${shift4d.dayOffset}d · ${(activeDecayScale * 100).toFixed(0)}% A₀)`
+                    : isAr
+                      ? 'مقطع المعدن + منحنى توهين شدة الحزمة'
+                      : 'MATERIAL CROSS-SECTION + BEAM DECAY OVERLAY'}
                 </text>
                 <text x="688" y="18" fill="#94a3b8" fontSize="10" fontFamily="monospace" textAnchor="middle">
                   {hasLeadScreens ? 'Pb + FILM' : 'FILM CASSETTE'}
@@ -3601,7 +4084,7 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                         stroke={photonAccentColor}
                         strokeWidth={idx === 1 ? '1.8' : '1.1'}
                         strokeDasharray="6 6"
-                        opacity={isTimerRunning ? 0.95 : 0.65}
+                        opacity={(isTimerRunning ? 0.95 : 0.65) * Math.max(0.35, activeDecayScale)}
                         className="rt-photon-beam-flow"
                         style={
                           {
@@ -3631,7 +4114,7 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                   cy={sourceCenterY}
                   r={isTimerRunning ? '18' : '14'}
                   fill={photonAccentColor}
-                  opacity={isTimerRunning ? '0.28' : '0.16'}
+                  opacity={(isTimerRunning ? 0.28 : 0.16) * Math.max(0.35, activeDecayScale)}
                   className={isTimerRunning ? 'ut-beam-cone-pulse' : undefined}
                 />
                 <circle cx={sourceCenterX} cy={sourceCenterY} r="10" fill="#0f172a" stroke={photonAccentColor} strokeWidth="2" />
@@ -3640,7 +4123,9 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                   {selectedIsotope.chemicalSymbol}
                 </text>
                 <text x={sourceCenterX} y={sourceCenterY + 38} fill="#94a3b8" fontSize="8.5" fontFamily="monospace" textAnchor="middle">
-                  {sourceType.startsWith('xray') ? `${tubeKv}kV · ${tubeMa}mA` : `${calcResult.currentLiveActivityCi}Ci`}
+                  {sourceType.startsWith('xray')
+                    ? `${tubeKv}kV · ${tubeMa}mA`
+                    : `${(is4dViewActive ? shift4d.liveActivityCi : calcResult.currentLiveActivityCi)}Ci`}
                 </text>
 
                 {/* SFD Dimension Span */}
@@ -3719,6 +4204,38 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                   pointerEvents="none"
                 />
 
+                {/* 4D CSS-Animated Temporal Decay Wavefront Pulse Traveling Exposure Path */}
+                {is4dViewActive && (
+                  <g data-testid="ge-4d-decayed-beam-overlay" pointerEvents="none">
+                    <g
+                      data-testid="ge-4d-decay-wavefront"
+                      className="rt-4d-decay-wavefront"
+                      style={
+                        {
+                          '--rt-4d-wavefront-span': `${pathWidth}px`,
+                          '--rt-4d-wave-duration': `${shift4d.wavefrontDurationSec}s`
+                        } as React.CSSProperties
+                      }
+                    >
+                      <rect
+                        x={pathLeft - 26}
+                        y={plotTop + 8}
+                        width="26"
+                        height={plotHeight - 16}
+                        fill="url(#ge4dWavefrontGrad)"
+                      />
+                      <line
+                        x1={pathLeft}
+                        y1={plotTop + 6}
+                        x2={pathLeft}
+                        y2={plotBottom - 6}
+                        stroke="#67e8f9"
+                        strokeWidth="2"
+                      />
+                    </g>
+                  </g>
+                )}
+
                 {/* Animated Traveling Photon Stream Across Material */}
                 <line
                   data-testid="ge-beam-specimen-photon-stream"
@@ -3729,7 +4246,7 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                   stroke={photonAccentColor}
                   strokeWidth="1.6"
                   strokeDasharray="6 6"
-                  opacity={Math.max(0.28, Math.min(0.85, beamDecayProfile.exitIntensityPct / 100 + 0.25))}
+                  opacity={Math.max(0.24, Math.min(0.85, displayedExitPct / 100 + 0.22))}
                   className="rt-photon-beam-flow"
                   style={
                     {
@@ -3762,8 +4279,20 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                           } as React.CSSProperties
                         }
                       >
-                        <circle cx={sourceCenterX + 6} cy={sourceCenterY} r="5.5" fill={photonAccentColor} fillOpacity="0.28" />
-                        <circle cx={sourceCenterX + 6} cy={sourceCenterY} r="2.2" fill={photonCoreColor} />
+                        <circle
+                          cx={sourceCenterX + 6}
+                          cy={sourceCenterY}
+                          r="5.5"
+                          fill={photonAccentColor}
+                          fillOpacity={(0.28 * Math.max(0.35, activeDecayScale)).toFixed(2)}
+                        />
+                        <circle
+                          cx={sourceCenterX + 6}
+                          cy={sourceCenterY}
+                          r="2.2"
+                          fill={photonCoreColor}
+                          fillOpacity={(0.35 + 0.65 * activeDecayScale).toFixed(2)}
+                        />
                       </g>
                     );
                   })}
@@ -3807,7 +4336,7 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                 {/* HVL Milestone Vertical Markers */}
                 {beamDecayProfile.hvlMarkers.map((marker) => {
                   const mx = normToX(marker.normX);
-                  const my = intensityToY(marker.intensityPct);
+                  const my = intensityToY(marker.intensityPct * activeDecayScale);
                   return (
                     <g key={marker.hvlIndex} data-testid={`ge-beam-hvl-marker-${marker.hvlIndex}`}>
                       <line x1={mx} y1={plotTop} x2={mx} y2={plotBottom} stroke="#38bdf8" strokeWidth="1" strokeDasharray="3 3" opacity="0.6" />
@@ -3819,13 +4348,50 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                   );
                 })}
 
+                {/* Day-0 Baseline Ghost Curve (rendered when 4D Decay View is active) */}
+                {is4dViewActive && (
+                  <g data-testid="ge-4d-baseline-group" pointerEvents="none">
+                    <path
+                      data-testid="ge-4d-baseline-curve"
+                      d={baselineCurveD}
+                      fill="none"
+                      stroke="#94a3b8"
+                      strokeWidth="1.6"
+                      strokeDasharray="5 4"
+                      opacity="0.72"
+                    />
+                    <circle cx={normToX(0)} cy={intensityToY(100)} r="3.2" fill="#94a3b8" opacity="0.8" />
+                    <rect
+                      x={pathLeft + 8}
+                      y={plotTop + 6}
+                      width="192"
+                      height="20"
+                      rx="4"
+                      fill="#020617"
+                      fillOpacity="0.82"
+                      stroke="#22d3ee"
+                      strokeWidth="0.9"
+                    />
+                    <text
+                      x={pathLeft + 14}
+                      y={plotTop + 19}
+                      fill="#67e8f9"
+                      fontSize="8.5"
+                      fontWeight="bold"
+                      fontFamily="monospace"
+                    >
+                      t₀ 100% → t+{shift4d.dayOffset}d {(activeDecayScale * 100).toFixed(0)}% · Exp ×{shift4d.exposureTimeMultiplier.toFixed(2)}
+                    </text>
+                  </g>
+                )}
+
                 {/* Overlaid Exponential Beam Intensity Decay Curve + Synchronized Photon Flux Flow */}
                 <path d={areaD} fill="url(#geDecayAreaGrad)" pointerEvents="none" />
                 <path
                   data-testid="ge-beam-decay-curve-path"
                   d={curveD}
                   fill="none"
-                  stroke={photonAccentColor}
+                  stroke={is4dViewActive ? '#22d3ee' : photonAccentColor}
                   strokeWidth="3"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -3835,7 +4401,7 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                   data-testid="ge-beam-decay-curve-flow"
                   d={curveD}
                   fill="none"
-                  stroke={photonCoreColor}
+                  stroke={is4dViewActive ? '#cffafe' : photonCoreColor}
                   strokeWidth="2.2"
                   strokeDasharray="10 18"
                   strokeLinecap="round"
@@ -3845,12 +4411,19 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                   pointerEvents="none"
                 />
 
-                {/* Entry (100%) and Exit Dots */}
-                <circle cx={normToX(0)} cy={intensityToY(100)} r="4" fill="#fbbf24" stroke="#020617" strokeWidth="1.5" />
+                {/* Entry and Exit Dots */}
+                <circle
+                  cx={normToX(0)}
+                  cy={intensityToY(100 * activeDecayScale)}
+                  r="4"
+                  fill={is4dViewActive ? '#22d3ee' : '#fbbf24'}
+                  stroke="#020617"
+                  strokeWidth="1.5"
+                />
                 <circle
                   data-testid="ge-beam-decay-exit-dot"
                   cx={normToX(1)}
-                  cy={intensityToY(beamDecayProfile.exitIntensityPct)}
+                  cy={intensityToY(displayedExitPct)}
                   r="4.5"
                   fill="#10b981"
                   stroke="#020617"
@@ -3890,7 +4463,7 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                       fontFamily="monospace"
                       textAnchor="middle"
                     >
-                      {beamDecayProbePoint.intensityPct.toFixed(1)}% · {beamDecayProbePoint.hvlAtDepth.toFixed(2)} HVL
+                      {activePoint.intensityPct.toFixed(1)}% · {activePoint.hvlAtDepth.toFixed(2)} HVL
                     </text>
                   </g>
                 )}
@@ -3963,16 +4536,18 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                   )}
 
                   {/* Exit Readout Box */}
-                  <rect x="656" y="72" width="112" height="128" rx="8" fill="#0f172a" stroke="#1e293b" strokeWidth="1.2" />
+                  <rect x="656" y="72" width="112" height="128" rx="8" fill="#0f172a" stroke={is4dViewActive ? '#22d3ee' : '#1e293b'} strokeWidth="1.2" />
                   <text x="712" y="92" fill="#94a3b8" fontSize="9" fontFamily="monospace" textAnchor="middle">
-                    {isAr ? 'الشدة الواصلة للفيلم' : 'TRANSMITTED'}
+                    {is4dViewActive ? (isAr ? 'الشدة 4D للفيلم' : '4D TRANSMITTED') : isAr ? 'الشدة الواصلة للفيلم' : 'TRANSMITTED'}
                   </text>
-                  <text x="712" y="114" fill="#10b981" fontSize="16" fontWeight="bold" fontFamily="monospace" textAnchor="middle">
-                    {beamDecayProfile.exitIntensityPct.toFixed(1)}%
+                  <text x="712" y="114" fill={is4dViewActive ? '#22d3ee' : '#10b981'} fontSize="16" fontWeight="bold" fontFamily="monospace" textAnchor="middle">
+                    {displayedExitPct.toFixed(1)}%
                   </text>
                   <line x1="668" y1="124" x2="756" y2="124" stroke="#1e293b" strokeWidth="1" />
                   <text x="712" y="140" fill="#cbd5e1" fontSize="9" fontFamily="monospace" textAnchor="middle">
-                    1 / {calcResult.attenuationFactor}× Beam
+                    {is4dViewActive
+                      ? `Exp ${shift4d.shiftedResult.formattedDuration} (${shift4d.exposureTimeMultiplier.toFixed(2)}×)`
+                      : `1 / ${calcResult.attenuationFactor}× Beam`}
                   </text>
                   <text x="712" y="156" fill="#38bdf8" fontSize="9.5" fontWeight="bold" fontFamily="monospace" textAnchor="middle">
                     {selectedFilm.code.replace('Structurix ', '')}

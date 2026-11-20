@@ -15,7 +15,8 @@ import {
   buildConversionLogCsv,
   getUnitConversionFormula,
   computeBeamDecayProfile,
-  interpolateBeamDecayAtNorm
+  interpolateBeamDecayAtNorm,
+  compute4dDecayShiftSnapshot
 } from '../src/components/academy/virtuallab/GeRadiographicExposureTimeApp';
 import { NdtVirtualLabWorkbench } from '../src/components/academy/virtuallab/NdtVirtualLabWorkbench';
 import { RadiographicTestingLab } from '../src/components/academy/virtuallab/RadiographicTestingLab';
@@ -1459,6 +1460,116 @@ test('GeRadiographicExposureTimeApp synchronizes CSS photon flow animation speed
   fireEvent.change(ui.getByTestId('ge-select-source-type'), { target: { value: 'yb169' } });
   const ybDuration = getPhotonDuration();
   assert.ok(ybDuration > irDuration, `Expected Yb-169 photon duration (${ybDuration}s) > Ir-192 (${irDuration}s)`);
+});
+
+test('compute4dDecayShiftSnapshot accurately models half-life parameter shifts, exposure multipliers, and film underexposure', () => {
+  const baseInput = {
+    sourceType: 'ir192' as const,
+    materialId: 'carbon_steel' as const,
+    filmId: 'd7' as const,
+    technique: 'dwsi_contact' as const,
+    materialThicknessMm: 12.0,
+    weldReinforcementMm: 2.5,
+    sfdCm: 70,
+    initialActivityCi: 45,
+    initialCalibrationDate: '2026-10-06',
+    measurementDate: '2026-10-06',
+    targetOpticalDensity: 2.5,
+    hasLeadScreens: true,
+    hasCollimator: true
+  };
+  const beamProfile = computeBeamDecayProfile(baseInput);
+
+  const snap0 = compute4dDecayShiftSnapshot(baseInput, beamProfile, 0);
+  assert.equal(snap0.dayOffset, 0);
+  assert.equal(snap0.decayPercentRemaining, 100);
+  assert.equal(snap0.exposureTimeMultiplier, 1);
+  assert.equal(snap0.uncompensatedDensityHd, 2.5);
+  assert.equal(snap0.isUncompensatedUnderexposed, false);
+
+  // At 1 half-life of Ir-192 (~74 days): ~50% Ci, ~2.0x exposure duration, uncompensated OD < 2.0 H&D, slower photons
+  const oneHlDays = Math.round(GE_ISOTOPES.ir192.halfLifeDays);
+  const snap1Hl = compute4dDecayShiftSnapshot(baseInput, beamProfile, oneHlDays);
+  assert.ok(snap1Hl.decayPercentRemaining >= 49 && snap1Hl.decayPercentRemaining <= 51);
+  assert.ok(snap1Hl.exposureTimeMultiplier >= 1.95 && snap1Hl.exposureTimeMultiplier <= 2.05);
+  assert.ok(snap1Hl.perimeterShrinkPct >= 28 && snap1Hl.perimeterShrinkPct <= 31);
+  assert.ok(snap1Hl.uncompensatedDensityHd < 2.0);
+  assert.equal(snap1Hl.isUncompensatedUnderexposed, true);
+  assert.ok(snap1Hl.shiftedExitIntensityPct < snap0.shiftedExitIntensityPct);
+  assert.ok(snap1Hl.photonDurationSec > snap0.photonDurationSec);
+
+  // Constant-potential X-Ray tube has 0% calendar decay
+  const xrayInput = { ...baseInput, sourceType: 'xray_dir' as const, tubeKv: 220, tubeMa: 4.0 };
+  const xrayBeam = computeBeamDecayProfile(xrayInput);
+  const xraySnap = compute4dDecayShiftSnapshot(xrayInput, xrayBeam, 120);
+  assert.equal(xraySnap.isGammaIsotope, false);
+  assert.equal(xraySnap.decayFraction, 1);
+  assert.equal(xraySnap.exposureTimeMultiplier, 1);
+});
+
+test('GeRadiographicExposureTimeApp toggles 4D decay view, animates wavefront overlay, shifts beam parameters over time, and applies 4D date', () => {
+  localStorage.removeItem('ge_app_unit_system');
+  const ui = render(<GeRadiographicExposureTimeApp language="en" />);
+
+  // Off by default
+  const toggleBtn = ui.getByTestId('ge-4d-view-toggle');
+  assert.equal(toggleBtn.getAttribute('aria-pressed'), 'false');
+  assert.equal(ui.queryByTestId('ge-4d-controls-bar'), null);
+  assert.equal(ui.queryByTestId('ge-4d-shift-hud'), null);
+  assert.equal(ui.queryByTestId('ge-4d-decay-wavefront'), null);
+
+  const staticCurveD = ui.getByTestId('ge-beam-decay-curve-path').getAttribute('d') || '';
+  const staticDuration = Number(ui.getByTestId('ge-beam-photon-sync-hud').getAttribute('data-photon-duration'));
+
+  // Enable 4D Decay View
+  fireEvent.click(toggleBtn);
+  assert.equal(toggleBtn.getAttribute('aria-pressed'), 'true');
+  assert.ok(ui.getByTestId('ge-4d-controls-bar'));
+  assert.ok(ui.getByTestId('ge-4d-shift-hud'));
+  assert.ok(ui.getByTestId('ge-4d-baseline-curve'));
+  assert.ok(ui.getByTestId('ge-4d-decayed-beam-overlay'));
+
+  const wavefront = ui.getByTestId('ge-4d-decay-wavefront');
+  assert.ok(wavefront.classList.contains('rt-4d-decay-wavefront'));
+  assert.equal(ui.getByTestId('ge-4d-baseline-curve').getAttribute('d'), staticCurveD);
+
+  // Jump to 2 T1/2 (25% remaining) -> decayed curve shifts sharply downward & exposure time ~4x
+  fireEvent.click(ui.getByTestId('ge-4d-milestone-2hl'));
+  const decayedCurveD = ui.getByTestId('ge-beam-decay-curve-path').getAttribute('d') || '';
+  assert.notEqual(decayedCurveD, staticCurveD);
+
+  const decayedDuration = Number(ui.getByTestId('ge-beam-photon-sync-hud').getAttribute('data-photon-duration'));
+  assert.ok(
+    decayedDuration > staticDuration,
+    `Expected slowed 4D decayed photon duration (${decayedDuration}s) > Day-0/initial (${staticDuration}s)`
+  );
+
+  const shiftHudText = ui.getByTestId('ge-4d-shift-hud').textContent || '';
+  assert.ok(
+    shiftHudText.includes('24.9%') || shiftHudText.includes('25.0%'),
+    `Expected ~25% activity remaining at 2 T1/2 (148d), got: ${shiftHudText}`
+  );
+  assert.ok(shiftHudText.includes('UNDER < 2.0'), `Expected underexposure alert at 2 T1/2, got: ${shiftHudText}`);
+
+  // Scrub slider manually & toggle playback button
+  const scrubber = ui.getByTestId('ge-4d-day-scrubber') as HTMLInputElement;
+  fireEvent.change(scrubber, { target: { value: '74' } });
+  assert.ok((ui.getByTestId('ge-4d-controls-bar').textContent || '').includes('t = +74d'));
+
+  const playBtn = ui.getByTestId('ge-4d-play-btn');
+  assert.ok((playBtn.textContent || '').includes('Play 4D Decay'));
+  fireEvent.click(playBtn);
+  assert.ok((playBtn.textContent || '').includes('Pause 4D Decay'));
+
+  // Apply 4D projected date to shot date input and verify sync
+  fireEvent.click(ui.getByTestId('ge-4d-apply-date-btn'));
+  const shotInput = ui.getByTestId('ge-shot-date-input') as HTMLInputElement;
+  assert.equal(shotInput.value, '2026-12-19');
+
+  // Reset to t0 brings back 100% baseline
+  fireEvent.click(ui.getByTestId('ge-4d-reset-btn'));
+  assert.equal(ui.getByTestId('ge-beam-decay-curve-path').getAttribute('d'), staticCurveD);
+  assert.ok((ui.getByTestId('ge-4d-shift-hud').textContent || '').includes('100.0%'));
 });
 
 

@@ -337,8 +337,8 @@ export const DisciplineCurriculumView: React.FC<DisciplineCurriculumViewProps> =
                             <CheckCircle2 className="w-3.5 h-3.5" />
                             <span>
                               {isAr
-                                ? `مجتاز (${quizRecord?.bestScorePct ?? 100}%)`
-                                : `Passed (${quizRecord?.bestScorePct ?? 100}%)`}
+                                ? quizRecord?.passed ? `اجتزت اختبار التمرين (${quizRecord.bestScorePct}%)` : 'تم تحديد الإنجاز'
+                                : quizRecord?.passed ? `Practice quiz passed (${quizRecord.bestScorePct}%)` : 'Marked complete'}
                             </span>
                           </span>
                         ) : (
@@ -437,6 +437,16 @@ export const DisciplineCurriculumView: React.FC<DisciplineCurriculumViewProps> =
                     </div>
                   </div>
 
+                  <details className="rounded-lg border border-slate-700 bg-slate-900 p-3 text-xs leading-relaxed text-slate-200">
+                    <summary className="cursor-pointer font-semibold text-sky-200">{isAr ? 'المستوى والمتطلبات والمراجع والمراجعة' : 'Level, prerequisites, references and review'}</summary>
+                    <dl className="mt-2 grid gap-2 sm:grid-cols-2">
+                      <div><dt className="font-bold">{isAr ? 'المستوى' : 'Level'}</dt><dd>{isAr ? activeLevel.nameAr : activeLevel.nameEn}</dd></div>
+                      <div><dt className="font-bold">{isAr ? 'المتطلبات السابقة' : 'Prerequisites'}</dt><dd>{(isAr ? activeLevel.prerequisitesAr : activeLevel.prerequisitesEn) || (isAr ? 'غير مذكورة' : 'Not stated')}</dd></div>
+                      <div><dt className="font-bold">{isAr ? 'مراجع المستوى' : 'Level references'}</dt><dd><bdi>{activeLevel.applicableCodes.join(' · ')}</bdi></dd></div>
+                      <div><dt className="font-bold">{isAr ? 'المراجعة الفنية' : 'Technical review'}</dt><dd>{isAr ? 'لا يوجد تاريخ مراجعة موثَّق لهذه الوحدة.' : 'No verified review date for this module.'}</dd></div>
+                    </dl>
+                  </details>
+
                   {/* Topics Checklist & Learning Outcomes */}
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
                     <div className="lg:col-span-7 space-y-2.5">
@@ -444,8 +454,8 @@ export const DisciplineCurriculumView: React.FC<DisciplineCurriculumViewProps> =
                         <BookOpen className="w-3.5 h-3.5 text-amber-400" />
                         <span>
                           {isAr
-                            ? 'مفردات الدرس المعتمدة (اضغط لتأشير الإنجاز):'
-                            : 'Accredited Lesson Topics (click to mark studied):'}
+                            ? 'مفردات الدرس (حدّد ما درستَه):'
+                            : 'Lesson topics (mark what you studied):'}
                         </span>
                       </div>
                       <div className="space-y-2">

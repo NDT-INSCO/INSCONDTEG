@@ -79,6 +79,16 @@ export const AcademyHub: React.FC<AcademyHubProps> = ({ language, onOpenHash }) 
         }
       />
 
+      <nav aria-label={isAr ? 'أدوات التعلّم' : 'Learning tools'} className="flex flex-wrap gap-2">
+        {[
+          ['#edb', 'مكتبة EDB', 'EDB library'],
+          ['#standards', 'المراجع والأكواد', 'References & standards'],
+          ['#ask_ai', 'المستشار التعليمي', 'AI tutor'],
+        ].map(([hash, ar, en]) => (
+          <a key={hash} href={hash} className="inline-flex min-h-10 items-center rounded-lg border border-slate-700 bg-slate-900 px-3 text-sm font-semibold text-sky-200 hover:border-sky-400">{isAr ? ar : en}</a>
+        ))}
+      </nav>
+
       {/* Where I stand + my next step */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
         <div className="lg:col-span-2 rounded-2xl border border-[#29315b] bg-[#10132b] p-5 space-y-3">
@@ -144,8 +154,8 @@ export const AcademyHub: React.FC<AcademyHubProps> = ({ language, onOpenHash }) 
             <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" aria-hidden="true" />
             <p>
               {isAr
-                ? 'ما يصدر من الأكاديمية هو «إفادة تعلّم ذاتي غير معتمدة». الشهادات المهنية تصدر من جهات الاعتماد فقط (ASNT / ISO 9712).'
-                : 'The academy issues a non-accredited self-study statement. Professional certificates are issued by the certification bodies only (ASNT / ISO 9712).'}
+                ? 'ما يصدر من الأكاديمية هو «إفادة تعلّم ذاتي غير معتمدة». التأهيل المهني يخضع للجهة المانحة أو لجهة العمل بحسب النظام.'
+                : 'The academy issues a non-accredited self-study statement. Professional qualification is handled by the awarding body or employer under the applicable scheme.'}
             </p>
           </div>
         </div>

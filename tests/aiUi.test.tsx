@@ -43,7 +43,7 @@ test('without a gateway the tutor tab says so and prints no answer', async () =>
 
   const text = ui.container.textContent || '';
   assert.doesNotMatch(text, new RegExp(OLD_CANNED_TEXT), 'the canned paragraph must never be shown as an answer');
-  assert.match(text, /VITE_AI_BASE_URL/, 'the panel must explain how to enable it');
+  assert.match(text, /ابحث في المكتبة بدلاً من ذلك/, 'learners get a working library alternative');
   assert.equal(ui.container.querySelector('input[placeholder*="الاستفسار"]'), null, 'the form is hidden when nothing can answer');
   cleanup();
 });
@@ -53,7 +53,7 @@ test('the same tab in English explains the same limitation', async () => {
   await waitFor(() => {
     assert.match(ui.container.textContent || '', /not configured/i);
   });
-  assert.match(ui.container.textContent || '', /VITE_AI_BASE_URL/);
+  assert.match(ui.container.textContent || '', /Search the library instead/);
   cleanup();
 });
 

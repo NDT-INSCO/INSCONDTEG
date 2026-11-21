@@ -346,7 +346,7 @@ function buildGlobalSearchIndex(): GlobalSearchItem[] {
       category: 'academy',
       code: 'ASNT / ISO',
       title: {
-        ar: 'المناهج التدريبية المعتمدة (8 تخصصات هندسية - Level I, II, III)',
+        ar: 'مناهج التعلّم الذاتي (8 تخصصات هندسية - Level I, II, III)',
         en: 'Standardized Engineering Curricula (8 Disciplines - Level I, II, III)',
       },
       subtitle: {
@@ -421,8 +421,8 @@ function buildGlobalSearchIndex(): GlobalSearchItem[] {
       category: 'academy',
       code: 'EXAMS',
       title: {
-        ar: 'مركز الامتحانات الرسمية والمحاكي التجريبي (ASNT / ISO)',
-        en: 'Certification Exam Center & ASNT Mock Tests',
+        ar: 'دليل التأهيل والتقييم الذاتي (ASNT / ISO)',
+        en: 'Qualification Guide & Practice Exams',
       },
       subtitle: {
         ar: 'اختبارات General و Specific و Practical محاكية لامتحانات التأهيل',
@@ -639,8 +639,8 @@ function buildGlobalSearchIndex(): GlobalSearchItem[] {
         en: 'ENRRA Radiation License & In-House CQI-IRCA Lead Auditor',
       },
       subtitle: {
-        ar: 'ترخيص ممارسة إشعاعية LS.0112 · كبير مدققي جودة معتمد UDN 27956',
-        en: 'Official ENRRA license LS.0112 · Certificated Lead Auditor UDN 27956',
+        ar: 'وثائق التصوير الإشعاعي والتدقيق في ملف الشركة',
+        en: 'Radiography and lead auditor records in the dossier',
       },
       keywords: [
         'enrra',

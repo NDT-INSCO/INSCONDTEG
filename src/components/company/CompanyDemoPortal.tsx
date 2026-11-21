@@ -145,8 +145,8 @@ export const CompanyDemoPortal: React.FC<CompanyDemoPortalProps> = ({
             </div>
             <p className="text-xs text-slate-400 mt-1">
               {isAr
-                ? 'فريق العمليات يرد على طلبات التسعير في أقل من 4 ساعات عمل.'
-                : 'Technical operations answer quote requests in under 4 working hours.'}
+                ? 'تواصل مع الفريق الفني لمراجعة نطاق العمل والتوافر.'
+                : 'Ask the technical team about scope and availability.'}
             </p>
           </div>
           <div className="flex items-center gap-3">

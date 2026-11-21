@@ -10,6 +10,7 @@
  *     bundled Express server) and a static-only deploy correctly reports itself
  *     as unconfigured.
  */
+import { isStaticPages } from '../utils/staticPages';
 import {
   parseSseBuffer,
   TUTOR_ENDPOINTS,
@@ -60,6 +61,7 @@ export function offlineStatus(reason: TutorStatus['reason'] = 'unreachable'): Tu
  * the situation instead of pretending.
  */
 export async function fetchTutorStatus(timeoutMs = 2500): Promise<TutorStatus> {
+  if (!gatewayBase() && isStaticPages()) return offlineStatus();
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {

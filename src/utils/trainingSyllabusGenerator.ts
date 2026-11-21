@@ -109,8 +109,8 @@ export function buildTrainingSyllabusDocument(language: Language): GeneratedSyll
   <meta charset="utf-8" />
   <title>${escapeHtml(
     isAr
-      ? 'المنهج التدريبي المعتمد لأكاديمية إنسكو الهندسية (ASNT / ISO 9712)'
-      : 'INSCO Engineering Academy — Official NDT & PWHT Training Syllabus'
+      ? 'منهج التعلّم الذاتي لأكاديمية إنسكو الهندسية (ASNT / ISO 9712)'
+      : 'INSCO Engineering Academy — NDT & PWHT Self-Study Syllabus'
   )}</title>
   <style>
     body { font-family: system-ui, -apple-system, Segoe UI, sans-serif; margin: 32px auto; max-width: 960px; padding: 0 24px; color: #0f172a; line-height: 1.55; }
@@ -132,22 +132,23 @@ export function buildTrainingSyllabusDocument(language: Language): GeneratedSyll
 </head>
 <body>
   <header>
-    <div class="eyebrow">${escapeHtml(INSCO_COMPANY_DATA.docRef)} · EGAC CAB ${escapeHtml(INSCO_COMPANY_DATA.egacCabNo)} · ASNT SNT-TC-1A &amp; EN ISO 9712</div>
+    <div class="eyebrow">${escapeHtml(INSCO_COMPANY_DATA.docRef)} · ASNT SNT-TC-1A &amp; EN ISO 9712</div>
     <h1>${escapeHtml(
       isAr
-        ? 'المنهج التدريبي المعتمد للفحص غير الإتلافي والمعالجة الحرارية — أكاديمية إنسكو'
-        : 'INSCO Official NDT, Advanced PAUT/RT & PWHT Training Syllabus'
+        ? 'منهج التعلّم الذاتي للفحص غير الإتلافي والمعالجة الحرارية — أكاديمية إنسكو'
+        : 'INSCO NDT, PAUT/RT & PWHT Self-Study Syllabus'
     )}</h1>
     <div>${escapeHtml(INSCO_COMPANY_DATA.name[language])} — ${escapeHtml(INSCO_COMPANY_DATA.contacts.email)}</div>
   </header>
+  <p>${isAr ? 'للتعلّم الذاتي فقط. لا يمثل هذا المنهج تدريبًا معتمدًا أو شهادة مهنية.' : 'For self-study only. This syllabus is not accredited training or a professional credential.'}</p>
   <div class="stats">
     <span><strong>${stats.disciplineCount}</strong> ${isAr ? 'تخصصات هندسية' : 'Engineering Disciplines'}</span>
     <span>·</span>
-    <span><strong>${stats.levelCount}</strong> ${isAr ? 'مراحل تأهيل (Level I–III)' : 'Qualification Stages'}</span>
+    <span><strong>${stats.levelCount}</strong> ${isAr ? 'مستويات دراسية (Level I–III)' : 'Study Levels'}</span>
     <span>·</span>
     <span><strong>${stats.moduleCount}</strong> ${isAr ? 'وحدة تدريبية' : 'Course Modules'}</span>
     <span>·</span>
-    <span><strong>${stats.totalTrainingHours}h</strong> ${isAr ? 'إجمالي الساعات المعتمدة' : 'Certified Training Hours'}</span>
+    <span><strong>${stats.totalTrainingHours}h</strong> ${isAr ? 'ساعات الدراسة التقديرية' : 'Estimated Study Hours'}</span>
   </div>
   ${disciplineBlocks}
   <footer>

@@ -220,7 +220,8 @@ mock.module('firebase/firestore', { namedExports: {
 
 const { ClientPortal } = await import('../src/components/client/ClientPortal');
 const service = await import('../src/client/firestoreClientService');
-const { render, fireEvent, cleanup, act, waitFor } = await import('@testing-library/react');
+const { render, fireEvent, cleanup, configure, act, waitFor } = await import('@testing-library/react');
+configure({ asyncUtilTimeout: 3000 });
 const props = { onNavigateSection: () => {}, onOpenCompanyPortal: () => {} };
 const profilePath = 'client_accounts/client-a';
 

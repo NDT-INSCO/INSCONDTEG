@@ -37,35 +37,13 @@ import { createOperations } from './server/admin/operations';
 
 dotenv.config();
 
-type AiLibraryModule = {
-  reviewedDocuments: number;
-  retrieveForTutor: (query: string) => SearchHit[];
-};
-
+type AiLibraryModule = ReturnType<typeof import('./server/tutor/reviewedLibrary').buildReviewedTutorLibrary>;
 let aiLibraryPromise: Promise<AiLibraryModule> | null = null;
 
 function loadAiLibrary(): Promise<AiLibraryModule> {
-  if (!aiLibraryPromise) {
-    aiLibraryPromise = Promise.all([
-      import('./src/ai/corpus'),
-      import('./src/ai/search'),
-      import('./src/data/ndeEd/review'),
-    ]).then(([corpus, search, review]) => {
-      let manifest = null;
-      try {
-        manifest = JSON.parse(readFileSync(path.join(__dirname, 'public', 'edb', 'index.json'), 'utf8'));
-      } catch {
-        // A missing manifest means no signed sources, not an unreviewed fallback.
-      }
-      const approved = review.reviewedCourseIds(manifest);
-      const documents = approved.size ? corpus.getCorpus().filter(doc => doc.courseId && approved.has(doc.courseId)) : [];
-      const index = search.buildIndex(documents);
-      return {
-        reviewedDocuments: documents.length,
-        retrieveForTutor: question => search.retrieveForTutor(question, { index, limit: TUTOR_LIMITS.passages }),
-      };
-    });
-  }
+  aiLibraryPromise ??= import('./server/tutor/reviewedLibrary').then(({ buildReviewedTutorLibrary }) =>
+    buildReviewedTutorLibrary(file => readFileSync(path.join(siteRoot, 'edb', file), 'utf8'))
+  );
   return aiLibraryPromise;
 }
 
@@ -75,6 +53,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 const isProduction = process.env.NODE_ENV === 'production';
+const siteRoot = path.join(__dirname, !isProduction ? 'public' : existsSync(path.join(__dirname, 'dist')) ? 'dist' : 'docs');
 const trustedProxies = process.env.TRUST_PROXY?.trim();
 if (trustedProxies) app.set('trust proxy', trustedProxies);
 
@@ -196,7 +175,7 @@ const SYSTEM: Record<'ar' | 'en', string> = {
     'قواعد ملزمة:',
     '1) أجب فقط من المقاطع المرفقة التي اجتازت المراجعة. إن لم يكفِ السياق فقل بصراحة: «لا أجد هذا في مكتبة إنسكو» واقترح ما يمكن البحث عنه.',
     '2) لا تخترع نص بند كود ولا رقم بند ولا نسبة قبول. عند ذكر كود، اذكر رقم البند فقط إن ورد في المقاطع.',
-    '3) بعد كل فكرة استشهد بمعرّف المقطع بين قوسين مربعين مثل [book-ut#p3] أو [nde-ut#ut-calibration].',
+    '3) بعد كل فكرة استشهد بمعرّف المقطع بين قوسين مربعين مثل [edb-course-nde-ut#p3].',
     '4) هذه مادة دراسة ذاتية، وليست شهادة ولا تأهيلاً. لا تدّعِ اعتماداً من ASNT أو ISO.',
     '5) للتعلّم فقط. لا تصدر قرار قبول أو رفض أو صلاحية تشغيل، ولا تعطِ إعدادات ميدانية. أحِل ذلك للإجراء المكتوب والمهندس المختص.',
     '6) اكتب عربياً هندسياً واضحاً، بفقرات قصيرة، وبنقاط عند التعداد. لا تكرر السؤال.',
@@ -206,7 +185,7 @@ const SYSTEM: Record<'ar' | 'en', string> = {
     'Binding rules:',
     '1) Answer only from the provided reviewed passages. If the context is insufficient, say plainly "I cannot find this in the INSCO library" and suggest what to search for.',
     '2) Never invent code clause text, clause numbers or acceptance percentages. Cite a clause number only when it appears in the passages.',
-    '3) After each claim, cite the passage id in square brackets, e.g. [book-ut#p3] or [nde-ut#ut-calibration].',
+    '3) After each claim, cite the passage id in square brackets, e.g. [edb-course-nde-ut#p3].',
     '4) This is self-study material, not a certificate or a qualification. Never claim ASNT or ISO accreditation.',
     '5) Do not decide acceptance, operational readiness or field settings. Refer those decisions to the applicable written procedure and qualified engineer.',
     '6) Write clear technical English in short paragraphs, using bullets for lists. Do not restate the question.',
@@ -239,7 +218,7 @@ function buildContext(hits: SearchHit[], language: 'ar' | 'en'): string {
   for (const hit of hits) {
     const document = hit.document;
     const heading = `[${document.id}] ${document.title[language] || document.title.ar} — ${
-      document.kind === 'textbook' ? `${document.bookId} p${document.pageNumber}` : document.kind
+      document.pageNumber ? `${document.bookId} p${document.pageNumber}` : document.kind
     }`;
     const body = (document.text[language] || document.text.ar || '').replace(/\s+/g, ' ').trim();
     const slice = body.slice(0, Math.max(400, Math.floor(budget / Math.max(1, hits.length))));
@@ -321,9 +300,8 @@ async function prepare(body: unknown, res: Response): Promise<TutorPayload | nul
   const question = latestQuestion(request);
   const hits = retrieveForTutor(question);
   const citations = hits.map(toCitation);
-  const confident = hits.length > 0;
-
   const context = buildContext(hits, request.language);
+  const confident = Boolean(context);
   const hint = MODE_HINT[request.mode]?.[request.language] ?? '';
   const header =
     request.language === 'ar'
@@ -363,7 +341,7 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
       res.setHeader('Retry-After', String(failure.retryAfterSeconds));
     }
     res.status(STATUS_CODE[failure.code]).json({
-      error: { ...failure, message: failureMessage(failure.code, 'ar') },
+      error: { ...failure, message: failureMessage(failure.code, payload.language) },
     });
     return;
   }
@@ -374,7 +352,7 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
     res.status(STATUS_CODE.not_configured).json({
       error: {
         code: 'not_configured',
-        message: failureMessage('not_configured', 'ar'),
+        message: failureMessage('not_configured', payload.language),
         detail: 'Set GEMINI_API_KEY on the server that hosts /api/ai/*.',
       },
     });
@@ -862,18 +840,16 @@ async function startServer(): Promise<void> {
         .catch(next);
     });
   } else {
-    const distCandidate = path.resolve(__dirname, 'dist');
-    const staticRoot = existsSync(distCandidate)
-      ? distCandidate
-      : path.resolve(__dirname, 'docs');
-    app.use(express.static(staticRoot));
+    app.use(express.static(siteRoot));
     app.get('*', (_req, res) => {
-      res.sendFile(path.resolve(staticRoot, 'index.html'));
+      res.sendFile(path.resolve(siteRoot, 'index.html'));
     });
   }
 
   server.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server listening on http://0.0.0.0:${PORT} (${isProduction ? 'production' : 'development'})`);
+    const address = server.address();
+    const port = typeof address === 'object' && address ? address.port : PORT;
+    console.log(`Server listening on http://0.0.0.0:${port} (${isProduction ? 'production' : 'development'})`);
     console.log(`[ai] tutor: ${ai ? `enabled, model ${MODEL_CHAIN[0]}` : 'disabled (no GEMINI_API_KEY)'}`);
     console.log(`[ai] transport: ${API_MODE}${ai ? '' : ' (no key, calls will be refused)'}`);
     console.log(`[rfq] delivery: ${operations.rfqEnabled ? 'configured' : 'not configured (POST /api/rfq will answer 503)'}`);

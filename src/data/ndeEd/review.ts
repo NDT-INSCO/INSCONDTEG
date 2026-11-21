@@ -115,7 +115,7 @@ export function reviewSummary() {
 /** Checksum of a signed build, read from the generated EDB index when available. */
 export function checksumForCourse(index: { books?: { id: string; checksum?: string }[] } | null, courseId: string): string | undefined {
   if (!index || !Array.isArray(index.books)) return undefined;
-  return index.books.find(book => book.id === `edb-course-${courseId}`)?.checksum;
+  return index.books.find(book => book?.id === `edb-course-${courseId}`)?.checksum;
 }
 
 /** A signature in the register is only current for the exact published edition. */

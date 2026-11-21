@@ -423,8 +423,8 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({
   };
 
   const openCitation = (citation: TutorCitation) => {
-    if (citation.kind === 'textbook' && citation.pageNumber) {
-      setEdbTarget(`edb-${citation.bookId}`);
+    if (citation.pageNumber && (citation.kind === 'textbook' || citation.bookId.startsWith('edb-course-'))) {
+      setEdbTarget(citation.bookId.startsWith('edb-') ? citation.bookId : `edb-${citation.bookId}`);
       setEdbTargetPage(citation.pageNumber);
       setActiveSubTab('edb');
     } else if (citation.courseId) {

@@ -6,23 +6,18 @@
  *
  *   npm run edb:verify:published
  */
-import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import path from 'node:path';
-import { stableStringify } from '../src/edb/validate';
+import { edbContentChecksum } from '../src/edb/nodeChecksum';
 
 const dir = path.join(process.cwd(), 'docs', 'edb');
 const index = JSON.parse(readFileSync(path.join(dir, 'index.json'), 'utf8'));
-const checksum = (doc: any) => {
-  const { createdAt: _c, updatedAt: _u, ...metadata } = doc.metadata;
-  return createHash('sha256').update(stableStringify({ ...doc, metadata })).digest('hex');
-};
 let bad = 0;
 for (const entry of index.books) {
   const file = path.join(dir, entry.file);
   if (!existsSync(file)) { console.log('MISSING FILE', entry.file); bad++; continue; }
   const doc = JSON.parse(readFileSync(file, 'utf8'));
-  const digest = checksum(doc);
+  const digest = edbContentChecksum(doc);
   if (digest !== entry.checksum) { console.log('CHECKSUM MISMATCH', entry.file); bad++; }
   if (doc.pages.length !== entry.pages) { console.log('PAGE COUNT MISMATCH', entry.file, doc.pages.length, entry.pages); bad++; }
 }

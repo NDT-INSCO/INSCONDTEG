@@ -7,31 +7,20 @@
  * The output is deterministic: stable JSON key ordering and a SHA-256 checksum
  * stored in the index, so CI can detect stale generated books.
  */
-import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { NDT_TEXTBOOKS } from '../src/data/ndeTextbooksData';
 import { NDE_ED_COURSES, NDE_ED_SOURCE_MAP } from '../src/data/ndeEd';
 import { courseToEdb, textbookToEdb } from '../src/edb/convert';
-import { stableStringify, validateEdb } from '../src/edb/validate';
+import { validateEdb } from '../src/edb/validate';
+import { edbContentChecksum } from '../src/edb/nodeChecksum';
 import { EDB_FORMAT, EDB_GENERATOR, EDB_VERSION, EdbDocument, EdbIndex, EdbIndexEntry } from '../src/edb/types';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
 const outputDir = path.join(root, 'public', 'edb');
 const checkMode = process.argv.includes('--check');
-
-/**
- * Content checksum. `metadata.createdAt` / `updatedAt` are build-time values, so
- * they are excluded: otherwise every rebuild would look like a content change
- * and `--check` could never be green in CI.
- */
-const checksum = (document: EdbDocument) => {
-  const { createdAt: _createdAt, updatedAt: _updatedAt, ...metadata } = document.metadata;
-  const content = { ...document, metadata };
-  return createHash('sha256').update(stableStringify(content)).digest('hex');
-};
 
 function fileName(id: string) {
   return `${id.replace(/^edb-/, '')}.edb`;
@@ -73,7 +62,7 @@ for (const { document, kind } of documents) {
   }
   const file = fileName(document.id);
   const payload = JSON.stringify(document);
-  const digest = checksum(document);
+  const digest = edbContentChecksum(document);
   const bytes = Buffer.byteLength(payload, 'utf8');
 
   if (!checkMode) {

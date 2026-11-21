@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Language } from '../../types';
 import { ENGINEERING_DISCIPLINES } from '../../data/academyCurriculum';
+import { readAccountAcademyProgress } from '../../account/academyAccountProgress';
 import {
   addProgressUser,
   removeProgressUser,
@@ -32,6 +33,7 @@ export const UserCourseProgressDashboard: React.FC<UserCourseProgressDashboardPr
   onNavigateToModule,
 }) => {
   const isAr = language === 'ar';
+  const signedIn = Boolean(readAccountAcademyProgress());
   const { activeUser, userSummaries, allModules } = useUserCourseProgress();
 
   const [isAddFormOpen, setIsAddFormOpen] = useState(false);
@@ -87,7 +89,7 @@ export const UserCourseProgressDashboard: React.FC<UserCourseProgressDashboardPr
           <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400 tabular-nums">
             <Users className="w-4 h-4 text-cyan-400 shrink-0" />
             <span className="font-semibold text-cyan-300">
-              {isAr ? 'سجل إتمام وحدات المتدربين (محفوظ محلياً)' : 'Per-User NDT Course Progress (Saved Locally)'}
+              {signedIn ? (isAr ? 'تقدّم حسابك الخاص' : 'Your private account progress') : (isAr ? 'سجل إتمام وحدات المتدربين (محفوظ محلياً)' : 'Per-User NDT Course Progress (Saved Locally)')}
             </span>
             <span aria-hidden="true">·</span>
             <span>
@@ -119,7 +121,7 @@ export const UserCourseProgressDashboard: React.FC<UserCourseProgressDashboardPr
             </strong>
           </div>
 
-          <button
+          {!signedIn && <button
             type="button"
             data-testid="toggle-add-user-form"
             onClick={() => setIsAddFormOpen((prev) => !prev)}
@@ -127,12 +129,12 @@ export const UserCourseProgressDashboard: React.FC<UserCourseProgressDashboardPr
           >
             <UserPlus className="w-3.5 h-3.5" />
             <span>{isAr ? 'إضافة متدرب جديد' : 'Add User'}</span>
-          </button>
+          </button>}
         </div>
       </div>
 
       {/* Inline Add Trainee Form */}
-      {isAddFormOpen && (
+      {!signedIn && isAddFormOpen && (
         <form
           onSubmit={handleCreateUser}
           data-testid="add-progress-user-form"
@@ -386,7 +388,7 @@ export const UserCourseProgressDashboard: React.FC<UserCourseProgressDashboardPr
                       ))}
                     </select>
 
-                    {summary.completedCount > 0 && (
+                    {!signedIn && summary.completedCount > 0 && (
                       <button
                         type="button"
                         data-testid={`reset-user-progress-${user.id}`}

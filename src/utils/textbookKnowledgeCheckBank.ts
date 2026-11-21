@@ -1,3 +1,4 @@
+import { academyActivityStorage } from '../account/academyAccountProgress';
 import { NdtTextbook, BookPage } from '../data/ndeTextbooksData';
 import { EdbDocument, EdbPage } from '../edb/types';
 import { prettyFormula } from './edbLibrary';
@@ -412,7 +413,7 @@ export function readQuickCheckProgress(): QuickCheckProgressStore {
     return {};
   }
   try {
-    const raw = window.localStorage.getItem(QUICK_CHECK_STORAGE_KEY);
+    const raw = academyActivityStorage.getItem(QUICK_CHECK_STORAGE_KEY);
     if (!raw) return {};
     const parsed = JSON.parse(raw) as unknown;
     if (!parsed || typeof parsed !== 'object') return {};
@@ -471,7 +472,7 @@ export function recordQuickCheckAnswer(
 
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.setItem(QUICK_CHECK_STORAGE_KEY, JSON.stringify(nextStore));
+      academyActivityStorage.setItem(QUICK_CHECK_STORAGE_KEY, JSON.stringify(nextStore));
       window.dispatchEvent(new CustomEvent(QUICK_CHECK_EVENT, { detail: { bookId } }));
     }
   } catch {
@@ -488,7 +489,7 @@ export function resetQuickCheckBookProgress(bookId: string): void {
   delete nextStore[bookId];
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.setItem(QUICK_CHECK_STORAGE_KEY, JSON.stringify(nextStore));
+      academyActivityStorage.setItem(QUICK_CHECK_STORAGE_KEY, JSON.stringify(nextStore));
       window.dispatchEvent(new CustomEvent(QUICK_CHECK_EVENT, { detail: { bookId } }));
     }
   } catch {

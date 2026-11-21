@@ -1,3 +1,4 @@
+import { academyActivityStorage } from '../account/academyAccountProgress';
 import { ExamCertificationLevel, ExamDifficultyLevel } from './curriculumExamGenerator';
 
 export interface ExamHistoryEntry {
@@ -94,9 +95,9 @@ const INITIAL_BASELINE_HISTORY: ExamHistoryEntry[] = [
 export function getExamHistory(): ExamHistoryEntry[] {
   if (typeof window === 'undefined') return INITIAL_BASELINE_HISTORY;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = academyActivityStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_BASELINE_HISTORY));
+      academyActivityStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_BASELINE_HISTORY));
       return INITIAL_BASELINE_HISTORY;
     }
     const parsed = JSON.parse(raw);
@@ -123,7 +124,7 @@ export function saveExamHistoryEntry(
   const updated = [...current, newEntry];
   if (typeof window !== 'undefined') {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      academyActivityStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
       window.dispatchEvent(new CustomEvent('insco_exam_history_updated', { detail: newEntry }));
     } catch {}
   }
@@ -134,7 +135,7 @@ export function saveExamHistoryEntry(
 export function resetExamHistoryToBaseline(): ExamHistoryEntry[] {
   if (typeof window !== 'undefined') {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_BASELINE_HISTORY));
+      academyActivityStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_BASELINE_HISTORY));
       window.dispatchEvent(new CustomEvent('insco_exam_history_updated'));
     } catch {}
   }

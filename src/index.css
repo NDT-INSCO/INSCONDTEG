@@ -456,6 +456,49 @@ body {
   will-change: transform, opacity;
 }
 
+.rt-beam-curve-color-transition {
+  transition:
+    stroke 280ms ease,
+    fill 280ms ease,
+    opacity 280ms ease;
+}
+
+.rt-beam-curve-transition {
+  transition:
+    d 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    cx 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    cy 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    x 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    y 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    width 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    x1 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    x2 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    y1 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    y2 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    points 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    stroke 280ms ease,
+    fill 280ms ease,
+    opacity 280ms ease;
+}
+
+.rt-beam-curve-transition-playback {
+  transition:
+    d 180ms linear,
+    cx 180ms linear,
+    cy 180ms linear,
+    x 180ms linear,
+    y 180ms linear,
+    width 180ms linear,
+    x1 180ms linear,
+    x2 180ms linear,
+    y1 180ms linear,
+    y2 180ms linear,
+    points 180ms linear,
+    stroke 180ms ease,
+    fill 180ms ease,
+    opacity 180ms ease;
+}
+
 /* Respect users who ask the OS to reduce motion: the flip/scale affordances
    become instant instead of animated. */
 @media (prefers-reduced-motion: reduce) {

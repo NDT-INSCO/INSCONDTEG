@@ -650,13 +650,14 @@ export const IsotopeDecayCurveChart: React.FC<IsotopeDecayCurveChartProps> = ({
                 stroke={cmp.color}
                 strokeWidth={1.5}
                 strokeDasharray="4 3"
+                className="rt-beam-curve-transition"
               />
             </g>
           ))}
 
           {/* Shaded Area under Primary Decay Curve */}
           {areaPath && (
-            <path d={areaPath} fill="url(#ge-decay-area-grad)" />
+            <path d={areaPath} fill="url(#ge-decay-area-grad)" className="rt-beam-curve-transition" />
           )}
 
           {/* Primary Isotope Decay Curve */}
@@ -667,6 +668,7 @@ export const IsotopeDecayCurveChart: React.FC<IsotopeDecayCurveChartProps> = ({
             stroke={activeColor}
             strokeWidth={2.5}
             strokeLinecap="round"
+            className="rt-beam-curve-transition"
           />
 
           {/* Half-Life Guide Lines & Dots */}
@@ -713,6 +715,7 @@ export const IsotopeDecayCurveChart: React.FC<IsotopeDecayCurveChartProps> = ({
               stroke="#ef4444"
               strokeWidth={2}
               strokeDasharray="5 3"
+              className="rt-beam-curve-transition"
             />
             {/* Horizontal dashed guide from Shot point to Y-axis */}
             <line
@@ -724,6 +727,7 @@ export const IsotopeDecayCurveChart: React.FC<IsotopeDecayCurveChartProps> = ({
               strokeOpacity={0.4}
               strokeWidth={1}
               strokeDasharray="2 2"
+              className="rt-beam-curve-transition"
             />
             <circle
               data-testid="isotope-decay-shot-dot"
@@ -733,6 +737,7 @@ export const IsotopeDecayCurveChart: React.FC<IsotopeDecayCurveChartProps> = ({
               fill="#ef4444"
               stroke="#ffffff"
               strokeWidth={2}
+              className="rt-beam-curve-transition"
             />
             <text
               data-testid="isotope-decay-shot-label"

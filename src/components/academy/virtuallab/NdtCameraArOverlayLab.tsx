@@ -24,6 +24,7 @@ import { recordSimulationAttempt, SimulationNdtMethod } from '../../../utils/sim
 import { RtExposureTechniqueMode, getAsmeMaxUgMm } from '../../../data/rtTechniquesPhysics';
 import { ArCompleteRtCodeSimulator } from './ArCompleteRtCodeSimulator';
 import { WorkshopAr4dAllBranchesLab } from './WorkshopAr4dAllBranchesLab';
+import { VtMtPtPwhtAr4dSimulator } from './VtMtPtPwhtAr4dSimulator';
 import { consumePendingAr4dBranch } from '../../../utils/workshopAr4dSelection';
 import type { WorkshopAr4dBranchId } from '../../../data/workshopAr4dBranchesData';
 
@@ -106,6 +107,7 @@ export const NdtCameraArOverlayLab: React.FC<NdtCameraArOverlayLabProps> = ({
 
   // Toggle into the Complete AR RT Techniques, 18 Film Defects & All-Codes Acceptance Simulator
   const [showCompleteRtCodes, setShowCompleteRtCodes] = useState<boolean>(false);
+  const [showVtMtPtPwhtAr4d, setShowVtMtPtPwhtAr4d] = useState<boolean>(false);
   const [preselectedAr4dBranch] = useState<WorkshopAr4dBranchId | null>(() =>
     consumePendingAr4dBranch()
   );
@@ -633,6 +635,17 @@ export const NdtCameraArOverlayLab: React.FC<NdtCameraArOverlayLabProps> = ({
     );
   }
 
+  if (showVtMtPtPwhtAr4d) {
+    return (
+      <section data-testid="ndt-camera-ar-overlay-lab" className="space-y-4">
+        <VtMtPtPwhtAr4dSimulator
+          language={language}
+          onBackToQuickAr={() => setShowVtMtPtPwhtAr4d(false)}
+        />
+      </section>
+    );
+  }
+
   if (showAllBranchesAr4d) {
     return (
       <section data-testid="ndt-camera-ar-overlay-lab" className="space-y-4">
@@ -715,6 +728,24 @@ export const NdtCameraArOverlayLab: React.FC<NdtCameraArOverlayLabProps> = ({
               {isAr
                 ? 'محاكيات الورشة AR + 4D لجميع الفروع (8)'
                 : 'All 8 Branches AR + 4D Workshop'}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            data-testid="launch-ar4d-vt-mt-pt-pwht-btn"
+            onClick={() => {
+              stopMediaTracks();
+              setStreamState('idle');
+              setShowVtMtPtPwhtAr4d(true);
+            }}
+            className="px-4 py-2.5 rounded-xl bg-sky-400 hover:bg-sky-300 text-slate-950 font-black text-xs sm:text-sm transition cursor-pointer flex items-center gap-2 shadow-sm"
+          >
+            <Layers className="w-4 h-4 shrink-0" />
+            <span>
+              {isAr
+                ? 'محاكيات AR + 3D/4D: VT · MT · PT · PWHT ومراجعة الأكواد'
+                : 'VT · MT · PT · PWHT AR+3D+4D & Multi-Code'}
             </span>
           </button>
 

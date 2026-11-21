@@ -10,18 +10,6 @@ import {
   GE_ISOTOPES,
   GE_STRUCTURIX_FILMS
 } from '../src/utils/geExposureTimeEngine';
-import {
-  GeRadiographicExposureTimeApp,
-  buildConversionLogCsv,
-  getUnitConversionFormula,
-  computeBeamDecayProfile,
-  interpolateBeamDecayAtNorm,
-  compute4dDecayShiftSnapshot
-} from '../src/components/academy/virtuallab/GeRadiographicExposureTimeApp';
-import { NdtVirtualLabWorkbench } from '../src/components/academy/virtuallab/NdtVirtualLabWorkbench';
-import { RadiographicTestingLab } from '../src/components/academy/virtuallab/RadiographicTestingLab';
-import { InteractiveWorkshops } from '../src/components/academy/InteractiveWorkshops';
-import { ArCompleteRtCodeSimulator } from '../src/components/academy/virtuallab/ArCompleteRtCodeSimulator';
 import { generateGeRadiographicExposurePdf } from '../src/utils/geRadiographicExposurePdfGenerator';
 
 const dom = new JSDOM('<!doctype html><html><body></body></html>', { url: 'https://example.org/-Project-/#academy' });
@@ -32,9 +20,22 @@ Object.assign(globalThis, {
   HTMLElement: dom.window.HTMLElement,
   HTMLInputElement: dom.window.HTMLInputElement,
   HTMLSelectElement: dom.window.HTMLSelectElement,
+  Element: dom.window.Element,
+  Node: dom.window.Node,
+  SVGElement: dom.window.SVGElement,
+  SVGPathElement: dom.window.SVGPathElement,
   CustomEvent: dom.window.CustomEvent,
   Event: dom.window.Event
 });
+
+if (!globalThis.requestAnimationFrame) {
+  const raf = (cb: FrameRequestCallback) => setTimeout(() => cb(performance.now()), 16) as unknown as number;
+  const caf = (id: number) => clearTimeout(id);
+  globalThis.requestAnimationFrame = raf;
+  globalThis.cancelAnimationFrame = caf;
+  (dom.window as unknown as Window).requestAnimationFrame = raf;
+  (dom.window as unknown as Window).cancelAnimationFrame = caf;
+}
 
 if (!globalThis.URL.createObjectURL) {
   globalThis.URL.createObjectURL = () => 'blob:mock-pdf-url';
@@ -44,6 +45,18 @@ if (!globalThis.URL.revokeObjectURL) {
 }
 
 const { render, fireEvent, cleanup, screen, waitFor } = await import('@testing-library/react');
+const {
+  GeRadiographicExposureTimeApp,
+  buildConversionLogCsv,
+  getUnitConversionFormula,
+  computeBeamDecayProfile,
+  interpolateBeamDecayAtNorm,
+  compute4dDecayShiftSnapshot
+} = await import('../src/components/academy/virtuallab/GeRadiographicExposureTimeApp');
+const { NdtVirtualLabWorkbench } = await import('../src/components/academy/virtuallab/NdtVirtualLabWorkbench');
+const { RadiographicTestingLab } = await import('../src/components/academy/virtuallab/RadiographicTestingLab');
+const { InteractiveWorkshops } = await import('../src/components/academy/InteractiveWorkshops');
+const { ArCompleteRtCodeSimulator } = await import('../src/components/academy/virtuallab/ArCompleteRtCodeSimulator');
 
 afterEach(() => {
   cleanup();
@@ -1381,7 +1394,7 @@ test('computeBeamDecayProfile accurately models Beer-Lambert attenuation, HVL ma
   assert.ok(coProfile.muSteelPerMm < seProfile.muSteelPerMm);
 });
 
-test('GeRadiographicExposureTimeApp renders live beam intensity decay overlay on exposure path with reactive updates & depth scrub probe', () => {
+test('GeRadiographicExposureTimeApp renders live beam intensity decay overlay on exposure path with reactive updates & depth scrub probe', async () => {
   localStorage.removeItem('ge_app_unit_system');
   const ui = render(<GeRadiographicExposureTimeApp language="en" />);
 
@@ -1407,11 +1420,16 @@ test('GeRadiographicExposureTimeApp renders live beam intensity decay overlay on
   const initialExitText = exitPctLabel.textContent || '';
   const initialMuText = muLabel.textContent || '';
 
-  // Switch technique to Single-Wall Plate -> cavity disappears & exit intensity rises
+  // Switch technique to Single-Wall Plate -> cavity disappears, exit intensity rises, & curve morphs over 300ms
   fireEvent.change(ui.getByTestId('ge-select-technique'), { target: { value: 'swsi_plate' } });
   assert.equal(ui.queryByTestId('ge-beam-segment-cavity'), null);
   assert.notEqual(exitPctLabel.textContent, initialExitText);
-  assert.notEqual(ui.getByTestId('ge-beam-decay-curve-path').getAttribute('d'), initialCurveD);
+  await waitFor(
+    () => {
+      assert.notEqual(ui.getByTestId('ge-beam-decay-curve-path').getAttribute('d'), initialCurveD);
+    },
+    { timeout: 1000 }
+  );
 
   // Switch source to Se-75 -> linear attenuation coefficient μ changes
   fireEvent.change(ui.getByTestId('ge-select-source-type'), { target: { value: 'se75' } });
@@ -1507,7 +1525,7 @@ test('compute4dDecayShiftSnapshot accurately models half-life parameter shifts, 
   assert.equal(xraySnap.exposureTimeMultiplier, 1);
 });
 
-test('GeRadiographicExposureTimeApp toggles 4D decay view, animates wavefront overlay, shifts beam parameters over time, and applies 4D date', () => {
+test('GeRadiographicExposureTimeApp toggles 4D decay view, animates wavefront overlay, shifts beam parameters over time, and applies 4D date', async () => {
   localStorage.removeItem('ge_app_unit_system');
   const ui = render(<GeRadiographicExposureTimeApp language="en" />);
 
@@ -1533,10 +1551,15 @@ test('GeRadiographicExposureTimeApp toggles 4D decay view, animates wavefront ov
   assert.ok(wavefront.classList.contains('rt-4d-decay-wavefront'));
   assert.equal(ui.getByTestId('ge-4d-baseline-curve').getAttribute('d'), staticCurveD);
 
-  // Jump to 2 T1/2 (25% remaining) -> decayed curve shifts sharply downward & exposure time ~4x
+  // Jump to 2 T1/2 (25% remaining) -> decayed curve interpolates downward & exposure time ~4x
   fireEvent.click(ui.getByTestId('ge-4d-milestone-2hl'));
-  const decayedCurveD = ui.getByTestId('ge-beam-decay-curve-path').getAttribute('d') || '';
-  assert.notEqual(decayedCurveD, staticCurveD);
+  await waitFor(
+    () => {
+      const decayedCurveD = ui.getByTestId('ge-beam-decay-curve-path').getAttribute('d') || '';
+      assert.notEqual(decayedCurveD, staticCurveD);
+    },
+    { timeout: 1000 }
+  );
 
   const decayedDuration = Number(ui.getByTestId('ge-beam-photon-sync-hud').getAttribute('data-photon-duration'));
   assert.ok(
@@ -1566,20 +1589,334 @@ test('GeRadiographicExposureTimeApp toggles 4D decay view, animates wavefront ov
   const shotInput = ui.getByTestId('ge-shot-date-input') as HTMLInputElement;
   assert.equal(shotInput.value, '2026-12-19');
 
-  // Reset to t0 brings back 100% baseline
+  // Reset to t0 interpolates back to 100% baseline within ~300ms
   fireEvent.click(ui.getByTestId('ge-4d-reset-btn'));
-  assert.equal(ui.getByTestId('ge-beam-decay-curve-path').getAttribute('d'), staticCurveD);
+  await waitFor(
+    () => {
+      assert.equal(ui.getByTestId('ge-beam-decay-curve-path').getAttribute('d'), staticCurveD);
+    },
+    { timeout: 1000 }
+  );
   assert.ok((ui.getByTestId('ge-4d-shift-hud').textContent || '').includes('100.0%'));
 });
 
+test('GeRadiographicExposureTimeApp Multi-Film Loading Time-Correction Factor slider fine-tunes composite exposure duration', () => {
+  // 1. Engine math check with custom compositeTimeCorrectionFactor
+  const baseSingle = calculateGeRadiographicExposure({
+    sourceType: 'ir192',
+    materialId: 'carbon_steel',
+    filmId: 'd7',
+    technique: 'dwsi_contact',
+    materialThicknessMm: 12.0,
+    weldReinforcementMm: 2.5,
+    sfdCm: 70,
+    initialActivityCi: 45,
+    initialCalibrationDate: '2026-11-05',
+    measurementDate: '2026-11-05',
+    targetOpticalDensity: 2.5,
+    hasLeadScreens: true,
+    hasCollimator: true,
+  });
 
+  const defaultComposite = calculateGeRadiographicExposure({
+    sourceType: 'ir192',
+    materialId: 'carbon_steel',
+    filmId: 'd7',
+    technique: 'dwsi_contact',
+    materialThicknessMm: 12.0,
+    weldReinforcementMm: 2.5,
+    sfdCm: 70,
+    initialActivityCi: 45,
+    initialCalibrationDate: '2026-11-05',
+    measurementDate: '2026-11-05',
+    targetOpticalDensity: 2.5,
+    hasLeadScreens: true,
+    hasCollimator: true,
+    multiFilmConfig: {
+      mode: 'dual_composite',
+      primaryFilmId: 'd7',
+    },
+  });
 
+  const boostedComposite = calculateGeRadiographicExposure({
+    sourceType: 'ir192',
+    materialId: 'carbon_steel',
+    filmId: 'd7',
+    technique: 'dwsi_contact',
+    materialThicknessMm: 12.0,
+    weldReinforcementMm: 2.5,
+    sfdCm: 70,
+    initialActivityCi: 45,
+    initialCalibrationDate: '2026-11-05',
+    measurementDate: '2026-11-05',
+    targetOpticalDensity: 2.5,
+    hasLeadScreens: true,
+    hasCollimator: true,
+    multiFilmConfig: {
+      mode: 'dual_composite',
+      primaryFilmId: 'd7',
+      compositeTimeCorrectionFactor: 0.72,
+    },
+  });
 
+  assert.equal(boostedComposite.multiFilmTimeFactor, 0.72);
+  assert.ok(
+    Math.abs(
+      boostedComposite.calculatedTotalSeconds -
+        Math.round(baseSingle.calculatedTotalSeconds * 0.72)
+    ) <= 1
+  );
+  assert.ok(boostedComposite.calculatedTotalSeconds > defaultComposite.calculatedTotalSeconds);
+  assert.ok(boostedComposite.calculatedTotalSeconds < baseSingle.calculatedTotalSeconds);
 
+  // 2. React UI slider interaction check
+  const ui = render(<GeRadiographicExposureTimeApp language="en" />);
+  assert.equal(ui.queryByTestId('ge-composite-time-correction-slider'), null);
 
+  // Switch to Dual Composite mode
+  fireEvent.click(ui.getByTestId('ge-film-loading-mode-dual-composite'));
 
+  const slider = ui.getByTestId('ge-composite-time-correction-slider') as HTMLInputElement;
+  assert.equal(slider.value, '0.55');
+  assert.equal(ui.getByTestId('ge-composite-time-correction-value').textContent, '×0.55');
 
+  const initialDurationText = ui.getByTestId('ge-calculated-exposure-display').textContent;
 
+  // Fine-tune factor upward to 0.75x
+  fireEvent.change(slider, { target: { value: '0.75' } });
+  assert.equal(ui.getByTestId('ge-composite-time-correction-value').textContent, '×0.75');
+  assert.ok((ui.getByTestId('ge-multi-film-badge').textContent || '').includes('-25% time'));
+  assert.notEqual(
+    ui.getByTestId('ge-calculated-exposure-display').textContent,
+    initialDurationText
+  );
 
+  // Click quick reset chip back to ASME 0.55x standard
+  fireEvent.click(ui.getByTestId('ge-composite-time-correction-reset'));
+  assert.equal(ui.getByTestId('ge-composite-time-correction-value').textContent, '×0.55');
+  assert.equal(
+    ui.getByTestId('ge-calculated-exposure-display').textContent,
+    initialDurationText
+  );
+});
+
+test('GeRadiographicExposureTimeApp Primary HUD toggle hides 4D/Beam Intensity overlay while keeping numeric calculations intact', () => {
+  const ui = render(<GeRadiographicExposureTimeApp language="en" />);
+
+  const toggleBtn = ui.getByTestId('ge-hud-toggle-beam-overlay');
+  assert.equal(toggleBtn.getAttribute('aria-pressed'), 'false');
+  assert.equal(toggleBtn.getAttribute('data-overlay-visible'), 'true');
+  assert.ok(ui.getByTestId('ge-beam-intensity-decay-overlay'));
+
+  // Hide the 4D / Beam Intensity overlay from the Primary HUD
+  fireEvent.click(toggleBtn);
+  assert.equal(toggleBtn.getAttribute('aria-pressed'), 'true');
+  assert.equal(toggleBtn.getAttribute('data-overlay-visible'), 'false');
+  assert.equal(ui.queryByTestId('ge-beam-intensity-decay-overlay'), null);
+
+  // Verify basic numeric calculations remain visible and reactive
+  const initialExposure = ui.getByTestId('ge-calculated-exposure-display').textContent;
+  assert.ok(ui.getByTestId('ge-curie-minutes').textContent);
+  assert.ok(ui.getByTestId('ge-effective-thickness').textContent);
+  assert.ok(ui.getByTestId('ge-ug-metric').textContent);
+  assert.ok(ui.getByTestId('ge-essential-wire').textContent);
+
+  fireEvent.change(ui.getByTestId('ge-thickness-number-input'), { target: { value: '24' } });
+  assert.notEqual(
+    ui.getByTestId('ge-calculated-exposure-display').textContent,
+    initialExposure
+  );
+  assert.equal(ui.queryByTestId('ge-beam-intensity-decay-overlay'), null);
+
+  // Re-toggle to show the overlay again
+  fireEvent.click(toggleBtn);
+  assert.equal(toggleBtn.getAttribute('aria-pressed'), 'false');
+  assert.equal(toggleBtn.getAttribute('data-overlay-visible'), 'true');
+  assert.ok(ui.getByTestId('ge-beam-intensity-decay-overlay'));
+
+  // Hide again, then verify Reset All Inputs restores the overlay
+  fireEvent.click(toggleBtn);
+  assert.equal(ui.queryByTestId('ge-beam-intensity-decay-overlay'), null);
+
+  fireEvent.click(ui.getByTestId('ge-reset-all-inputs-btn'));
+  assert.equal(toggleBtn.getAttribute('aria-pressed'), 'false');
+  assert.ok(ui.getByTestId('ge-beam-intensity-decay-overlay'));
+});
+
+test('GeRadiographicExposureTimeApp Primary HUD granular toggles control Lead-Screen intensity and Weld-Reinforcement profile overlays independently', () => {
+  const ui = render(<GeRadiographicExposureTimeApp language="en" />);
+
+  const leadToggle = ui.getByTestId('ge-hud-toggle-lead-screen-overlay');
+  const beamLeadToggle = ui.getByTestId('ge-beam-toggle-lead-screen-overlay');
+  const weldToggle = ui.getByTestId('ge-hud-toggle-weld-profile-overlay');
+
+  // Both sub-overlays are enabled and visible on initial mount (default weldReinforcementMm = 2.5, hasLeadScreens = true)
+  assert.equal(leadToggle.getAttribute('aria-pressed'), 'true');
+  assert.equal(beamLeadToggle.getAttribute('aria-pressed'), 'true');
+  assert.equal(weldToggle.getAttribute('aria-pressed'), 'true');
+  assert.ok(ui.getByTestId('ge-lead-screen-intensity-overlay'));
+  assert.ok(ui.getByTestId('ge-weld-reinforcement-profile-overlay'));
+  assert.equal(
+    ui.getByTestId('ge-lead-screen-intensity-overlay').getAttribute('data-lead-screens-enabled'),
+    'true'
+  );
+  assert.equal(
+    ui.getByTestId('ge-weld-reinforcement-profile-overlay').getAttribute('data-weld-mm'),
+    '2.5'
+  );
+
+  // Toggle OFF Lead-Screen intensity overlay via inline beam visualization toggle -> declutters Pb overlay & syncs HUD
+  fireEvent.click(beamLeadToggle);
+  assert.equal(beamLeadToggle.getAttribute('aria-pressed'), 'false');
+  assert.equal(leadToggle.getAttribute('aria-pressed'), 'false');
+  assert.equal(ui.queryByTestId('ge-lead-screen-intensity-overlay'), null);
+  assert.ok(ui.getByTestId('ge-weld-reinforcement-profile-overlay'));
+
+  // Toggle OFF Weld-Reinforcement profile visualizer -> main 4D/Beam overlay remains visible
+  fireEvent.click(weldToggle);
+  assert.equal(weldToggle.getAttribute('aria-pressed'), 'false');
+  assert.equal(ui.queryByTestId('ge-weld-reinforcement-profile-overlay'), null);
+  assert.ok(ui.getByTestId('ge-beam-intensity-decay-overlay'));
+  assert.ok(ui.getByTestId('ge-beam-decay-curve-path'));
+
+  // Toggle Lead-Screen back ON from HUD -> updates inline beam toggle & appears without forcing Weld profile ON
+  fireEvent.click(leadToggle);
+  assert.equal(leadToggle.getAttribute('aria-pressed'), 'true');
+  assert.equal(beamLeadToggle.getAttribute('aria-pressed'), 'true');
+  assert.ok(ui.getByTestId('ge-lead-screen-intensity-overlay'));
+  assert.equal(ui.queryByTestId('ge-weld-reinforcement-profile-overlay'), null);
+
+  // Reset All Inputs restores both granular overlays back to ON
+  fireEvent.click(ui.getByTestId('ge-reset-all-inputs-btn'));
+  assert.equal(leadToggle.getAttribute('aria-pressed'), 'true');
+  assert.equal(beamLeadToggle.getAttribute('aria-pressed'), 'true');
+  assert.equal(weldToggle.getAttribute('aria-pressed'), 'true');
+  assert.ok(ui.getByTestId('ge-lead-screen-intensity-overlay'));
+  assert.ok(ui.getByTestId('ge-weld-reinforcement-profile-overlay'));
+});
+
+test('GeRadiographicExposureTimeApp smoothly animates intensity decay curve with 300ms Motion interpolation across material and SFD distance changes', async () => {
+  localStorage.removeItem('ge_app_unit_system');
+  const ui = render(<GeRadiographicExposureTimeApp language="en" />);
+
+  const curvePath = ui.getByTestId('ge-beam-decay-curve-path');
+  const curveFlow = ui.getByTestId('ge-beam-decay-curve-flow');
+  const areaPath = ui.getByTestId('ge-beam-decay-area');
+  const exitDot = ui.getByTestId('ge-beam-decay-exit-dot');
+
+  assert.equal(curvePath.getAttribute('data-transition-ms'), '300');
+  assert.ok(curveFlow.classList.contains('rt-photon-curve-flow'));
+  assert.ok(areaPath.classList.contains('rt-beam-curve-color-transition'));
+  assert.ok(exitDot.classList.contains('rt-beam-curve-color-transition'));
+
+  const countSegments = (d: string) => (d.match(/[ML]/g) || []).length;
+  const baseD = curvePath.getAttribute('d') || '';
+  const baseSegments = countSegments(baseD);
+  assert.equal(baseSegments, 97); // 1 'M' + 96 uniform 'L' vertices for glitch-free path morphing
+
+  // 1. Change material from Carbon Steel to Aluminum -> does NOT jump synchronously on frame 0, then settles over 300ms
+  fireEvent.change(ui.getByTestId('ge-select-material'), { target: { value: 'aluminum' } });
+  assert.equal(curvePath.getAttribute('d'), baseD); // No sudden 0ms jump
+
+  await new Promise((resolve) => setTimeout(resolve, 420));
+  const aluD = curvePath.getAttribute('d') || '';
+  assert.notEqual(aluD, baseD);
+  assert.equal(countSegments(aluD), baseSegments);
+
+  // 2. Change distance (SFD) from 70 cm to 120 cm -> starts smoothly at aluD, moves through intermediate states, settles over 300ms
+  fireEvent.change(ui.getByTestId('ge-sfd-number-input'), { target: { value: '120' } });
+  assert.equal(curvePath.getAttribute('d'), aluD); // No sudden 0ms jump
+
+  const observedSnapshots = new Set<string>([aluD]);
+  for (let step = 0; step < 6; step++) {
+    await new Promise((resolve) => setTimeout(resolve, 75));
+    observedSnapshots.add(curvePath.getAttribute('d') || '');
+  }
+  const farSfdD = curvePath.getAttribute('d') || '';
+  assert.notEqual(farSfdD, aluD);
+  assert.ok(
+    observedSnapshots.size >= 3,
+    `Expected multi-frame interpolated SVG path transitions over 300ms, saw ${observedSnapshots.size} distinct states`
+  );
+  assert.equal(countSegments(farSfdD), baseSegments);
+
+  // 3. Switch to Single-Wall Plate -> vertex count stays identical even without internal bore cavity
+  fireEvent.change(ui.getByTestId('ge-select-technique'), { target: { value: 'swsi_plate' } });
+  await new Promise((resolve) => setTimeout(resolve, 420));
+  const plateD = curvePath.getAttribute('d') || '';
+  assert.notEqual(plateD, farSfdD);
+  assert.equal(countSegments(plateD), baseSegments);
+
+  // 4. During active 4D playback, transition duration switches smoothly to 160ms playback pacing
+  fireEvent.click(ui.getByTestId('ge-4d-view-toggle'));
+  fireEvent.click(ui.getByTestId('ge-4d-play-btn'));
+  assert.equal(curvePath.getAttribute('data-transition-ms'), '160');
+  fireEvent.click(ui.getByTestId('ge-4d-play-btn'));
+  assert.equal(curvePath.getAttribute('data-transition-ms'), '300');
+});
+
+test('GeRadiographicExposureTimeApp Primary HUD printer icon opens the Print Technique Card modal in one click', () => {
+  const ui = render(<GeRadiographicExposureTimeApp language="en" />);
+
+  assert.equal(ui.queryByText('ASME Sec V Article 2 Radiographic Technique Card'), null);
+
+  const hudPrintBtn = ui.getByTestId('ge-hud-print-technique-card-btn');
+  assert.equal(hudPrintBtn.getAttribute('aria-label'), 'Print Technique Card');
+  assert.ok(hudPrintBtn.querySelector('svg'));
+
+  // One-click opens the exact same Technique Card modal
+  fireEvent.click(hudPrintBtn);
+  assert.ok(ui.getByText('ASME Sec V Article 2 Radiographic Technique Card'));
+  assert.ok(ui.getByText('Print Card'));
+  assert.ok(ui.getByTestId('ge-modal-export-pdf-btn'));
+
+  // Close restores previous state
+  fireEvent.click(ui.getByText('Close'));
+  assert.equal(ui.queryByText('ASME Sec V Article 2 Radiographic Technique Card'), null);
+});
+
+test('GeRadiographicExposureTimeApp toggles secondary photoelectron intensification vector paths from Pb layers to the film plane', () => {
+  const ui = render(<GeRadiographicExposureTimeApp language="en" />);
+
+  const pbPathsToggle = ui.getByTestId('ge-beam-toggle-pb-photoelectron-paths');
+  assert.equal(pbPathsToggle.getAttribute('aria-pressed'), 'true');
+
+  const leadOverlay = ui.getByTestId('ge-lead-screen-intensity-overlay');
+  const pbPathsGroup = ui.getByTestId('ge-pb-photoelectron-paths');
+  assert.ok(leadOverlay.contains(pbPathsGroup));
+
+  const frontLines = pbPathsGroup.querySelectorAll('line[data-vector-origin="front_pb"]');
+  const backLines = pbPathsGroup.querySelectorAll('line[data-vector-origin="back_pb"]');
+  assert.equal(frontLines.length, 5);
+  assert.equal(backLines.length, 5);
+  assert.equal(frontLines[0].getAttribute('marker-end'), 'url(#gePbElectronArrow)');
+  assert.equal(backLines[0].getAttribute('marker-end'), 'url(#gePbElectronArrow)');
+
+  // Toggle OFF secondary photoelectron paths -> hides vector paths while keeping Lead Screen overlay visible
+  fireEvent.click(pbPathsToggle);
+  assert.equal(pbPathsToggle.getAttribute('aria-pressed'), 'false');
+  assert.equal(ui.queryByTestId('ge-pb-photoelectron-paths'), null);
+  assert.ok(ui.getByTestId('ge-lead-screen-intensity-overlay'));
+
+  // Toggle back ON -> restores vector lines
+  fireEvent.click(pbPathsToggle);
+  assert.equal(pbPathsToggle.getAttribute('aria-pressed'), 'true');
+  assert.ok(ui.getByTestId('ge-pb-photoelectron-paths'));
+
+  // Enable Multi-Film Different (Wide-Latitude) + Interleaf 0.025mm Pb Foil -> renders bidirectional interleaf vectors
+  fireEvent.click(ui.getByTestId('ge-film-loading-mode-dual-different'));
+  fireEvent.click(ui.getByTestId('ge-interleaf-screen-toggle'));
+  const interleafLines = ui
+    .getByTestId('ge-pb-photoelectron-paths')
+    .querySelectorAll('line[data-vector-origin="interleaf_pb"]');
+  assert.equal(interleafLines.length, 6);
+
+  // Toggle OFF and verify Reset All Inputs restores Pb e- Paths back ON
+  fireEvent.click(pbPathsToggle);
+  assert.equal(ui.queryByTestId('ge-pb-photoelectron-paths'), null);
+  fireEvent.click(ui.getByTestId('ge-reset-all-inputs-btn'));
+  assert.equal(pbPathsToggle.getAttribute('aria-pressed'), 'true');
+  assert.ok(ui.getByTestId('ge-pb-photoelectron-paths'));
+});
 
 

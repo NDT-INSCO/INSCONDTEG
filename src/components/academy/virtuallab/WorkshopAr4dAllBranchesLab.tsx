@@ -33,6 +33,8 @@ import {
   computeWorkshop4dTelemetry,
 } from '../../../data/workshopAr4dBranchesData';
 import { ArBackdropMode, WorkshopAr4dThreeScene } from './WorkshopAr4dThreeScene';
+import { VtMtPtPwhtAr4dSimulator } from './VtMtPtPwhtAr4dSimulator';
+import type { Ar4dInspectorDisciplineId } from '../../../data/ar4dVtMtPtPwhtEngine';
 
 export interface WorkshopAr4dAllBranchesLabProps {
   language: Language;
@@ -72,6 +74,8 @@ export const WorkshopAr4dAllBranchesLab: React.FC<WorkshopAr4dAllBranchesLabProp
   const { isLight } = useTheme();
 
   const [selectedBranchId, setSelectedBranchId] = useState<WorkshopAr4dBranchId>(initialBranchId);
+  const [deepSuiteDiscipline, setDeepSuiteDiscipline] =
+    useState<Ar4dInspectorDisciplineId | null>(null);
   const activeBranch = useMemo(
     () => WORKSHOP_AR4D_BRANCHES.find((b) => b.id === selectedBranchId) ?? WORKSHOP_AR4D_BRANCHES[0],
     [selectedBranchId]
@@ -354,6 +358,16 @@ export const WorkshopAr4dAllBranchesLab: React.FC<WorkshopAr4dAllBranchesLabProp
     ? 'bg-slate-50 border-slate-200 text-slate-900'
     : 'bg-slate-950/90 border-slate-800 text-slate-100';
   const mutedText = isLight ? 'text-slate-600' : 'text-slate-400';
+
+  if (deepSuiteDiscipline) {
+    return (
+      <VtMtPtPwhtAr4dSimulator
+        language={language}
+        initialDiscipline={deepSuiteDiscipline}
+        onBackToQuickAr={() => setDeepSuiteDiscipline(null)}
+      />
+    );
+  }
 
   return (
     <section
@@ -887,6 +901,27 @@ export const WorkshopAr4dAllBranchesLab: React.FC<WorkshopAr4dAllBranchesLabProp
               )}
               <span>{isAr ? telemetry.codeVerdictAr : telemetry.codeVerdictEn}</span>
             </div>
+
+            {(selectedBranchId === 'vt_pt_mt_surface' || selectedBranchId === 'pwht_metallurgy') && (
+              <button
+                type="button"
+                data-testid="ar4d-open-vt-mt-pt-pwht-suite"
+                onClick={() => {
+                  stopMediaTracks();
+                  setDeepSuiteDiscipline(
+                    selectedBranchId === 'pwht_metallurgy' ? 'pwht' : 'vt'
+                  );
+                }}
+                className="w-full py-2 px-3 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/60 text-sky-200 font-black text-xs transition cursor-pointer flex items-center justify-center gap-2"
+              >
+                <Layers className="w-4 h-4 shrink-0" aria-hidden="true" />
+                <span>
+                  {isAr
+                    ? 'فتح استوديو VT · MT · PT · PWHT (AR + 3D/4D + 20 بند كود)'
+                    : 'Open Deep VT · MT · PT · PWHT Studio (20 Code Clauses)'}
+                </span>
+              </button>
+            )}
           </div>
 
           {/* Continuous Engineering Variables & Spatial AR Controls */}

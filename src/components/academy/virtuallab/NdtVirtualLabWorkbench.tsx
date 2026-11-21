@@ -13,6 +13,7 @@ import { NdtCameraArOverlayLab } from './NdtCameraArOverlayLab';
 import { GeRadiographicExposureTimeApp } from './GeRadiographicExposureTimeApp';
 import { WorkshopTrainingResultsPanel } from './WorkshopTrainingResultsPanel';
 import { WorkshopAr4dAllBranchesLab } from './WorkshopAr4dAllBranchesLab';
+import { VtMtPtPwhtAr4dSimulator } from './VtMtPtPwhtAr4dSimulator';
 import { VirtualLab } from '../VirtualLab';
 import { consumePendingAr4dBranch } from '../../../utils/workshopAr4dSelection';
 import type { WorkshopAr4dBranchId } from '../../../data/workshopAr4dBranchesData';
@@ -56,6 +57,7 @@ export const NdtVirtualLabWorkbench: React.FC<NdtVirtualLabWorkbenchProps> = ({ 
     | 'beam_cone_defects'
     | 'ar_camera_ndt'
     | 'ar_4d_all_branches'
+    | 'vt_mt_pt_pwht_ar4d'
     | 'ge_exposure_calc'
   >(() => (initialAr4dBranch ? 'ar_4d_all_branches' : 'weld_ray_tracing'));
   const [activeTheoryTab, setActiveTheoryTab] = useState<'acoustics' | 'calibration' | 'acceptance'>('acoustics');
@@ -207,6 +209,24 @@ export const NdtVirtualLabWorkbench: React.FC<NdtVirtualLabWorkbenchProps> = ({ 
                 {isAr
                   ? 'جميع محاكيات الورشة AR + 4D (8 فروع)'
                   : 'All 8 Branches AR + 4D Workshop'}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              data-testid="lab-mode-vt-mt-pt-pwht-ar4d"
+              onClick={() => setActiveLabMode('vt_mt_pt_pwht_ar4d')}
+              className={`px-3.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition cursor-pointer flex items-center gap-2 border ${
+                activeLabMode === 'vt_mt_pt_pwht_ar4d'
+                  ? 'bg-sky-400 text-slate-950 font-black border-sky-300 shadow-lg shadow-sky-950/50'
+                  : 'bg-slate-950 text-sky-300 border-sky-500/40 hover:text-white hover:border-sky-400'
+              }`}
+            >
+              <Eye className="w-4 h-4 shrink-0" />
+              <span>
+                {isAr
+                  ? 'محاكيات AR+3D+4D: VT · MT · PT · PWHT + الأكواد'
+                  : 'VT · MT · PT · PWHT AR+3D+4D & Codes'}
               </span>
             </button>
 
@@ -369,6 +389,8 @@ export const NdtVirtualLabWorkbench: React.FC<NdtVirtualLabWorkbenchProps> = ({ 
           language={language}
           initialBranchId={initialAr4dBranch ?? 'ut_paut'}
         />
+      ) : activeLabMode === 'vt_mt_pt_pwht_ar4d' ? (
+        <VtMtPtPwhtAr4dSimulator language={language} />
       ) : (
         <BeamConeAndDefectExplorer
           language={language}

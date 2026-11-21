@@ -410,6 +410,7 @@ export interface GeMultiFilmConfig {
   hasInterleafLeadScreen?: boolean; // 0.025mm Pb foil between films
   interleafThicknessMm?: number; // default 0.025 mm
   wideLatitudeGoverning?: GeWideLatitudeGoverning;
+  compositeTimeCorrectionFactor?: number; // 0.40 - 0.85 (default 0.55 per ASME T-282.1)
 }
 
 /**
@@ -577,14 +578,21 @@ export function calculateGeRadiographicExposure(input: GeExposureInput): GeExpos
   if (multiFilmConfig.mode === 'dual_composite') {
     // ASME Section V Article 2 T-282.1 Composite Viewing:
     // When identical/paired films are viewed superimposed, their densities add up (D1 + D2).
-    // Reaching target composite density requires ~half density per film (~0.55x exposure time).
-    multiFilmTimeFactor = 0.55;
+    // Standard baseline is ~0.55x exposure time, fine-tunable via compositeTimeCorrectionFactor (0.40 - 0.85).
+    const rawCompositeFactor = multiFilmConfig.compositeTimeCorrectionFactor ?? 0.55;
+    multiFilmTimeFactor = Number(Math.min(0.85, Math.max(0.4, rawCompositeFactor)).toFixed(2));
     effectiveFilmFactor = primaryFilmSpec.relativeExposureFactor * multiFilmTimeFactor;
-    film1PredictedDensity = Number((input.targetOpticalDensity * 0.52).toFixed(2));
+    const densityScale = multiFilmTimeFactor / 0.55;
+    film1PredictedDensity = Number(
+      Math.min(4.8, Math.max(0.5, input.targetOpticalDensity * 0.52 * densityScale)).toFixed(2)
+    );
     const backScreenFactor = multiFilmConfig.hasInterleafLeadScreen ? 0.90 : 0.96;
-    film2PredictedDensity = Number((input.targetOpticalDensity * 0.48 * backScreenFactor).toFixed(2));
+    film2PredictedDensity = Number(
+      Math.min(4.8, Math.max(0.5, input.targetOpticalDensity * 0.48 * backScreenFactor * densityScale)).toFixed(2)
+    );
     compositeSuperimposedDensity = Number((film1PredictedDensity + film2PredictedDensity).toFixed(2));
-    speedRatioDescription = 'Composite Viewing (Superimposed): Densities sum under negatoscope, reducing exposure time by ~45%';
+    const pctSaved = Math.round((1 - multiFilmTimeFactor) * 100);
+    speedRatioDescription = `Composite Viewing (Superimposed): Densities sum under negatoscope (×${multiFilmTimeFactor.toFixed(2)}, ${pctSaved >= 0 ? `-${pctSaved}%` : `+${Math.abs(pctSaved)}%`} exposure time)`;
   } else if (multiFilmConfig.mode === 'dual_different') {
     // Wide-latitude loading with two different film speeds (e.g. Front Film = D4, Back Film = D7)
     const secFilm = secondaryFilmSpec || primaryFilmSpec;

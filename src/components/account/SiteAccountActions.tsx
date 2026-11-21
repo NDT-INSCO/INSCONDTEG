@@ -1,6 +1,7 @@
-import { lazy, Suspense, useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useId, useRef, useState, type ReactNode } from 'react';
 import { ArrowUpRight, LogIn, LogOut, ShieldCheck, UserPlus, UserRound, X } from 'lucide-react';
 import { useSiteAccount } from '../../account/SiteAccountContext';
+import { useModalFocus } from '../../utils/a11y';
 import type { Language } from '../../types';
 import { AccountPrivacyNotice } from './AccountPrivacyNotice';
 
@@ -13,17 +14,7 @@ function AccountDialog({ label, closeLabel, onClose, children }: {
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
-  useEffect(() => {
-    const dialog = ref.current;
-    if (!dialog) return;
-    const opener = document.activeElement;
-    if (typeof dialog.showModal === 'function') dialog.showModal();
-    else dialog.setAttribute('open', '');
-    return () => {
-      if (typeof dialog.close === 'function') dialog.close();
-      if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
-    };
-  }, []);
+  useModalFocus(true, ref);
   return (
     <dialog
       ref={ref}

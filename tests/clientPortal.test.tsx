@@ -140,6 +140,8 @@ test('deep-link #client/companies skips the chooser modal and opens Client Porta
 
 test('choosing Client Portal from PortalChooser remembers client preference', () => {
   const ui = render(<App />);
+  assert.equal(ui.queryByRole('dialog'), null);
+  fireEvent.click(ui.getByRole('button', { name: 'دليل البوابات' }));
   const dialog = ui.getByRole('dialog');
   fireEvent.click(within(dialog).getByRole('button', { name: /دخول بوابة العملاء/ }));
 

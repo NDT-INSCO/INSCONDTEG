@@ -43,11 +43,11 @@ export const PortalSwitchBar: React.FC<PortalSwitchBarProps> = ({
     const isCurrent = portal === id;
     const activeStyle =
       id === 'company'
-        ? 'bg-cyan-600 text-white shadow-sm'
+        ? 'bg-sky-300 text-slate-950 shadow-sm'
         : id === 'client'
-          ? 'bg-emerald-600 text-white shadow-sm'
+          ? 'bg-emerald-300 text-slate-950 shadow-sm'
           : id === 'network'
-            ? 'bg-violet-600 text-white shadow-sm'
+            ? 'bg-violet-300 text-slate-950 shadow-sm'
             : 'bg-amber-500 text-slate-950 shadow-sm';
     return (
       <button
@@ -56,11 +56,11 @@ export const PortalSwitchBar: React.FC<PortalSwitchBarProps> = ({
           if (!isCurrent) onSwitchPortal(id);
         }}
         aria-current={isCurrent ? 'page' : undefined}
-        className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-bold transition cursor-pointer whitespace-nowrap ${
+        className={`inline-flex min-h-8 items-center justify-center gap-1.5 rounded-md px-1.5 py-1 text-[11px] sm:px-2.5 font-bold transition cursor-pointer whitespace-nowrap ${
           isCurrent ? activeStyle : 'text-slate-400 hover:text-white hover:bg-slate-800'
         }`}
       >
-        <Icon className="w-3.5 h-3.5" aria-hidden="true" />
+        <Icon className="hidden size-3.5 shrink-0 sm:block" aria-hidden="true" />
         <span className="hidden sm:inline">{isAr ? labelAr : labelEn}</span>
         <span className="sm:hidden">{isAr ? shortAr : shortEn}</span>
       </button>
@@ -81,7 +81,7 @@ export const PortalSwitchBar: React.FC<PortalSwitchBarProps> = ({
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-1.5 flex items-center justify-between gap-3">
         <div className="flex min-w-0 flex-wrap items-center gap-2 md:flex-nowrap">
-          <span className="hidden md:inline text-[10px] font-mono uppercase tracking-wider text-slate-500 whitespace-nowrap">
+          <span className="hidden md:inline text-[10px] font-mono uppercase tracking-wider text-slate-300 whitespace-nowrap">
             {isAr ? 'المسار الحالي' : 'Current path'}
           </span>
           <div
@@ -91,7 +91,7 @@ export const PortalSwitchBar: React.FC<PortalSwitchBarProps> = ({
                 ? 'تبديل المسار بين بوابة الشركة وبوابة العملاء والأكاديمية والشبكة الهندسية'
                 : 'Switch between Company, Client, Academy and Engineering Network portals'
             }
-            className="flex items-center gap-1 rounded-lg border border-slate-800 bg-slate-900/60 p-0.5"
+            className="flex max-w-full flex-wrap items-center gap-1 rounded-lg border border-slate-800 bg-slate-900/60 p-0.5"
           >
             {door('company', 'بوابة الشركة', 'Company portal', 'الشركة', 'Company', Building2)}
             {door('client', 'بوابة العملاء', 'Client portal', 'العملاء', 'Clients', BriefcaseBusiness)}

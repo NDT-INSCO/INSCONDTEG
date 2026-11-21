@@ -261,15 +261,18 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
   const userDraggedRef = useRef<boolean>(false);
   const presetTransitionRef = useRef<boolean>(false);
   const onInspectedPartRef = useRef(onInspectedPartChange);
+  const renderOnDemand = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     modeRef.current = mode;
+    renderOnDemand.current?.();
   }, [mode]);
 
   useEffect(() => {
     presetRef.current = cameraPreset;
     userDraggedRef.current = false;
     presetTransitionRef.current = true;
+    renderOnDemand.current?.();
   }, [cameraPreset]);
 
   useEffect(() => {
@@ -278,6 +281,8 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
 
   useEffect(() => {
     isArRef.current = isAr;
+    if (!userDraggedRef.current) presetTransitionRef.current = true;
+    renderOnDemand.current?.();
   }, [isAr]);
 
   useEffect(() => {
@@ -347,7 +352,7 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
     camera.position.set(3.4, 2.25, 7.6);
 
     const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = !isSoftwareGl;
+    controls.enableDamping = !isSoftwareGl && !prefersReducedMotion;
     controls.dampingFactor = 0.06;
     controls.enableZoom = false; // Preserve smooth vertical page scroll
     controls.enablePan = false;
@@ -777,6 +782,7 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
       const w = Math.max(320, mountRef.current.clientWidth);
       const h = Math.max(320, mountRef.current.clientHeight);
       applyResponsiveFraming(w, h);
+      renderOnDemand.current?.();
     };
 
     let resizeObserver: ResizeObserver | null = null;
@@ -820,7 +826,8 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
 
     const tick = () => {
       if (disposed) return;
-      const dt = Math.min(clock.getDelta(), 0.08);
+      // Snap to the selected preset/materials in reduced motion rather than interpolating.
+      const dt = prefersReducedMotion ? 10 : Math.min(clock.getDelta(), 0.08);
       const elapsed = prefersReducedMotion ? 0 : clock.getElapsedTime();
 
       const w = container.clientWidth || initW;
@@ -921,14 +928,27 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
 
       renderer.render(scene, camera);
 
-      if (prefersReducedMotion) return; // Render crisp initial frame when reduced-motion is requested
+      if (prefersReducedMotion) return;
       if (isSoftwareGl) afterDraw(tick);
       else frameId = requestAnimationFrame(tick);
     };
 
-    tick();
+    const requestStaticFrame = () => {
+      if (disposed || frameId) return;
+      frameId = requestAnimationFrame(() => {
+        tick();
+        frameId = 0;
+      });
+    };
+    if (prefersReducedMotion) {
+      renderOnDemand.current = requestStaticFrame;
+      controls.addEventListener('change', requestStaticFrame);
+      requestStaticFrame();
+    } else tick();
 
     return () => {
+      renderOnDemand.current = null;
+      controls.removeEventListener('change', requestStaticFrame);
       disposed = true;
       cancelAnimationFrame(frameId);
       clearTimeout(frameId);

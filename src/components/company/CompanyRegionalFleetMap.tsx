@@ -408,8 +408,8 @@ export const CompanyRegionalFleetMap: React.FC<CompanyRegionalFleetMapProps> = (
           </h3>
           <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
             {isAr
-              ? 'ينطلق أسطول إنسكو المملوك بالكامل من مجمع ورش أبو النمرس بالجيزة والمقر الرئيسي بالمعادي لتغطية محطات توليد الكهرباء العملاقة والمجمعات الصناعية في مصر، مع سجل تعبئة دولية في اليمن وأفغانستان.'
-              : 'Mobilizing directly from INSCO’s Giza calibration depot and Maadi HQ across Egypt’s mega power stations and industrial complexes, backed by cross-border deployments in Yemen and Afghanistan.'}
+              ? 'خريطة لبيانات الانتشار الواردة في ملف الشركة. التوزيع والأزمنة أمثلة مرجعية؛ ليست تتبعًا مباشرًا أو تأكيدًا للجاهزية.'
+              : 'Company profile deployment map. Allocations and times are reference examples, not live tracking or a readiness commitment.'}
           </p>
         </div>
 

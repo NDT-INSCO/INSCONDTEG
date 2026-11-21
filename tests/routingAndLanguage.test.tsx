@@ -52,14 +52,14 @@ test('switching to English updates <html lang/dir> and persists the choice', () 
 
   cleanup();
   const again = render(<App />);
-  assert.ok(again.getByText('INSCO NDT Academy'));
+  assert.ok(again.getByRole('heading', { name: 'Industrial inspection. Documented results.' }));
   assert.equal(document.documentElement.dir, 'ltr');
 });
 
 test('a stored Arabic preference is respected on load', () => {
   storage.setItem('insco_language_v1', 'ar');
   const ui = render(<App />);
-  assert.ok(ui.getByText('أكاديمية إنسكو NDT'));
+  assert.ok(ui.getByRole('heading', { name: 'فحص غير إتلافي ومعالجة حرارية للمشروعات الصناعية' }));
   assert.equal(document.documentElement.dir, 'rtl');
 });
 

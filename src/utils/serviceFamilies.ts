@@ -71,7 +71,7 @@ export const SERVICE_FAMILIES: ServiceFamily[] = [
     companyServiceIds: ['pwht_service'],
     bullets: [
       { ar: 'راجع سجل المعدات وأكّد التوافر للمشروع', en: 'Check the equipment register and confirm availability for the project' },
-      { ar: 'متحكمات 6/12 قناة ومزدوجات حرارية معتمدة', en: '6/12-channel controllers with certified thermocouples' },
+      { ar: 'متحكمات 6/12 قناة ومزدوجات حرارية؛ اطلب سجلات المعايرة', en: '6/12-channel controllers and thermocouples; ask for calibration records' },
       { ar: 'أكواد ASME B31.3 · AWS D10.10 · API 537 · ASME VIII UW-40', en: 'ASME B31.3 · AWS D10.10 · API 537 · ASME VIII UW-40' },
     ],
     rfqServiceType: 'pwht',
@@ -114,7 +114,7 @@ export const SERVICE_FAMILIES: ServiceFamily[] = [
     bullets: [
       { ar: 'اختبار ضغط هيدروستاتيكي بضغوط عالية', en: 'High-pressure hydrostatic testing' },
       { ar: 'تفتيش دهانات وطلاءات واقية', en: 'Protective coating inspection' },
-      { ar: 'لحامون مؤهلون على WPS/PQR وإشراف IRCA', en: 'WPS/PQR-qualified welders under IRCA supervision' },
+      { ar: 'تأهيل اللحامين وإجراءات WPS/PQR حسب العقد', en: 'Confirm welder qualifications and WPS/PQR for the contract' },
     ],
     rfqServiceType: 'mt_pt',
     academyTab: 'standards',

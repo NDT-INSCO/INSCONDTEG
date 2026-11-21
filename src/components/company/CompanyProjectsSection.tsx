@@ -145,8 +145,8 @@ export const CompanyProjectsSection: React.FC<CompanyProjectsSectionProps> = ({
               </div>
               <div className="text-xs text-slate-400 mt-0.5">
                 {isAr
-                  ? 'نُسخ تاريخية لخطابات وأوامر توريد في الملحق D.'
-                  : 'Historical letters and purchase orders are listed in Annex D.'}
+                  ? 'سجل الأعمال في الصفحتين 11–12. يسرد فهرس الملاحق مراجع الخطابات وأوامر التوريد.'
+                  : 'The work history is on pages 11–12. The annex index lists historical references and purchase orders.'}
               </div>
             </div>
           </div>
@@ -157,7 +157,7 @@ export const CompanyProjectsSection: React.FC<CompanyProjectsSectionProps> = ({
             rel="noopener noreferrer"
             className="px-4 py-2 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 transition"
           >
-            {isAr ? 'مراجعة الملحق د (سابقة الأعمال بالـ PDF)' : 'Review Track Record in PDF (Annex D)'}
+            {isAr ? 'افتح فهرس الملاحق (PDF)' : 'Open annex index (PDF)'}
           </a>
         </div>
       </div>

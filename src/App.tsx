@@ -187,6 +187,19 @@ export const App: React.FC = () => {
   const portal: PortalId = route.portal;
 
   useEffect(() => {
+    const chrome = document.getElementById('site-chrome');
+    if (!chrome) return;
+    const sync = () => document.documentElement.style.setProperty('--insco-sticky-offset', `${chrome.getBoundingClientRect().height + 12}px`);
+    sync();
+    const observer = typeof window.ResizeObserver === 'function' ? new window.ResizeObserver(sync) : null;
+    observer?.observe(chrome);
+    return () => {
+      observer?.disconnect();
+      document.documentElement.style.removeProperty('--insco-sticky-offset');
+    };
+  }, [portal, adminOpen]);
+
+  useEffect(() => {
     document.documentElement.lang = language;
     document.documentElement.dir = isAr ? 'rtl' : 'ltr';
     try {
@@ -378,7 +391,13 @@ export const App: React.FC = () => {
     const onHashChange = () => {
       const next = parseRoute(window.location.hash);
       setRoute(next);
-      if (next.portal === 'company' && next.page !== 'home') window.scrollTo({ top: 0, behavior: 'auto' });
+      // Fragment history can fire both popstate and hashchange. Do not scroll
+      // to the top over an anchor the lazy destination has already positioned.
+      if (next.portal === 'company' && (
+        (next.page === 'service' && !next.method) ||
+        (next.page === 'demo' && !next.anchor) ||
+        (next.page === 'detail' && (!next.anchor || next.anchor === COMPANY_DETAILS[next.detail].hash || /^(contact|vendor|capabilities)$/.test(next.anchor)))
+      )) window.scrollTo({ top: 0, behavior: 'auto' });
       setQuoteService(undefined);
       setChooserOpen(false);
       setAdminOpen(window.location.hash === ADMIN_HASH);
@@ -593,7 +612,7 @@ export const App: React.FC = () => {
         className={`min-h-screen flex flex-col font-sans ${isLight ? 'bg-[#f6f6fb] text-slate-900' : 'bg-[#07070f] text-slate-100'}`}
       >
         <SkipToContent language={language} />
-        <div className="sticky top-0 z-50">
+        <div id="site-chrome" className="sticky top-0 z-50">
           <PortalSwitchBar
             language={language}
             portal={portal}
@@ -730,9 +749,7 @@ export const App: React.FC = () => {
                         ? isAr
                           ? 'بوابة العملاء والملفات المكوّدة'
                           : 'Client & Coded Dossier Portal'
-                        : isAr
-                          ? 'أكاديمية إنسكو NDT'
-                          : 'INSCO NDT Academy'}
+                        : 'NDT / PWHT'}
                   </span>
                   <span aria-hidden="true" className="hidden lg:inline text-slate-600">·</span>
                   <span className="hidden lg:inline shrink-0">CP/2026-10</span>
@@ -820,7 +837,8 @@ export const App: React.FC = () => {
                 onClick={() => setMenuOpen(true)}
                 aria-label={isAr ? 'فتح قائمة التنقل' : 'Open navigation menu'}
                 aria-expanded={menuOpen}
-                className="xl:hidden inline-flex items-center justify-center p-2 rounded-lg border border-slate-700 text-slate-200 hover:bg-slate-800 transition cursor-pointer"
+                aria-haspopup="dialog"
+                className={`${portal === 'company' ? '' : 'xl:hidden'} inline-flex items-center justify-center p-2 rounded-lg border border-slate-700 text-slate-200 hover:bg-slate-800 transition cursor-pointer`}
               >
                 <Menu className="w-4 h-4" aria-hidden="true" />
               </button>

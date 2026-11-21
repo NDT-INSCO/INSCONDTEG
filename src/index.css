@@ -1,6 +1,8 @@
 @import "tailwindcss";
-/* Do not use the previous Pages build as input to the next build. */
+/* Build inputs are the application, not generated Pages files or UX evidence. */
 @source not "../docs";
+@source not "../documentation";
+@source not "../scripts/ux-smoke";
 
 :root,
 :root[data-theme="dark"] {
@@ -588,3 +590,6 @@ body {
   .corporate-hero .corporate-actions > * { width: 100%; }
   .corporate-hero-media img { aspect-ratio: 16 / 10; }
 }
+
+/* Anchors and programmatic focus must not land under the shared sticky header. */
+html { scroll-padding-block-start: var(--insco-sticky-offset, 0px); }

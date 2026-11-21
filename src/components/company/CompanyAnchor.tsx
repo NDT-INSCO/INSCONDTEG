@@ -1,14 +1,28 @@
 import { useEffect } from 'react';
 
-/** Wait for the destination (including lazy children) to mount before jumping. */
+/** Route anchors can arrive after nested Suspense boundaries commit. */
 export function CompanyAnchor({ id }: { id?: string }) {
   useEffect(() => {
     if (!id) return;
-    const target = document.getElementById(id);
-    if (!target) return;
-    const chrome = document.getElementById('site-chrome')?.getBoundingClientRect().height ?? 0;
-    const top = target.getBoundingClientRect().top + window.scrollY - chrome - 12;
-    window.scrollTo({ top: Math.max(0, top), behavior: 'auto' });
+    let frame = 0;
+    let observer: MutationObserver | undefined;
+    const jump = () => {
+      const target = document.getElementById(id);
+      if (!target) return false;
+      observer?.disconnect();
+      const scroll = () => target.scrollIntoView?.({ block: 'start', behavior: 'instant' });
+      if (typeof window.requestAnimationFrame === 'function') frame = window.requestAnimationFrame(scroll);
+      else scroll();
+      return true;
+    };
+    if (!jump() && typeof window.MutationObserver === 'function') {
+      observer = new window.MutationObserver(jump);
+      observer.observe(document.getElementById('insco-main') ?? document.body, { childList: true, subtree: true });
+    }
+    return () => {
+      observer?.disconnect();
+      if (frame) window.cancelAnimationFrame(frame);
+    };
   }, [id]);
   return null;
 }

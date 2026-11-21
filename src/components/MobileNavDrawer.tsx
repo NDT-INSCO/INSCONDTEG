@@ -27,7 +27,7 @@ interface DrawerLink {
 }
 
 /**
- * One mobile menu instead of the old 14-chip sticky strip.
+ * One navigation drawer instead of the old 14-chip strip.
  *
  * Two labelled groups (company / academy) keep the two audiences apart without
  * hiding anything: every destination the strip offered is still one tap away.
@@ -153,7 +153,7 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
   );
 
   return (
-    <div className="fixed inset-0 z-[70] xl:hidden" role="presentation">
+    <div className="fixed inset-0 z-[70]" role="presentation">
       <button
         type="button"
         tabIndex={-1}

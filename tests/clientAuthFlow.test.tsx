@@ -655,7 +655,15 @@ test('existing email sign-in is reusable on a corporate page; #admin has no publ
   dom.window.history.replaceState(null, '', '/INSCONDTEG/#about');
   const ui = render(<App />);
   const header = within(ui.getByTestId('site-account-actions'));
-  fireEvent.click(header.getByRole('button', { name: 'Sign in' }));
+  const opener = header.getByRole('button', { name: 'Sign in' });
+  opener.focus();
+  fireEvent.click(opener);
+  const dialog = ui.getByRole('dialog', { name: 'Your INSCO account' });
+  assert.equal(document.activeElement, within(dialog).getByRole('button', { name: 'Close account window' }));
+  fireEvent(dialog, new dom.window.Event('cancel', { cancelable: true }));
+  assert.equal(ui.queryByRole('dialog'), null);
+  assert.equal(document.activeElement, opener);
+  fireEvent.click(opener);
   const panel = within(ui.getByRole('dialog', { name: 'Your INSCO account' }));
   fireEvent.change(await panel.findByLabelText('Account Email *'), { target: { value: email } });
   fireEvent.change(panel.getByLabelText('Password *'), { target: { value: shortPassword } });

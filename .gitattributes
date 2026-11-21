@@ -1,0 +1,2 @@
+# PDFs are binary; preserve their bytes and cross-reference whitespace.
+*.pdf binary

@@ -103,7 +103,7 @@ test('the first screen has just the two portal journeys and one illustrative ima
 
 /* --------------------------------- demo page ------------------------------ */
 
-test('#demo renders the demonstrations and skips the chooser', async () => {
+test('#demo renders anchors but does not mount demonstration tools without opt-in', async () => {
   dom.window.history.replaceState(null, '', '/-Project-/#demo');
   const ui = render(<App />);
 
@@ -115,6 +115,9 @@ test('#demo renders the demonstrations and skips the chooser', async () => {
   });
   assert.ok(ui.container.querySelector('#ultrasonic-lab'), 'the UT/PAUT lab must be on the demo page');
   assert.equal(ui.container.querySelector('#services'), null, 'the commercial page must not render');
+  assert.equal(ui.container.querySelector('details[open]'), null);
+  assert.equal(ui.container.querySelector('[data-demonstration]'), null);
+  assert.equal(ui.queryByTestId('company-hero-banner'), null);
 });
 
 /* ------------------------------- mobile menu ------------------------------ */

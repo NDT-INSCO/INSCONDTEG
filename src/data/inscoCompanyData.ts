@@ -14,16 +14,11 @@ export interface CompanyProfile {
   egacCabNo: string;
   ndtOrgId: string;
   pdfBrochureUrl: string;
-  quote: {
-    text: { ar: string; en: string };
-    author: { ar: string; en: string };
-  };
   metrics: {
     value: string;
     label: { ar: string; en: string };
     subLabel: { ar: string; en: string };
   }[];
-  quickFacts: { ar: string; en: string }[];
   contacts: {
     phones: string[];
     whatsapp: string;
@@ -53,10 +48,7 @@ export interface CompanyProfile {
   leadAuditor: {
     title: { ar: string; en: string };
     body: string;
-    courseNo: string;
-    certNo: string;
-    udn: string;
-    scope: { ar: string; en: string };
+          scope: { ar: string; en: string };
   };
   ndtMethods: {
     id: string;
@@ -133,17 +125,6 @@ export const INSCO_COMPANY_DATA: CompanyProfile = {
   ndtOrgId: '54161',
   pdfBrochureUrl: publicUrl('assets/aistudio/__________________d082de13.pdf'),
 
-  quote: {
-    text: {
-      ar: 'عملاؤنا لا يشترون مجرد اختبارات - إنهم يشترون اليقين الهندسي والسلامة المطلقة. كل تقرير نصدره يحمل ثقل اعتماداتنا وتوقيع مهندسينا المعتمدين.',
-      en: 'Our clients do not buy tests - they buy certainty. Every report we issue carries the weight of our certifications and the signature of our engineers.'
-    },
-    author: {
-      ar: 'الإدارة العامة - شركة إنسكو',
-      en: 'General Management, INSCO'
-    }
-  },
-
   metrics: [
     {
       // Company incorporated 2010; this figure is the management team's
@@ -158,31 +139,19 @@ export const INSCO_COMPANY_DATA: CompanyProfile = {
     },
     {
       value: '16',
-      label: { ar: 'وحدة معالجة حرارية PWHT مملوكة بالكامل', en: 'PWHT 65 kW Units Owned' },
-      subLabel: { ar: 'أجهزة أوتوماتيكية مبرمجة 24/7', en: '100% company-owned automatic fleet' }
+      label: { ar: 'وحدة معالجة حرارية مذكورة في الملف', en: 'PWHT units in the dossier' },
+      subLabel: { ar: 'التوافر والمعايرة يحتاجان تأكيدًا', en: 'Confirm availability and calibration' }
     },
     {
-      value: '12',
-      label: { ar: 'عائلة متكاملة من طرق الفحص NDT', en: 'NDT & Mechanical Method Families' },
-      subLabel: { ar: 'تشمل PAUT و RT و PMI', en: 'Full volumetric, surface & metallurgy suite' }
+      value: '11',
+      label: { ar: 'طريقة في فهرس الخدمات', en: 'Methods in the services catalog' },
+      subLabel: { ar: 'تشمل PAUT و RT و PMI', en: 'Volumetric, surface and materials methods' }
     },
     {
       value: '3',
       label: { ar: 'شهادات ISO مذكورة في الملف', en: 'ISO records in the dossier' },
-      subLabel: { ar: 'ISO 9001, 14001, 45001 معتمدة من EGAC', en: 'EGAC CAB #120007 - IAF MLA' }
+      subLabel: { ar: 'اطلب نسخًا سارية من الجهة المصدرة', en: 'Ask for current copies from the issuer' }
     }
-  ],
-
-  quickFacts: [
-    { ar: 'تأسست عام 2010 - سجل تجاري 209632 - ترخيص 3566/2010', en: 'Established 2010 - Cert. of Inc. 3566/2010 - CR 209632' },
-    { ar: 'نظام إدارة ثلاثي الأيزو معتمد حتى 2028 (الجودة، البيئة، والسلامة المهنية)', en: 'Triple ISO-certified management system through 2028' },
-    { ar: 'كبير مدققي جودة معتمد CQI-IRCA Lead Auditor ضمن طاقم الشركة الدائم', en: 'CQI-IRCA Lead Auditor on permanent in-house staff' },
-    { ar: 'فريق مهندسين وفنيين معتمدين ASNT / ISO 9712 Level II في كافة الطرق', en: 'Certified ASNT Level II inspection team across all techniques' },
-    { ar: 'أسطول كامل من 16 وحدة معالجة حرارية أوتوماتيكية 65 kW جاهزة للاستنفار الفوري', en: '16 x 65 kW automatic PWHT units - 100% company owned in Cairo' },
-    { ar: 'فحوصات الموجات فوق الصوتية والتصوير الإشعاعي والفحوصات السطحية حسب نطاق العمل', en: 'Ultrasonic, radiographic and surface inspection according to project scope' },
-    { ar: 'ممارسات وتراخيص إشعاعية مرخصة رسمياً من هيئة الرقابة النووية والإشعاعية ENRRA', en: 'ENRRA-licensed radiation practices and transport permits' },
-    { ar: 'مسجلة بالدليل الدولي للفحص غير الإتلافي www.ndt.org (رقم 54161)', en: 'Listed on www.ndt.org international industrial directory (#54161)' },
-    { ar: 'المقر الرئيسي بالقاهرة ومخازن الورش بالجيزة مع انتشار ميداني في مصر وخارجها', en: 'Cairo headquarters & Giza works with regional mobilization' }
   ],
 
   contacts: {
@@ -202,61 +171,11 @@ export const INSCO_COMPANY_DATA: CompanyProfile = {
   },
 
   fiveReasons: [
-    {
-      number: '01',
-      title: {
-        ar: 'مورد واحد بنطاق عمل متكامل (One Supplier, Full Scope)',
-        en: 'One Supplier, Full Scope'
-      },
-      description: {
-        ar: 'فحوصات NDT والمعالجة الحرارية PWHT ودعم اللحام وتوريد العمالة المتخصصة تحت مظلة نظام إدارة واحد معتمد - واجهات اتصال أقل ومسؤولية تعاقدية موحدة.',
-        en: 'NDT + heat treatment + welding support + manpower under a single certified management system - fewer interfaces, one single accountability.'
-      }
-    },
-    {
-      number: '02',
-      title: {
-        ar: 'الملكية تعني الجاهزية الفورية (Ownership Equals Readiness)',
-        en: 'Ownership Equals Readiness'
-      },
-      description: {
-        ar: 'كل جهاز ووحدة معالجة حرارية مملوكة بالكامل لشركة إنسكو ومخزنة بالقاهرة - استنفار فوري لأي موقع عمل في مصر دون انتظار أو تأخير من سوق الإيجارات.',
-        en: 'Every instrument and heat-treatment unit is company-owned and stored in Cairo - mobilization to any site in Egypt without rental-market delays.'
-      }
-    },
-    {
-      number: '03',
-      title: {
-        ar: 'ثقافة جودة خاضعة للتدقيق الصارم (An Audited Quality Culture)',
-        en: 'An Audited Quality Culture'
-      },
-      description: {
-        ar: 'كبير مدققي جودة CQI-IRCA Lead Auditor داخل الشركة، وفنيون معتمدون ASNT Level II، وتوكيد وضبط جودة ينفذه مهندسو الشركة، و3 أنظمة أيزو تخضع لمراجعات سنوية حتى 2028.',
-        en: 'A CQI-IRCA lead auditor inside the company, ASNT Level II technicians, QC/QA executed by company engineers, three ISO systems surveilled annually through 2028.'
-      }
-    },
-    {
-      number: '04',
-      title: {
-        ar: 'مكانة واعتمادات عابرة للحدود (Recognition Beyond Borders)',
-        en: 'Recognition Beyond Borders'
-      },
-      description: {
-        ar: 'ممارسات إشعاعية مرخصة من ENRRA، وتسجيل معتمد في دليل www.ndt.org الدولي، وسابقة أعمال منفذة في اليمن وأفغانستان والمنطقة العربية.',
-        en: 'ENRRA-licensed radiation practices, listing on www.ndt.org international directory, and completed works in Yemen, Afghanistan, and the region.'
-      }
-    },
-    {
-      number: '05',
-      title: {
-        ar: 'امتثال كودي موثق يمكنك أرشفته (Compliance You Can File)',
-        en: 'Compliance You Can File'
-      },
-      description: {
-        ar: 'أرقام الشهادات وتواريخ الإصدار والانتهاء منشورة للتحقق الفوري مع جهات الاعتماد - ملف المورد جاهز للاعتماد مع أدلة كاملة في المرفقات.',
-        en: 'Certificate numbers, issue and expiry dates published for direct verification with accreditation bodies - vendor-file ready with full evidence.'
-      }
-    }
+    { number: '01', title: { ar: 'تحديد نطاق الفحص', en: 'Scope the inspection' }, description: { ar: 'حدّد الأصل والمادة والطريقة المطلوبة قبل التسعير.', en: 'Identify the asset, material and required method before pricing.' } },
+    { number: '02', title: { ar: 'مراجعة سجل المعدات', en: 'Review the equipment register' }, description: { ar: 'قارن سجل الأجهزة ثم أكّد التوافر والمعايرة للنطاق المطلوب.', en: 'Check the register, then confirm availability and calibration for the scope.' } },
+    { number: '03', title: { ar: 'طلب وثائق الجودة', en: 'Request quality documents' }, description: { ar: 'قارن أرقام الشهادات وتواريخها بنسخة حديثة من الجهة المصدرة.', en: 'Compare certificate IDs and dates with current documents from the issuer.' } },
+    { number: '04', title: { ar: 'تأكيد الترخيص والتأهيل', en: 'Confirm licence and qualifications' }, description: { ar: 'راجع نطاق الترخيص وتأهيل الطاقم قبل العمل، خاصةً التصوير الإشعاعي.', en: 'Verify the licence scope and crew qualifications before work, especially radiography.' } },
+    { number: '05', title: { ar: 'مراجعة سجل الأعمال', en: 'Check work history' }, description: { ar: 'فرّق بين مرجع تاريخي وعقد أو تأهيل حالي.', en: 'Distinguish a historical reference from a current contract or approval.' } },
   ],
 
   certifications: [
@@ -318,16 +237,13 @@ export const INSCO_COMPANY_DATA: CompanyProfile = {
 
   leadAuditor: {
     title: {
-      ar: 'كبير مدققي جودة معتمد CQI-IRCA Lead Auditor',
-      en: 'In-House CQI-IRCA Lead Auditor'
+      ar: 'سجل تدريبي لمدقق نظم الإدارة',
+      en: 'Lead auditor training record'
     },
     body: 'CQI & IRCA - Chartered Quality Institute / International Register of Certificated Auditors (UK)',
-    courseNo: 'CQI-IRCA Course No. 18096',
-    certNo: 'Certificate No. 121',
-    udn: 'UDN 27956',
     scope: {
-      ar: 'نطاق تدقيق معتمد لجميع الأنظمة الثلاثية: خدمات الفحص غير الإتلافي والمعالجة الحرارية واللحام.',
-      en: 'Certified scope across all three systems: provision of NDT services, heat treatment and welding.'
+      ar: 'يفهرس الملحق A-04 سجل تدريب تاريخيًا. اطلب ما يثبت التأهيل الحالي للمختص.',
+      en: 'Annex A-04 indexes historical training. Request evidence of current individual qualifications.'
     }
   },
 
@@ -480,16 +396,16 @@ export const INSCO_COMPANY_DATA: CompanyProfile = {
 
   pwhtFleet: {
     title: {
-      ar: 'أسطول المعالجة الحرارية بعد اللحام PWHT (16 وحدة 65 kW مملوكة بالكامل)',
-      en: 'Post-Weld Heat Treatment Fleet (16 x 65 kW Automatic Units, 100% Owned)'
+      ar: 'أسطول المعالجة الحرارية بعد اللحام (PWHT)',
+      en: 'Post-weld heat treatment fleet (PWHT)'
     },
     unitCount: 16,
     powerRating: '65 kW Fully Automatic',
     features: [
-      { ar: '16 وحدة معالجة حرارية أوتوماتيكية بقدرة 65 kW مخزنة بالقاهرة وجاهزة للاستنفار', en: '16 fully automatic 65 kW units stored in Cairo, ready for instant field mobilization' },
-      { ar: 'متحكمات ومبرمجات حرارية مستقلة متعددة القنوات 6/12 قناة', en: 'Independent multi-channel programmers and calibrated strip chart recorders' },
-      { ar: 'مزدوجات حرارية (Thermocouples) معتمدة وسخانات سيراميكية مرنة FCP', en: 'Certified calibrated thermocouples and high-durability flexible ceramic pads' },
-      { ar: 'تشغيل دورات حرارية مبرمجة على مدار 24/7 دون انقطاع', en: 'Continuous 24/7 programmed thermal soaking, heating, and cooling cycles' }
+      { ar: '16 وحدة معالجة حرارية 65 kW مذكورة في ملف الشركة؛ التوافر يحتاج تأكيدًا', en: '16 automatic 65 kW units listed in the company dossier; confirm availability' },
+      { ar: 'متحكمات ومبرمجات حرارية مستقلة متعددة القنوات 6/12 قناة', en: 'Independent multi-channel programmers and strip chart recorders' },
+      { ar: 'مزدوجات حرارية وسخانات سيراميكية مرنة', en: 'Thermocouples and flexible ceramic pads' },
+      { ar: 'تسجيل مراحل التسخين والمكوث والتبريد', en: 'Recording of heating, soak and cooling stages' }
     ],
     codes: ['ASME B31.3 Table 331.1.1', 'AWS D10.10', 'AWS D1.1', 'API 537', 'ASME Section VIII UW-40'],
     description: {
@@ -503,13 +419,13 @@ export const INSCO_COMPANY_DATA: CompanyProfile = {
       id: 'ndt_service',
       title: { ar: 'الفحوصات غير الإتلافية الشاملة (Complete NDT Services)', en: 'Complete Non-Destructive Testing' },
       description: {
-        ar: 'تغطية شاملة لـ 12 طريقة فحص تحت نظام إدارة معتمد، بأيدي مهندسينا ومعداتنا المملوكة، جاهزون في موقعك.',
-        en: 'Complete method coverage under one certified system - company engineers, company-owned equipment, ready at your site.'
+        ar: 'طرق فحص حجمية وسطحية شائعة. يراجع الفريق المعدات والتأهيل المطلوب لكل نطاق.',
+        en: 'Common volumetric and surface inspection methods. The team confirms equipment and qualifications for each scope.'
       },
       highlights: [
         { ar: 'فحوصات حجمية وسطحية وميتالورجية', en: 'Volumetric, surface, and metallurgy testing' },
-        { ar: 'فريق معتمد ASNT / ISO 9712 Level II', en: 'ASNT / ISO 9712 Level II certified team' },
-        { ar: 'تراخيص إشعاعية كاملة من ENRRA', en: 'Licensed ENRRA radiation practices' }
+        { ar: 'أكّد تأهيل فريق الفحص للنطاق', en: 'Confirm inspector qualifications for the scope' },
+        { ar: 'تحقق من نطاق الترخيص الإشعاعي', en: 'Confirm applicable radiography licensing' }
       ],
       iconName: 'Search'
     },
@@ -517,13 +433,13 @@ export const INSCO_COMPANY_DATA: CompanyProfile = {
       id: 'pwht_service',
       title: { ar: 'المعالجة الحرارية بعد اللحام (PWHT Field Services)', en: 'Post-Weld Heat Treatment (PWHT)' },
       description: {
-        ar: 'أكبر أسطول وحدات 65 kW أوتوماتيكية بالقاهرة، معالجة خطوط الأنابيب والأوعية والمبادلات والمراجل بدقة كودية صارمة.',
-        en: 'Leading 16-unit 65 kW fleet in Cairo for thermal stress relieving of pipelines, pressure vessels and boilers.'
+        ar: 'المعالجة الحرارية للأنابيب والأوعية والمراجل حسب الإجراء المطلوب.',
+        en: 'Heat treatment for pipelines, vessels and boilers according to the project procedure.'
       },
       highlights: [
-        { ar: '16 وحدة 65 kW مملوكة بالكامل', en: '16 company-owned automatic units' },
-        { ar: 'تسجيل ومطابقة المخططات مع ASME/AWS', en: 'Calibrated charts audited to ASME/AWS' },
-        { ar: 'أطقم تشغيل محترفة على مدار 24 ساعة', en: '24/7 experienced operating crews' }
+        { ar: '16 وحدة 65 kW في سجل الشركة', en: '16 automatic units listed in the dossier' },
+        { ar: 'تسجيل منحنيات المعالجة حسب إجراء المشروع', en: 'Thermal cycle records for the project procedure' },
+        { ar: 'تنسيق أطقم التشغيل حسب نطاق العمل', en: 'Crew coordination according to the project scope' }
       ],
       iconName: 'Flame'
     },
@@ -536,8 +452,8 @@ export const INSCO_COMPANY_DATA: CompanyProfile = {
       },
       highlights: [
         { ar: 'لحامون مؤهلون كودياً على إجراءات WPS/PQR', en: 'Welders qualified to project WPS/PQR codes' },
-        { ar: 'إشراف مباشر من مدققي الجودة IRCA', en: 'Direct oversight by IRCA lead auditors' },
-        { ar: 'جاهزية لدعم المشروعات البترولية والصناعية', en: 'Turnkey mobilization for shutdown works' }
+        { ar: 'أكّد التأهيل والإشراف وفق العقد', en: 'Confirm qualifications and supervision for the contract' },
+        { ar: 'تنسيق أعمال المواقع الصناعية', en: 'Industrial site coordination' }
       ],
       iconName: 'Wrench'
     },
@@ -550,7 +466,7 @@ export const INSCO_COMPANY_DATA: CompanyProfile = {
       },
       highlights: [
         { ar: 'إصدار واعتماد إجراءات التفتيش الفنية', en: 'Authoring & approving technical ITPs' },
-        { ar: 'تأجير أجهزة مع مشغلين محترفين', en: 'Equipment rental with certified operators' },
+        { ar: 'تأجير أجهزة مع مشغلين محترفين', en: 'Equipment rental with operators, subject to availability' },
         { ar: 'نقطة اتصال واحدة مسؤولة عن الجودة', en: 'Single accountable QA/QC interface' }
       ],
       iconName: 'ShieldCheck'
@@ -674,7 +590,7 @@ export const INSCO_COMPANY_DATA: CompanyProfile = {
       pageNo: 15,
       category: 'Annex A - Management System Certificates',
       issuingBody: 'QCS Middle East Africa / EGAC CAB #120007',
-      summary: { ar: 'شهادة رقم 24202QMS094 سارية حتى 15 يناير 2028 لنطاق خدمات NDT والمعالجة الحرارية واللحام.', en: 'Cert. No. 24202QMS094 valid to 15 Jan 2028 for NDT, PWHT and welding.' }
+      summary: { ar: 'رقم 24202QMS094. تاريخ الانتهاء المدون 15 يناير 2028؛ راجع الجهة المصدرة.', en: 'No. 24202QMS094. Recorded expiry: 15 January 2028. Confirm with the issuer.' }
     },
     {
       id: 'annex_a_02',
@@ -683,7 +599,7 @@ export const INSCO_COMPANY_DATA: CompanyProfile = {
       pageNo: 16,
       category: 'Annex A - Management System Certificates',
       issuingBody: 'QCS Middle East Africa / EGAC CAB #120007',
-      summary: { ar: 'شهادة رقم 23402EMS042 سارية حتى 15 يناير 2028 لنطاق الفحوصات والخدمات البترولية.', en: 'Cert. No. 23402EMS042 valid to 15 Jan 2028 for environmental management.' }
+      summary: { ar: 'رقم 23402EMS042. تاريخ الانتهاء المدون 15 يناير 2028؛ راجع الجهة المصدرة.', en: 'No. 23402EMS042. Recorded expiry: 15 January 2028. Confirm with the issuer.' }
     },
     {
       id: 'annex_a_03',
@@ -692,16 +608,16 @@ export const INSCO_COMPANY_DATA: CompanyProfile = {
       pageNo: 17,
       category: 'Annex A - Management System Certificates',
       issuingBody: 'QCS Middle East Africa / EGAC CAB #120007',
-      summary: { ar: 'شهادة رقم 23502OHS063 سارية حتى 15 يناير 2028 للسلامة المهنية والإشعاعية.', en: 'Cert. No. 23502OHS063 valid to 15 Jan 2028 for occupational health & safety.' }
+      summary: { ar: 'رقم 23502OHS063. تاريخ الانتهاء المدون 15 يناير 2028؛ راجع الجهة المصدرة.', en: 'No. 23502OHS063. Recorded expiry: 15 January 2028. Confirm with the issuer.' }
     },
     {
       id: 'annex_a_04',
       code: 'A-04',
-      title: { ar: 'شهادة كبير مدققي الجودة CQI-IRCA Lead Auditor', en: 'CQI-IRCA Lead Auditor Certificate (No. 121)' },
+      title: { ar: 'سجل تدريب مدقق جودة CQI-IRCA', en: 'CQI-IRCA Lead Auditor training record' },
       pageNo: 18,
       category: 'Annex A - Management System Certificates',
-      issuingBody: 'CQI & IRCA (UK) / Course No. 18096',
-      summary: { ar: 'شهادة مدقق رئيسي معتمد دولياً رقم 121 / UDN 27956 لكبير مدققي إنسكو.', en: 'QMS ISO 9001:2015 Lead Auditor qualification Certificate No. 121 / UDN 27956.' }
+      issuingBody: 'CQI & IRCA (UK)',
+      summary: { ar: 'سجل تدريب مدقق نظم إدارة مذكور في ملف الشركة؛ نسخة المستند على الطلب.', en: 'Historical lead auditor training record listed in the dossier; request the document privately.' }
     },
     {
       id: 'annex_b_01',
@@ -719,7 +635,7 @@ export const INSCO_COMPANY_DATA: CompanyProfile = {
       pageNo: 30,
       category: 'Annex C - Regulatory Licenses & Radiation Safety',
       issuingBody: 'Egyptian Nuclear & Radiological Regulatory Authority (ENRRA)',
-      summary: { ar: 'ترخيص مكاني رسمي رقم LS.0112 بحيازة واستخدام مصادر التصوير الإشعاعي الصناعي (Ir-192 حتى 100 Ci).', en: 'Official ENRRA license covering industrial radiography sources (Ir-192 up to 100 Ci).' }
+      summary: { ar: 'مرجع لوثائق التصوير الإشعاعي في الملف التاريخي. اطلب النسخة الحالية وتحقق من نطاقها.', en: 'Historical reference to industrial radiography records. Request the current licence and check its scope.' }
     },
     {
       id: 'annex_d_02',
@@ -737,7 +653,7 @@ export const INSCO_COMPANY_DATA: CompanyProfile = {
       pageNo: 35,
       category: 'Annex E - Client Orders, Contracts & References',
       issuingBody: 'El Sewedy Electric - Transformers & Distribution',
-      summary: { ar: 'أمر توريد رسمي لفحوصات VT, UT, MT, PT, RT, الصلادة و PWHT مع خطاب ضمان 700 ألف جنيه.', en: 'Official signed purchase order for full NDT and PWHT transformer works.' }
+      summary: { ar: 'مرجع أمر توريد مذكور لفحوصات مصنع المحولات. نسخة العقد على الطلب.', en: 'Historical purchase order reference for the transformer works; ask for an approved copy.' }
     },
     {
       id: 'annex_e_06',

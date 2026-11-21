@@ -59,7 +59,8 @@ export const CompanyHero: React.FC<CompanyHeroProps> = ({
   const [activeVisualMode, setActiveVisualMode] = useState<'banner3d' | 'hologram' | 'photo'>('banner3d');
   const [banner3dMode, setBanner3dMode] = useState<HeroBanner3dMode>('ut');
   const [cameraPreset, setCameraPreset] = useState<HeroBannerCameraPreset>('overview');
-  const [autoOrbit, setAutoOrbit] = useState<boolean>(true);
+  const [reduceMotion] = useState(() => Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches));
+  const [autoOrbit, setAutoOrbit] = useState(!reduceMotion);
   const [dockCollapsed, setDockCollapsed] = useState<boolean>(false);
   const [inspectedPart, setInspectedPart] = useState<InspectedBannerPart | null>(null);
 
@@ -81,8 +82,8 @@ export const CompanyHero: React.FC<CompanyHeroProps> = ({
     pwht: {
       labelAr: 'معالجة PWHT',
       labelEn: 'PWHT 65 kW',
-      specAr: 'أسطول 16 وحدة · تسخين 760°C مبرمج',
-      specEn: '16-Unit Fleet · 760°C Programmed Soak',
+      specAr: 'دورة توضيحية · تسخين ومكوث وتبريد',
+      specEn: 'Illustrative ramp, soak and cooling cycle',
     },
   };
 
@@ -144,19 +145,20 @@ export const CompanyHero: React.FC<CompanyHeroProps> = ({
             <span aria-hidden="true">·</span>
             <span>{isAr ? 'س.ت: ' + INSCO_COMPANY_DATA.commercialRegistrationNo : 'CR: ' + INSCO_COMPANY_DATA.commercialRegistrationNo}</span>
             <span aria-hidden="true">·</span>
-            <span>{isAr ? 'اعتماد إيجاك: ' + INSCO_COMPANY_DATA.egacCabNo : 'EGAC CAB: ' + INSCO_COMPANY_DATA.egacCabNo}</span>
+            <span>{isAr ? 'رقم الجهة في الملف: ' + INSCO_COMPANY_DATA.egacCabNo : 'EGAC CAB: ' + INSCO_COMPANY_DATA.egacCabNo}</span>
             <span aria-hidden="true">·</span>
             <span>{isAr ? 'سجل NDT العالمي: ' + INSCO_COMPANY_DATA.ndtOrgId : 'ndt.org ID: ' + INSCO_COMPANY_DATA.ndtOrgId}</span>
           </div>
 
           {/* Visual Mode Switcher */}
-          <div className="flex items-center gap-1 p-1 bg-slate-900/95 border border-slate-700/80 rounded-lg">
+          <div className="flex max-w-full flex-wrap items-center gap-1 p-1 bg-slate-900/95 border border-slate-700/80 rounded-lg">
             <button
               type="button"
               onClick={() => setActiveVisualMode('banner3d')}
+              aria-pressed={activeVisualMode === 'banner3d'}
               className={`px-2.5 py-1 text-xs font-medium rounded-md transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
                 activeVisualMode === 'banner3d'
-                  ? 'bg-cyan-600 text-white'
+                  ? 'bg-sky-300 text-slate-950'
                   : 'text-slate-300 hover:text-white'
               }`}
             >
@@ -166,9 +168,10 @@ export const CompanyHero: React.FC<CompanyHeroProps> = ({
             <button
               type="button"
               onClick={() => setActiveVisualMode('hologram')}
+              aria-pressed={activeVisualMode === 'hologram'}
               className={`px-2.5 py-1 text-xs font-medium rounded-md transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
                 activeVisualMode === 'hologram'
-                  ? 'bg-cyan-600 text-white'
+                  ? 'bg-sky-300 text-slate-950'
                   : 'text-slate-300 hover:text-white'
               }`}
             >
@@ -178,9 +181,10 @@ export const CompanyHero: React.FC<CompanyHeroProps> = ({
             <button
               type="button"
               onClick={() => setActiveVisualMode('photo')}
+              aria-pressed={activeVisualMode === 'photo'}
               className={`px-2.5 py-1 text-xs font-medium rounded-md transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
                 activeVisualMode === 'photo'
-                  ? 'bg-cyan-600 text-white'
+                  ? 'bg-sky-300 text-slate-950'
                   : 'text-slate-300 hover:text-white'
               }`}
             >
@@ -207,10 +211,7 @@ export const CompanyHero: React.FC<CompanyHeroProps> = ({
             </div>
 
             <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-2xl">
-              {INSCO_COMPANY_DATA.tagline[language]}.{' '}
-              {isAr
-                ? 'شريك معتمد لكبرى المشروعات القومية والصناعية ومحطات الطاقة في الشرق الأوسط وأفريقيا منذ عام 2010، بأسطول متكامل وشهادات جودة ثلاثية معتمدة.'
-                : 'A certified partner to leading mega-projects, industrial plants, and power stations across the Middle East and Africa since 2010, backed by an owned automated fleet and triple ISO accreditations.'}
+              {isAr ? 'مشهد محاكاة للتعلّم. القيم المعروضة توضيحية ولا تصلح لإعدادات تشغيل أو نتائج فحص.' : 'An illustrative learning scene. Displayed values are not operating settings or inspection results.'}
             </p>
 
             {/* Primary & Portal Navigation Actions */}
@@ -268,18 +269,6 @@ export const CompanyHero: React.FC<CompanyHeroProps> = ({
               </button>
             </div>
 
-            {/* Executive Quote Block */}
-            <div className="pt-3 border-t border-slate-800/90">
-              <div className="text-xs text-slate-400 uppercase tracking-wider mb-1 font-mono">
-                {isAr ? 'بيان الإدارة التنفيذية' : 'Executive Statement'}
-              </div>
-              <blockquote className="text-xs sm:text-sm text-slate-200 italic leading-relaxed">
-                "{INSCO_COMPANY_DATA.quote.text[language]}"
-              </blockquote>
-              <div className="mt-1 text-xs font-semibold text-cyan-400">
-                {INSCO_COMPANY_DATA.quote.author[language]}
-              </div>
-            </div>
           </div>
 
           {/* Right / End Column: Unobstructed 3D Stage OR Alternate Visual Mode */}
@@ -331,19 +320,20 @@ export const CompanyHero: React.FC<CompanyHeroProps> = ({
                   {!dockCollapsed && (
                     <div className="w-full rounded-xl bg-slate-950/92 border border-slate-700/85 p-2.5 flex flex-wrap items-center justify-between gap-2 shadow-xl">
                       {/* Inspection Technique Mode Tabs */}
-                      <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-lg border border-slate-800">
+                      <div className="flex max-w-full flex-wrap items-center gap-1 bg-slate-900 p-1 rounded-lg border border-slate-800">
                         {(['ut', 'rt', 'pwht'] as HeroBanner3dMode[]).map(m => (
                           <button
                             key={m}
                             type="button"
                             onClick={() => setBanner3dMode(m)}
+                            aria-pressed={banner3dMode === m}
                             className={`px-2.5 py-1 rounded-md text-xs font-semibold transition cursor-pointer whitespace-nowrap shrink-0 ${
                               banner3dMode === m
                                 ? m === 'ut'
-                                  ? 'bg-cyan-600 text-white'
+                                  ? 'bg-sky-300 text-slate-950'
                                   : m === 'rt'
                                     ? 'bg-amber-500 text-slate-950'
-                                    : 'bg-rose-600 text-white'
+                                    : 'bg-rose-300 text-slate-950'
                                 : 'text-slate-300 hover:text-white'
                             }`}
                           >
@@ -360,6 +350,7 @@ export const CompanyHero: React.FC<CompanyHeroProps> = ({
                             key={p.id}
                             type="button"
                             onClick={() => setCameraPreset(p.id)}
+                            aria-pressed={cameraPreset === p.id}
                             className={`px-2 py-1 rounded-md text-[11px] font-medium transition cursor-pointer whitespace-nowrap shrink-0 ${
                               cameraPreset === p.id
                                 ? 'bg-slate-800 text-cyan-300 border border-cyan-500/40'
@@ -375,14 +366,16 @@ export const CompanyHero: React.FC<CompanyHeroProps> = ({
                       <button
                         type="button"
                         onClick={() => setAutoOrbit(prev => !prev)}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs text-slate-200 cursor-pointer whitespace-nowrap shrink-0"
+                        aria-pressed={autoOrbit}
+                        disabled={reduceMotion}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs text-slate-200 cursor-pointer whitespace-nowrap shrink-0 disabled:cursor-default"
                       >
                         {autoOrbit ? (
                           <Pause className="w-3.5 h-3.5 text-cyan-400" aria-hidden="true" />
                         ) : (
                           <Play className="w-3.5 h-3.5 text-amber-400" aria-hidden="true" />
                         )}
-                        <span>{autoOrbit ? (isAr ? 'دوران نشط' : 'Orbiting') : isAr ? 'متوقف' : 'Paused'}</span>
+                        <span>{reduceMotion ? (isAr ? 'تقليل الحركة' : 'Reduced motion') : autoOrbit ? (isAr ? 'دوران نشط' : 'Orbiting') : isAr ? 'متوقف' : 'Paused'}</span>
                       </button>
                     </div>
                   )}
@@ -405,10 +398,10 @@ export const CompanyHero: React.FC<CompanyHeroProps> = ({
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/30 to-transparent pointer-events-none" />
                 <div className="absolute top-4 left-4 right-4 flex items-center justify-between text-[11px] font-mono text-cyan-300 pointer-events-none">
                   <div className="px-2.5 py-1 rounded-md bg-slate-950/90 border border-cyan-500/30">
-                    {isAr ? 'محطة البرلس 4800 MW · وحدة 4' : 'Burullus CCPP 4800 MW · Unit 4'}
+                    {isAr ? 'مشهد توضيحي لعملية فحص' : 'Illustrative inspection scene'}
                   </div>
-                  <div className="px-2.5 py-1 rounded-md bg-slate-950/90 border border-cyan-500/30 text-emerald-400">
-                    ASME SEC. V ART. 4 · PASS
+                  <div className="px-2.5 py-1 rounded-md bg-slate-950/90 border border-cyan-500/30 text-sky-300">
+                    INSCO · DEMO
                   </div>
                 </div>
                 <div className="absolute bottom-4 left-4 right-4 p-3 rounded-xl bg-slate-950/90 border border-slate-800 text-xs text-slate-200 flex items-center justify-between">
@@ -440,15 +433,15 @@ export const CompanyHero: React.FC<CompanyHeroProps> = ({
             <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs font-mono pointer-events-auto">
               <div className="p-2.5 rounded-lg bg-slate-900/90 border border-slate-800">
                 <ShieldCheck className="w-4 h-4 text-cyan-400 mx-auto mb-1" aria-hidden="true" />
-                <span className="text-[11px] text-slate-200 font-sans">Triple ISO 2028</span>
+                <span className="text-[11px] text-slate-200 font-sans">{isAr ? 'ملف الشهادات' : 'Certificate records'}</span>
               </div>
               <div className="p-2.5 rounded-lg bg-slate-900/90 border border-slate-800">
                 <Award className="w-4 h-4 text-cyan-400 mx-auto mb-1" aria-hidden="true" />
-                <span className="text-[11px] text-slate-200 font-sans">IRCA Auditor</span>
+                <span className="text-[11px] text-slate-200 font-sans">{isAr ? 'المحاكاة' : 'Illustrative controls'}</span>
               </div>
               <div className="p-2.5 rounded-lg bg-slate-900/90 border border-slate-800">
                 <Zap className="w-4 h-4 text-cyan-400 mx-auto mb-1" aria-hidden="true" />
-                <span className="text-[11px] text-slate-200 font-sans">ENRRA Licensed</span>
+                <span className="text-[11px] text-slate-200 font-sans">{isAr ? 'عرض تدريبي' : 'Training demo'}</span>
               </div>
             </div>
           </div>

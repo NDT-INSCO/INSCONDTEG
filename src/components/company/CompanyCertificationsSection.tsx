@@ -99,20 +99,9 @@ export const CompanyCertificationsSection: React.FC<CompanyCertificationsSection
               {INSCO_COMPANY_DATA.leadAuditor.scope[language]}
             </p>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-2 border-t border-slate-800/80 text-center font-mono text-xs">
-              <div className="p-2 rounded bg-slate-900 border border-slate-800">
-                <div className="text-[10px] text-slate-400">{isAr ? 'الكود' : 'Course'}</div>
-                <div className="font-bold text-slate-200">{INSCO_COMPANY_DATA.leadAuditor.courseNo}</div>
-              </div>
-              <div className="p-2 rounded bg-slate-900 border border-slate-800">
-                <div className="text-[10px] text-slate-400">{isAr ? 'رقم الشهادة' : 'Cert #'}</div>
-                <div className="font-bold text-slate-200">{INSCO_COMPANY_DATA.leadAuditor.certNo}</div>
-              </div>
-              <div className="p-2 rounded bg-slate-900 border border-slate-800">
-                <div className="text-[10px] text-slate-400">{isAr ? 'رقم UDN' : 'UDN'}</div>
-                <div className="font-bold text-cyan-400">{INSCO_COMPANY_DATA.leadAuditor.udn}</div>
-              </div>
-            </div>
+            <a href="#contact" className="inline-flex min-h-9 items-center text-xs font-semibold text-cyan-300 underline underline-offset-4">
+              {isAr ? 'اطلب وثائق التأهيل الحالية' : 'Request current personnel qualifications'}
+            </a>
           </div>
 
           {/* Radiation Safety & Nuclear Regulatory Licensing (ENRRA) */}
@@ -135,13 +124,13 @@ export const CompanyCertificationsSection: React.FC<CompanyCertificationsSection
 
             <p className="text-xs text-slate-300 leading-relaxed">
               {isAr
-                ? 'الملحق يورد وثائق عن التصوير الإشعاعي الصناعي. وجود الوثيقة هنا لا يؤكد سريان الترخيص أو نطاق العمل المسموح حاليًا.'
-                : 'The annex contains industrial radiography records. Publication here does not confirm current licensing or authorise a scope of work.'}
+                ? 'الملحق يفهرس وثائق التصوير الإشعاعي الصناعي؛ النسخ غير متاحة للعامة. اطلب الترخيص الحالي وتحقق من نطاقه قبل العمل.'
+                : 'The annex indexes industrial radiography records. Request the current licence and confirm its scope; the scans are not distributed publicly.'}
             </p>
 
             <a className="inline-flex min-h-9 items-center gap-1 text-xs font-semibold text-cyan-300 underline underline-offset-4"
-              href={`${INSCO_COMPANY_DATA.pdfBrochureUrl}#page=30`} target="_blank" rel="noopener noreferrer">
-              {isAr ? 'افتح الملحق C (PDF)' : 'Open Annex C (PDF)'}<ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+              href="#contact">
+              {isAr ? 'اطلب مستند الترخيص الحالي' : 'Request current licensing evidence'}
             </a>
 
             <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400 font-mono">

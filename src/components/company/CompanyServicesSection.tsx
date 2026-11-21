@@ -124,7 +124,7 @@ export const CompanyServicesSection: React.FC<CompanyServicesSectionProps> = ({
                     {INSCO_COMPANY_DATA.pwhtFleet.title[language]}
                   </h3>
                   <div className="text-xs text-cyan-400 font-mono">
-                    {isAr ? '16 وحدة إلكترونية مملوكة بالكامل في مصر' : '16 Fully-Owned Computerized Units in Egypt'}
+                    {isAr ? 'المصدر: ملف الشركة المنشور' : 'Source: published company profile'}
                   </div>
                 </div>
               </div>
@@ -165,7 +165,7 @@ export const CompanyServicesSection: React.FC<CompanyServicesSectionProps> = ({
                   </button>
                 )}
                 <span className="text-xs text-slate-400 font-mono">
-                  {isAr ? 'استجابة سريعة 24/7 للمواقع البترولية' : '24/7 Immediate Site Dispatch'}
+                  {isAr ? 'أكّد توافر المعدات ونطاق العمل مع الفريق الفني.' : 'Confirm equipment availability and scope with the technical team.'}
                 </span>
               </div>
             </div>
@@ -179,6 +179,7 @@ export const CompanyServicesSection: React.FC<CompanyServicesSectionProps> = ({
                 src={pwhtImagePath}
                 alt={isAr ? 'عملية المعالجة الحرارية بعد اللحام PWHT' : 'PWHT post weld heat treatment operation'}
                 referrerPolicy="no-referrer"
+                loading="lazy"
                 className="w-full h-64 sm:h-72 object-cover transition duration-700 group-hover:scale-105"
               />
 
@@ -318,11 +319,12 @@ export const CompanyServicesSection: React.FC<CompanyServicesSectionProps> = ({
                     src={rtImagePath}
                     alt={isAr ? 'جهاز التصوير الإشعاعي الصناعي جاما' : 'Industrial gamma radiographic testing device'}
                     referrerPolicy="no-referrer"
+                loading="lazy"
                     className="w-full h-48 object-cover transition duration-500 group-hover:scale-102"
                   />
                   <div className="absolute inset-0 bg-linear-to-t from-slate-950 via-slate-950/20 to-transparent" />
                   <div className="absolute bottom-2 left-3 right-3 text-[11px] font-mono text-slate-200 flex justify-between items-center">
-                    <span className="text-purple-300">{isAr ? 'ترخيص رسمي من هيئة الرقابة النووية (ENRRA)' : 'ENRRA Practice Licensed (Ir-192/Se-75)'}</span>
+                    <span className="text-purple-300">{isAr ? 'مثال لجهاز تصوير إشعاعي صناعي' : 'Illustrative radiography equipment'}</span>
                     <span className="px-2 py-0.5 rounded bg-purple-950/80 border border-purple-700/60 text-purple-200">Spec 150 / Sentinel</span>
                   </div>
                 </div>
@@ -332,6 +334,7 @@ export const CompanyServicesSection: React.FC<CompanyServicesSectionProps> = ({
                     src={pautImagePath}
                     alt={isAr ? 'جهاز فحص الموجات فوق الصوتية والمصفوفات الطورية' : 'Phased array ultrasonic flaw detector S-scan'}
                     referrerPolicy="no-referrer"
+                loading="lazy"
                     className="w-full h-48 object-cover transition duration-500 group-hover:scale-102"
                   />
                   <div className="absolute inset-0 bg-linear-to-t from-slate-950 via-slate-950/20 to-transparent" />
@@ -354,7 +357,7 @@ export const CompanyServicesSection: React.FC<CompanyServicesSectionProps> = ({
               <div className="rounded-lg bg-slate-950/70 border border-slate-800 p-4 space-y-2">
                 <div className="text-xs font-mono uppercase tracking-wider text-cyan-400 flex items-center gap-2">
                   <SlidersHorizontal className="w-3.5 h-3.5" />
-                  <span>{isAr ? 'المعدات وأجهزة الفحص المعتمدة:' : 'Approved & Calibrated Equipment Fleet:'}</span>
+                  <span>{isAr ? 'أمثلة لمعدات الفحص:' : 'Approved & Calibrated Equipment Fleet:'}</span>
                 </div>
                 <div className="text-xs text-slate-300 leading-relaxed font-mono">
                   {selectedMethod.equipment[language]}

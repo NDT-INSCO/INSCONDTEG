@@ -767,14 +767,14 @@ function buildGlobalSearchIndex(): GlobalSearchItem[] {
     {
       id: 'company-contact-rfq',
       category: 'company',
-      code: 'RFQ 24/7',
+      code: 'RFQ',
       title: {
-        ar: 'التواصل المباشر وطلب عرض سعر فوري (RFQ & 24/7 Dispatch)',
+        ar: 'التواصل وطلب عرض سعر',
         en: 'Contact Operations, Cairo/Giza Offices & Submit RFQ',
       },
       subtitle: {
-        ar: `${INSCO_COMPANY_DATA.contacts.phones[0]} · ${INSCO_COMPANY_DATA.contacts.email} · استنفار ميداني 24/7`,
-        en: `${INSCO_COMPANY_DATA.contacts.phones[0]} · ${INSCO_COMPANY_DATA.contacts.email} · 24/7 site mobilization`,
+        ar: `${INSCO_COMPANY_DATA.contacts.phones[0]} · ${INSCO_COMPANY_DATA.contacts.email}`,
+        en: `${INSCO_COMPANY_DATA.contacts.phones[0]} · ${INSCO_COMPANY_DATA.contacts.email}`,
       },
       keywords: [
         'contact',

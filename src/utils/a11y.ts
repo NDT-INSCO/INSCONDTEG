@@ -89,15 +89,22 @@ export function useModalFocus(active: boolean, ref: React.RefObject<HTMLElement 
     const dialog = ref.current;
     if (!active || !dialog) return;
     const opener = document.activeElement;
+    const native = dialog.tagName === 'DIALOG' ? dialog as HTMLDialogElement : null;
+    if (native && !native.open) {
+      if (typeof native.showModal === 'function') native.showModal();
+      else native.setAttribute('open', '');
+    }
     const tabbables = () => Array.from(dialog.querySelectorAll<HTMLElement>(
       'a[href], button, input:not([type="hidden"]), select, textarea, summary, [tabindex]',
-    )).filter(element => (
-      !element.matches(':disabled') && element.tabIndex >= 0 &&
-      !element.closest('[hidden], [inert], [aria-hidden="true"]') &&
-      getComputedStyle(element).visibility !== 'hidden' && getComputedStyle(element).display !== 'none' &&
-      // Exclude controls inside a closed details (its summary remains reachable).
-      (!element.closest('details:not([open])') || element.tagName === 'SUMMARY')
-    ));
+    )).filter(element => {
+      if (element.matches(':disabled') || element.tabIndex < 0 || element.closest('[hidden], [inert], [aria-hidden="true"]')) return false;
+      // Only the summary of a closed disclosure is in the tab order.
+      const closedDetails = element.closest('details:not([open])');
+      if (closedDetails && !(element.tagName === 'SUMMARY' && element.parentElement === closedDetails)) return false;
+      const style = element.ownerDocument.defaultView?.getComputedStyle(element);
+      return style?.visibility !== 'hidden' && style?.display !== 'none' &&
+        (element.checkVisibility?.({ visibilityProperty: true }) ?? true);
+    });
     const initial = dialog.querySelector<HTMLElement>('[data-modal-initial-focus]') ?? tabbables()[0] ?? dialog;
     initial.focus();
     const containTab = (event: KeyboardEvent) => {
@@ -117,6 +124,10 @@ export function useModalFocus(active: boolean, ref: React.RefObject<HTMLElement 
     document.addEventListener('keydown', containTab);
     return () => {
       document.removeEventListener('keydown', containTab);
+      if (native?.open) {
+        if (typeof native.close === 'function') native.close();
+        else native.removeAttribute('open');
+      }
       if (opener instanceof HTMLElement && opener.isConnected) opener.focus({ preventScroll: true });
     };
   }, [active, ref]);

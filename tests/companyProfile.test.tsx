@@ -117,7 +117,8 @@ test('CompanyHero mounts interactive 3D banner controls, switches techniques/pre
   assert.ok(ui.getAllByText(/Ir-192 \/ Se-75/i).length > 0);
 
   fireEvent.click(ui.getByRole('button', { name: /PWHT 65 kW/i }));
-  assert.ok(ui.getAllByText(/760°C Programmed Soak/i).length > 0);
+  assert.ok(ui.getByText('Illustrative ramp, soak and cooling cycle'));
+  assert.equal(ui.getByRole('button', { name: /PWHT 65 kW/i }).getAttribute('aria-pressed'), 'true');
 
   // Camera preset & collapse dock
   fireEvent.click(ui.getByRole('button', { name: /Weld Root/i }));
@@ -148,7 +149,7 @@ test('CompanyServicesSection shows core NDT and PWHT with no unconfirmed Eddy Cu
   assert.ok(ui.getAllByText(/Ultrasonic/i).length > 0);
 });
 
-test('CompanyCertificationsSection displays Triple ISO, IRCA Lead Auditor and ENRRA license', () => {
+test('CompanyCertificationsSection lists historical ISO records and private qualification requests', () => {
   const ui = render(<CompanyCertificationsSection language="ar" />);
 
   // Check ISO 9001, 14001, 45001
@@ -157,7 +158,8 @@ test('CompanyCertificationsSection displays Triple ISO, IRCA Lead Auditor and EN
   assert.ok(ui.getAllByText(/ISO 45001:2018/i).length > 0);
 
   // Check IRCA Lead Auditor details
-  assert.ok(ui.getAllByText(/UDN 27956/i).length > 0);
+  assert.ok(ui.getByRole('link', { name: 'اطلب وثائق التأهيل الحالية' }));
+  assert.doesNotMatch(ui.container.textContent ?? '', /UDN 27956|LS\.0112/);
 
   // Check ENRRA license
   assert.ok(ui.getAllByText(/ترخيص هيئة الرقابة النووية والإشعاعية/i).length > 0);
@@ -183,7 +185,7 @@ test('CompanyProjectsSection allows switching between clients and power plant fa
   assert.ok(ui.getAllByText(/Ayoun Mousa/i).length > 0);
 });
 
-test('CompanyVendorVaultSection lists all 5 Annexes and provides verified PDF download', () => {
+test('CompanyVendorVaultSection lists all 5 Annexes and keeps public PDF and routes restricted annexes to contact', () => {
   const ui = render(<CompanyVendorVaultSection language="ar" />);
 
   // Check Annexes codes
@@ -193,8 +195,10 @@ test('CompanyVendorVaultSection lists all 5 Annexes and provides verified PDF do
   assert.ok(ui.getAllByText('E-01').length > 0);
 
   // Check direct download link
-  const dlLink = ui.getByRole('link', { name: /تحميل الملف كاملاً \(PDF مباشر\)/i });
+  const dlLink = ui.getByRole('link', { name: /تحميل النسخة العامة \(PDF\)/i });
   assert.equal(dlLink.getAttribute('href'), '/assets/aistudio/__________________d082de13.pdf');
+  assert.ok(ui.getAllByRole('link', { name: 'افتح النسخة التاريخية' }).some(link => link.getAttribute('href')?.endsWith('#page=15')));
+  assert.ok(ui.getAllByRole('link', { name: 'اطلب المستند' }).every(link => link.getAttribute('href') === '#contact'));
 });
 
 const fillRfq = (ui: { getByPlaceholderText: (pattern: RegExp) => HTMLElement }) => {
@@ -242,26 +246,17 @@ test('RFQ shows the reference issued by the server, and only that', async () => 
   assert.equal(ui.queryAllByRole('alert').length || 0, 0);
 });
 
-test('CompanyTestimonialsSection displays sliding cards with client feedback and controls', () => {
+test('legacy testimonials destination keeps browsing controls without unsupported quotes', () => {
   const ui = render(<CompanyTestimonialsSection language="ar" />);
-
-  // Should render section title and initial client testimonial (Siemens)
-  assert.ok(ui.getAllByText(/شهادات العملاء وسجلات النجاح الميداني/i).length > 0);
-  assert.ok(ui.getAllByText(/SIEMENS Energy \/ PGESCO/i).length > 0);
-  assert.ok(ui.getAllByText(/1,200\+/i).length > 0);
-
-  // Quick client selector tabs are present for all partners
-  assert.ok(ui.getByRole('button', { name: /ORASCOM Construction/i }));
-  assert.ok(ui.getByRole('button', { name: /PETROMASILA Exploration & Production/i }));
-  assert.ok(ui.getByRole('button', { name: /El Sewedy Electric/i }));
-  assert.ok(ui.getByRole('button', { name: /Serka Insaat/i }));
-
-  // Click Next button to slide to next card
-  const nextBtn = ui.getByRole('button', { name: /Next Testimonial/i });
-  fireEvent.click(nextBtn);
-
-  // Counter updates to 02 / 05
-  assert.ok(ui.getAllByText(/02/i).length > 0);
+  assert.ok(ui.getByRole('region', { name: 'مراجع المشروعات' }));
+  assert.ok(ui.getByRole('heading', { name: /محطة عيون موسى/ }));
+  assert.doesNotMatch(ui.container.textContent ?? '', /ماركوس|1,200|100%|180,000/);
+  assert.match(ui.getByRole('link', { name: /ملف الشركة · صفحة 12/ }).getAttribute('href')!, /#page=12$/);
+  const next = ui.getByRole('button', { name: 'المرجع التالي' });
+  fireEvent.click(next);
+  assert.ok(ui.getByRole('heading', { name: /محطة كهرباء البرلس/ }));
+  assert.ok(ui.getByRole('button', { name: 'ORASCOM Construction', pressed: true }));
+  assert.ok(ui.getByRole('button', { name: 'شغّل العرض التلقائي' }));
 });
 
 test('App root renders corporate facade by default and switches to Educational Academy', () => {

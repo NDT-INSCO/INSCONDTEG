@@ -3,7 +3,6 @@ import { Language } from '../../types';
 import {
   CalibrationState,
   calibrationLabel,
-  calibrationState,
   calibrationTone,
   formatValidity,
 } from '../../utils/calibration';
@@ -14,15 +13,13 @@ import {
   CheckCircle2, 
   Calendar, 
   Wrench, 
-  ExternalLink,
-  Search,
-  Radio,
   FileCheck2,
   ChevronRight,
   ChevronLeft,
   AlertTriangle,
   MinusCircle
 } from 'lucide-react';
+import { fleetRecordStatus, type FleetRecordDates } from '../../utils/fleetRecordStatus';
 import { SectionHeading } from '../ui/SectionHeading';
 
 /** Icon that matches the derived calibration state — never a fixed green tick. */
@@ -33,7 +30,20 @@ function StateIcon({ state, className }: { state: CalibrationState; className: s
   return <FileCheck2 className={className} aria-hidden="true" />;
 }
 
-interface FleetEquipment {
+function evidenceLabel(status: ReturnType<typeof fleetRecordStatus>, language: Language) {
+  if (status.maintenance === 'on_hold') return language === 'ar' ? 'موقوفة للصيانة' : 'Maintenance hold';
+  if (status.verified) return calibrationLabel(status.state, language);
+  return status.state === 'expired'
+    ? (language === 'ar' ? 'تاريخ السجل منتهٍ · غير محقَّق' : 'Register date expired · unverified')
+    : (language === 'ar' ? 'المعايرة غير محقَّقة' : 'Calibration not verified');
+}
+
+function evidenceTone(status: ReturnType<typeof fleetRecordStatus>) {
+  if (status.maintenance === 'on_hold') return 'expiring';
+  return status.verified || status.state === 'expired' ? status.state : 'unknown';
+}
+
+interface FleetEquipment extends FleetRecordDates {
   id: string;
   name: { ar: string; en: string };
   category: 'pwht' | 'ut' | 'rt' | 'mt_pt' | 'metallurgy' | 'hydro';
@@ -43,8 +53,6 @@ interface FleetEquipment {
   serialRange: string;
   calibrationBody: string;
   calibrationStatus: { ar: string; en: string };
-  /** YYYY-MM (last day of month) or YYYY-MM-DD; null = not published. */
-  validUntil: string | null;
   applications: { ar: string; en: string }[];
   keySpecs: { label: { ar: string; en: string }; value: string }[];
   deployedProjects: string[];
@@ -249,8 +257,8 @@ export const CompanyFleetInspector: React.FC<CompanyFleetInspectorProps> = ({ la
   const [selectedEquipmentId, setSelectedEquipmentId] = useState<string>('pwht-65kw');
 
   const categories = [
-    { id: 'all', label: { ar: 'كافة المعدات والأسطول (48+ جهاز)', en: 'All Fleet (48+ Units)' } },
-    { id: 'pwht', label: { ar: 'وحدات PWHT (16 وحدة)', en: 'PWHT Fleet (16)' } },
+    { id: 'all', label: { ar: 'كل المعدات بالسجل', en: 'All listed equipment' } },
+    { id: 'pwht', label: { ar: 'وحدات PWHT', en: 'PWHT equipment' } },
     { id: 'ut', label: { ar: 'أجهزة الموجات UT / PAUT', en: 'Ultrasonic (UT/PAUT)' } },
     { id: 'rt', label: { ar: 'أجهزة جاما الإشعاعية RT', en: 'Gamma Radiography' } },
     { id: 'mt_pt', label: { ar: 'حدوات المغناطيسية MT/PT', en: 'Surface MT/PT' } },
@@ -263,11 +271,11 @@ export const CompanyFleetInspector: React.FC<CompanyFleetInspectorProps> = ({ la
     return item.category === activeCategory;
   });
 
-  const selectedItem = FLEET_REGISTRY.find(i => i.id === selectedEquipmentId) || FLEET_REGISTRY[0];
-  const selectedState = calibrationState(selectedItem.validUntil, today);
+  const selectedItem = filteredFleet.find(i => i.id === selectedEquipmentId) ?? filteredFleet[0];
+  const selectedStatus = fleetRecordStatus(selectedItem, today);
+  const selectedState = evidenceTone(selectedStatus);
   const selectedTone = calibrationTone(selectedState);
-  const expiredCount = FLEET_REGISTRY.filter(item => calibrationState(item.validUntil, today) === 'expired').length;
-  const expiringCount = FLEET_REGISTRY.filter(item => calibrationState(item.validUntil, today) === 'expiring').length;
+  const expiredCount = FLEET_REGISTRY.filter(item => fleetRecordStatus(item, today).state === 'expired').length;
 
   return (
     <section id="fleet-inspector" className="py-16 border-b border-slate-800 bg-slate-950">
@@ -276,53 +284,50 @@ export const CompanyFleetInspector: React.FC<CompanyFleetInspectorProps> = ({ la
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
           <div className="max-w-3xl">
             <SectionHeading
-              eyebrow={isAr ? 'سجل الأصول والمعايرة والتجهيزات الميدانية' : 'Traceable Equipment Fleet & Calibration Register'}
+              eyebrow={isAr ? 'سجل الأصول والمعايرة والتجهيزات الميدانية' : 'Equipment and calibration register'}
               eyebrowIcon={<ShieldCheck className="w-4 h-4 text-cyan-400" />}
               title={
                 isAr
-                  ? 'مستودع المعدات المملوكة بالكامل وجاهزية الانتشار الفوري'
-                  : '100% Company-Owned Fleet: Calibrated & Deployment Ready'
+                  ? 'المعدات وحالة الوثائق'
+                  : 'Equipment and record status'
               }
               description={
                 isAr
-                  ? 'تمتلك إنسكو أسطولاً متكاملاً من أرقى الشركات العالمية (Olympus, Cooperheat, Krautkramer, Sentinel) مخزناً بالورش المركزية بالقاهرة مع شهادات معايرة دورية معتمدة قابلة للتتبع طبقاً لـ NIST.'
-                  : 'INSCO operates a fully-owned, audited instrument fleet stored at our central Cairo workshops with certified calibration records traceable to national and international measurement institutes.'
+                  ? 'راجع البيانات الواردة في سجل إنسكو. اسأل الفريق الفني عن شهادة كل جهاز وتوافره لمشروعك.'
+                  : 'Browse entries in the INSCO register. Ask the technical team for the certificate and availability of the specific instrument.'
               }
             />
-            <p className="mt-2 text-[11px] text-slate-500 leading-relaxed">
+            <p className="mt-2 text-xs text-slate-300 leading-relaxed">
               {isAr
-                ? 'حالة المعايرة محسوبة من تاريخ الصلاحية المسجل، بدقة الشهر (آخر يوم في الشهر). تُحدَّث التواريخ بدقة اليوم فور استلام شهادات المعايرة الموقعة.'
-                : 'Calibration state is computed from the recorded expiry date at month precision (last day of the month). Dates tighten to the exact day once signed certificates are filed.'}
+                ? 'التواريخ المنقولة من السجل ليست شهادات معايرة. الحالة لا تؤكد الجاهزية للتشغيل أو انتهاء الصيانة.'
+                : 'Dates copied from the register are not calibration certificates. This register does not establish operational readiness or maintenance clearance.'}
             </p>
           </div>
 
           <div className="px-4 py-3 rounded-xl bg-slate-900 border border-slate-800 text-end shrink-0 space-y-1">
-            <div className="text-2xl font-black text-cyan-400 font-mono tabular-nums">48+</div>
-            <div className="text-xs text-slate-400">{isAr ? 'أجهزة رئيسية مملوكة' : 'Company-owned assets'}</div>
+            <div className="text-2xl font-black text-cyan-400 font-mono tabular-nums">{FLEET_REGISTRY.length}</div>
+            <div className="text-xs text-slate-400">{isAr ? 'فئات معدات بالسجل' : 'Equipment entries'}</div>
             {expiredCount > 0 && (
               <div className="text-[11px] font-mono text-red-300 flex items-center justify-end gap-1">
                 <AlertTriangle className="w-3 h-3" aria-hidden="true" />
-                <span>{isAr ? `${expiredCount} سجل معايرة منتهٍ` : `${expiredCount} expired record(s)`}</span>
+                <span>{isAr ? `${expiredCount} تاريخ منتهٍ حسب السجل` : `${expiredCount} expired register date(s)`}</span>
               </div>
             )}
-            {expiringCount > 0 && (
-              <div className="text-[11px] font-mono text-amber-300">
-                {isAr ? `${expiringCount} تنتهي خلال 60 يومًا` : `${expiringCount} expiring within 60 days`}
-              </div>
-            )}
+
           </div>
         </div>
 
         {/* Filter Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-4 mb-8 scrollbar-none">
+        <div className="flex flex-wrap items-center gap-1.5 pb-4 mb-8">
           {categories.map(cat => (
             <button
               key={cat.id}
               type="button"
+              aria-pressed={activeCategory === cat.id}
               onClick={() => setActiveCategory(cat.id)}
               className={`px-3.5 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition cursor-pointer shrink-0 ${
                 activeCategory === cat.id
-                  ? 'bg-cyan-600 text-white font-bold shadow-md shadow-cyan-900/30'
+                  ? 'bg-sky-300 text-slate-950 font-bold'
                   : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-850 border border-slate-800'
               }`}
             >
@@ -337,7 +342,8 @@ export const CompanyFleetInspector: React.FC<CompanyFleetInspectorProps> = ({ la
           <div className="lg:col-span-5 space-y-3">
             {filteredFleet.map(equip => {
               const isSelected = equip.id === selectedItem.id;
-              const state = calibrationState(equip.validUntil, today);
+              const status = fleetRecordStatus(equip, today);
+              const state = evidenceTone(status);
               const tone = calibrationTone(state);
               return (
                 <button
@@ -368,16 +374,14 @@ export const CompanyFleetInspector: React.FC<CompanyFleetInspectorProps> = ({ la
                     <ArrowIcon className={`w-4 h-4 shrink-0 transition mt-1 ${isSelected ? 'text-cyan-400' : 'text-slate-600'}`} />
                   </div>
 
-                  <div className="flex items-center justify-between gap-2 text-[11px] font-mono pt-2 border-t border-slate-800/80">
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono pt-2 border-t border-slate-800/80">
                     <span className={`flex items-center gap-1 ${tone.icon}`}>
                       <StateIcon state={state} className="w-3 h-3" />
-                      <span>{calibrationLabel(state, language)}</span>
+                      <span>{evidenceLabel(status, language)}</span>
                     </span>
-                    <span className="text-slate-400">
-                      {state === 'unknown'
-                        ? (isAr ? 'غير منشورة' : 'Not published')
-                        : (isAr ? `حتى ${formatValidity(equip.validUntil, language)}` : `to ${formatValidity(equip.validUntil, language)}`)}
-                    </span>
+                    {status.expiry && <span className="text-slate-300">
+                      {formatValidity(status.expiry, language)}
+                    </span>}
                   </div>
                 </button>
               );
@@ -399,17 +403,35 @@ export const CompanyFleetInspector: React.FC<CompanyFleetInspectorProps> = ({ la
               <div className={`px-3 py-1.5 rounded-lg border text-xs font-mono font-bold flex flex-col gap-1 shrink-0 ${selectedTone.badge}`}>
                 <span className="flex items-center gap-1.5">
                   <StateIcon state={selectedState} className="w-4 h-4" />
-                  <span>{calibrationLabel(selectedState, language)}</span>
-                </span>
-                <span className="font-normal opacity-80">
-                  {selectedState === 'unknown'
-                    ? (isAr ? 'تاريخ الصلاحية غير منشور' : 'Validity date not published')
-                    : (isAr
-                        ? `حتى ${formatValidity(selectedItem.validUntil, language)}`
-                        : `Valid to ${formatValidity(selectedItem.validUntil, language)}`)}
+                  <span>{evidenceLabel(selectedStatus, language)}</span>
                 </span>
               </div>
             </div>
+
+            <dl className="grid gap-3 rounded-lg border border-slate-700 p-4 text-sm sm:grid-cols-2">
+              <div>
+                <dt className="text-slate-300">{selectedStatus.verified
+                  ? (isAr ? 'انتهاء الشهادة بعد مراجعتها' : 'Reviewed certificate expiry')
+                  : (isAr ? 'تاريخ الانتهاء المذكور بالسجل' : 'Reported expiry date')}</dt>
+                <dd className="font-semibold">{formatValidity(selectedStatus.expiry, language)}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-300">{isAr ? 'المعايرة القادمة' : 'Next calibration'}</dt>
+                <dd className="font-semibold">{formatValidity(selectedStatus.nextCalibration, language)}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-300">{isAr ? 'حالة الصيانة' : 'Maintenance status'}</dt>
+                <dd className="font-semibold">{selectedStatus.maintenance === 'on_hold'
+                  ? (isAr ? 'موقوفة للصيانة' : 'Maintenance hold')
+                  : selectedStatus.maintenance === 'clear'
+                    ? (isAr ? 'لا يوجد إيقاف مسجل للصيانة' : 'No recorded maintenance hold')
+                    : (isAr ? 'لم تُنشر حالة الصيانة' : 'Maintenance status not published')}</dd>
+              </div>
+              {selectedStatus.verified && <div>
+                <dt className="text-slate-300">{isAr ? 'مرجع الشهادة' : 'Certificate reference'}</dt>
+                <dd className="break-all font-semibold"><bdi>{selectedItem.reviewedCalibration!.certificateReference}</bdi></dd>
+              </div>}
+            </dl>
 
             {/* Serial & Traceability Metadata */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono">
@@ -418,7 +440,7 @@ export const CompanyFleetInspector: React.FC<CompanyFleetInspectorProps> = ({ la
                 <div className="text-slate-200 font-bold mt-0.5">{selectedItem.serialRange}</div>
               </div>
               <div className="p-3 rounded-lg bg-slate-950/70 border border-slate-800">
-                <div className="text-slate-500 text-[11px]">{isAr ? 'جهة ومعهد المعايرة:' : 'Calibration Laboratory:'}</div>
+                <div className="text-slate-500 text-[11px]">{isAr ? 'جهة المعايرة المذكورة بالسجل:' : 'Reported calibration laboratory:'}</div>
                 <div className="text-cyan-300 font-bold mt-0.5">{selectedItem.calibrationBody}</div>
               </div>
               <div className="p-3 rounded-lg bg-slate-950/70 border border-slate-800 sm:col-span-2">
@@ -430,7 +452,7 @@ export const CompanyFleetInspector: React.FC<CompanyFleetInspectorProps> = ({ la
             {/* Technical Specifications Grid */}
             <div className="space-y-3">
               <div className="text-xs font-mono uppercase text-slate-400 tracking-wider">
-                {isAr ? 'المواصفات الفنية المعتمدة للمعدة:' : 'Approved Equipment Technical Specifications:'}
+                {isAr ? 'المواصفات الفنية حسب السجل:' : 'Register specifications:'}
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-2 gap-3">
                 {selectedItem.keySpecs.map((spec, sIdx) => (
@@ -460,7 +482,7 @@ export const CompanyFleetInspector: React.FC<CompanyFleetInspectorProps> = ({ la
             {/* Deployed Mega Projects */}
             <div className="pt-4 border-t border-slate-800">
               <div className="text-xs font-mono uppercase text-slate-400 tracking-wider mb-2">
-                {isAr ? 'أبرز المشروعات التي تم تشغيل هذه المعدة بها:' : 'Landmark Projects Deployed On:'}
+                {isAr ? 'المشروعات المذكورة في سجل المعدة:' : 'Projects named in the register:'}
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 {selectedItem.deployedProjects.map((proj, pIdx) => (

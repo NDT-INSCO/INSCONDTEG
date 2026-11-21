@@ -164,11 +164,11 @@ export const INSCO_COMPANY_DATA: CompanyProfile = {
     {
       value: '12',
       label: { ar: 'عائلة متكاملة من طرق الفحص NDT', en: 'NDT & Mechanical Method Families' },
-      subLabel: { ar: 'شاملة PAUT و RT و MFL و PMI', en: 'Full volumetric, surface & metallurgy suite' }
+      subLabel: { ar: 'تشمل PAUT و RT و PMI', en: 'Full volumetric, surface & metallurgy suite' }
     },
     {
       value: '3',
-      label: { ar: 'شهادات ISO ثلاثية معتمدة حتى 2028', en: 'Triple ISO Systems to 2028' },
+      label: { ar: 'شهادات ISO مذكورة في الملف', en: 'ISO records in the dossier' },
       subLabel: { ar: 'ISO 9001, 14001, 45001 معتمدة من EGAC', en: 'EGAC CAB #120007 - IAF MLA' }
     }
   ],
@@ -179,7 +179,7 @@ export const INSCO_COMPANY_DATA: CompanyProfile = {
     { ar: 'كبير مدققي جودة معتمد CQI-IRCA Lead Auditor ضمن طاقم الشركة الدائم', en: 'CQI-IRCA Lead Auditor on permanent in-house staff' },
     { ar: 'فريق مهندسين وفنيين معتمدين ASNT / ISO 9712 Level II في كافة الطرق', en: 'Certified ASNT Level II inspection team across all techniques' },
     { ar: 'أسطول كامل من 16 وحدة معالجة حرارية أوتوماتيكية 65 kW جاهزة للاستنفار الفوري', en: '16 x 65 kW automatic PWHT units - 100% company owned in Cairo' },
-    { ar: 'أسطول فحص شامل: مصادر جاما (Ir-192 / Se-75)، وأشعة سينية X-ray، و PAUT، و MFL', en: 'Full NDT fleet incl. PAUT, Gamma RT (Ir-192/Se-75), X-ray, MFL & Eddy Current' },
+    { ar: 'فحوصات الموجات فوق الصوتية والتصوير الإشعاعي والفحوصات السطحية حسب نطاق العمل', en: 'Ultrasonic, radiographic and surface inspection according to project scope' },
     { ar: 'ممارسات وتراخيص إشعاعية مرخصة رسمياً من هيئة الرقابة النووية والإشعاعية ENRRA', en: 'ENRRA-licensed radiation practices and transport permits' },
     { ar: 'مسجلة بالدليل الدولي للفحص غير الإتلافي www.ndt.org (رقم 54161)', en: 'Listed on www.ndt.org international industrial directory (#54161)' },
     { ar: 'المقر الرئيسي بالقاهرة ومخازن الورش بالجيزة مع انتشار ميداني في مصر وخارجها', en: 'Cairo headquarters & Giza works with regional mobilization' }
@@ -759,3 +759,6 @@ export const INSCO_COMPANY_DATA: CompanyProfile = {
     }
   ]
 };
+
+// Eddy Current/MFL remains instructional data; do not advertise it without confirmed availability.
+export const COMMERCIAL_NDT_METHODS = INSCO_COMPANY_DATA.ndtMethods.filter(method => method.id !== 'mfl_ec');

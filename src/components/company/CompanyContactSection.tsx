@@ -1,23 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Language } from '../../types';
 import { INSCO_COMPANY_DATA } from '../../data/inscoCompanyData';
-import { Phone, Mail, MapPin, Send, CheckCircle2, MessageSquare, Clock, AlertTriangle, Loader2, RotateCcw } from 'lucide-react';
+import { Phone, Mail, MapPin, Send, CheckCircle2, MessageSquare, AlertTriangle, Loader2, Copy } from 'lucide-react';
 import { RFQ_QUICK_ACTION_EVENT, RfqQuickActionDetail } from './CompanyQuickActionsSection';
 import {
-  buildRfqMailto,
+  buildRfqMessage,
   buildRfqPayload,
-  buildRfqWhatsApp,
+  resolveRfqEndpoint,
   submitRfq,
   type RfqFailureReason,
 } from '../../rfq/submit';
+import { RFQ_FIELD_LIMITS, normalizeRfqPhone, validRfqEmail } from '../../rfq/validation';
 import { SectionHeading } from '../ui/SectionHeading';
 
 interface CompanyContactSectionProps {
   language: Language;
   /** Testing seam: lets a test drive the network outcome without a server. */
   submitRequest?: typeof submitRfq;
-  /** Optional block rendered inside the RFQ section, above the form (the estimator). */
-  topSlot?: React.ReactNode;
   initialService?: string;
   toolsSlot?: React.ReactNode;
 }
@@ -25,14 +24,12 @@ interface CompanyContactSectionProps {
 export const CompanyContactSection: React.FC<CompanyContactSectionProps> = ({
   language,
   submitRequest,
-  topSlot,
   initialService,
   toolsSlot,
 }) => {
   const isAr = language === 'ar';
-  const sendToServer = submitRequest ?? submitRfq;
-
-  const [formData, setFormData] = useState({
+  const configured = Boolean(submitRequest || resolveRfqEndpoint());
+  const emptyDraft = {
     companyName: '',
     contactName: '',
     phone: '',
@@ -40,17 +37,27 @@ export const CompanyContactSection: React.FC<CompanyContactSectionProps> = ({
     serviceType: initialService ?? 'pwht',
     projectLocation: '',
     description: '',
-  });
+  };
+  const [formData, setFormData] = useState(emptyDraft);
 
   const [submittedRef, setSubmittedRef] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [quickQuoteActive, setQuickQuoteActive] = useState(Boolean(initialService));
   const [sending, setSending] = useState<boolean>(false);
-  const [failure, setFailure] = useState<{ reason: RfqFailureReason; detail?: string } | null>(null);
+  const [failure, setFailure] = useState<RfqFailureReason | null>(null);
+  const [copyStatus, setCopyStatus] = useState<'copied' | 'manual' | null>(null);
+  const sendingRef = useRef(false);
+  const trap = useRef<HTMLInputElement>(null);
+  const receiptHeading = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    if (submittedRef) receiptHeading.current?.focus();
+  }, [submittedRef]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const handleQuickAction = (event: Event) => {
+      if (sendingRef.current) return;
       const custom = event as CustomEvent<RfqQuickActionDetail>;
       const requestedService = custom.detail?.serviceType;
       const requestedLocation = custom.detail?.projectLocation;
@@ -77,67 +84,63 @@ export const CompanyContactSection: React.FC<CompanyContactSectionProps> = ({
   }, [initialService]);
 
   const sendRequest = async () => {
-    if (sending) return;
-    if (!formData.companyName.trim() || !formData.phone.trim() || !formData.email.trim()) {
-      setErrorMessage(
-        isAr
-          ? 'يرجى استيفاء اسم الشركة، ورقم الهاتف، والبريد الإلكتروني.'
-          : 'Please enter company name, contact phone, and email.'
-      );
+    if (sendingRef.current || !configured) return;
+    const payload = { ...buildRfqPayload(formData, language), website: trap.current?.value ?? '' };
+    const oversized = Object.entries(RFQ_FIELD_LIMITS).some(([key, limit]) =>
+      payload[key as keyof typeof RFQ_FIELD_LIMITS].length > limit);
+    if (!payload.companyName || !normalizeRfqPhone(payload.phone) || !validRfqEmail(payload.email) || oversized) {
+      setErrorMessage(isAr
+        ? 'راجع اسم الشركة ورقم الهاتف والبريد الإلكتروني، وتأكد من أن طول النص لا يتجاوز الحد المسموح.'
+        : 'Check the company name, phone number and email, and keep each field within its character limit.');
       return;
     }
 
     setErrorMessage(null);
     setFailure(null);
+    setCopyStatus(null);
+    sendingRef.current = true;
     setSending(true);
-    const payload = buildRfqPayload(formData, language, {
-      pageUrl: typeof window !== 'undefined' ? window.location.href : undefined,
-    });
-    const outcome = await sendToServer(payload);
-    setSending(false);
-
-    if (outcome.status === 'sent') {
-      // Reference comes from the server that stored the request.
-      setSubmittedRef(outcome.reference);
-      return;
+    try {
+      const outcome = await (submitRequest ?? submitRfq)(payload);
+      if (outcome.status === 'sent') {
+        setFormData(emptyDraft);
+        setSubmittedRef(outcome.reference);
+      } else {
+        setFailure(outcome.reason);
+      }
+    } catch {
+      setFailure('network');
+    } finally {
+      sendingRef.current = false;
+      setSending(false);
     }
-    // Nothing is claimed as received: keep the form, explain, and offer a
-    // channel that a human actually reads.
-    setFailure({ reason: outcome.reason, detail: outcome.detail });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    void sendRequest();
+  const failureMessage = (reason: RfqFailureReason): string => {
+    if (reason === 'not_configured') return isAr
+      ? 'الإرسال المباشر من الموقع غير متاح، ولم يُسجَّل طلب. استخدم قنوات التواصل أدناه.'
+      : 'Online submission is unavailable and no request was registered. Use the contact options below.';
+    if (reason === 'rate_limited') return isAr
+      ? 'تم رفض المحاولة بسبب كثرة الطلبات. انتظر قبل المحاولة مرة أخرى أو تواصل معنا مباشرة.'
+      : 'Too many attempts. Wait before trying again, or contact us directly.';
+    if (reason === 'validation') return isAr
+      ? 'رفض الخادم البيانات. راجع الحقول قبل إعادة الإرسال.'
+      : 'The server rejected the form. Check the fields before trying again.';
+    return isAr
+      ? 'لم يصل تأكيد الاستلام. تحقّق مع الفريق قبل إعادة الإرسال لتجنّب تكرار الطلب.'
+      : 'Receipt could not be confirmed. Check with the team before resending to avoid a duplicate.';
   };
 
-  const failureMessage = (reason: RfqFailureReason, detail?: string): string => {
-    if (isAr) {
-      if (reason === 'not_configured') {
-        return 'الإرسال المباشر من الموقع غير مُهيّأ بعد، ولم يُسجَّل طلبك في أي مكان. استخدم الأزرار أدناه ليصل طلبك إلى فريق التسعير الآن (نفس البيانات مكتوبة مسبقًا).';
-      }
-      if (reason === 'network') {
-        return 'تعذّر الوصول إلى خادم الطلبات (شبكة أو مهلة اتصال). لم يُسجَّل الطلب بعد، ويمكنك إعادة المحاولة.';
-      }
-      if (reason === 'validation') {
-        return 'بيانات الطلب غير مكتملة أو غير صحيحة، ولم يُسجَّل. راجع الحقول وأعد المحاولة.';
-      }
-      return 'تعذّر تسجيل الطلب على الخادم، ولم يُسجَّل بعد. أعد المحاولة أو استخدم البريد/واتساب.';
+  const fallback = !configured || failure !== null;
+  const draftMessage = () => buildRfqMessage(formData, language);
+  const copyDraft = async () => {
+    try {
+      await navigator.clipboard.writeText(draftMessage());
+      setCopyStatus('copied');
+    } catch {
+      setCopyStatus('manual');
     }
-    if (reason === 'not_configured') {
-      return 'Online submission is not configured on this deployment, so your request was not registered. Use the buttons below to reach the tender team now — your details are pre-filled.';
-    }
-    if (reason === 'network') {
-      return 'The request server could not be reached (network or timeout). Nothing was registered — please retry.';
-    }
-    if (reason === 'validation') {
-      return 'The request was rejected as incomplete, and nothing was registered. Check the fields and retry.';
-    }
-    return 'The server could not register the request. Retry, or use email/WhatsApp.';
   };
-
-  const mailtoHref = buildRfqMailto(formData, INSCO_COMPANY_DATA.contacts.email, language);
-  const whatsappHref = buildRfqWhatsApp(formData, INSCO_COMPANY_DATA.contacts.whatsapp, language);
 
   return (
     <section id="contact" className="py-16 bg-slate-900/40">
@@ -145,20 +148,18 @@ export const CompanyContactSection: React.FC<CompanyContactSectionProps> = ({
         {/* Section Header */}
         <SectionHeading
           className="mb-12"
-          eyebrow={isAr ? 'قنوات التواصل وطلب عروض الأسعار' : 'Direct Dispatch & RFQ Portal'}
+          eyebrow={isAr ? 'قنوات التواصل وطلب عروض الأسعار' : 'Technical enquiries and quotation'}
           title={
             isAr
-              ? 'تواصل مع الإدارة الفنية أو اطلب اعتماد مورد فوري'
+              ? 'تواصل مع الفريق الفني أو اطلب عرض سعر'
               : 'Contact Technical Operations or Submit an RFQ'
           }
           description={
             isAr
-              ? 'فريق العمليات متواجد على مدار 24 ساعة للاستجابة لمواقع الطوارئ، التوريد العاجل لوحدات المعالجة الحرارية، وفحوصات الصيانة الدورية.'
-              : 'Our operations team is on call 24/7 to mobilize PWHT fleets and certified NDT personnel to refinery shutdowns and emergency outages.'
+              ? 'شارك نطاق العمل وموقعه علشان الفريق الفني يقدر يراجع طلبك ويحدد الخطوات التالية.'
+              : 'Share your scope and location so the technical team can review your request and advise on next steps.'
           }
         />
-
-        {topSlot && <div className="mb-10">{topSlot}</div>}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Left Column: Contact Cards & Addresses */}
@@ -197,7 +198,7 @@ export const CompanyContactSection: React.FC<CompanyContactSectionProps> = ({
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-white">
-                    {isAr ? 'أرقام الطوارئ والتكليفات (24/7)' : 'Operations Hotline (24/7)'}
+                    {isAr ? 'أرقام التواصل الفني' : 'Technical contact numbers'}
                   </h3>
                   <div className="text-xs text-slate-400">
                     {isAr ? 'تنسيق العمليات الميدانية والانتشار' : 'Site dispatch & mobilization coordination'}
@@ -254,14 +255,6 @@ export const CompanyContactSection: React.FC<CompanyContactSectionProps> = ({
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-slate-800/80 flex items-center gap-2 text-xs text-slate-400">
-                <Clock className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                <span>
-                  {isAr
-                    ? 'متوسط الرد على عروض الأسعار: أقل من 4 ساعات عمل'
-                    : 'Average commercial response time: Under 4 working hours'}
-                </span>
-              </div>
             </div>
           </div>
 
@@ -279,8 +272,8 @@ export const CompanyContactSection: React.FC<CompanyContactSectionProps> = ({
                   </h3>
                   <p className="text-xs text-slate-400 mt-1">
                     {isAr
-                      ? 'سيتم مراجعة الطلب بواسطة رئيس قطاع العمليات الفنية والرد بملف التسعير ومستندات التأهيل.'
-                      : 'Your request will be assigned directly to our Technical Operations Director for commercial quotation.'}
+                      ? 'اكتب فقط المعلومات اللازمة للتسعير. لا تُدرج مستندات هوية أو بيانات سرّية في هذا النموذج.'
+                      : 'Share only what is needed for the quote. Do not include identity documents or confidential information.'}
                   </p>
                 </div>
                 {quickQuoteActive && (
@@ -295,77 +288,33 @@ export const CompanyContactSection: React.FC<CompanyContactSectionProps> = ({
                   <div className="w-12 h-12 rounded-full bg-cyan-500/20 border border-cyan-500 text-cyan-400 flex items-center justify-center mx-auto">
                     <CheckCircle2 className="w-6 h-6" />
                   </div>
-                  <h4 className="text-base font-bold text-white">
+                  <h4 ref={receiptHeading} tabIndex={-1} className="text-base font-bold text-white">
                     {isAr ? 'تم استلام طلبكم بنجاح' : 'RFQ Successfully Received'}
                   </h4>
                   <p className="text-xs text-slate-300 max-w-md mx-auto">
                     {isAr
-                      ? `تم تسجيل طلبكم برقم مرجعي (${submittedRef}). احتفظوا بالرقم لمتابعة الطلب مع فريق التسعير.`
-                      : `Your request was accepted under reference (${submittedRef}). Keep this number to follow up with the tender desk.`}
+                      ? 'رقم المتابعة مع فريق التسعير:'
+                      : 'Reference to use when following up with the tender desk:'}{' '}
+                    <bdi className="break-all font-mono">{submittedRef}</bdi>
                   </p>
                   <button
                     type="button"
-                    onClick={() => {
-                      setSubmittedRef(null);
-                      setFormData({
-                        companyName: '',
-                        contactName: '',
-                        phone: '',
-                        email: '',
-                        serviceType: 'pwht',
-                        projectLocation: '',
-                        description: '',
-                      });
-                    }}
+                    onClick={() => setSubmittedRef(null)}
                     className="px-4 py-2 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition cursor-pointer"
                   >
                     {isAr ? 'إرسال طلب جديد' : 'Submit Another Request'}
                   </button>
                 </div>
               ) : (
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  {(errorMessage || failure) && (
-                    <div
-                      role="alert"
-                      className={`p-4 rounded-lg border text-xs space-y-3 ${
-                        failure?.reason === 'not_configured'
-                          ? 'bg-amber-950/30 border-amber-700 text-amber-100'
-                          : 'bg-red-950/30 border-red-800 text-red-200'
-                      }`}
-                    >
-                      <div className="flex items-start gap-2">
-                        <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
-                        <span>{errorMessage ?? (failure ? failureMessage(failure.reason, failure.detail) : '')}</span>
-                      </div>
-                      {failure && (
-                        <div className="flex flex-wrap items-center gap-2">
-                          <a
-                            href={mailtoHref}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 font-semibold hover:border-cyan-500 transition"
-                          >
-                            <Mail className="w-3.5 h-3.5" aria-hidden="true" />
-                            <span>{isAr ? 'إرسال بالبريد الإلكتروني' : 'Send by email'}</span>
-                          </a>
-                          <a
-                            href={whatsappHref}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 font-semibold hover:border-emerald-500 transition"
-                          >
-                            <MessageSquare className="w-3.5 h-3.5" aria-hidden="true" />
-                            <span>{isAr ? 'إرسال واتساب' : 'Send on WhatsApp'}</span>
-                          </a>
-                          <button
-                            type="button"
-                            onClick={() => { setFailure(null); void sendRequest(); }}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 font-semibold hover:border-cyan-500 transition cursor-pointer"
-                          >
-                            <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
-                            <span>{isAr ? 'إعادة المحاولة' : 'Retry'}</span>
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                <form onSubmit={event => { event.preventDefault(); void sendRequest(); }} className="space-y-4">
+                  <div hidden aria-hidden="true">
+                    <input ref={trap} type="text" name="website" tabIndex={-1} autoComplete="off" />
+                  </div>
+                  {(errorMessage || failure || !configured) && (
+                    <p role={configured ? 'alert' : undefined} className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-slate-900 p-3 text-xs leading-relaxed text-amber-200">
+                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                      {errorMessage ?? failureMessage(failure ?? 'not_configured')}
+                    </p>
                   )}
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -377,6 +326,8 @@ export const CompanyContactSection: React.FC<CompanyContactSectionProps> = ({
                         id="rfq-company-input"
                         type="text"
                         required
+                        maxLength={RFQ_FIELD_LIMITS.companyName}
+                        autoComplete="organization"
                         value={formData.companyName}
                         onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
                         placeholder={isAr ? 'مثال: شركة بترول خليج السويس' : 'e.g., Petrobel / Eni / Orascom'}
@@ -385,11 +336,14 @@ export const CompanyContactSection: React.FC<CompanyContactSectionProps> = ({
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-slate-300 mb-1">
+                      <label htmlFor="rfq-person" className="block text-xs font-medium text-slate-300 mb-1">
                         {isAr ? 'اسم المسؤول / المسمى الوظيفي' : 'Contact Person & Title'}
                       </label>
                       <input
                         type="text"
+                        id="rfq-person"
+                        maxLength={RFQ_FIELD_LIMITS.contactName}
+                        autoComplete="name"
                         value={formData.contactName}
                         onChange={(e) => setFormData({ ...formData, contactName: e.target.value })}
                         placeholder={isAr ? 'م. أحمد سعيد - مدير المشروع' : 'Eng. John Smith - Project Director'}
@@ -400,12 +354,16 @@ export const CompanyContactSection: React.FC<CompanyContactSectionProps> = ({
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-medium text-slate-300 mb-1">
+                      <label htmlFor="rfq-phone" className="block text-xs font-medium text-slate-300 mb-1">
                         {isAr ? 'رقم الهاتف للتواصل الميداني *' : 'Mobile / Direct Phone *'}
                       </label>
                       <input
                         type="tel"
                         required
+                        id="rfq-phone"
+                        maxLength={RFQ_FIELD_LIMITS.phone}
+                        autoComplete="tel"
+                        dir="ltr"
                         value={formData.phone}
                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                         placeholder="+20 100 ..."
@@ -414,12 +372,16 @@ export const CompanyContactSection: React.FC<CompanyContactSectionProps> = ({
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-slate-300 mb-1">
+                      <label htmlFor="rfq-email" className="block text-xs font-medium text-slate-300 mb-1">
                         {isAr ? 'البريد الإلكتروني المؤسسي *' : 'Corporate Email *'}
                       </label>
                       <input
                         type="email"
                         required
+                        id="rfq-email"
+                        maxLength={RFQ_FIELD_LIMITS.email}
+                        autoComplete="email"
+                        dir="ltr"
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                         placeholder="contracts@company.com"
@@ -430,15 +392,16 @@ export const CompanyContactSection: React.FC<CompanyContactSectionProps> = ({
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-medium text-slate-300 mb-1">
+                      <label htmlFor="rfq-service" className="block text-xs font-medium text-slate-300 mb-1">
                         {isAr ? 'نوع الخدمة المطلوبة' : 'Primary Service Needed'}
                       </label>
                       <select
+                        id="rfq-service"
                         value={formData.serviceType}
                         onChange={(e) => setFormData({ ...formData, serviceType: e.target.value })}
                         className="w-full px-3 py-2 text-xs rounded-lg bg-slate-900 border border-slate-800 text-white focus:outline-none focus:border-cyan-500"
                       >
-                        <option value="pwht">{isAr ? 'معالجة حرارية بعد اللحام (PWHT - 16 وحدة)' : 'Post-Weld Heat Treatment (PWHT - 16 Units)'}</option>
+                        <option value="pwht">{isAr ? 'معالجة حرارية بعد اللحام (PWHT)' : 'Post-Weld Heat Treatment (PWHT)'}</option>
                         <option value="ut_paut">{isAr ? 'فحص بالموجات فوق الصوتية (UT / PAUT)' : 'Ultrasonic & Phased Array (UT/PAUT)'}</option>
                         <option value="rt_gamma">{isAr ? 'فحص إشعاعي جاما / أشعة سينية (RT)' : 'Industrial Radiography Gamma/X-Ray (RT)'}</option>
                         <option value="mt_pt">{isAr ? 'فحوصات سطحية (MT / PT / VT)' : 'Surface Testing (MT/PT/VT)'}</option>
@@ -450,11 +413,13 @@ export const CompanyContactSection: React.FC<CompanyContactSectionProps> = ({
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-slate-300 mb-1">
+                      <label htmlFor="rfq-location" className="block text-xs font-medium text-slate-300 mb-1">
                         {isAr ? 'موقع المشروع / المحافظة' : 'Job Site / Location'}
                       </label>
                       <input
                         type="text"
+                        id="rfq-location"
+                        maxLength={RFQ_FIELD_LIMITS.projectLocation}
                         value={formData.projectLocation}
                         onChange={(e) => setFormData({ ...formData, projectLocation: e.target.value })}
                         placeholder={isAr ? 'مثال: العين السخنة، حقل ظهر، الإسكندرية' : 'e.g. Ain Sokhna, Alexandria yard'}
@@ -464,11 +429,13 @@ export const CompanyContactSection: React.FC<CompanyContactSectionProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-slate-300 mb-1">
+                    <label htmlFor="rfq-scope" className="block text-xs font-medium text-slate-300 mb-1">
                       {isAr ? 'تفاصيل المواصفات الفنية أو حجم الأعمال' : 'Technical Specifications / Project Scope'}
                     </label>
                     <textarea
                       rows={3}
+                      id="rfq-scope"
+                      maxLength={RFQ_FIELD_LIMITS.description}
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       placeholder={isAr ? 'القطر، نوع المعدن، الكود المرجعي (ASME B31.3, AWS D1.1)...' : 'Pipe diameter, material grade, code (ASME B31.3, AWS D1.1)...'}
@@ -476,12 +443,12 @@ export const CompanyContactSection: React.FC<CompanyContactSectionProps> = ({
                     />
                   </div>
 
-                  <div className="pt-2">
+                  {configured && failure !== 'not_configured' && <div className="pt-2">
                     <button
                       type="submit"
                       disabled={sending}
                       aria-busy={sending}
-                      className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold text-sm transition shadow-sm cursor-pointer"
+                      className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-sky-300 hover:bg-sky-200 disabled:opacity-60 disabled:cursor-not-allowed text-slate-950 font-semibold text-sm transition shadow-sm cursor-pointer"
                     >
                       {sending ? (
                         <Loader2 className="w-4 h-4 shrink-0 animate-spin" aria-hidden="true" />
@@ -491,10 +458,31 @@ export const CompanyContactSection: React.FC<CompanyContactSectionProps> = ({
                       <span>
                         {sending
                           ? (isAr ? 'جارٍ إرسال الطلب…' : 'Sending your request…')
-                          : (isAr ? 'إرسال طلب التسعير المعتمد' : 'Submit Request to Technical Team')}
+                          : (isAr ? 'إرسال طلب التسعير' : 'Submit Request to Technical Team')}
                       </span>
                     </button>
-                  </div>
+                  </div>}
+                  {fallback && <div className="space-y-3 border-t border-slate-800 pt-4 text-sm text-slate-300">
+                    <p>{isAr
+                      ? 'يمكنك نسخ المسودة ولصقها في رسالة ترسلها بنفسك. فتح البريد أو واتساب لا يرسل الطلب تلقائيًا.'
+                      : 'Copy the draft and paste it into a message you send yourself. Opening email or WhatsApp does not submit the request.'}</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button type="button" onClick={() => { void copyDraft(); }} className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-slate-700 px-3 text-xs font-bold hover:bg-slate-800">
+                        <Copy className="h-4 w-4" aria-hidden="true" />{isAr ? 'نسخ مسودة الطلب' : 'Copy request draft'}
+                      </button>
+                      <a href={`mailto:${INSCO_COMPANY_DATA.contacts.email}`} className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-slate-700 px-3 text-xs font-bold hover:bg-slate-800">
+                        <Mail className="h-4 w-4" aria-hidden="true" />{isAr ? 'إرسال بالبريد الإلكتروني' : 'Open email'}
+                      </a>
+                      <a href={`https://wa.me/${INSCO_COMPANY_DATA.contacts.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-slate-700 px-3 text-xs font-bold hover:bg-slate-800">
+                        <MessageSquare className="h-4 w-4" aria-hidden="true" />{isAr ? 'إرسال واتساب' : 'Open WhatsApp'}
+                      </a>
+                    </div>
+                    {copyStatus === 'copied' && <p role="status">{isAr ? 'تم نسخ المسودة. لم يُرسَل الطلب.' : 'Draft copied. Nothing was sent.'}</p>}
+                    {copyStatus === 'manual' && <label className="block text-xs">
+                      {isAr ? 'انسخ النص التالي يدويًا:' : 'Copy this text manually:'}
+                      <textarea readOnly value={draftMessage()} rows={4} className="mt-1 w-full rounded bg-slate-900 p-2" />
+                    </label>}
+                  </div>}
                 </form>
               )}
             </div>

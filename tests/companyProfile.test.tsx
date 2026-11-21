@@ -127,7 +127,7 @@ test('CompanyHero mounts interactive 3D banner controls, switches techniques/pre
   assert.ok(ui.getByRole('button', { name: /Hide Controls/i }));
 });
 
-test('CompanyServicesSection displays 12 NDT methods and 16 PWHT fleet details', () => {
+test('CompanyServicesSection shows core NDT and PWHT with no unconfirmed Eddy Current offering', () => {
   const ui = render(<CompanyServicesSection language="en" />);
 
   // Check PWHT fleet 16 units
@@ -138,6 +138,7 @@ test('CompanyServicesSection displays 12 NDT methods and 16 PWHT fleet details',
   assert.ok(ui.getAllByText(/Ultrasonic Testing/i).length > 0);
   assert.ok(ui.getAllByText(/Radiographic Testing/i).length > 0);
   assert.ok(ui.getAllByText(/Magnetic Particle Testing/i).length > 0);
+  assert.equal(ui.queryByText(/Eddy Current/i), null);
 
   // Filter by Volumetric
   const volumetricFilter = ui.getByRole('button', { name: /Volumetric NDT/i });
@@ -210,7 +211,7 @@ test('RFQ never claims success when the request could not be sent', async () => 
     />,
   );
   fillRfq(ui);
-  fireEvent.click(ui.getByRole('button', { name: /إرسال طلب التسعير المعتمد/i }));
+  fireEvent.click(ui.getByRole('button', { name: /إرسال طلب التسعير/i }));
 
   await waitFor(() => assert.ok(ui.getByRole('alert')));
   assert.equal(ui.queryAllByText(/تم استلام طلبكم بنجاح/i).length, 0, 'no success screen without a server');
@@ -219,8 +220,11 @@ test('RFQ never claims success when the request could not be sent', async () => 
   // The customer still gets a channel that reaches a human.
   const mail = ui.getByRole('link', { name: /إرسال بالبريد الإلكتروني/i });
   assert.ok(mail.getAttribute('href')?.startsWith('mailto:'));
-  assert.ok(decodeURIComponent(mail.getAttribute('href')!).includes('Orascom Construction'));
-  assert.ok(ui.getByRole('link', { name: /إرسال واتساب/i }));
+  assert.ok(!mail.getAttribute('href')?.includes('?'));
+  assert.ok(!ui.getByRole('link', { name: /إرسال واتساب/i }).getAttribute('href')?.includes('?'));
+  fireEvent.click(ui.getByRole('button', { name: /نسخ مسودة الطلب/i }));
+  const draft = (await ui.findByLabelText(/انسخ النص التالي يدويًا/i)) as HTMLTextAreaElement;
+  assert.match(draft.value, /Orascom Construction/);
 });
 
 test('RFQ shows the reference issued by the server, and only that', async () => {
@@ -231,7 +235,7 @@ test('RFQ shows the reference issued by the server, and only that', async () => 
     />,
   );
   fillRfq(ui);
-  fireEvent.click(ui.getByRole('button', { name: /إرسال طلب التسعير المعتمد/i }));
+  fireEvent.click(ui.getByRole('button', { name: /إرسال طلب التسعير/i }));
 
   await waitFor(() => assert.ok(ui.getAllByText(/تم استلام طلبكم بنجاح/i).length > 0));
   assert.ok(ui.getAllByText(/INSCO-RFQ-20261117-7K2Q9P/).length > 0);
@@ -284,12 +288,13 @@ test('App root renders corporate facade by default and switches to Educational A
   assert.ok(ui.getAllByRole('button', { name: 'ملف التأهيل' }).length > 0);
 });
 
-test('CompanyFleetInspector displays calibrated equipment registry and allows category filtering', () => {
+test('CompanyFleetInspector displays company equipment records and allows category filtering', () => {
   const ui = render(<CompanyFleetInspector language="ar" />);
 
   // Should display equipment registry heading and metrics
   assert.ok(ui.getAllByText(/سجل الأصول والمعايرة والتجهيزات الميدانية/i).length > 0);
-  assert.ok(ui.getAllByText(/48\+/i).length > 0);
+  assert.ok(ui.getByText(/فئات معدات بالسجل/i));
+  assert.ok(ui.getByText(/لم تُنشر حالة الصيانة/i));
 
   // Default item is PWHT 65 kW units
   assert.ok(ui.getAllByText(/INS-PWHT-01 to INS-PWHT-16/i).length > 0);

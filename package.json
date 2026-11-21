@@ -44,7 +44,7 @@
     "test:portals": "tsx --test tests/portalIsolation.test.tsx tests/networkPortal.test.tsx && node --experimental-test-module-mocks --import tsx --test --test-concurrency=1 tests/clientPortal.test.tsx tests/clientRegistration.test.tsx tests/clientAuthFlow.test.tsx",
     "docs:check": "tsx scripts/compare-docs-build.ts",
     "test:simlabs": "tsx --test tests/simLabsRtLayout.test.tsx",
-    "build:hosted": "SITE_BASE=/ VITE_ADMIN_PORTAL_URL= VITE_RFQ_ENDPOINT= vite build --outDir dist",
+    "build:hosted": "INSCO_HOSTED_BUILD=1 SITE_BASE=/ VITE_ADMIN_PORTAL_URL= VITE_RFQ_ENDPOINT= vite build --outDir dist",
     "build:vercel": "npm run build:hosted",
     "lint:rules": "eslint firestore.rules",
     "test:account-rules": "tsx --test --test-timeout=45000 tests/accountPrivacy.emulator.test.ts",

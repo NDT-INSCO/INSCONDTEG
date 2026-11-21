@@ -29,7 +29,8 @@ function siteBase(): string {
   return fromActions ? `/${fromActions}/` : '/INSCONDTEG/';
 }
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+  define: { __INSCO_STATIC_PAGES__: JSON.stringify(command === 'build' && process.env.INSCO_HOSTED_BUILD !== '1') },
   plugins: [react(), tailwindcss()],
   base: siteBase(),
   optimizeDeps: {
@@ -52,4 +53,4 @@ export default defineConfig({
     outDir: 'docs',
     emptyOutDir: true,
   },
-});
+}));

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Language } from '../../types';
-import { INSCO_COMPANY_DATA } from '../../data/inscoCompanyData';
+import { COMMERCIAL_NDT_METHODS, INSCO_COMPANY_DATA } from '../../data/inscoCompanyData';
 import { COMPANY_MEDIA } from '../../data/companyMedia';
 import { CompanyRegionalFleetMap } from './CompanyRegionalFleetMap';
 import { SERVICE_FAMILIES, type ServiceFamilyId } from '../../utils/serviceFamilies';
@@ -41,23 +41,23 @@ export const CompanyServicesSection: React.FC<CompanyServicesSectionProps> = ({
   const pautImagePath = COMPANY_MEDIA.pautFlawDetector;
 
   const categories = [
-    { id: 'all', label: { ar: 'كافة الخدمات والفحوصات (12)', en: 'All Services (12)' } },
+    { id: 'all', label: { ar: 'كافة الطرق المعروضة', en: 'All listed methods' } },
     { id: 'volumetric', label: { ar: 'الفحوصات الحجمية (Volumetric)', en: 'Volumetric NDT' } },
     { id: 'surface', label: { ar: 'الفحوصات السطحية (Surface)', en: 'Surface NDT' } },
     { id: 'analysis', label: { ar: 'التحليل والصلادة (Field Metallurgy)', en: 'Field Analysis' } },
     { id: 'pressure', label: { ar: 'الضغط والمعالجة (Pressure & PWHT)', en: 'Heat & Pressure' } },
   ];
 
-  const filteredMethods = INSCO_COMPANY_DATA.ndtMethods.filter(method => {
+  const filteredMethods = COMMERCIAL_NDT_METHODS.filter(method => {
     if (activeCategory === 'all') return true;
     if (activeCategory === 'volumetric') return ['UT', 'RT', 'PAUT'].includes(method.code);
     if (activeCategory === 'surface') return ['VT', 'MT', 'PT', 'PC'].includes(method.code);
-    if (activeCategory === 'analysis') return ['PMI', 'HT', 'MFL_EC'].includes(method.code);
+    if (activeCategory === 'analysis') return ['PMI', 'HT'].includes(method.code);
     if (activeCategory === 'pressure') return ['HYDRO', 'SR'].includes(method.code);
     return true;
   });
 
-  const selectedMethod = INSCO_COMPANY_DATA.ndtMethods.find(m => m.code === selectedMethodId) || INSCO_COMPANY_DATA.ndtMethods[0];
+  const selectedMethod = COMMERCIAL_NDT_METHODS.find(m => m.code === selectedMethodId) || COMMERCIAL_NDT_METHODS[0];
 
   const handleSelectMethodFromMap = (methodCode: string) => {
     setActiveCategory('all');
@@ -74,16 +74,16 @@ export const CompanyServicesSection: React.FC<CompanyServicesSectionProps> = ({
         {/* Section Header */}
         <SectionHeading
           className="mb-12"
-          eyebrow={isAr ? 'مجالات العمل والمعدات المعتمدة' : 'Operational Scope & Calibrated Fleet'}
+          eyebrow={isAr ? 'مجالات العمل والمعدات' : 'Inspection and heat treatment'}
           title={
             isAr
-              ? '12 طريقة فحص غير إتلافي وأسطول معالجة حرارية متكامل'
-              : '12 NDT Inspection Families & Automated PWHT Fleet'
+              ? 'طرق الفحص غير الإتلافي والمعالجة الحرارية'
+              : 'NDT methods and heat treatment'
           }
           description={
             isAr
-              ? 'تغطي إنسكو كافة متطلبات الجودة الصناعية ومعايير ASME وAWS وAPI وISO عبر طاقم مهندسين معتمدين ASNT Level II/III ومعدات معتمدة ومعايرة دورياً.'
-              : 'INSCO covers exhaustive industrial quality mandates under ASME, AWS, API, and ISO codes with certified ASNT Level II/III inspectors and traceable calibrated equipment.'
+              ? 'تعرّف على الاستخدامات والمراجع الشائعة لكل طريقة. يراجع الفريق الفني الإجراء المطلوب والمعدات المتاحة لكل مشروع.'
+              : 'Compare typical applications and references. The technical team confirms the applicable procedure and equipment for your project.'
           }
         />
 
@@ -226,10 +226,10 @@ export const CompanyServicesSection: React.FC<CompanyServicesSectionProps> = ({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h3 className="text-lg font-bold text-white">
-                {isAr ? 'فهرس طرق الفحص غير الإتلافي (12 طريقة معتمدة)' : '12 Non-Destructive Testing Methods Catalog'}
+                {isAr ? 'فهرس طرق الفحص غير الإتلافي' : 'Non-Destructive Testing Methods Catalog'}
               </h3>
               <p className="text-xs text-slate-400">
-                {isAr ? 'اختر الطريقة للاطلاع على المعدات والرمز والكود الهندسي المرجعي' : 'Select a method to review calibrated equipment and governing specifications'}
+                {isAr ? 'اختر الطريقة للاطلاع على المعدات والرمز والكود الهندسي المرجعي' : 'Select a method to review typical equipment and reference specifications'}
               </p>
             </div>
 

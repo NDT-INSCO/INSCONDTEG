@@ -167,6 +167,7 @@ export function CompanyPortal({ language, onNavigateToAcademy }: {
               ))}
             </ul>
           ) : <p className="corporate-empty">{isAr ? 'لا توجد مختارات موثقة للنشر الآن.' : 'No project highlights are documented for publication yet.'}</p>}
+          <a href={`${INSCO_COMPANY_DATA.pdfBrochureUrl}#page=12`} target="_blank" rel="noopener noreferrer" className="corporate-link mt-5 me-5">{isAr ? 'المصدر: صفحة المشروعات في ملف الشركة (PDF)' : 'Source: company dossier project record (PDF)'}</a>
           <a href="#vault" className="corporate-link mt-5"><ShieldCheck className="size-4" aria-hidden="true" />{isAr ? 'ملف تأهيل المورد' : 'Vendor qualification dossier'}</a>
         </div>
       </section>

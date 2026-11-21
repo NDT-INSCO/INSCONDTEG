@@ -1,7 +1,7 @@
 import React from 'react';
 import { ArrowLeft, ArrowRight, ShieldCheck, FileText, FlaskConical, PlayCircle } from 'lucide-react';
 import { Language } from '../../types';
-import { INSCO_COMPANY_DATA } from '../../data/inscoCompanyData';
+import { COMMERCIAL_NDT_METHODS, INSCO_COMPANY_DATA } from '../../data/inscoCompanyData';
 import { CtaButton } from '../ui/CtaButton';
 import {
   SERVICE_FAMILIES,
@@ -40,7 +40,7 @@ export const CompanyServicePage: React.FC<CompanyServicePageProps> = ({
   const isAr = language === 'ar';
   const ArrowIcon = isAr ? ArrowLeft : ArrowRight;
 
-  const methods = INSCO_COMPANY_DATA.ndtMethods.filter((method: { id: string }) =>
+  const methods = COMMERCIAL_NDT_METHODS.filter((method: { id: string }) =>
     family.methodIds.includes(method.id)
   );
   const serviceType = methodId === 'rt' ? 'rt_gamma'

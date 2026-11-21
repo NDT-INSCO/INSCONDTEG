@@ -137,7 +137,7 @@ Vercel الثابت. خزّن الأسرار كـ Sensitive وأعد النشر 
 
 ```bash
 npm ci
-SITE_BASE=/ npm run build -- --outDir dist
+npm run build:hosted
 NODE_ENV=production npm start
 ```
 

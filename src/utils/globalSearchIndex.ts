@@ -1,5 +1,5 @@
 import type { SubTab } from '../components/EducationalAcademy';
-import { INSCO_COMPANY_DATA } from '../data/inscoCompanyData';
+import { COMMERCIAL_NDT_METHODS, INSCO_COMPANY_DATA } from '../data/inscoCompanyData';
 import { ENGINEERING_DISCIPLINES } from '../data/academyCurriculum';
 import { NDT_TEXTBOOKS } from '../data/ndeTextbooksData';
 
@@ -60,7 +60,7 @@ function buildGlobalSearchIndex(): GlobalSearchItem[] {
     });
   }
 
-  for (const method of INSCO_COMPANY_DATA.ndtMethods) {
+  for (const method of COMMERCIAL_NDT_METHODS) {
     items.push({
       id: `ndt-method-${method.id}`,
       category: 'services',

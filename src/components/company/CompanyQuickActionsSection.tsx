@@ -112,24 +112,24 @@ export const CompanyQuickActionsSection: React.FC<CompanyQuickActionsSectionProp
             >
               {mode === 'syllabus'
                 ? isAr
-                  ? 'المنهج التدريبي المعتمد بنقرة واحدة'
-                  : 'Accredited training syllabus in one click'
+                  ? 'المنهج التدريبي بنقرة واحدة'
+                  : 'Training syllabus in one click'
                 : mode === 'quote'
                   ? isAr
                     ? 'طلب عرض سعر فوري بخطوة واحدة'
                     : 'One-step express quotation'
                   : isAr
                     ? 'الوصول المباشر بنقرة واحدة للتسعير التجاري والمنهج التدريبي'
-                    : 'One-Click Project Quotation & Accredited Training Syllabus'}
+                    : 'Quote presets and training syllabus'}
             </h2>
           </div>
 
           <div className="text-xs font-mono text-slate-400 flex items-center gap-2 tabular-nums">
             <Clock className="w-3.5 h-3.5 text-cyan-400 shrink-0" aria-hidden="true" />
             <span>
-              {isAr
-                ? 'استجابة تسعير < 4 ساعات · مناهج ASNT SNT-TC-1A / ISO 9712'
-                : '< 4h Commercial SLA · ASNT SNT-TC-1A / ISO 9712'}
+              {mode === 'syllabus'
+                ? (isAr ? 'للتعلّم الذاتي، وليس اعتمادًا مهنيًا' : 'Self-study, not professional certification')
+                : (isAr ? 'يساعدك في تجهيز نطاق طلبك' : 'Prepare your project scope')}
             </span>
           </div>
         </div>
@@ -141,8 +141,8 @@ export const CompanyQuickActionsSection: React.FC<CompanyQuickActionsSectionProp
             <div className="space-y-3">
               <div className="text-xs font-mono text-cyan-400 tabular-nums">
                 {isAr
-                  ? 'التعاقدات والعمليات الميدانية · 16 وحدة PWHT · 12 تقنية فحص'
-                  : 'Commercial Dispatch · 16 Owned PWHT Units · 12 NDT Methods'}
+                  ? 'التعاقدات والعمليات الميدانية'
+                  : 'Project enquiries'}
               </div>
 
               <h3 className="text-lg sm:text-xl font-bold text-white">
@@ -195,7 +195,7 @@ export const CompanyQuickActionsSection: React.FC<CompanyQuickActionsSectionProp
                   <span>
                     {isAr
                       ? 'تم تفعيل وتوجيهك مباشرةً إلى نموذج عرض السعر (#RFQ).'
-                      : 'RFQ form activated and focused for immediate submission (#RFQ).'}
+                      : 'RFQ form activated and focused.'}
                   </span>
                 </div>
               )}
@@ -212,18 +212,18 @@ export const CompanyQuickActionsSection: React.FC<CompanyQuickActionsSectionProp
                 {syllabusStats.disciplineCount}{' '}
                 {isAr ? 'تخصصات' : 'Disciplines'} · {syllabusStats.moduleCount}{' '}
                 {isAr ? 'وحدة تدريبية' : 'Modules'} · {syllabusStats.totalTrainingHours}h{' '}
-                {isAr ? 'معتمدة' : 'Certified'}
+                {isAr ? 'تقديرية للتعلّم' : 'estimated study'}
               </div>
 
               <h3 className="text-lg sm:text-xl font-bold text-white">
                 {isAr
                   ? 'تحميل دليل المنهج التدريبي الكامل لأكاديمية إنسكو'
-                  : 'Complete ASNT & ISO 9712 NDT Training Syllabus'}
+                  : 'INSCO Engineering Academy study syllabus'}
               </h3>
 
               <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
                 {isAr
-                  ? 'حمّل بنقرة واحدة الوثيقة الكاملة للمقررات التدريبية وساعات التأهيل المعتمدة (Level I / II / III) في UT وPAUT وRT الجاما والإكس راي وPWHT.'
+                  ? 'حمّل خطة المقررات وساعات الدراسة التقديرية في UT وPAUT وRT وPWHT. لا تحل الخطة محل تدريب رسمي موثّق.'
                   : 'Download the print-ready master syllabus covering Level I, II, and III qualification hours, laboratory modules, and ASME/API code competencies in one click.'}
               </p>
             </div>

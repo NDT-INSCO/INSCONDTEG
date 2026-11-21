@@ -4,8 +4,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  buildRfqMailto,
-  buildRfqWhatsApp,
+  buildRfqMessage,
+  buildRfqPayload,
   resolveRfqEndpoint,
   submitRfq,
   type RfqPayload,
@@ -23,7 +23,7 @@ const payload: RfqPayload = {
   submittedAt: '2026-11-17T10:00:00.000Z',
 };
 
-function fakeFetch(status: number, body: unknown, ok = status < 400): typeof fetch {
+function fakeFetch(status: number, body: unknown): typeof fetch {
   return (async () =>
     new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })) as typeof fetch;
 }
@@ -35,6 +35,10 @@ test('endpoint resolution: gateway base gets /api/rfq, full endpoints are kept',
   const script = 'https://script.google.com/macros/s/ABC/exec';
   assert.equal(resolveRfqEndpoint(script), script);
   assert.equal(resolveRfqEndpoint(''), '/api/rfq');
+  assert.equal(resolveRfqEndpoint('', true), null);
+  assert.equal(resolveRfqEndpoint(null), null);
+  assert.equal(resolveRfqEndpoint('http://gw.example.com'), null);
+  assert.equal(resolveRfqEndpoint('https://gateway.example.com/api/rfq', true), 'https://gateway.example.com/api/rfq');
 });
 
 test('success is reported only with a server-issued reference', async () => {
@@ -76,15 +80,24 @@ test('network failures never look like success', async () => {
   if (outcome.status === 'failed') assert.equal(outcome.reason, 'network');
 });
 
-test('mail and WhatsApp hand-off carry every filled field', () => {
-  const mailto = buildRfqMailto(payload, 'insco50@yahoo.com', 'ar');
-  assert.ok(mailto.startsWith('mailto:insco50@yahoo.com?'));
-  const decoded = decodeURIComponent(mailto);
-  assert.ok(decoded.includes('Orascom Construction'));
-  assert.ok(decoded.includes('+20 109 077 7202'));
-  assert.ok(decoded.includes('P91 steam lines'));
+test('copyable draft carries scope without a provider URL; payload trims and normalizes local digits', () => {
+  const draft = buildRfqMessage(payload, 'ar');
+  assert.ok(draft.includes('Orascom Construction'));
+  assert.ok(draft.includes('+20 109 077 7202'));
+  assert.ok(draft.includes('P91 steam lines'));
+  const normalized = buildRfqPayload({ ...payload, companyName: '  Example ', phone: '+٢٠ ١٠٩٠٧٧٧٢٠٢' }, 'ar');
+  assert.equal(normalized.phone, '+201090777202');
+  assert.equal(normalized.companyName, 'Example');
+});
 
-  const wa = buildRfqWhatsApp(payload, '+20 109 077 7202', 'en');
-  assert.ok(wa.startsWith('https://wa.me/201090777202?text='));
-  assert.ok(decodeURIComponent(wa).includes('RFQ — INSCO'));
+test('an explicit refusal with a reference cannot be mistaken for receipt', async () => {
+  const response = await submitRfq(payload, { endpoint: '/api/rfq', fetchImpl: fakeFetch(200, { ok: false, reference: 'INSCO-RFQ-TEST' }) });
+  assert.deepEqual(response, { status: 'failed', reason: 'server' });
+  const absent = await submitRfq(payload, { endpoint: '/api/rfq', fetchImpl: fakeFetch(503, { ok: false, error: 'rfq_delivery_not_configured' }) });
+  assert.deepEqual(absent, { status: 'failed', reason: 'not_configured' });
+});
+
+test('rate limits and provider errors never expose private response details', async () => {
+  const response = await submitRfq(payload, { endpoint: '/api/rfq', fetchImpl: fakeFetch(429, { detail: 'provider secret' }) });
+  assert.deepEqual(response, { status: 'failed', reason: 'rate_limited' });
 });

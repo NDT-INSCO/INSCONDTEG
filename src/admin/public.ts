@@ -1,5 +1,6 @@
 import { ADMIN_HASH, ANNOUNCEMENT_API } from './contract';
 import type { LocalizedText } from '../types';
+import { isStaticPages } from '../utils/staticPages';
 
 /** A Pages build may send staff to a trusted Node host instead of crossing origins with a PIN. */
 export function externalAdminLink(raw = import.meta.env?.VITE_ADMIN_PORTAL_URL): string | null {
@@ -17,7 +18,7 @@ export function externalAdminLink(raw = import.meta.env?.VITE_ADMIN_PORTAL_URL):
 export async function readPublicAnnouncement(signal: AbortSignal): Promise<LocalizedText | null> {
   const portal = externalAdminLink();
   // A standalone Pages site without a linked Node host has no announcement API.
-  if (!portal && window.location.hostname.endsWith('.github.io')) return null;
+  if (!portal && isStaticPages()) return null;
   const endpoint = portal ? new URL(ANNOUNCEMENT_API, portal).href : ANNOUNCEMENT_API;
   try {
     const response = await fetch(endpoint, { signal, cache: 'no-store', credentials: 'omit' });

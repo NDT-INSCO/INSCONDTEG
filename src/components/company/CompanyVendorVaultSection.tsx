@@ -33,13 +33,13 @@ export const CompanyVendorVaultSection: React.FC<CompanyVendorVaultSectionProps>
           eyebrow={isAr ? 'خزينة وثائق التأهيل والكتالوج الرسمي' : 'Vendor Vault & Evidence Annexes'}
           title={
             isAr
-              ? 'ملف التأهيل الفني والبروشور المعتمد (50 صفحة)'
-              : 'Complete 50-Page Vendor Prequalification Dossier'
+              ? 'ملف التأهيل الفني والبروشور (50 صفحة)'
+              : '50-page company dossier for vendor qualification'
           }
           description={
             isAr
-              ? 'يمكن لفرق المشتريات والمشروعات تحميل البروشور الرسمي بصيغة PDF ومراجعة الملاحق الثبوتية كاملة من شهادات الأيزو وتراخيص الأجهزة وسوابق الأعمال.'
-              : 'Procurement and QA/QC committees can directly download the master corporate profile PDF containing the full catalogue of evidence annexes.'
+              ? 'حمّل نسخة ملف الشركة المنشورة. الوثائق في الملف تاريخية؛ اطلب نسخًا حديثة وأكّد نطاق الخدمات وتوافرها قبل التأهيل.'
+              : 'Download the published company profile. These records are historical; request current copies and confirm service availability before qualification.'
           }
         />
 
@@ -93,7 +93,7 @@ export const CompanyVendorVaultSection: React.FC<CompanyVendorVaultSectionProps>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">{isAr ? 'عدد الصفحات:' : 'Pages:'}</span>
-                <span className="text-cyan-400 font-bold">50 صفحة</span>
+                <span className="text-cyan-400 font-bold">{isAr ? '50 صفحة' : '50 pages'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">{isAr ? 'تاريخ الإصدار:' : 'Issue Date:'}</span>
@@ -172,7 +172,7 @@ export const CompanyVendorVaultSection: React.FC<CompanyVendorVaultSectionProps>
             <h3 className="text-xl font-bold text-white">
               {isAr
                 ? 'جاهزية كاملة لمتطلبات التسجيل بسجلات الموردين'
-                : '100% Pre-Packaged Compliance for Approved Vendor Lists (AVL)'}
+                : 'Checklist for vendor qualification'}
             </h3>
             <p className="text-xs text-slate-400 mt-1">
               {isAr

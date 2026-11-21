@@ -1,7 +1,7 @@
 # دليل التسليم — INSCO Academy / موقع INSCO
 
-تاريخ التحديث: 16 أكتوبر 2026.
-الفرع: `arena/00989e2b-project` (من `main` @ `e66fab7`).
+مرجع التسليم الأصلي: 16 أكتوبر 2026، `main` @ `e66fab7`. الأقسام التاريخية ليست حالة الإصدار الحالي.
+لإعادة الهيكلة الحالية راجع [خريطة UX](ux/RESTRUCTURE_V2_AR.md) و[تقرير الاختبار والمعاينة](ux/QA_V2_AR.md).
 
 ---
 
@@ -25,7 +25,8 @@ npm ci
 cp .env.example .env   # ضع GEMINI_API_KEY على الخادم فقط (لا VITE_)
 npm run dev            # خادم Vite+Express على المنفذ 3000
 npm run lint           # tsc --noEmit
-npm run build          # vite build -> dist/
+npm run build          # Pages -> docs/ (base: /INSCONDTEG/)
+npm run build:hosted   # Node/hosted -> dist/ (base: /)
 npm run preview -- --host 0.0.0.0
 ```
 
@@ -174,20 +175,20 @@ npm run build       # vite build
 npm run preview -- --host 0.0.0.0
 ```
 
-(اختبارات `test:academy` غير موجودة في package.json الحالي — كانت في فرع 77528e83.)
+تتوفر `npm run test:academy` للاختبار المركّز، و`npm run verify` للتحقق المجمع.
 
 ## 11. النشر (Deployment)
 
-- GitHub Pages: ملفات ثابتة فقط. `/api/ai/*` و `/live` لن تعمل.
-- لتشغيل كامل: `npm run build` + `NODE_ENV=production npm start`.
-- Vite `base: './'` — روابط نسبية.
+- GitHub Pages: `main:/docs`؛ `SITE_BASE=/INSCONDTEG/ npm run build` ثم `npm run site:check` ومطابقة `docs/` قبل النشر. لا يعمل الخادم من Pages. [إعداد RFQ](RFQ_AR.md).
+- لخادم Node: `npm run build:hosted` ثم `NODE_ENV=production npm start`، بتهيئة القنوات على الخادم. Vercel/Netlify يشغّلان وظائف الإدارة وRFQ؛ المستشار يحتاج خادم Node أو بوابة مستقلة ومصادر مراجَعة.
+- [خريطة الإصدار الثاني](ux/RESTRUCTURE_V2_AR.md) و[حدود ملف التأهيل](ux/DOSSIER_PUBLIC_V2_AR.md).
 
 ## 12. حزمة النقل (Transfer package)
 
-راجع `docs/TRANSFER_PACKAGE.md`. الملفات الرئيسية للتسليم:
-- `docs/HANDOVER_AR.md` (هذا الملف)
-- `docs/ACADEMY_REVIEW_AR.md`
-- `docs/TRANSFER_PACKAGE.md`
+راجع `documentation/TRANSFER_PACKAGE.md`. الملفات الرئيسية للتسليم:
+- `documentation/HANDOVER_AR.md` (هذا الملف)
+- `documentation/ACADEMY_REVIEW_AR.md`
+- `documentation/TRANSFER_PACKAGE.md`
 - `src/components/academy/AcademyCompletionMap.tsx`
 - أرشيف `release/transfer-package.tar.gz` (إن وُجد).
 

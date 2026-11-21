@@ -3,7 +3,7 @@
 **المشروع**: NDT-INSCO / -Project-
 **الفرع**: `arena/00989e2b-project`
 **ال commit**: `e66fab7` (main HEAD)
-**التاريخ**: 16 أكتوبر 2026
+**التاريخ**: 16 أكتوبر 2026 (مرجع الحزمة التاريخية). للإصدار الحالي: [الدليل](HANDOVER_AR.md) و[تقرير الاختبار](ux/QA_V2_AR.md).
 
 ---
 
@@ -14,10 +14,10 @@
 - `server.ts` — خادم Express.
 - `index.html`, `vite.config.ts`, `tsconfig.json`, `package.json`, `package-lock.json`.
 
-### ب. التوثيق (docs/)
-- `docs/HANDOVER_AR.md` — دليل التسليم.
-- `docs/ACADEMY_REVIEW_AR.md` — مراجعة الأكاديمية وخطة الاستكمال.
-- `docs/TRANSFER_PACKAGE.md` — هذا الملف.
+### ب. التوثيق (documentation/)
+- `documentation/HANDOVER_AR.md` — دليل التسليم.
+- `documentation/ACADEMY_REVIEW_AR.md` — مراجعة الأكاديمية وخطة الاستكمال.
+- `documentation/TRANSFER_PACKAGE.md` — هذا الملف.
 
 ### ج. الإعداد
 - `.env.example` — قالب متغيرات البيئة.
@@ -33,9 +33,9 @@
 |---|---|
 | `src/components/academy/AcademyCompletionMap.tsx` | جديد — خريطة استكمال الأكاديمية (UI) |
 | `src/components/EducationalAcademy.tsx` | إضافة تبويب `completion_map` + زر + render |
-| `docs/ACADEMY_REVIEW_AR.md` | نسخ من فرع 77528e83 |
-| `docs/HANDOVER_AR.md` | جديد — دليل التسليم |
-| `docs/TRANSFER_PACKAGE.md` | جديد — حزمة النقل |
+| `documentation/ACADEMY_REVIEW_AR.md` | نسخ من فرع 77528e83 |
+| `documentation/HANDOVER_AR.md` | جديد — دليل التسليم |
+| `documentation/TRANSFER_PACKAGE.md` | جديد — حزمة النقل |
 
 ## 3. ما لم يتغير (للتجنب من تكرار الشغل)
 
@@ -49,7 +49,7 @@
 2. `npm ci` (Node 24.12+ موصى).
 3. `cp .env.example .env` + ضبط `GEMINI_API_KEY`.
 4. `npm run dev` → http://localhost:3000.
-5. اقرأ `docs/HANDOVER_AR.md` + `docs/ACADEMY_REVIEW_AR.md`.
+5. اقرأ `documentation/HANDOVER_AR.md` + `documentation/ACADEMY_REVIEW_AR.md`.
 6. افتح الأكاديمية → تبويب "خريطة الاستكمال" لرؤية ما/ناقص/ترتيب.
 7. ابدأ P1 (دمج مكتبة المراجع + دروس من فرع 77528e83).
 
@@ -69,8 +69,8 @@ npm run preview -- --host 0.0.0.0
 
 ## 7. النشر
 
-- GitHub Pages: ملفات ثابتة فقط (AI/صوت لن تعمل).
-- كامل: `npm run build` + `NODE_ENV=production npm start`.
+- GitHub Pages: ملفات ثابتة من `main:/docs`. ابْنِ بـ `SITE_BASE=/INSCONDTEG/ npm run build` وافحص بـ `npm run site:check`. [قنوات RFQ](RFQ_AR.md) و[المقتطف العام لملف التأهيل](ux/DOSSIER_PUBLIC_V2_AR.md).
+- خادم Node: `npm run build:hosted` ثم `NODE_ENV=production npm start`. تحتاج مسارات المستشار إلى بوابة مستقلة أو هذا الخادم، ومصادر مراجَعة. وظائف Vercel/Netlify للإدارة وRFQ لا تشغّل المستشار.
 
 ## 8. ملاحظات أمنية
 

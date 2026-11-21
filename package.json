@@ -41,7 +41,7 @@
     "epub:build": "tsx scripts/build-epub.ts",
     "epub:check": "tsx scripts/build-epub.ts --check",
     "site:check": "tsx scripts/check-published-site.ts",
-    "test:portals": "tsx --test tests/portalIsolation.test.tsx tests/networkPortal.test.tsx && node --experimental-test-module-mocks --import tsx --test --test-concurrency=1 tests/networkProfile.test.tsx tests/networkDirectorySlow.test.tsx tests/networkFeed.test.tsx tests/clientPortal.test.tsx tests/clientRegistration.test.tsx tests/clientAuthFlow.test.tsx",
+    "test:portals": "tsx --test tests/portalIsolation.test.tsx tests/networkPortal.test.tsx && node --experimental-test-module-mocks --import tsx --test --test-concurrency=1 tests/networkProfile.test.tsx tests/networkDirectorySlow.test.tsx tests/networkFeed.test.tsx tests/networkConnections.test.tsx tests/clientPortal.test.tsx tests/clientRegistration.test.tsx tests/clientAuthFlow.test.tsx",
     "docs:check": "tsx scripts/compare-docs-build.ts",
     "test:simlabs": "tsx --test tests/simLabsRtLayout.test.tsx",
     "build:hosted": "SITE_BASE=/ VITE_ADMIN_PORTAL_URL= VITE_RFQ_ENDPOINT= vite build --outDir dist",

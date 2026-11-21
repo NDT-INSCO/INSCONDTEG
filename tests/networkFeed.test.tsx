@@ -51,6 +51,7 @@ let feedPosts: unknown[] = [];
 let feedComments: unknown[] = [];
 let feedError: Error | null = null;
 let neverAnswers = false;
+let myReaction: { postId: string; uid: string; reactionType: string } | null = null;
 
 mock.module('../src/client/firestoreClientService.ts', {
   namedExports: {
@@ -98,6 +99,13 @@ mock.module('../src/client/firestoreClientService.ts', {
     addCommunityPostComment: async (...args: unknown[]) => {
       calls.push({ fn: 'addCommunityPostComment', args });
     },
+    getCommunityPostReaction: async (...args: unknown[]) => {
+      calls.push({ fn: 'getCommunityPostReaction', args });
+      return myReaction;
+    },
+    setCommunityPostReaction: async (...args: unknown[]) => {
+      calls.push({ fn: 'setCommunityPostReaction', args });
+    },
   },
 });
 
@@ -113,6 +121,7 @@ beforeEach(() => {
   feedComments = [];
   feedError = null;
   neverAnswers = false;
+  myReaction = null;
   dom.window.history.replaceState(null, '', '/INSCONDTEG/');
 });
 
@@ -253,9 +262,10 @@ test('a real post renders with its author card, and its comments open on demand'
   assert.ok(cardText.includes('إشارة على شطف 30° في P91'));
   assert.ok(cardText.includes('#ASME-V'));
 
-  // Reactions are still a prototype; the disabled button says why.
-  const like = within(cardEl).getByText(/إعجاب/);
-  assert.equal((like as HTMLButtonElement).disabled, true);
+  // A confirmed member can react; the state is exposed, not just styled.
+  const like = within(cardEl).getByTestId('network-like') as HTMLButtonElement;
+  assert.equal(like.disabled, false);
+  assert.equal(like.getAttribute('aria-pressed'), 'false');
 
   fireEvent.click(within(cardEl).getByText(/التعليقات/));
   await waitFor(() => assert.ok(getByTestId('network-comments')));
@@ -335,4 +345,86 @@ test('publishing sends a payload the rules accept, then clears the composer', as
 
   await waitFor(() => assert.ok((container.textContent ?? '').includes('نُشر المنشور')));
   await waitFor(() => assert.equal((getByLabelText('عنوان المنشور') as HTMLInputElement).value, ''));
+});
+
+test('a like reads the member’s own reaction first, then writes exactly once', async () => {
+  feedPosts = [
+    {
+      id: 'p3',
+      authorUid: 'uid-other',
+      authorName: 'خالد',
+      authorOrg: 'مقاول',
+      postType: 'discussion',
+      ndtMethod: 'VT',
+      title: 'عنوان ثالث',
+      body: 'نص كافٍ للعرض.',
+      likesCount: 4,
+      commentsCount: 0,
+      visibility: 'public',
+      aiModerationStatus: 'approved',
+      isPinnedAnnouncement: false,
+    },
+  ];
+  const { getByTestId } = mount();
+  await waitFor(() => assert.ok(getByTestId('network-feed-list')));
+
+  const like = getByTestId('network-like') as HTMLButtonElement;
+  fireEvent.click(like);
+
+  await waitFor(() => {
+    const read = calls.find(entry => entry.fn === 'getCommunityPostReaction');
+    assert.ok(read, 'the member’s own reaction must be read before writing');
+    assert.deepEqual(read!.args, ['p3', 'uid-alice']);
+
+    const write = calls.find(entry => entry.fn === 'setCommunityPostReaction');
+    assert.ok(write, 'the reaction must be written through the service');
+    const [sentUser, postId, type, existing] = write!.args as [typeof user, string, string, unknown];
+    assert.equal(sentUser.uid, 'uid-alice');
+    assert.equal(postId, 'p3');
+    assert.equal(type, 'like');
+    assert.equal(existing, null, 'no prior reaction means the service creates one');
+  });
+
+  await waitFor(() => {
+    assert.equal((getByTestId('network-like') as HTMLButtonElement).getAttribute('aria-pressed'), 'true');
+  });
+});
+
+test('an existing like is removed rather than added twice', async () => {
+  feedPosts = [
+    {
+      id: 'p4',
+      authorUid: 'uid-other',
+      authorName: 'خالد',
+      authorOrg: 'مقاول',
+      postType: 'discussion',
+      ndtMethod: 'VT',
+      title: 'عنوان رابع',
+      body: 'نص كافٍ للعرض.',
+      likesCount: 5,
+      commentsCount: 0,
+      visibility: 'public',
+      aiModerationStatus: 'approved',
+      isPinnedAnnouncement: false,
+    },
+  ];
+  myReaction = { postId: 'p4', uid: 'uid-alice', reactionType: 'like' };
+
+  const { getByTestId } = mount();
+  await waitFor(() => assert.ok(getByTestId('network-feed-list')));
+
+  fireEvent.click(getByTestId('network-like'));
+
+  await waitFor(() => {
+    const write = calls.find(entry => entry.fn === 'setCommunityPostReaction');
+    assert.ok(write);
+    const [, , type, existing] = write!.args as [typeof user, string, string, { reactionType: string } | null];
+    assert.equal(type, 'like');
+    assert.equal(existing?.reactionType, 'like', 'the service must receive the reaction it is undoing');
+  });
+
+  // After undoing, the button no longer claims to be pressed.
+  await waitFor(() => {
+    assert.equal((getByTestId('network-like') as HTMLButtonElement).getAttribute('aria-pressed'), 'false');
+  });
 });

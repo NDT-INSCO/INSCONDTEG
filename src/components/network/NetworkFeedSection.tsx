@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   CircleAlert,
   Copy,
+  Heart,
   Loader2,
   MessageSquare,
   PenLine,
@@ -85,6 +86,10 @@ export const NetworkFeedSection: React.FC<NetworkFeedSectionProps> = ({
   const [published, setPublished] = useState(false);
   const [openComments, setOpenComments] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  /** Which reaction this member gave, per post, as read from the database. */
+  const [myReactions, setMyReactions] = useState<Record<string, string>>({});
+  const [reacting, setReacting] = useState<string | null>(null);
+  const [reactionError, setReactionError] = useState<string | null>(null);
 
   const serviceReady = account?.available ?? false;
   const uid = account?.user?.uid ?? null;
@@ -190,6 +195,39 @@ export const NetworkFeedSection: React.FC<NetworkFeedSectionProps> = ({
       }
     },
     [account?.user, card, draft, errors.length]
+  );
+
+  /**
+   * Toggle a like without ever guessing.
+   *
+   * The stored counter must equal the number of reaction documents, so the write
+   * is always preceded by reading this member's own reaction for this post: an
+   * existing `like` is removed, a different reaction is switched, and no reaction
+   * becomes one. A blind `increment(1)` on every tap is what makes counters drift.
+   */
+  const toggleLike = useCallback(
+    async (postId: string) => {
+      const user = account?.user;
+      if (!user || reacting) return;
+      setReacting(postId);
+      setReactionError(null);
+      try {
+        const api = await import('../../client/firestoreClientService');
+        const mine = await api.getCommunityPostReaction(postId, user.uid);
+        await api.setCommunityPostReaction(user, postId, 'like', mine);
+        setMyReactions(current => {
+          const next = { ...current };
+          if (mine) delete next[postId];
+          else next[postId] = 'like';
+          return next;
+        });
+      } catch (failure) {
+        setReactionError(failure instanceof Error ? failure.message : String(failure));
+      } finally {
+        setReacting(null);
+      }
+    },
+    [account?.user, reacting]
   );
 
   const copyLink = useCallback(
@@ -374,6 +412,12 @@ export const NetworkFeedSection: React.FC<NetworkFeedSectionProps> = ({
           </p>
         ) : null}
 
+        {reactionError ? (
+          <p role="alert" className="rounded border border-rose-500/40 bg-rose-500/10 px-2 py-1 text-[10px] text-rose-200">
+            {isAr ? `تعذّر تسجيل الإعجاب: ${reactionError}` : `Could not record the like: ${reactionError}`}
+          </p>
+        ) : null}
+
         {loading && slow ? (
           <div data-testid="network-feed-slow" className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
             <div className="flex items-center gap-2 text-xs font-bold text-amber-200">
@@ -421,6 +465,10 @@ export const NetworkFeedSection: React.FC<NetworkFeedSectionProps> = ({
                   }
                   onCopyLink={() => copyLink(post.id)}
                   copied={copied === post.id}
+                  canReact={Boolean(uid) && verified}
+                  reacted={Boolean(myReactions[post.id])}
+                  reacting={reacting === post.id}
+                  onToggleLike={() => void toggleLike(post.id)}
                   onOpenAccount={onOpenAccount}
                   onOpenProfile={onOpenProfile}
                   author={card}
@@ -446,10 +494,10 @@ export const NetworkFeedSection: React.FC<NetworkFeedSectionProps> = ({
             <li>{isAr ? '· الشهادات تُذكر كإقرار، لا كشارة تحقق.' : '· Certificates are stated as a claim, not as a verified badge.'}</li>
           </ul>
         </div>
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-[10px] leading-relaxed text-amber-100">
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-[10px] leading-relaxed text-emerald-100">
           {isAr
-            ? 'التفاعلات (إعجاب/تعليق سريع) تُفعّل في المرحلة التالية بعد قراءة تفاعل العضو نفسه أولاً — حتى لا يُحسب التفاعل مرتين. التعليقات تعمل الآن.'
-            : 'Reactions turn on in the next phase, once a member’s own reaction can be read first so a tap cannot be counted twice. Comments work now.'}
+            ? 'الإعجاب يُقرأ قبل أن يُكتب: نتحقق من تفاعلك على المنشور أولاً، فلا تُحسب ضغطة مرتين ولا يبتعد العدّاد عن عدد التفاعلات الحقيقي.'
+            : 'A like is read before it is written: your own reaction is checked first, so a tap is never counted twice and the counter never drifts from the real reactions.'}
         </div>
       </aside>
     </div>
@@ -531,6 +579,10 @@ const PostCard: React.FC<{
   canComment: boolean;
   commentsOpen: boolean;
   copied: boolean;
+  canReact: boolean;
+  reacted: boolean;
+  reacting: boolean;
+  onToggleLike: () => void;
   author: CommunityWorkspaceProfile | null;
   user: User | null;
   onToggleComments: () => void;
@@ -544,6 +596,10 @@ const PostCard: React.FC<{
   canComment,
   commentsOpen,
   copied,
+  canReact,
+  reacted,
+  reacting,
+  onToggleLike,
   author,
   user,
   onToggleComments,
@@ -611,11 +667,37 @@ const PostCard: React.FC<{
       <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-[#1d1d38] pt-2">
         <button
           type="button"
-          disabled
-          aria-disabled="true"
-          title={isAr ? 'التفاعل يُفعّل بعد قراءة تفاعلك أولاً' : 'Reactions arrive once your own can be read first'}
-          className="inline-flex items-center gap-1 rounded-md border border-[#2a2a4d] bg-[#14142a] px-2 py-0.5 text-[10px] font-bold text-slate-500 opacity-70 cursor-not-allowed"
+          onClick={onToggleLike}
+          disabled={!canReact || reacting}
+          aria-pressed={reacted}
+          aria-disabled={!canReact || reacting}
+          title={
+            canReact
+              ? isAr
+                ? reacted
+                  ? 'إلغاء الإعجاب'
+                  : 'إعجاب — يُقرأ تفاعلك أولاً فلا يُحسب مرتين'
+                : 'الإعجاب يحتاج بريداً مؤكَّداً'
+              : isAr
+                ? 'الإعجاب يحتاج حساباً مؤكَّد البريد'
+                : 'Liking needs a confirmed account'
+          }
+          data-testid="network-like"
+          className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-bold transition ${
+            reacted
+              ? 'border-violet-400/60 bg-violet-500/20 text-violet-100'
+              : 'border-[#2a2a4d] bg-[#14142a] text-slate-300'
+          } ${
+            canReact && !reacting
+              ? 'cursor-pointer hover:border-violet-400/50 hover:text-white'
+              : 'cursor-not-allowed opacity-60'
+          }`}
         >
+          {reacting ? (
+            <Loader2 className="h-3 w-3 shrink-0 animate-spin" aria-hidden="true" />
+          ) : (
+            <Heart className={`h-3 w-3 shrink-0 ${reacted ? 'fill-current' : ''}`} aria-hidden="true" />
+          )}
           {isAr ? `إعجاب ${post.likesCount}` : `Like ${post.likesCount}`}
         </button>
 

@@ -21,6 +21,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDoc,
   getDocs,
   increment,
   limit,
@@ -1722,6 +1723,29 @@ export function subscribeCommunityPosts(
       }
     }
   );
+}
+
+/**
+ * Read one member's own reaction to one post.
+ *
+ * This is the read that makes a reaction safe to toggle: without it, a second tap
+ * cannot know whether it should add a like or remove one, and the stored counter
+ * would drift away from the reaction documents that are supposed to define it.
+ * The rules already allow reading a single reaction by its exact path.
+ */
+export async function getCommunityPostReaction(
+  postId: string,
+  uid: string
+): Promise<CommunityPostReaction | null> {
+  if (!db) throw new Error('Firestore not initialized');
+  const path = `community_posts/${postId}/reactions/${uid}`;
+  try {
+    const snapshot = await getDoc(doc(db, 'community_posts', postId, 'reactions', uid));
+    return snapshot.exists() ? (snapshot.data() as CommunityPostReaction) : null;
+  } catch (err) {
+    handleFirestoreError(err, OperationType.GET, path);
+    return null;
+  }
 }
 
 export async function setCommunityPostReaction(

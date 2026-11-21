@@ -163,10 +163,17 @@ export const NetworkProfileSection: React.FC<NetworkProfileSectionProps> = ({
 
   if (!account?.ready) {
     return (
-      <p role="status" className="flex items-center gap-2 p-3 text-[11px] text-slate-400" data-testid="network-profile-checking">
-        <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden="true" />
-        {isAr ? 'جارٍ التحقق من جلسة حسابك…' : 'Checking your account session…'}
-      </p>
+      <div data-testid="network-profile-checking" className="rounded-xl border border-[#232345] bg-[#0f0f22] p-3">
+        <p role="status" className="flex items-center gap-2 text-[11px] text-slate-400">
+          <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden="true" />
+          {isAr ? 'جارٍ التحقق من جلسة حسابك…' : 'Checking your account session…'}
+        </p>
+        <p className="mt-1.5 text-[10px] leading-relaxed text-slate-500">
+          {isAr
+            ? 'إذا استمر هذا، أعد تحميل الصفحة أو تحقق من اتصالك — لن نعرض بطاقة بالنيابة عنك.'
+            : 'If this persists, reload the page or check your connection — we will not show a card on your behalf.'}
+        </p>
+      </div>
     );
   }
 

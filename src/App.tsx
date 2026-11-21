@@ -591,22 +591,26 @@ export const App: React.FC = () => {
             onSwitchPortal={openPortal}
           />
         </div>
-        <Suspense
-          fallback={
-            <div role="status" aria-live="polite" className="p-8 text-sm text-slate-400">
-              {isAr ? 'جارٍ فتح الشبكة الهندسية…' : 'Opening the Engineering Network…'}
-            </div>
-          }
-        >
-          <NetworkPortal
-            language={language}
-            section={networkSection}
-            {...(networkEntryId ? { entryId: networkEntryId } : {})}
-            onOpenSection={openNetwork}
-            onOpenCompany={() => openCompany()}
-            onOpenAcademy={() => openAcademyHash('#academy')}
-          />
-        </Suspense>
+        {/* The network shares the one INSCO account: same session, same uid, no
+            second registration. Its profile and directory read that account. */}
+        <SiteAccountProvider>
+          <Suspense
+            fallback={
+              <div role="status" aria-live="polite" className="p-8 text-sm text-slate-400">
+                {isAr ? 'جارٍ فتح الشبكة الهندسية…' : 'Opening the Engineering Network…'}
+              </div>
+            }
+          >
+            <NetworkPortal
+              language={language}
+              section={networkSection}
+              {...(networkEntryId ? { entryId: networkEntryId } : {})}
+              onOpenSection={openNetwork}
+              onOpenCompany={() => openCompany()}
+              onOpenAcademy={() => openAcademyHash('#academy')}
+            />
+          </Suspense>
+        </SiteAccountProvider>
       </div>
     );
   }

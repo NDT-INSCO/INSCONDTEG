@@ -45,12 +45,35 @@ function AccountDialog({ label, closeLabel, onClose, children }: {
   );
 }
 
-export function SiteAccountActions({ language, onOpenProfile }: { language: Language; onOpenProfile: () => void }) {
+/**
+ * `requestPanel` lets another screen open the same dialog (the network profile
+ * asks for sign-in from its own empty state). The `nonce` makes a repeated
+ * request for the same panel re-open it instead of being ignored as unchanged.
+ */
+export interface AccountPanelRequest {
+  panel: 'signin' | 'register' | 'account';
+  nonce: number;
+}
+
+export function SiteAccountActions({
+  language,
+  onOpenProfile,
+  requestPanel = null,
+}: {
+  language: Language;
+  onOpenProfile: () => void;
+  requestPanel?: AccountPanelRequest | null;
+}) {
   const { user, ready, available, checking, verified, action, notice, onRegistrationReady, signOut } = useSiteAccount();
   const [panel, setPanel] = useState<Panel | null>(null);
   const isAr = language === 'ar';
   const open = (next: Panel) => setPanel(next);
   const close = () => setPanel(null);
+
+  useEffect(() => {
+    if (!requestPanel || !available) return;
+    setPanel(requestPanel.panel);
+  }, [requestPanel?.nonce, requestPanel?.panel, available]);
   const loading = <p role="status" className="p-3 text-sm text-slate-300">{isAr ? 'جارٍ التحقق من الجلسة…' : 'Checking your session…'}</p>;
   const button = 'inline-flex min-h-8 items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-bold transition cursor-pointer sm:px-3';
   return (

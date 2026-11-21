@@ -148,3 +148,12 @@ export function useSiteAccount() {
   if (!value) throw new Error('SiteAccountProvider is required');
   return value;
 }
+
+/**
+ * The same session, for components that must also render outside the provider
+ * (a bare portal render in a test, or an embedded card). Returns null instead of
+ * throwing, so a screen without an account simply hides its account controls.
+ */
+export function useOptionalSiteAccount(): SiteAccount | null {
+  return useContext(Context);
+}

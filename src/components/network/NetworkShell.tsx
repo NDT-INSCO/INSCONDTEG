@@ -60,8 +60,8 @@ export const NetworkPrototypeBanner: React.FC<{ language: Language; compact?: bo
       <FastForward className="mt-0.5 h-4 w-4 shrink-0 text-violet-300" aria-hidden="true" />
       <span className="min-w-0">
         {isAr
-          ? 'تصور تصميمي — الشبكة غير مفعّلة بعد. لا يوجد أعضاء أو منشورات أو وظائف حقيقية هنا، وكل إجراء كتابة معطّل حتى يتم ربط الخادم ونظام الحسابات.'
-          : 'Design prototype — the network is not live yet. There are no real members, posts or jobs here, and every write action stays disabled until the backend and accounts exist.'}
+          ? 'حسابك وملفك المهني ودليل الأعضاء يعملون الآن على حساب إنسكو الحقيقي. المنشورات والوظائف والرسائل والتحقق المهني ما زالت تصوراً تصميمياً، وكل إجراء كتابة فيها معطّل بوضوح.'
+          : 'Your account, professional card and the member directory now run on the real INSCO account. Posts, jobs, messages and verification are still a design prototype, and their write actions stay visibly disabled.'}
       </span>
     </div>
   );
@@ -95,7 +95,7 @@ export const NetworkHeader: React.FC<NetworkHeaderProps> = ({ language, section,
             </h1>
           </div>
           <span className="shrink-0 rounded-md border border-violet-500/40 bg-violet-500/10 px-2 py-1 text-[10px] font-mono font-bold uppercase tracking-wider text-violet-200">
-            {isAr ? 'تصور · غير مفعّل' : 'Prototype · not live'}
+            {isAr ? 'جزئياً مفعّل' : 'Partly live'}
           </span>
         </div>
 

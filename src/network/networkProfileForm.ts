@@ -1,0 +1,300 @@
+/**
+ * The network's professional profile — form model, validation and mapping.
+ *
+ * The network does **not** get its own profile collection. The site already has
+ * one public, rule-protected, PII-free professional card (`community_workspaces`),
+ * used by the community section of the client portal, and the engineering network
+ * is a second front door to exactly that record. One member, one card, one source
+ * of truth — a second social graph would guarantee two memberships per person and
+ * two answers to "who is this engineer?".
+ *
+ * Everything here is pure: no Firebase, no browser. The limits mirror
+ * `firestore.rules` field for field, so a draft that passes here cannot be
+ * rejected by the database for a length or enum reason.
+ */
+import type {
+  CommunityAvailabilityStatus,
+  CommunityWorkspaceProfile,
+} from '../client/types';
+
+/** Mirrors `isValidCommunityWorkspace` in firestore.rules. */
+export const NETWORK_PROFILE_LIMITS = {
+  displayNameMin: 2,
+  displayNameMax: 120,
+  organizationMin: 2,
+  organizationMax: 160,
+  sectorMin: 2,
+  sectorMax: 100,
+  cityMax: 100,
+  specialtyMax: 300,
+  bioMax: 600,
+  headlineMax: 160,
+  certificationsMax: 240,
+  yearsExperienceMax: 70,
+} as const;
+
+/** The sectors of the rules' `sector` field, phrased for engineers. */
+export const NETWORK_SECTORS = [
+  'الفحص غير الإتلافي',
+  'المعالجة الحرارية',
+  'فحص اللحام',
+  'ضمان وضبط الجودة',
+  'التآكل والمواد',
+  'خطوط الأنابيب',
+  'السلامة الصناعية',
+  'مقاولات وصيانة صناعية',
+  'تعليم وتدريب هندسي',
+] as const;
+
+export const NETWORK_AVAILABILITY: {
+  id: CommunityAvailabilityStatus;
+  ar: string;
+  en: string;
+}[] = [
+  { id: 'active_field', ar: 'على رأس العمل', en: 'On site / employed' },
+  { id: 'open_to_work', ar: 'متاح للفرص', en: 'Open to work' },
+  { id: 'hiring', ar: 'أبحث عن كفاءات', en: 'Hiring' },
+  { id: 'offering_services', ar: 'أقدّم خدمات', en: 'Offering services' },
+];
+
+export interface NetworkProfileDraft {
+  displayName: string;
+  headline: string;
+  organizationName: string;
+  sector: string;
+  city: string;
+  specialtyTrades: string;
+  certifications: string;
+  bio: string;
+  yearsExperience: string;
+  availabilityStatus: CommunityAvailabilityStatus;
+  isPublished: boolean;
+}
+
+export const EMPTY_NETWORK_PROFILE: NetworkProfileDraft = {
+  displayName: '',
+  headline: '',
+  organizationName: '',
+  sector: NETWORK_SECTORS[0],
+  city: '',
+  specialtyTrades: '',
+  certifications: '',
+  bio: '',
+  yearsExperience: '',
+  availabilityStatus: 'active_field',
+  isPublished: true,
+};
+
+export type NetworkProfileField = keyof NetworkProfileDraft;
+
+export interface NetworkProfileFieldError {
+  field: NetworkProfileField;
+  /** Both languages, so the form never needs to build sentences itself. */
+  ar: string;
+  en: string;
+}
+
+/** Load an existing card into the form, without ever inventing a field. */
+export function draftFromProfile(profile: CommunityWorkspaceProfile | null): NetworkProfileDraft {
+  if (!profile) return { ...EMPTY_NETWORK_PROFILE };
+  return {
+    displayName: profile.displayName ?? '',
+    headline: profile.headline ?? '',
+    organizationName: profile.organizationName ?? '',
+    sector: profile.sector ?? NETWORK_SECTORS[0],
+    city: profile.city ?? '',
+    specialtyTrades: profile.specialtyTrades ?? '',
+    certifications: profile.certifications ?? '',
+    bio: profile.bio ?? '',
+    yearsExperience:
+      typeof profile.yearsExperience === 'number' ? String(profile.yearsExperience) : '',
+    availabilityStatus: profile.availabilityStatus ?? 'active_field',
+    isPublished: profile.isPublished !== false,
+  };
+}
+
+const length = (value: string | undefined) => (value ?? '').trim().length;
+const longEnough = (value: string, min: number) => length(value) >= min;
+
+/**
+ * Validate the draft against the same constraints the database enforces.
+ *
+ * Two required fields are not obvious to a member, so they are named plainly:
+ * `organizationName` is required by the rules even for an independent engineer
+ * ("مستقل" is an acceptable answer), and `sector` must be one of the known ones.
+ */
+export function validateNetworkProfileDraft(draft: NetworkProfileDraft): NetworkProfileFieldError[] {
+  const errors: NetworkProfileFieldError[] = [];
+  const push = (field: NetworkProfileField, ar: string, en: string) =>
+    errors.push({ field, ar, en });
+
+  const name = draft.displayName.trim();
+  if (!longEnough(name, NETWORK_PROFILE_LIMITS.displayNameMin)) {
+    push('displayName', 'الاسم مطلوب (حرفان على الأقل).', 'Your name is required (at least two characters).');
+  } else if (length(name) > NETWORK_PROFILE_LIMITS.displayNameMax) {
+    push(
+      'displayName',
+      `الاسم أطول من ${NETWORK_PROFILE_LIMITS.displayNameMax} حرفاً.`,
+      `The name is longer than ${NETWORK_PROFILE_LIMITS.displayNameMax} characters.`
+    );
+  }
+
+  const org = draft.organizationName.trim();
+  if (!longEnough(org, NETWORK_PROFILE_LIMITS.organizationMin)) {
+    push(
+      'organizationName',
+      'اكتب جهة العمل، أو «مستقل» إذا كنت تعمل لحسابك.',
+      'Enter your employer, or "Independent" if you work for yourself.'
+    );
+  } else if (length(org) > NETWORK_PROFILE_LIMITS.organizationMax) {
+    push(
+      'organizationName',
+      `جهة العمل أطول من ${NETWORK_PROFILE_LIMITS.organizationMax} حرفاً.`,
+      `The employer is longer than ${NETWORK_PROFILE_LIMITS.organizationMax} characters.`
+    );
+  }
+
+  const sector = draft.sector.trim();
+  if (!longEnough(sector, NETWORK_PROFILE_LIMITS.sectorMin)) {
+    push('sector', 'اختر القطاع.', 'Choose your sector.');
+  } else if (length(sector) > NETWORK_PROFILE_LIMITS.sectorMax) {
+    push('sector', 'اسم القطاع طويل جداً.', 'The sector name is too long.');
+  }
+
+  if (length(draft.headline) > NETWORK_PROFILE_LIMITS.headlineMax) {
+    push(
+      'headline',
+      `المسمّى المختصر أطول من ${NETWORK_PROFILE_LIMITS.headlineMax} حرفاً.`,
+      `The headline is longer than ${NETWORK_PROFILE_LIMITS.headlineMax} characters.`
+    );
+  }
+
+  if (length(draft.city) > NETWORK_PROFILE_LIMITS.cityMax) {
+    push('city', 'اسم المدينة طويل جداً.', 'The city name is too long.');
+  }
+
+  if (length(draft.specialtyTrades) > NETWORK_PROFILE_LIMITS.specialtyMax) {
+    push(
+      'specialtyTrades',
+      `التخصصات أطول من ${NETWORK_PROFILE_LIMITS.specialtyMax} حرفاً.`,
+      `The specialities are longer than ${NETWORK_PROFILE_LIMITS.specialtyMax} characters.`
+    );
+  }
+
+  if (length(draft.certifications) > NETWORK_PROFILE_LIMITS.certificationsMax) {
+    push(
+      'certifications',
+      `قائمة الشهادات أطول من ${NETWORK_PROFILE_LIMITS.certificationsMax} حرفاً.`,
+      `The certifications line is longer than ${NETWORK_PROFILE_LIMITS.certificationsMax} characters.`
+    );
+  }
+
+  if (length(draft.bio) > NETWORK_PROFILE_LIMITS.bioMax) {
+    push(
+      'bio',
+      `النبذة أطول من ${NETWORK_PROFILE_LIMITS.bioMax} حرفاً.`,
+      `The bio is longer than ${NETWORK_PROFILE_LIMITS.bioMax} characters.`
+    );
+  }
+
+  const years = draft.yearsExperience.trim();
+  if (years !== '') {
+    const parsed = Number(years);
+    if (!Number.isFinite(parsed) || parsed < 0 || parsed > NETWORK_PROFILE_LIMITS.yearsExperienceMax) {
+      push(
+        'yearsExperience',
+        `سنوات الخبرة بين 0 و${NETWORK_PROFILE_LIMITS.yearsExperienceMax}.`,
+        `Years of experience must be between 0 and ${NETWORK_PROFILE_LIMITS.yearsExperienceMax}.`
+      );
+    }
+  }
+
+  if (!NETWORK_AVAILABILITY.some(item => item.id === draft.availabilityStatus)) {
+    push('availabilityStatus', 'اختر حالة تفرّغ صحيحة.', 'Choose a valid availability state.');
+  }
+
+  return errors;
+}
+
+export interface NetworkWorkspaceWrite {
+  displayName: string;
+  organizationName: string;
+  sector: string;
+  city?: string;
+  companyCode?: string;
+  specialtyTrades?: string;
+  bio?: string;
+  companiesManaged: number;
+  isPublished: boolean;
+  headline?: string;
+  certifications?: string;
+  yearsExperience?: number;
+  availabilityStatus?: CommunityAvailabilityStatus;
+}
+
+const trimmed = (value: string) => value.trim();
+const optional = (value: string) => {
+  const next = trimmed(value);
+  return next === '' ? undefined : next;
+};
+
+/**
+ * Draft → the exact payload `upsertCommunityWorkspace` accepts.
+ *
+ * Optional fields are omitted rather than sent empty, because an empty string in
+ * Firestore is a value (and would overwrite a field the member cleared by choice
+ * with a blank one the rules then have to police).
+ */
+export function toWorkspaceWrite(
+  draft: NetworkProfileDraft,
+  existing: CommunityWorkspaceProfile | null
+): NetworkWorkspaceWrite {
+  const years = trimmed(draft.yearsExperience);
+  const parsedYears = years === '' ? undefined : Math.round(Number(years));
+  const headline = optional(draft.headline);
+  const certifications = optional(draft.certifications);
+  const specialtyTrades = optional(draft.specialtyTrades);
+  const bio = optional(draft.bio);
+  const city = optional(draft.city);
+  const companyCode = existing?.companyCode ? existing.companyCode : undefined;
+
+  return {
+    displayName: trimmed(draft.displayName),
+    organizationName: trimmed(draft.organizationName),
+    sector: trimmed(draft.sector),
+    ...(city !== undefined ? { city } : {}),
+    ...(companyCode ? { companyCode } : {}),
+    ...(specialtyTrades !== undefined ? { specialtyTrades } : {}),
+    ...(bio !== undefined ? { bio } : {}),
+    companiesManaged: existing?.companiesManaged ?? 0,
+    isPublished: draft.isPublished,
+    ...(headline !== undefined ? { headline } : {}),
+    ...(certifications !== undefined ? { certifications } : {}),
+    ...(parsedYears !== undefined && Number.isFinite(parsedYears) ? { yearsExperience: parsedYears } : {}),
+    availabilityStatus: draft.availabilityStatus,
+  };
+}
+
+/** How complete the card is, so a member knows what a visitor still cannot see. */
+export function networkProfileCompleteness(draft: NetworkProfileDraft): {
+  percent: number;
+  missingAr: string[];
+  missingEn: string[];
+} {
+  const checks: { filled: boolean; ar: string; en: string }[] = [
+    { filled: longEnough(draft.displayName, NETWORK_PROFILE_LIMITS.displayNameMin), ar: 'الاسم', en: 'Name' },
+    { filled: longEnough(draft.organizationName, NETWORK_PROFILE_LIMITS.organizationMin), ar: 'جهة العمل', en: 'Employer' },
+    { filled: longEnough(draft.headline, 4), ar: 'المسمّى المهني', en: 'Headline' },
+    { filled: longEnough(draft.specialtyTrades, 3), ar: 'التخصصات', en: 'Specialities' },
+    { filled: longEnough(draft.certifications, 3), ar: 'الشهادات (كإقرار غير موثّق)', en: 'Certifications (as an unverified claim)' },
+    { filled: longEnough(draft.bio, 20), ar: 'نبذة', en: 'Bio' },
+    { filled: trimmed(draft.yearsExperience) !== '', ar: 'سنوات الخبرة', en: 'Years of experience' },
+    { filled: longEnough(draft.city, 2), ar: 'المدينة', en: 'City' },
+  ];
+  const filled = checks.filter(check => check.filled).length;
+  return {
+    percent: Math.round((filled / checks.length) * 100),
+    missingAr: checks.filter(check => !check.filled).map(check => check.ar),
+    missingEn: checks.filter(check => !check.filled).map(check => check.en),
+  };
+}

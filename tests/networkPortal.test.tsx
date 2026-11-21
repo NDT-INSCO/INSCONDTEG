@@ -191,7 +191,7 @@ test('the four doors are present in the switch bar, with the network marked as c
 
 /* --------------------------------- honesty --------------------------------- */
 
-test('the prototype is labelled, and every template card carries its own badge', () => {
+test('the banner tells the truth about what is live and what is still a prototype', () => {
   const { container, getAllByTestId } = render(
     <NetworkPortal
       language="ar"
@@ -203,8 +203,13 @@ test('the prototype is labelled, and every template card carries its own badge',
   );
 
   const banner = getAllByTestId('network-prototype-banner')[0];
-  assert.ok(banner.textContent?.includes('غير مفعّلة'));
-  assert.ok(banner.textContent?.includes('لا يوجد أعضاء'));
+  const bannerText = banner.textContent ?? '';
+  // What is live now: the account, the professional card, the directory.
+  assert.ok(bannerText.includes('ملفك المهني'));
+  assert.ok(bannerText.includes('دليل الأعضاء'));
+  // What is still a prototype: posts, jobs, messages, verification.
+  assert.ok(bannerText.includes('تصوراً تصميمياً'));
+  assert.ok(bannerText.includes('معطّل'));
 
   assert.ok(container.querySelector('[data-prototype="true"]'));
   const badges = getAllByTestId('network-sample-badge');
@@ -260,8 +265,8 @@ test('the composer and the message box cannot be typed into', () => {
   boxes.forEach(box => assert.equal((box as HTMLInputElement).disabled, true));
 });
 
-test('no certificate is ever shown as verified, and the two tracks stay apart', () => {
-  const { container } = render(
+test('the profile never invents a card, and verification keeps the two tracks apart', () => {
+  const profile = render(
     <NetworkPortal
       language="ar"
       section="profile"
@@ -270,9 +275,12 @@ test('no certificate is ever shown as verified, and the two tracks stay apart', 
       onOpenAcademy={() => {}}
     />
   );
-  const text = container.textContent ?? '';
-  assert.ok(text.includes('قيد التحقق'), 'certificates start as pending');
-  assert.ok(!text.includes('شهادة مُتحقَّقة'), 'no certificate may be pre-verified');
+  // With no account service in this render the card cannot be created — and the
+  // page says so instead of showing a plausible-looking empty profile.
+  const profileText = profile.container.textContent ?? '';
+  assert.ok(profileText.includes('لن نعرض لك ملفاً وهمياً'));
+  assert.ok(!profileText.includes('شهادة مُتحقَّقة'), 'no certificate may be pre-verified');
+  profile.unmount();
 
   const verify = render(
     <NetworkPortal

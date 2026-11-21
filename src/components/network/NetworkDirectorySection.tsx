@@ -11,6 +11,12 @@ interface NetworkDirectorySectionProps {
   onOpenAccount: () => void;
   /** Jumps to the profile form. */
   onOpenProfile: () => void;
+  /**
+   * How long to wait for the first snapshot before offering a retry. A blocked
+   * network would otherwise leave the page on "loading" indefinitely, which reads
+   * exactly like a broken site.
+   */
+  slowAfterMs?: number;
 }
 
 const availabilityLabel = (id: string | undefined, isAr: boolean) => {
@@ -30,12 +36,15 @@ export const NetworkDirectorySection: React.FC<NetworkDirectorySectionProps> = (
   language,
   onOpenAccount,
   onOpenProfile,
+  slowAfterMs = 8000,
 }) => {
   const account = useOptionalSiteAccount();
   const isAr = language === 'ar';
   const [members, setMembers] = useState<CommunityWorkspaceProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [slow, setSlow] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const [term, setTerm] = useState('');
 
   const serviceReady = account?.available ?? false;
@@ -50,6 +59,10 @@ export const NetworkDirectorySection: React.FC<NetworkDirectorySectionProps> = (
     let active = true;
     let stop: (() => void) | undefined;
     setLoading(true);
+    setSlow(false);
+    const timer = setTimeout(() => {
+      if (active) setSlow(true);
+    }, slowAfterMs);
     void import('../../client/firestoreClientService').then(api => {
       if (!active) return;
       stop = api.subscribeCommunityWorkspaces(
@@ -58,19 +71,22 @@ export const NetworkDirectorySection: React.FC<NetworkDirectorySectionProps> = (
           if (!active) return;
           setMembers(next);
           setLoading(false);
+          setSlow(false);
         },
         nextError => {
           if (!active) return;
           setError(nextError.message);
           setLoading(false);
+          setSlow(false);
         }
       );
     });
     return () => {
       active = false;
+      clearTimeout(timer);
       stop?.();
     };
-  }, [serviceReady]);
+  }, [serviceReady, attempt, slowAfterMs]);
 
   if (!serviceReady) {
     return (
@@ -142,7 +158,33 @@ export const NetworkDirectorySection: React.FC<NetworkDirectorySectionProps> = (
         </p>
       ) : null}
 
-      {loading ? (
+      {loading && slow ? (
+        <div
+          data-testid="network-directory-slow"
+          className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4"
+        >
+          <div className="flex items-center gap-2 text-xs font-bold text-amber-200">
+            <CircleAlert className="h-4 w-4 shrink-0" aria-hidden="true" />
+            {isAr ? 'الاتصال بالتخزين بطيء أو محجوب' : 'The store is slow or blocked'}
+          </div>
+          <p className="mt-1 text-[10px] leading-relaxed text-amber-100/90">
+            {isAr
+              ? 'لم يصل أي عضو بعد. هذا ليس دليلاً فارغاً — بل اتصال لم يكتمل. أعد المحاولة، أو تحقق من اتصالك بالشبكة.'
+              : 'No member has arrived yet. This is not an empty directory — it is an unfinished connection. Retry, or check your network.'}
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setError(null);
+              setAttempt(current => current + 1);
+            }}
+            className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-amber-400/50 bg-amber-400/10 px-2.5 py-1 text-[11px] font-bold text-amber-200 transition cursor-pointer hover:border-amber-300"
+          >
+            <Loader2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            {isAr ? 'إعادة المحاولة' : 'Retry'}
+          </button>
+        </div>
+      ) : loading ? (
         <p role="status" className="flex items-center gap-2 p-3 text-[11px] text-slate-400">
           <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden="true" />
           {isAr ? 'جارٍ تحميل الأعضاء…' : 'Loading members…'}

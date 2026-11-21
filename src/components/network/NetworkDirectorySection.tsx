@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { CircleAlert, Loader2, MapPin, Search, ShieldCheck, UserRound, Users } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Check, CircleAlert, Loader2, MapPin, Search, ShieldCheck, UserPlus, UserRound, Users } from 'lucide-react';
 import type { Language } from '../../types';
-import type { CommunityWorkspaceProfile } from '../../client/types';
+import type { CommunityConnection, CommunityWorkspaceProfile } from '../../client/types';
 import { useOptionalSiteAccount } from '../../account/SiteAccountContext';
 import { NETWORK_AVAILABILITY } from '../../network/networkProfileForm';
 
@@ -49,7 +49,22 @@ export const NetworkDirectorySection: React.FC<NetworkDirectorySectionProps> = (
 
   const serviceReady = account?.available ?? false;
   const signedIn = Boolean(account?.user?.uid);
+  const verified = account?.verified ?? false;
   const myUid = account?.user?.uid ?? null;
+
+  /** Members already in my network, and my own card (the name a request carries). */
+  const [connections, setConnections] = useState<CommunityConnection[]>([]);
+  const [myCard, setMyCard] = useState<CommunityWorkspaceProfile | null>(null);
+  const [connecting, setConnecting] = useState<string | null>(null);
+  const [connectError, setConnectError] = useState<string | null>(null);
+
+  const connectedUids = useMemo(() => {
+    const set = new Set<string>();
+    for (const connection of connections) {
+      if (connection.status === 'connected') set.add(connection.toUid);
+    }
+    return set;
+  }, [connections]);
 
   useEffect(() => {
     if (!serviceReady) {
@@ -87,6 +102,63 @@ export const NetworkDirectorySection: React.FC<NetworkDirectorySectionProps> = (
       stop?.();
     };
   }, [serviceReady, attempt, slowAfterMs]);
+
+  /* My own network: what I have already added, and the name I connect with. */
+  useEffect(() => {
+    if (!serviceReady || !myUid) {
+      setConnections([]);
+      setMyCard(null);
+      return;
+    }
+    let active = true;
+    let stopConnections: (() => void) | undefined;
+    let stopCard: (() => void) | undefined;
+    void import('../../client/firestoreClientService').then(api => {
+      if (!active) return;
+      stopConnections = api.subscribeMyConnections(
+        myUid,
+        next => {
+          if (active) setConnections(next);
+        },
+        () => {
+          /* the directory still reads; only the connect affordance degrades */
+        }
+      );
+      stopCard = api.subscribeMyCommunityWorkspace(
+        myUid,
+        next => {
+          if (active) setMyCard(next);
+        },
+        () => {}
+      );
+    });
+    return () => {
+      active = false;
+      stopConnections?.();
+      stopCard?.();
+    };
+  }, [serviceReady, myUid]);
+
+  const connect = useCallback(
+    async (target: { uid: string; displayName: string }) => {
+      const user = account?.user;
+      if (!user || !myCard || connecting) return;
+      setConnecting(target.uid);
+      setConnectError(null);
+      try {
+        const api = await import('../../client/firestoreClientService');
+        await api.connectWithCommunityMember(user, myCard.displayName, {
+          uid: target.uid,
+          displayName: target.displayName,
+        });
+      } catch (failure) {
+        setConnectError(failure instanceof Error ? failure.message : String(failure));
+      } finally {
+        setConnecting(null);
+      }
+    },
+    [account?.user, connecting, myCard]
+  );
 
   if (!serviceReady) {
     return (
@@ -274,16 +346,53 @@ export const NetworkDirectorySection: React.FC<NetworkDirectorySectionProps> = (
                 ) : null}
 
                 {!isMe ? (
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    <button
-                      type="button"
-                      disabled
-                      aria-disabled="true"
-                      title={isAr ? 'الاتصال المباشر يفعّل في مرحلة المنشورات والاتصالات' : 'Connect turns on in the posts-and-connections phase'}
-                      className="inline-flex items-center gap-1 rounded-md border border-[#2a2a4d] bg-[#14142a] px-2 py-0.5 text-[10px] font-bold text-slate-500 opacity-70 cursor-not-allowed"
-                    >
-                      {isAr ? 'اتصال' : 'Connect'}
-                    </button>
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    {connectedUids.has(member.uid) ? (
+                      <span
+                        data-testid="network-connected-chip"
+                        className="inline-flex items-center gap-1 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-200"
+                      >
+                        <Check className="h-3 w-3 shrink-0" aria-hidden="true" />
+                        {isAr ? 'في شبكتك' : 'In your network'}
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => void connect({ uid: member.uid, displayName: member.displayName })}
+                        disabled={!signedIn || !verified || !myCard || connecting === member.uid}
+                        aria-disabled={!signedIn || !verified || !myCard || connecting === member.uid}
+                        title={
+                          !signedIn
+                            ? isAr
+                              ? 'سجّل الدخول لإضافة العضو إلى شبكتك'
+                              : 'Sign in to add this member'
+                            : !verified
+                              ? isAr
+                                ? 'أكّد بريدك أولاً'
+                                : 'Confirm your email first'
+                              : !myCard
+                                ? isAr
+                                  ? 'أنشئ بطاقتك المهنية أولاً — الطلب يحمل اسمك'
+                                  : 'Create your card first — the request carries your name'
+                                : isAr
+                                  ? 'إضافة العضو إلى شبكتك'
+                                  : 'Add this member to your network'
+                        }
+                        data-testid="network-connect"
+                        className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-bold transition ${
+                          signedIn && verified && myCard
+                            ? 'border-violet-400/50 bg-violet-500/10 text-violet-200 cursor-pointer hover:border-violet-300'
+                            : 'border-[#2a2a4d] bg-[#14142a] text-slate-500 opacity-70 cursor-not-allowed'
+                        }`}
+                      >
+                        {connecting === member.uid ? (
+                          <Loader2 className="h-3 w-3 shrink-0 animate-spin" aria-hidden="true" />
+                        ) : (
+                          <UserPlus className="h-3 w-3 shrink-0" aria-hidden="true" />
+                        )}
+                        {isAr ? 'أضف إلى شبكتي' : 'Add to my network'}
+                      </button>
+                    )}
                     <button
                       type="button"
                       disabled

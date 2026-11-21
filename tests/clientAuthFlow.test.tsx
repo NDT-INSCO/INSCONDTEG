@@ -12,6 +12,7 @@ Object.assign(globalThis, {
   window: dom.window,
   document: dom.window.document,
   localStorage: dom.window.localStorage,
+  history: dom.window.history,
   sessionStorage: dom.window.sessionStorage,
   FormData: dom.window.FormData,
   HTMLElement: dom.window.HTMLElement,
@@ -19,6 +20,9 @@ Object.assign(globalThis, {
   Event: dom.window.Event,
   IS_REACT_ACT_ENVIRONMENT: true,
 });
+
+dom.window.scrollTo = () => {};
+dom.window.HTMLElement.prototype.scrollIntoView = () => {};
 
 const fault = (code: string) => Object.assign(new Error(`private Firebase diagnostic: ${code}`), { code });
 function deferred() {
@@ -131,7 +135,7 @@ mock.module('firebase/auth', { namedExports: {
   },
   sendEmailVerification: async (user: User) => {
     verificationEmails++;
-    assert.ok(documents.has(`client_accounts/${user.uid}`) || localStorage.getItem(`insco_pending_client_reg_v1_${user.uid}`) || signUpResult === undefined);
+    assert.ok(documents.has(`client_accounts/${user.uid}`) || service.loadPendingRegistrationDraft(user.uid) || signUpResult === undefined);
     if (deliveryError) throw deliveryError;
   },
   sendPasswordResetEmail: async (_auth: unknown, username: string) => {
@@ -141,7 +145,7 @@ mock.module('firebase/auth', { namedExports: {
   signOut: async () => changeUser(null),
 } });
 
-type DocRef = { path: string; id: string };
+type DocRef = { path: string; id: string; progressUid?: string };
 const ref = (path: string) => ({ path, id: path.split('/').at(-1)! });
 const snapshot = (path: string, fromCache = false) => {
   const data = documents.get(path);
@@ -156,11 +160,15 @@ mock.module('firebase/firestore', { namedExports: {
   collection: (_db: unknown, ...parts: string[]) => ref(parts.join('/')),
   doc: (parent: Partial<DocRef>, ...parts: string[]) => parts.length
     ? ref(parts.join('/')) : ref(`${parent.path}/newCompany${++nextCompanyId}`),
-  query: (collection: DocRef) => collection,
+  query: (collection: DocRef, ...filters: Array<{ field?: string; value?: string }>) => collection.path === 'user_module_progress'
+    ? { ...collection, progressUid: filters.find(filter => filter.field === 'userId')?.value }
+    : collection,
   orderBy: () => ({}),
-  where: () => ({}),
+  where: (field: string, _operator: string, value: string) => ({ field, value }),
   limit: () => ({}),
   serverTimestamp: () => 'SERVER_TIMESTAMP',
+  getDocFromServer: async (target: DocRef) => { events.push(`get:${target.path}`); return snapshot(target.path); },
+  getDocsFromServer: async () => ({ docs: [] }),
   onSnapshot: (target: DocRef, ...args: unknown[]) => {
     if (target.path.startsWith('client_accounts/')) {
       const [options, notify, onError] = args as [
@@ -176,8 +184,12 @@ mock.module('firebase/firestore', { namedExports: {
       }
       return () => accountListeners.delete(target.path);
     }
-    const notify = args[0] as (result: unknown) => void;
-    notify({ docs: [], exists: () => false });
+    const notify = args.find(arg => typeof arg === 'function') as (result: unknown) => void;
+    const rows = target.path === 'user_module_progress' && target.progressUid
+      ? [...documents.entries()].filter(([path, row]) => path.startsWith('user_module_progress/') && row.userId === target.progressUid)
+      : [];
+    if (target.progressUid) events.push(`progress:${target.progressUid}`);
+    notify({ docs: rows.map(([path, row]) => ({ id: ref(path).id, data: () => row })), exists: () => false, metadata: { fromCache: false, hasPendingWrites: false } });
     return () => {};
   },
   runTransaction: async (db: unknown, run: (tx: object) => Promise<unknown>) => {
@@ -212,6 +224,7 @@ mock.module('firebase/firestore', { namedExports: {
         for (const [path, data] of writes) {
           assert.equal(documents.has(path), false, `attempted to reuse ${path}`);
           documents.set(path, data);
+          events.push(`commit:${path}`);
         }
       },
     };
@@ -219,14 +232,19 @@ mock.module('firebase/firestore', { namedExports: {
 } });
 
 const { ClientPortal } = await import('../src/components/client/ClientPortal');
+const { SiteAccountProvider } = await import('../src/account/SiteAccountContext');
+const { App } = await import('../src/App');
+const curriculum = await import('../src/utils/curriculumProgress');
+const { academyActivityStorage, readAccountAcademyProgress } = await import('../src/account/academyAccountProgress');
 const service = await import('../src/client/firestoreClientService');
-const { render, fireEvent, cleanup, configure, act, waitFor } = await import('@testing-library/react');
+const { render, fireEvent, cleanup, configure, act, waitFor, within } = await import('@testing-library/react');
 configure({ asyncUtilTimeout: 3000 });
 const props = { onNavigateSection: () => {}, onOpenCompanyPortal: () => {} };
 const profilePath = 'client_accounts/client-a';
 
 beforeEach(() => {
   localStorage.clear();
+  for (const uid of ['client-a', 'client-b', 'google-client', 'phone-client']) service.clearPendingRegistrationDraft(uid);
   auth.currentUser = null;
   events.length = 0;
   documents.clear();
@@ -240,7 +258,7 @@ beforeEach(() => {
 afterEach(() => cleanup());
 
 function app(section: 'overview' | 'register' = 'register', language: 'ar' | 'en' = 'en') {
-  return <ClientPortal section={section} language={language} {...props} />;
+  return <SiteAccountProvider><ClientPortal section={section} language={language} {...props} /></SiteAccountProvider>;
 }
 
 async function enterRegistration(ui: ReturnType<typeof render>, companyCode = draft.requestedCompanyCode) {
@@ -395,7 +413,8 @@ test('verification failures are recoverable; one failed profile save retains the
   await ui.findByText(/Verification email was not sent/);
   assert.deepEqual(lastLogin, { email, password: newPassword });
   assert.equal(service.loadPendingRegistrationDraft('client-a')?.commercialRegNo, draft.commercialRegNo);
-  assert.doesNotMatch(localStorage.getItem('insco_pending_client_reg_v1_client-a')!, /password|انتخاب/);
+  assert.equal(localStorage.getItem('insco_pending_client_reg_v1_client-a'), null);
+  assert.doesNotMatch(JSON.stringify(service.loadPendingRegistrationDraft('client-a')), /password|انتخاب/);
 
   deliveryError = undefined;
   fireEvent.click(ui.getByRole('button', { name: 'Resend verification email' }));
@@ -458,10 +477,11 @@ test('existing profiles and protected fields survive a pending draft and subsequ
     role: 'engineer', approvalStatus: 'approved', authMethod: 'email',
   };
   documents.set(profilePath, { ...account });
+  auth.currentUser = makeUser('client-a', true);
   assert.equal(service.savePendingRegistrationDraft('client-a', { ...draft, password: newPassword } as ClientRegistrationDraftInput), true);
   assert.equal(service.loadPendingRegistrationDraft('client-b'), null);
-  assert.doesNotMatch(localStorage.getItem('insco_pending_client_reg_v1_client-a')!, /password|انتخاب/);
-  auth.currentUser = makeUser('client-a', true);
+  assert.equal(localStorage.getItem('insco_pending_client_reg_v1_client-a'), null);
+  assert.doesNotMatch(JSON.stringify(service.loadPendingRegistrationDraft('client-a')), /password|انتخاب/);
   const ui = render(app());
   await ui.findByText(/was not replaced with the registration draft/);
   assert.deepEqual(documents.get(profilePath), account);
@@ -515,7 +535,7 @@ test('profile read rejection stays recoverable, and create-only save protects a 
   assert.deepEqual(documents.get(profilePath), existing);
 });
 
-test('browser draft storage denial keeps the in-page draft through verification', async t => {
+test('private draft stays in memory and survives verification without browser storage', async t => {
   const setItem = dom.window.Storage.prototype.setItem;
   t.mock.method(dom.window.Storage.prototype, 'setItem', function (this: Storage, key: string, value: string) {
     if (key.startsWith('insco_pending_client_reg_v1_')) throw new dom.window.DOMException('Blocked', 'QuotaExceededError');
@@ -523,8 +543,10 @@ test('browser draft storage denial keeps the in-page draft through verification'
   });
   const ui = render(app());
   await enterRegistration(ui);
-  await ui.findByText(/Your browser could not store the draft/);
-  assert.equal(service.loadPendingRegistrationDraft('client-a'), null);
+  await ui.findByText(/draft stays in this tab’s memory/);
+  assert.equal(localStorage.getItem('insco_pending_client_reg_v1_client-a'), null);
+  assert.ok(service.loadPendingRegistrationDraft('client-a'));
+  assert.equal(service.loadPendingRegistrationDraft('client-b'), null);
   verifiedInFirebase = true;
   fireEvent.click(ui.getByRole('button', { name: 'Check verification' }));
   await ui.findByText(/Your personal and company details were saved/);
@@ -542,6 +564,8 @@ test('optional new dossiers use distinct reserved codes and a dossier failure is
   assert.notEqual(first.companyCode, next.companyCode);
   assert.equal(documents.get(`company_codes/${first.companyCode}`)?.companyId, first.id);
   assert.equal(next.assignedClientUid, 'client-b');
+  assert.equal(next.contactEmail ?? '', '', 'new dossier must not copy the personal email');
+  assert.equal(next.contactPhone ?? '', '', 'new dossier must not copy the personal phone');
   await assert.rejects(() => service.saveClientRegistration(a, draft), { code: 'unauthenticated' });
 
   service.savePendingRegistrationDraft('client-b', { ...draft, requestedCompanyCode: '', autoCreateCompanyWorkspace: true });
@@ -569,5 +593,125 @@ test('Google and SMS remain usable sign-in alternatives', async () => {
   fireEvent.click(ui.getByRole('button', { name: 'Verify & Sign In' }));
   await ui.findByRole('button', { name: 'Sign Out' });
   assert.equal(auth.currentUser?.uid, 'phone-client');
-  assert.ok(events.includes('listen:client_accounts/phone-client'));
+  await waitFor(() => assert.ok(events.includes('listen:client_accounts/phone-client')));
+});
+
+test('the global form creates a shared account from the academy without leaving the page', async () => {
+  localStorage.setItem('insco_language_v1', 'en');
+  dom.window.history.replaceState(null, '', '/INSCONDTEG/#academy');
+  const ui = render(<App />);
+  const header = within(ui.getByTestId('site-account-actions'));
+  fireEvent.click(header.getByRole('button', { name: 'Create account' }));
+  const panel = within(await ui.findByRole('dialog', { name: 'Your INSCO account' }));
+  assert.equal(dom.window.location.hash, '#academy');
+  assert.equal(panel.queryByLabelText(/Company Official Name/), null);
+  fireEvent.change(await panel.findByLabelText('Account Email *'), { target: { value: email } });
+  fireEvent.change(panel.getByLabelText(/^Password \*$/), { target: { value: newPassword } });
+  fireEvent.change(panel.getByLabelText('Confirm Password *'), { target: { value: 'not matching' } });
+  fireEvent.click(panel.getByRole('button', { name: 'Create Account & Send Verification Link' }));
+  assert.match(panel.getByRole('alert').textContent!, /Passwords do not match/);
+  assert.equal(events.includes('create'), false);
+  fireEvent.change(panel.getByLabelText('Confirm Password *'), { target: { value: newPassword } });
+  fireEvent.click(panel.getByRole('button', { name: 'Create Account & Send Verification Link' }));
+  await panel.findByText(/Verification link sent/);
+  assert.equal(dom.window.location.hash, '#academy');
+  assert.equal(verificationEmails, 1);
+  assert.equal(documents.size, 0, 'no private data write before verification or without profile details');
+  verifiedInFirebase = true;
+  fireEvent.click(panel.getByRole('button', { name: 'Check verification' }));
+  await panel.findByText('Signed in across all sections');
+  assert.ok(panel.getByText('client-a'));
+  fireEvent.click(panel.getByRole('button', { name: 'My private profile' }));
+  assert.equal(dom.window.location.hash, '#client/register');
+  fireEvent.change(await ui.findByLabelText('Full Name *'), { target: { value: 'Academy Tester' } });
+  fireEvent.click(ui.getByRole('button', { name: 'Complete & Save Registration' }));
+  await ui.findByText(/registration profile has been saved/);
+  assert.equal(documents.get(profilePath)?.fullName, 'Academy Tester');
+  assert.equal(documents.get(profilePath)?.organizationName, '', 'private personal profile does not require a company');
+  assert.equal(events.filter(event => event === 'create').length, 1);
+
+  for (const hash of ['#services', '#demo', '#academy/disciplines', '#client/community']) {
+    await act(async () => {
+      dom.window.history.pushState(null, '', `/INSCONDTEG/${hash}`);
+      dom.window.dispatchEvent(new dom.window.Event('hashchange'));
+    });
+    assert.ok(header.getByRole('button', { name: 'My account' }), hash);
+    assert.equal(header.queryByRole('button', { name: 'Create account' }), null);
+  }
+
+  fireEvent.click(header.getByRole('button', { name: 'My account' }));
+  const signedIn = within(ui.getByRole('dialog', { name: 'Your INSCO account' }));
+  fireEvent.click(signedIn.getByRole('button', { name: 'Sign out' }));
+  await header.findByRole('button', { name: 'Sign in' });
+  assert.equal(auth.currentUser, null);
+  assert.equal(dom.window.location.hash, '#client/community');
+  assert.equal(ui.queryByText('Academy Tester'), null);
+});
+
+test('existing email sign-in is reusable on a corporate page; #admin has no public account controls', async () => {
+  localStorage.setItem('insco_language_v1', 'en');
+  dom.window.history.replaceState(null, '', '/INSCONDTEG/#about');
+  const ui = render(<App />);
+  const header = within(ui.getByTestId('site-account-actions'));
+  fireEvent.click(header.getByRole('button', { name: 'Sign in' }));
+  const panel = within(ui.getByRole('dialog', { name: 'Your INSCO account' }));
+  fireEvent.change(await panel.findByLabelText('Account Email *'), { target: { value: email } });
+  fireEvent.change(panel.getByLabelText('Password *'), { target: { value: shortPassword } });
+  fireEvent.click(panel.getByRole('button', { name: 'Sign In with Email' }));
+  await panel.findByText('Signed in across all sections');
+  assert.equal(dom.window.location.hash, '#about');
+  assert.equal(events.includes('create'), false);
+  await act(async () => {
+    dom.window.history.pushState(null, '', '/INSCONDTEG/#admin');
+    dom.window.dispatchEvent(new dom.window.Event('hashchange'));
+  });
+  assert.equal(ui.queryByTestId('site-account-actions'), null);
+  assert.ok(ui.container.querySelector('[data-portal="admin"]'));
+});
+
+test('the academy separates verified account records and never imports guest activity', async () => {
+  localStorage.setItem('insco_language_v1', 'en');
+  localStorage.setItem('insco_academy_completed_modules', JSON.stringify({ demoOnly: true }));
+  localStorage.setItem('insco_lesson_quiz_records_v1', 'demo-only');
+  dom.window.history.replaceState(null, '', '/INSCONDTEG/#academy');
+  const timestamp = { toDate: () => new Date('2025-01-01T12:00:00Z') };
+  documents.set('user_module_progress/client-a_mod_a', { userId: 'client-a', moduleId: 'mod_a', completedAt: timestamp, score: 81 });
+  documents.set('user_module_progress/client-b_mod_b', { userId: 'client-b', moduleId: 'mod_b', completedAt: timestamp, score: 95 });
+  auth.currentUser = makeUser('client-a', true);
+  const ui = render(<App />);
+  await waitFor(() => assert.equal(readAccountAcademyProgress()?.state, 'ready'));
+  assert.deepEqual(curriculum.getCompletedModules(), { mod_a: true });
+  assert.equal(academyActivityStorage.getItem('insco_lesson_quiz_records_v1'), null);
+  academyActivityStorage.setItem('insco_lesson_quiz_records_v1', 'temporary-private');
+  await act(async () => changeUser(makeUser('client-b', true)));
+  await waitFor(() => assert.deepEqual(curriculum.getCompletedModules(), { mod_b: true }));
+  assert.equal(academyActivityStorage.getItem('insco_lesson_quiz_records_v1'), null);
+  assert.equal(localStorage.getItem('insco_lesson_quiz_records_v1'), 'demo-only');
+  await act(async () => changeUser(null));
+  await waitFor(() => assert.deepEqual(curriculum.getCompletedModules(), { demoOnly: true }));
+  assert.ok(within(ui.getByTestId('site-account-actions')).getByRole('button', { name: 'Sign in' }));
+});
+
+test('an administrative review waits for the reason and audit acknowledgement before fetching one private profile', async () => {
+  auth.currentUser = makeUser('reviewer', true);
+  documents.set('account_reviewers/reviewer', { enabled: true });
+  documents.set(profilePath, { ...draft, uid: 'client-a', fullName: 'Private member', email, role: 'client', approvalStatus: 'pending' });
+  const ui = render(app());
+  const review = within(await ui.findByRole('region', { name: 'Private account review' }));
+  assert.equal(events.includes(`get:${profilePath}`), false);
+  fireEvent.change(review.getByLabelText('Client account ID'), { target: { value: 'client-a' } });
+  fireEvent.change(review.getByLabelText('Reason for review'), { target: { value: 'account_support' } });
+  fireEvent.change(review.getByLabelText(/Case reference/), { target: { value: 'CASE-502' } });
+  companyError = fault('permission-denied');
+  fireEvent.click(review.getByRole('button', { name: 'Record reason and open profile' }));
+  await review.findByRole('alert');
+  assert.equal(events.includes(`get:${profilePath}`), false);
+  companyError = undefined;
+  fireEvent.click(review.getByRole('button', { name: 'Record reason and open profile' }));
+  await review.findByText(/Private member/);
+  assert.ok(events.indexOf('commit:account_review_access/reviewer') < events.indexOf(`get:${profilePath}`));
+  const audit = [...documents.entries()].find(([key]) => key.startsWith('account_review_audit/'))?.[1];
+  assert.deepEqual(audit, { reviewerUid: 'reviewer', subjectUid: 'client-a', reason: 'account_support', caseReference: 'CASE-502', createdAt: 'SERVER_TIMESTAMP' });
+  fireEvent.click(review.getByRole('button', { name: 'Hide profile' }));
+  assert.equal(review.queryByText(/Private member/), null);
 });

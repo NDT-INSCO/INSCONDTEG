@@ -1,3 +1,4 @@
+import { academyActivityStorage } from '../account/academyAccountProgress';
 import { PRACTICAL_TASKS, PracticalMethod, getPracticalTask } from '../data/practicalAssessment';
 
 export const PPA_STORAGE_KEY = 'insco_practical_assessment_v1';
@@ -96,7 +97,7 @@ function sanitiseRecord(raw: unknown): PPARecord | null {
 
 export function readPracticalAssessments(): PPARecord[] {
   try {
-    const raw = localStorage.getItem(PPA_STORAGE_KEY);
+    const raw = academyActivityStorage.getItem(PPA_STORAGE_KEY);
     if (!raw) return [...EMPTY_LIST];
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [...EMPTY_LIST];
@@ -110,7 +111,7 @@ export function readPracticalAssessments(): PPARecord[] {
 
 function write(records: PPARecord[]): boolean {
   try {
-    localStorage.setItem(PPA_STORAGE_KEY, JSON.stringify(records));
+    academyActivityStorage.setItem(PPA_STORAGE_KEY, JSON.stringify(records));
     return true;
   } catch {
     return false;

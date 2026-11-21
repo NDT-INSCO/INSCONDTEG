@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useId, useRef, useState } from 'react';
 import type { ConfirmationResult, User } from 'firebase/auth';
 import {
   BriefcaseBusiness,
@@ -22,14 +22,16 @@ import {
   signUpClientPortalWithEmail,
 } from '../../client/firestoreClientService';
 import { ClientRegistrationFormFields } from './ClientRegistrationFormFields';
+import { AccountPrivacyNotice } from '../account/AccountPrivacyNotice';
 
 interface ClientAuthOnboardingCardProps {
   language: Language;
   firebaseReady: boolean;
   authReady: boolean;
-  onOpenCompanyPortal: () => void;
+  onOpenCompanyPortal?: () => void;
+  scope?: 'client' | 'site';
   initialMode?: 'register' | 'signin';
-  onRegistrationReady: (user: User, draft: ClientRegistrationDraftInput, sendVerification: boolean) => void;
+  onRegistrationReady: (user: User, draft: ClientRegistrationDraftInput | null, sendVerification: boolean) => void;
 }
 
 const EMPTY_DRAFT: ClientRegistrationDraftInput = {
@@ -85,6 +87,7 @@ export const ClientAuthOnboardingCard: React.FC<ClientAuthOnboardingCardProps> =
   authReady,
   onOpenCompanyPortal,
   initialMode = 'signin',
+  scope = 'client',
   onRegistrationReady,
 }) => {
   const isAr = language === 'ar';
@@ -92,6 +95,9 @@ export const ClientAuthOnboardingCard: React.FC<ClientAuthOnboardingCardProps> =
   const [mode, setMode] = useState(initialMode);
   const [provider, setProvider] = useState<ClientAuthMethod>('email');
   const isRegister = mode === 'register';
+  const site = scope === 'site';
+  const collectProfile = isRegister && !site;
+  const recaptchaId = useId();
   const emailForm = useRef<HTMLFormElement>(null);
   const registrationFields = useRef<HTMLFieldSetElement>(null);
   const lastEmail = useRef('');
@@ -106,7 +112,7 @@ export const ClientAuthOnboardingCard: React.FC<ClientAuthOnboardingCardProps> =
   const canSubmit = firebaseReady && authReady && !action;
   const submitting = action === 'auth';
   const sendingOtp = action === 'sms';
-  const targetPhone = isRegister ? draft.phone : authPhone;
+  const targetPhone = collectProfile ? draft.phone : authPhone;
 
   const reportError = (message: string, input?: HTMLInputElement | null) => setFailure({ message, input });
   const clearMessages = () => {
@@ -188,8 +194,8 @@ export const ClientAuthOnboardingCard: React.FC<ClientAuthOnboardingCardProps> =
   const handleGoogleAction = async () => {
     if (!canSubmit) return;
     clearMessages();
-    const details = isRegister ? validateDraft(captureDraft()) : null;
-    if (isRegister && !details) return;
+    const details = collectProfile ? validateDraft(captureDraft()) : null;
+    if (collectProfile && !details) return;
     setAction('auth');
     try {
       const signedUser = await signInClientPortalWithGoogle(rememberMe);
@@ -208,7 +214,7 @@ export const ClientAuthOnboardingCard: React.FC<ClientAuthOnboardingCardProps> =
 
     // Read the native form at submission time: some password managers fill
     // the inputs without dispatching React change events. Never trim passwords.
-    const liveDraft = isRegister ? captureDraft() : null;
+    const liveDraft = collectProfile ? captureDraft() : null;
     const fields = new FormData(e.currentTarget);
     const email = String(fields.get('username') ?? '').trim();
     const password = String(fields.get('password') ?? '');
@@ -220,22 +226,23 @@ export const ClientAuthOnboardingCard: React.FC<ClientAuthOnboardingCardProps> =
       reportError(isAr ? 'اكتب كلمة المرور.' : 'Enter your password.', emailInput('password'));
       return;
     }
-    if (liveDraft && password.length < 6) {
+    if (isRegister && password.length < 6) {
       reportError(isAr ? 'استخدم كلمة مرور من 6 أحرف على الأقل.' : 'Use a password of at least 6 characters.', emailInput('password'));
       return;
     }
-    if (liveDraft && password !== fields.get('confirm-password')) {
+    if (isRegister && password !== fields.get('confirm-password')) {
       reportError(isAr ? 'كلمتا المرور غير متطابقتين.' : 'Passwords do not match.', emailInput('confirm-password'));
       return;
     }
     const details = liveDraft ? validateDraft(liveDraft) : null;
-    if (isRegister && !details) return;
+    if (collectProfile && !details) return;
 
     setAction('auth');
     try {
-      if (details) {
+      if (isRegister) {
         const createdUser = await signUpClientPortalWithEmail(email, password, rememberMe);
-        handOffDraft(createdUser, details, createdUser.email || email);
+        if (details) handOffDraft(createdUser, details, createdUser.email || email);
+        else onRegistrationReady(createdUser, null, true);
       } else {
         await signInClientPortalWithEmail(email, password, rememberMe);
       }
@@ -282,12 +289,12 @@ export const ClientAuthOnboardingCard: React.FC<ClientAuthOnboardingCardProps> =
     if (!canSubmit) return;
     clearMessages();
 
-    const details = isRegister ? validateDraft(captureDraft()) : null;
-    if (isRegister && !details) return;
+    const details = collectProfile ? validateDraft(captureDraft()) : null;
+    if (collectProfile && !details) return;
 
     setAction('sms');
     try {
-      const confirmation = await sendClientPhoneOtp(details?.phone ?? targetPhone, 'client-phone-recaptcha', rememberMe);
+      const confirmation = await sendClientPhoneOtp(details?.phone ?? targetPhone, recaptchaId, rememberMe);
       setOtpConfirmation(confirmation);
       setOtpCode('');
       setInfoMsg(
@@ -311,8 +318,8 @@ export const ClientAuthOnboardingCard: React.FC<ClientAuthOnboardingCardProps> =
       reportError(isAr ? 'أدخل رمز التحقق من 6 أرقام.' : 'Enter the 6-digit SMS verification code.');
       return;
     }
-    const details = isRegister ? validateDraft(captureDraft()) : null;
-    if (isRegister && !details) return;
+    const details = collectProfile ? validateDraft(captureDraft()) : null;
+    if (collectProfile && !details) return;
     setAction('auth');
     try {
       const cred = await otpConfirmation.confirm(code);
@@ -382,15 +389,18 @@ export const ClientAuthOnboardingCard: React.FC<ClientAuthOnboardingCardProps> =
   return (
     <div
       data-testid="client-auth-onboarding-card"
-      className="max-w-5xl mx-auto rounded-2xl border border-slate-800 bg-slate-900/75 p-5 sm:p-8 space-y-6"
+      className={site ? "space-y-4" : "max-w-5xl mx-auto rounded-2xl border border-slate-800 bg-slate-900/75 p-5 sm:p-8 space-y-6"}
     >
       {/* Header & Mode Switch */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800 pb-5">
         <div className="space-y-1.5">
           <div className="inline-flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-emerald-400">
             <BriefcaseBusiness className="w-4 h-4" aria-hidden="true" />
-            <span>{isAr ? 'بوابة عملاء ومجتمع أعمال إنسكو' : 'INSCO Client & Business Community Portal'}</span>
+            <span>{site ? (isAr ? 'حساب واحد لكل الأقسام' : 'One account for every section') : (isAr ? 'بوابة عملاء ومجتمع أعمال إنسكو' : 'INSCO Client & Business Community Portal')}</span>
           </div>
+          {site ? (
+            <h3 className="text-xl font-black text-white">{isRegister ? (isAr ? 'إنشاء حساب إنسكو' : 'Create your INSCO account') : (isAr ? 'تسجيل الدخول إلى إنسكو' : 'Sign in to INSCO')}</h3>
+          ) : (
           <h1 className="text-xl sm:text-2xl font-black text-white">
             {mode === 'register'
               ? isAr
@@ -400,8 +410,9 @@ export const ClientAuthOnboardingCard: React.FC<ClientAuthOnboardingCardProps> =
                 ? 'تسجيل الدخول إلى بوابة العملاء والملفات'
                 : 'Sign In to Client & Company Dossier Portal'}
           </h1>
+          )}
           <p className="text-xs sm:text-sm text-slate-300">
-            {isAr
+            {site ? (isAr ? 'نفس الحساب للشركة والعملاء والأكاديمية والمجتمع. تقدر تضيف بيانات ملفك بعد التفعيل.' : 'Use the same account for Company, Clients, Academy, and Community. Add profile details after verification.') : isAr
               ? 'اختر وسيلة التوثيق المناسبة (البريد الإلكتروني، رقم التليفون SMS، أو حساب Google) وسجّل جميع بياناتك الشخصية وبيانات شركتك مباشرة.'
               : 'Authenticate via Email, Phone SMS OTP, or Google Account while recording full personal & corporate profile information.'}
           </p>
@@ -510,7 +521,7 @@ export const ClientAuthOnboardingCard: React.FC<ClientAuthOnboardingCardProps> =
         </div>
       </div>
 
-      {isRegister && provider !== 'email' && (
+      {collectProfile && provider !== 'email' && (
         <fieldset ref={registrationFields} disabled={Boolean(action)}>
           <ClientRegistrationFormFields
             language={language}
@@ -525,11 +536,10 @@ export const ClientAuthOnboardingCard: React.FC<ClientAuthOnboardingCardProps> =
       <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-4 sm:p-5 space-y-4">
         {provider === 'email' && (
           <form
-            id={isRegister ? 'client-signup' : 'client-signin'}
             key={mode}
             ref={emailForm}
             method="post"
-            noValidate={isRegister}
+            noValidate
             aria-busy={submitting}
             onSubmit={e => void handleEmailSubmit(e)}
             className="space-y-4"
@@ -547,7 +557,7 @@ export const ClientAuthOnboardingCard: React.FC<ClientAuthOnboardingCardProps> =
               </span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+            <div className={site ? "grid min-w-0 grid-cols-1 gap-3 text-xs" : "grid grid-cols-1 md:grid-cols-3 gap-3 text-xs"}>
               <label className="space-y-1">
                 <span className="text-slate-300 block font-semibold">
                   {isAr ? 'البريد الإلكتروني للحساب *' : 'Account Email *'}
@@ -601,7 +611,7 @@ export const ClientAuthOnboardingCard: React.FC<ClientAuthOnboardingCardProps> =
               )}
             </div>
 
-            {isRegister && (
+            {collectProfile && (
               <fieldset ref={registrationFields} disabled={Boolean(action)}>
                 <ClientRegistrationFormFields
                   language={language}
@@ -612,13 +622,14 @@ export const ClientAuthOnboardingCard: React.FC<ClientAuthOnboardingCardProps> =
                 />
               </fieldset>
             )}
-            {isRegister && (
+            {collectProfile && (
               <p className="text-xs text-slate-300">
                 {isAr
                   ? 'الحقول بعلامة * مطلوبة فقط. باقي البيانات تقدر تضيفها بعد تفعيل حسابك.'
                   : 'Only fields marked * are required. You can add other details after verifying your account.'}
               </p>
             )}
+            {isRegister && <AccountPrivacyNotice language={language} />}
             {rememberOption}
             {feedback}
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -659,6 +670,7 @@ export const ClientAuthOnboardingCard: React.FC<ClientAuthOnboardingCardProps> =
           </form>
         )}
 
+        {provider !== 'email' && isRegister && <AccountPrivacyNotice language={language} />}
         {provider !== 'email' && rememberOption}
 
         {provider === 'phone' && (
@@ -684,7 +696,7 @@ export const ClientAuthOnboardingCard: React.FC<ClientAuthOnboardingCardProps> =
                   value={targetPhone}
                   onChange={e => {
                     clearOtp();
-                    if (isRegister) setDraft({ ...draft, phone: e.target.value });
+                    if (collectProfile) setDraft({ ...draft, phone: e.target.value });
                     else setAuthPhone(e.target.value);
                   }}
                   placeholder="+201000000000"
@@ -717,7 +729,7 @@ export const ClientAuthOnboardingCard: React.FC<ClientAuthOnboardingCardProps> =
               </div>
             </div>
 
-            <div id="client-phone-recaptcha" />
+            <div id={recaptchaId} />
             {feedback}
 
             {otpConfirmation && (
@@ -751,7 +763,7 @@ export const ClientAuthOnboardingCard: React.FC<ClientAuthOnboardingCardProps> =
                       ? isAr
                         ? 'جاري التحقق...'
                         : 'Verifying...'
-                      : mode === 'register'
+                      : collectProfile
                         ? isAr
                           ? 'تأكيد الرمز وحفظ البيانات'
                           : 'Verify OTP & Save Profile'
@@ -769,7 +781,9 @@ export const ClientAuthOnboardingCard: React.FC<ClientAuthOnboardingCardProps> =
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="basis-full empty:hidden">{feedback}</div>
             <div className="text-xs text-slate-300">
-              {mode === 'register'
+              {site
+                ? (isAr ? 'استخدم نفس طريقة الدخول كل مرة علشان تفتح حسابك الحالي.' : 'Use your original sign-in method to return to the same account.')
+                : mode === 'register'
                 ? isAr
                   ? 'بعد استكمال بياناتك الشخصية وبيانات الشركة أعلاه، اضغط لتوثيق الحساب عبر Google وحفظ الملف فوراً.'
                   : 'After completing your Personal & Company details above, click to authenticate with Google and save your profile immediately.'
@@ -791,7 +805,7 @@ export const ClientAuthOnboardingCard: React.FC<ClientAuthOnboardingCardProps> =
                   ? isAr
                     ? 'جاري التوثيق...'
                     : 'Authenticating...'
-                  : mode === 'register'
+                  : collectProfile
                     ? isAr
                       ? 'توثيق بحساب Google وحفظ جميع البيانات'
                       : 'Register with Google & Save All Details'
@@ -804,7 +818,7 @@ export const ClientAuthOnboardingCard: React.FC<ClientAuthOnboardingCardProps> =
         )}
       </div>
 
-      {/* Footer Back Button */}
+      {onOpenCompanyPortal && (
       <div className="flex items-center justify-between gap-3 pt-1">
         <button
           type="button"
@@ -813,10 +827,8 @@ export const ClientAuthOnboardingCard: React.FC<ClientAuthOnboardingCardProps> =
         >
           {isAr ? 'العودة لبوابة الشركة' : 'Back to Corporate Portal'}
         </button>
-        <span className="text-[11px] font-mono text-slate-500">
-          {isAr ? 'بيانات مشفرة ومعزولة لكل حساب في Firestore' : 'Isolated per-account Cloud Firestore records'}
-        </span>
       </div>
+      )}
     </div>
   );
 };

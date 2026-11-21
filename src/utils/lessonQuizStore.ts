@@ -1,3 +1,4 @@
+import { academyActivityStorage } from '../account/academyAccountProgress';
 import { useCallback, useEffect, useState } from 'react';
 import { LessonQuizPack, LessonQuizSourceKind } from '../data/curriculumLessonQuizzes';
 import { ENGINEERING_DISCIPLINES } from '../data/academyCurriculum';
@@ -68,7 +69,7 @@ function safeDispatch(eventName: string, detail?: unknown): void {
 export function getLessonQuizRecords(): Record<string, LessonQuizRecord> {
   try {
     if (typeof localStorage === 'undefined') return {};
-    const raw = localStorage.getItem(LESSON_QUIZ_RECORDS_KEY);
+    const raw = academyActivityStorage.getItem(LESSON_QUIZ_RECORDS_KEY);
     if (!raw) return {};
     const parsed = JSON.parse(raw);
     return parsed && typeof parsed === 'object' ? parsed : {};
@@ -85,7 +86,7 @@ export function getLessonQuizRecord(packId: string): LessonQuizRecord | null {
 export function getTotalEarnedQuizXp(): number {
   try {
     if (typeof localStorage === 'undefined') return 0;
-    const raw = localStorage.getItem(LESSON_QUIZ_XP_TOTAL_KEY);
+    const raw = academyActivityStorage.getItem(LESSON_QUIZ_XP_TOTAL_KEY);
     const val = raw ? Number(raw) : 0;
     return Number.isFinite(val) && val > 0 ? Math.round(val) : 0;
   } catch {
@@ -166,8 +167,8 @@ export function submitLessonQuizAttempt(
   const nextBonusXpTotal = getTotalEarnedQuizXp() + xpEarnedNow;
   try {
     if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(LESSON_QUIZ_RECORDS_KEY, JSON.stringify(records));
-      localStorage.setItem(LESSON_QUIZ_XP_TOTAL_KEY, String(nextBonusXpTotal));
+      academyActivityStorage.setItem(LESSON_QUIZ_RECORDS_KEY, JSON.stringify(records));
+      academyActivityStorage.setItem(LESSON_QUIZ_XP_TOTAL_KEY, String(nextBonusXpTotal));
     }
   } catch {
     // Ignore storage quota issues in constrained environments

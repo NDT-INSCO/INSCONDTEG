@@ -1,22 +1,21 @@
 import React, { useState } from 'react';
 import type { User } from 'firebase/auth';
-import { CheckCircle2, Link2, Mail, Phone, ShieldCheck, UserCheck } from 'lucide-react';
+import { CheckCircle2, Mail, Phone, UserCheck } from 'lucide-react';
 import type { Language } from '../../types';
 import {
   sanitizeUpperCode,
   type ClientAccount,
-  type ClientApprovalStatus,
   type ClientRegistrationDraftInput,
-  type CompanyRecord,
 } from '../../client/types';
 import {
-  adminApproveAndLinkClientAccount,
   detectUserAuthMethod,
+  normalizePhoneDigits,
   formatClientProfileError,
   saveClientRegistration,
   type ClientProfileSaveResult,
 } from '../../client/firestoreClientService';
 import { ClientRegistrationFormFields } from './ClientRegistrationFormFields';
+import { AccountPrivacyNotice } from '../account/AccountPrivacyNotice';
 
 interface ClientRegistrationSectionProps {
   language: Language;
@@ -25,9 +24,6 @@ interface ClientRegistrationSectionProps {
   pendingDraft?: ClientRegistrationDraftInput | null;
   onSaveDraft?: (input: ClientRegistrationDraftInput) => void;
   onSaved?: (input: ClientRegistrationDraftInput, result: ClientProfileSaveResult) => void;
-  allAccounts: ClientAccount[];
-  companies: CompanyRecord[];
-  isAdmin: boolean;
 }
 
 function buildInitialDraft(
@@ -67,9 +63,6 @@ export const ClientRegistrationSection: React.FC<ClientRegistrationSectionProps>
   pendingDraft,
   onSaveDraft,
   onSaved,
-  allAccounts,
-  companies,
-  isAdmin,
 }) => {
   const isAr = language === 'ar';
   const authMethod = account?.authMethod ?? detectUserAuthMethod(user);
@@ -82,9 +75,6 @@ export const ClientRegistrationSection: React.FC<ClientRegistrationSectionProps>
   const [savedOk, setSavedOk] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Admin link map per account
-  const [selectedCompanyByUid, setSelectedCompanyByUid] = useState<Record<string, string>>({});
-
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (saving) return;
@@ -93,13 +83,13 @@ export const ClientRegistrationSection: React.FC<ClientRegistrationSectionProps>
 
     if (
       formDraft.fullName.trim().length < 2 ||
-      formDraft.phone.trim().length < 5 ||
-      formDraft.organizationName.trim().length < 2
+      (formDraft.phone.trim() !== '' && normalizePhoneDigits(formDraft.phone).replace(/\D/g, '').length < 5) ||
+      (formDraft.organizationName.trim() !== '' && formDraft.organizationName.trim().length < 2)
     ) {
       setErrorMsg(
         isAr
-          ? 'يرجى إدخال الاسم الكامل، رقم الهاتف، واسم الشركة بشكل صحيح.'
-          : 'Please enter valid Full Name, Phone, and Organization Name.'
+          ? 'اكتب اسمك بالكامل. لو أضفت رقم هاتف أو اسم شركة، تأكد من صحتهما.'
+          : 'Enter your full name. If you add a phone number or company name, make sure it is valid.'
       );
       return;
     }
@@ -122,20 +112,6 @@ export const ClientRegistrationSection: React.FC<ClientRegistrationSectionProps>
     } finally {
       setSaving(false);
     }
-  };
-
-  const handleAdminLink = async (
-    targetAccount: ClientAccount,
-    status: ClientApprovalStatus
-  ) => {
-    const chosenCompanyId =
-      selectedCompanyByUid[targetAccount.uid] ?? targetAccount.assignedCompanyId ?? '';
-    const companyObj = companies.find(c => c.id === chosenCompanyId) ?? null;
-    await adminApproveAndLinkClientAccount({
-      clientUid: targetAccount.uid,
-      approvalStatus: status,
-      company: companyObj,
-    });
   };
 
   const authBadgeLabel =
@@ -167,8 +143,8 @@ export const ClientRegistrationSection: React.FC<ClientRegistrationSectionProps>
             </h2>
             <p className="text-xs text-slate-400">
               {isAr
-                ? 'حدّث جميع بياناتك الشخصية والبيانات الرسمية لشركتك؛ واستخدم الكود الخاص بها لربط ملف التقارير بحسابك.'
-                : 'Maintain your complete personal representative profile and official company records.'}
+                ? 'ملفك الخاص لحساب إنسكو الموحد. بيانات الشركة والهاتف اختيارية، وتقدر تضيفها عند طلب خدمة.'
+                : 'Your private profile for your unified INSCO account. Company details and phone are optional; add them when requesting service.'}
             </p>
           </div>
 
@@ -201,6 +177,8 @@ export const ClientRegistrationSection: React.FC<ClientRegistrationSectionProps>
           </div>
         </div>
 
+        <AccountPrivacyNotice language={language} />
+
         <fieldset disabled={saving}>
           <ClientRegistrationFormFields
             language={language}
@@ -211,7 +189,7 @@ export const ClientRegistrationSection: React.FC<ClientRegistrationSectionProps>
             }}
             lockPersonalEmail={Boolean(user.email && authMethod !== 'phone')}
             lockPrimaryPhone={Boolean(user.phoneNumber && authMethod === 'phone')}
-            showAutoCreateCompanyToggle={false}
+            requireCompanyDetails={false}
           />
         </fieldset>
 
@@ -260,85 +238,6 @@ export const ClientRegistrationSection: React.FC<ClientRegistrationSectionProps>
         </button>
       </form>
 
-      {/* Admin Client Approval & Company Code Binding Desk */}
-      {isAdmin && (
-        <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 space-y-4">
-          <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
-            <ShieldCheck className="w-4 h-4 text-amber-400" aria-hidden="true" />
-            <h3 className="text-sm font-black text-white">
-              {isAr
-                ? 'إدارة الحسابات المسجلة ومراجعة البيانات الشخصية والشركات'
-                : 'Registered Client Accounts & Company Code Binding'}
-            </h3>
-          </div>
-
-          {allAccounts.length === 0 ? (
-            <div className="text-xs text-slate-400 py-4 text-center">
-              {isAr ? 'لا توجد حسابات مسجلة أخرى حتى الآن.' : 'No registered client accounts yet.'}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {allAccounts.map(acc => (
-                <div
-                  key={acc.uid}
-                  className="rounded-lg border border-slate-800 bg-slate-950/70 p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3 text-xs"
-                >
-                  <div className="space-y-1.5">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-bold text-white">{acc.fullName}</span>
-                      {acc.jobTitle && (
-                        <span className="text-cyan-300">({acc.jobTitle})</span>
-                      )}
-                      <span className="text-slate-300 font-semibold">· {acc.organizationName}</span>
-                      {acc.requestedCompanyCode && (
-                        <span className="font-mono text-amber-300">
-                          [{isAr ? 'كود مطلوب:' : 'Req:'} {acc.requestedCompanyCode}]
-                        </span>
-                      )}
-                    </div>
-                    <div className="font-mono text-[11px] text-slate-400 flex flex-wrap gap-x-3 gap-y-0.5">
-                      <span>{acc.email}</span>
-                      <span>{acc.phone}</span>
-                      {acc.commercialRegNo && <span>CR: {acc.commercialRegNo}</span>}
-                      {acc.taxCardNo && <span>Tax: {acc.taxCardNo}</span>}
-                      {acc.cityGovernorate && <span>{acc.cityGovernorate}</span>}
-                      {acc.authMethod && <span>via {acc.authMethod.toUpperCase()}</span>}
-                      <span>· {acc.approvalStatus}</span>
-                      {acc.assignedCompanyCode && <span>· Linked: {acc.assignedCompanyCode}</span>}
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2">
-                    <select
-                      value={selectedCompanyByUid[acc.uid] ?? acc.assignedCompanyId ?? ''}
-                      onChange={e =>
-                        setSelectedCompanyByUid(prev => ({ ...prev, [acc.uid]: e.target.value }))
-                      }
-                      className="rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-xs text-white"
-                    >
-                      <option value="">{isAr ? '— اختر شركة لربطها —' : '— Select Company —'}</option>
-                      {companies.map(co => (
-                        <option key={co.id} value={co.id}>
-                          {co.companyCode} · {isAr ? co.nameAr : co.nameEn}
-                        </option>
-                      ))}
-                    </select>
-
-                    <button
-                      type="button"
-                      onClick={() => void handleAdminLink(acc, 'approved')}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 text-[11px] font-bold text-white cursor-pointer"
-                    >
-                      <Link2 className="w-3.5 h-3.5" />
-                      <span>{isAr ? 'اعتماد وربط الكود' : 'Approve & Link'}</span>
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 };

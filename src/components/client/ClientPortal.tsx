@@ -1,7 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { User } from 'firebase/auth';
 import {
-  Bell,
   BriefcaseBusiness,
   Building2,
   ClipboardList,
@@ -10,8 +8,6 @@ import {
   Globe2,
   LayoutDashboard,
   LogOut,
-  MailCheck,
-  RefreshCw,
   ShieldCheck,
   UserPlus,
 } from 'lucide-react';
@@ -31,20 +27,11 @@ import type {
   CompanyRecord,
 } from '../../client/types';
 import {
-  clearPendingRegistrationDraft,
-  confirmClientPortalVerification,
   createInitialCompanyFromRegistration,
   formatClientProfileError,
   formatFirebaseAuthError,
-  isPortalFirestoreReady,
   isVerifiedAdminUser,
-  loadPendingRegistrationDraft,
-  observeClientPortalAuth,
-  resendClientVerificationEmail,
   saveClientRegistration,
-  savePendingRegistrationDraft,
-  signOutClientPortal,
-  subscribeAllClientAccounts,
   subscribeClientRequests,
   subscribeCommunityOpportunities,
   subscribeCommunityPosts,
@@ -60,10 +47,12 @@ import {
   type ClientProfileSaveResult,
 } from '../../client/firestoreClientService';
 import { sanitizeUpperCode } from '../../client/types';
-import { getLocalWorkforceSnapshot } from '../../client/workforceLocalStore';
 import { publishSiteTelemetrySnapshot } from '../../ai/telemetryStore';
 import { ClientErrorBoundary } from './ClientErrorBoundary';
 import { ClientAuthOnboardingCard } from './ClientAuthOnboardingCard';
+import { useSiteAccount } from '../../account/SiteAccountContext';
+import { AccountVerificationCard } from '../account/AccountVerificationCard';
+import { PrivateAccountReview } from '../account/PrivateAccountReview';
 import { ClientCompaniesSection } from './ClientCompaniesSection';
 import { ClientCompanyDossier } from './ClientCompanyDossier';
 import { ClientRequestsSection } from './ClientRequestsSection';
@@ -79,103 +68,32 @@ interface ClientPortalProps {
   onOpenCompanyPortal: () => void;
 }
 
-type VerificationDelivery = { status: 'sending' | 'sent' } | { status: 'failed'; error: unknown };
-
-interface RegistrationHandoff {
-  uid: string;
-  draft: ClientRegistrationDraftInput;
-  storedLocally: boolean;
-  delivery?: VerificationDelivery;
-}
-
 export const ClientPortal: React.FC<ClientPortalProps> = props => {
-  const [authReady, setAuthReady] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
-  const [handoff, setHandoff] = useState<RegistrationHandoff | null>(null);
-
-  useEffect(() => observeClientPortalAuth(current => {
-    setUser(current);
-    setAuthReady(true);
-  }), []);
-
-  const handleRegistrationReady = useCallback((
-    newUser: User,
-    draft: ClientRegistrationDraftInput,
-    sendVerification: boolean
-  ) => {
-    // Firebase can replace the signed-out form before its signup promise
-    // resolves. Hand the draft to the portal before trying to send email.
-    setHandoff({
-      uid: newUser.uid,
-      draft,
-      storedLocally: savePendingRegistrationDraft(newUser.uid, draft),
-      delivery: sendVerification ? { status: 'sending' } : undefined,
-    });
-    if (sendVerification) {
-      const updateDelivery = (delivery: VerificationDelivery) => setHandoff(current =>
-        current?.draft === draft ? { ...current, delivery } : current
-      );
-      void resendClientVerificationEmail(newUser).then(
-        () => updateDelivery({ status: 'sent' }),
-        error => updateDelivery({ status: 'failed', error })
-      );
-    }
-  }, []);
-
-  const handleDraftSaved = useCallback((uid: string) => {
-    clearPendingRegistrationDraft(uid);
-    setHandoff(current => current?.uid === uid ? null : current);
-  }, []);
-
+  const { user } = useSiteAccount();
   return (
     <ClientErrorBoundary key={user ? `client:${user.uid}` : 'signed-out'} language={props.language}>
-      <ClientPortalContent
-        {...props}
-        user={user}
-        authReady={authReady}
-        handoff={handoff?.uid === user?.uid ? handoff : null}
-        onRegistrationReady={handleRegistrationReady}
-        onDraftSaved={handleDraftSaved}
-      />
+      <ClientPortalContent {...props} />
     </ClientErrorBoundary>
   );
 };
-
-interface ClientPortalContentProps extends ClientPortalProps {
-  user: User | null;
-  authReady: boolean;
-  handoff: RegistrationHandoff | null;
-  onRegistrationReady: React.ComponentProps<typeof ClientAuthOnboardingCard>['onRegistrationReady'];
-  onDraftSaved: (uid: string) => void;
-}
 
 type PendingSaveState =
   | { status: 'idle' | 'saving' | 'saved' | 'existing' | 'creating-company' | 'company-failed' }
   | { status: 'failed'; error: unknown };
 
-type VerificationFeedback = { status: 'unverified' | 'resent' } | { status: 'error'; error: unknown };
-
-const ClientPortalContent: React.FC<ClientPortalContentProps> = ({
+const ClientPortalContent: React.FC<ClientPortalProps> = ({
   language,
   section,
   companyId,
   onNavigateSection,
   onOpenCompanyPortal,
-  user,
-  authReady,
-  handoff,
-  onRegistrationReady,
-  onDraftSaved,
 }) => {
   const isAr = language === 'ar';
-  const firebaseReady = isPortalFirestoreReady();
-  const [checkingSession, setCheckingSession] = useState(Boolean(user));
-  const [isVerifiedUser, setIsVerifiedUser] = useState(false);
-  const [verificationNotice, setVerificationNotice] = useState<VerificationFeedback | null>(null);
-  const [verificationAction, setVerificationAction] = useState<'refresh' | 'resend' | 'signout' | null>(null);
-
-  const [restoredDraft, setRestoredDraft] = useState(() => user ? loadPendingRegistrationDraft(user.uid) : null);
-  const pendingDraft = handoff?.draft ?? restoredDraft;
+  const {
+    user, ready: authReady, available: firebaseReady, checking: checkingSession,
+    verified: isVerifiedUser, action: verificationAction, notice: verificationNotice,
+    draft: pendingDraft, onRegistrationReady, onDraftSaved, signOut: handleSignOut,
+  } = useSiteAccount();
   const [draftSave, setDraftSave] = useState<PendingSaveState>({ status: 'idle' });
   const savingDraft = useRef(false);
 
@@ -184,7 +102,6 @@ const ClientPortalContent: React.FC<ClientPortalContentProps> = ({
   const [accountReadAttempt, setAccountReadAttempt] = useState(0);
   const myAccount = loadedAccount ?? null;
   const accountReady = loadedAccount !== undefined;
-  const [allAccounts, setAllAccounts] = useState<ClientAccount[]>([]);
   const [requests, setRequests] = useState<ClientRequest[]>([]);
   const [companies, setCompanies] = useState<CompanyRecord[]>([]);
   const [activeCompanyReports, setActiveCompanyReports] = useState<CompanyInspectionReport[]>([]);
@@ -209,16 +126,6 @@ const ClientPortalContent: React.FC<ClientPortalContentProps> = ({
     setWorkspaceLoadError(true);
   }, []);
   const isAdmin = isVerifiedUser && isVerifiedAdminUser(user);
-
-  useEffect(() => {
-    if (!user) return;
-    let active = true;
-    void confirmClientPortalVerification(user).then(
-      verified => { if (active) setIsVerifiedUser(verified); },
-      error => { if (active) setVerificationNotice({ status: 'error', error }); }
-    ).finally(() => { if (active) setCheckingSession(false); });
-    return () => { active = false; };
-  }, [user]);
 
   // Public + Authenticated INSCO Community streams
   useEffect(() => {
@@ -278,43 +185,23 @@ const ClientPortalContent: React.FC<ClientPortalContentProps> = ({
       },
       handleWorkspaceLoadError
     );
-    const unsubAllAccounts = isAdmin
-      ? subscribeAllClientAccounts(setAllAccounts, handleWorkspaceLoadError)
-      : () => {};
-
     return () => {
       unsubMyCommunity();
       unsubConnections();
       unsubRequests();
       unsubCompanies();
-      unsubAllAccounts();
     };
   }, [user, isVerifiedUser, isAdmin, firebaseReady, handleWorkspaceLoadError]);
 
-  // Publish live operational telemetry snapshot for INSCO Site Manager AI Agent
+  // The global AI dock can run on any route. Never pass private account,
+  // attendance or request data to its ambient telemetry.
   useEffect(() => {
-    const localLogs = getLocalWorkforceSnapshot().logs;
-    const sourceAttendance = activeCompanyAttendance.length > 0 ? activeCompanyAttendance : localLogs;
-    const outsideAlerts = sourceAttendance.filter(l => l.geofenceStatus === 'outside_geofence');
+    const posts = communityPosts.filter(post => post.visibility === 'public');
     publishSiteTelemetrySnapshot({
-      totalRequests: requests.length,
-      newRequests: requests.filter(r => r.status === 'new').length,
-      urgentRequests: requests.filter(r => r.urgency !== 'standard').length,
-      totalCompanies: companies.length,
-      activeTestingCompanies: companies.filter(c => c.hasActiveTestingDossier).length,
-      pendingAccounts: allAccounts.filter(a => a.approvalStatus === 'pending').length,
-      geofenceAlertCount: outsideAlerts.length,
-      recentGeofenceAlerts: outsideAlerts.slice(0, 6).map(a => ({
-        employeeName: a.employeeName,
-        companyCode: a.companyCode,
-        distanceMeters: a.distanceFromSiteMeters,
-        radiusMeters: a.geofenceRadiusMeters,
-        timestampIso: a.timestampIso,
-      })),
-      communityPostsCount: communityPosts.length,
-      communityMembersCount: communityDirectory.length,
+      communityPostsCount: posts.length,
+      communityMembersCount: communityDirectory.filter(profile => profile.isPublished).length,
       opportunitiesCount: communityOpportunities.length,
-      recentPosts: communityPosts.slice(0, 8).map(p => ({
+      recentPosts: posts.slice(0, 8).map(p => ({
         id: p.id,
         title: p.title,
         ndtMethod: p.ndtMethod,
@@ -324,15 +211,7 @@ const ClientPortalContent: React.FC<ClientPortalContentProps> = ({
         aiModerationStatus: p.aiModerationStatus,
       })),
     });
-  }, [
-    requests,
-    companies,
-    allAccounts,
-    activeCompanyAttendance,
-    communityPosts,
-    communityDirectory,
-    communityOpportunities,
-  ]);
+  }, [communityPosts, communityDirectory, communityOpportunities]);
 
   const finishPendingProfile = useCallback(async (
     input: ClientRegistrationDraftInput,
@@ -340,7 +219,6 @@ const ClientPortalContent: React.FC<ClientPortalContentProps> = ({
   ) => {
     if (!user || !pendingDraft) return;
     onDraftSaved(user.uid);
-    setRestoredDraft(null);
     if (result === 'existing') {
       setDraftSave({ status: 'existing' });
       return;
@@ -389,7 +267,7 @@ const ClientPortalContent: React.FC<ClientPortalContentProps> = ({
   );
 
   useEffect(() => {
-    if (!authReady || !user || !activeCompany) {
+    if (!isVerifiedUser || !user || !activeCompany) {
       setActiveCompanyReports([]);
       setReportsLoading(false);
       return;
@@ -408,10 +286,10 @@ const ClientPortalContent: React.FC<ClientPortalContentProps> = ({
         handleWorkspaceLoadError();
       }
     );
-  }, [authReady, user, activeCompany, isAdmin, handleWorkspaceLoadError]);
+  }, [isVerifiedUser, user, activeCompany, isAdmin, handleWorkspaceLoadError]);
 
   useEffect(() => {
-    if (!authReady || !user || !trackedCompanyId) {
+    if (!isVerifiedUser || !user || !trackedCompanyId) {
       setActiveCompanyEmployees([]);
       setActiveCompanyAttendance([]);
       return;
@@ -434,7 +312,7 @@ const ClientPortalContent: React.FC<ClientPortalContentProps> = ({
       unsubEmps();
       unsubAtt();
     };
-  }, [authReady, user, trackedCompanyId, isAdmin, handleWorkspaceLoadError]);
+  }, [isVerifiedUser, user, trackedCompanyId, isAdmin, handleWorkspaceLoadError]);
 
   const handleRequestEmployeeLocationUpdate = (emp: CompanyEmployee) => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) return;
@@ -453,75 +331,12 @@ const ClientPortalContent: React.FC<ClientPortalContentProps> = ({
     );
   };
 
-  const handleRefreshVerification = async () => {
-    if (!user || checkingSession || verificationAction) return;
-    setVerificationNotice(null);
-    setVerificationAction('refresh');
-    try {
-      const verified = await confirmClientPortalVerification(user, true);
-      if (verified) {
-        setIsVerifiedUser(true);
-      } else {
-        setVerificationNotice({ status: 'unverified' });
-      }
-    } catch (err) {
-      setVerificationNotice({ status: 'error', error: err });
-    } finally {
-      setVerificationAction(null);
-    }
-  };
-
-  const handleResendVerification = async () => {
-    if (!user?.email || checkingSession || verificationAction || handoff?.delivery?.status === 'sending') return;
-    setVerificationNotice(null);
-    setVerificationAction('resend');
-    try {
-      await resendClientVerificationEmail(user);
-      setVerificationNotice({ status: 'resent' });
-    } catch (err) {
-      setVerificationNotice({ status: 'error', error: err });
-    } finally {
-      setVerificationAction(null);
-    }
-  };
-
-  const handleSignOut = async () => {
-    if (verificationAction) return;
-    setVerificationNotice(null);
-    setVerificationAction('signout');
-    try {
-      await signOutClientPortal();
-    } catch (err) {
-      setVerificationNotice({ status: 'error', error: err });
-    } finally {
-      setVerificationAction(null);
-    }
-  };
-
-  const delivery = handoff?.delivery;
   const verificationError = verificationNotice?.status === 'error'
     ? formatFirebaseAuthError(verificationNotice.error, language)
     : null;
-  let checkpointText = verificationError;
-  let checkpointError = Boolean(verificationError);
-  if (verificationNotice?.status === 'unverified') {
-    checkpointText = isAr
-      ? 'لم يكتمل تفعيل البريد بعد. افتح رابط التفعيل ثم حاول مرة أخرى.'
-      : 'Email activation has not completed. Open the verification link and try again.';
-  } else if (verificationNotice?.status === 'resent' || delivery?.status === 'sent') {
-    checkpointText ??= isAr
-      ? 'تم إرسال رابط التفعيل. راجع الوارد والبريد غير المرغوب فيه.'
-      : 'Verification link sent. Check your inbox and spam folder.';
-  } else if (!verificationNotice && delivery?.status === 'failed') {
-    checkpointError = true;
-    checkpointText = isAr
-      ? `لم يُرسل رابط التفعيل. ${formatFirebaseAuthError(delivery.error, language)}`
-      : `Verification email was not sent. ${formatFirebaseAuthError(delivery.error, language)}`;
-  }
   const draftSaving = draftSave.status === 'saving' || Boolean(pendingDraft && draftSave.status === 'idle' && accountReady && !accountError);
   const awaitingSavedAccount = !myAccount && draftSave.status !== 'idle'
     && draftSave.status !== 'failed' && !draftSaving;
-  const draftOnlyInMemory = Boolean(handoff && !handoff.storedLocally);
 
   const navItems: Array<{
     id: ClientSectionId;
@@ -621,78 +436,7 @@ const ClientPortalContent: React.FC<ClientPortalContentProps> = ({
           />
         </div>
       ) : !isVerifiedUser ? (
-        /* Email Verification Checkpoint before Firestore Profile Activation */
-        <div className="max-w-2xl mx-auto rounded-2xl border border-amber-500/40 bg-slate-900/80 p-6 sm:p-8 space-y-4">
-          <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-amber-300">
-            <MailCheck className="w-4 h-4" aria-hidden="true" />
-            <span>{isAr ? 'التحقّق من الحساب' : 'Verify Your Account'}</span>
-          </div>
-          <h2 className="text-xl font-black text-white">
-            {isAr ? 'أكد حسابك قبل استخدام بوابة العملاء' : 'Verify your account to use the Client Portal'}
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-            {user.email
-              ? isAr
-                ? <>افتح رابط التفعيل في بريدك <bdi className="break-all">{user.email}</bdi>، ثم اضغط «تحقق من التفعيل». إذا لم تجد الرسالة، راجع البريد غير المرغوب فيه أو اطلب إرسالها مرة أخرى.</>
-                : <>Open the verification link for <bdi className="break-all">{user.email}</bdi>, then select “Check verification”. Check spam or resend the email if needed.</>
-              : isAr
-                ? 'أعد التحقق من الجلسة أو سجّل الدخول بالطريقة التي وثّقت بها حسابك.'
-                : 'Check your session again or sign in using the method you verified.'}
-          </p>
-          {pendingDraft && !draftOnlyInMemory && (
-            <p className="text-xs text-slate-300">
-              {isAr
-                ? 'بياناتك مسودة مؤقتة في هذا المتصفح. سيبدأ حفظها في حسابك بعد التحقق من التفعيل.'
-                : 'Your details are a temporary draft in this browser. We’ll save them to your account after verification.'}
-            </p>
-          )}
-          {draftOnlyInMemory && (
-            <p role="alert" className="text-xs text-amber-300">
-              {isAr
-                ? 'المتصفح لم يحفظ المسودة. أبقِ الصفحة مفتوحة حتى يتم حفظ بياناتك في الحساب.'
-                : 'Your browser could not store the draft. Keep this page open until your details are saved to your account.'}
-            </p>
-          )}
-          {checkpointText && (
-            <div role={checkpointError ? 'alert' : 'status'} className={`rounded-lg border px-3 py-2 text-xs flex items-center gap-2 ${checkpointError ? 'border-rose-500/40 bg-rose-500/10 text-rose-200' : 'border-cyan-500/40 bg-cyan-500/10 text-cyan-200'}`}>
-              <Bell className="w-4 h-4 shrink-0" aria-hidden="true" />
-              <span>{checkpointText}</span>
-            </div>
-          )}
-          <div className="flex flex-wrap items-center gap-3 pt-2">
-            <button
-              type="button"
-              disabled={Boolean(verificationAction)}
-              onClick={() => void handleRefreshVerification()}
-              className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 px-4 py-2.5 text-xs font-black text-white cursor-pointer"
-            >
-              <RefreshCw className="w-4 h-4" aria-hidden="true" />
-              <span>{verificationAction === 'refresh'
-                ? isAr ? 'جاري التحقق…' : 'Checking…'
-                : isAr ? 'تحقق من التفعيل' : 'Check verification'}</span>
-            </button>
-            {user.email && (
-              <button
-                type="button"
-                disabled={Boolean(verificationAction) || delivery?.status === 'sending'}
-                onClick={() => void handleResendVerification()}
-                className="rounded-lg border border-cyan-500/40 bg-cyan-500/10 hover:bg-cyan-500/20 disabled:opacity-50 px-4 py-2.5 text-xs font-bold text-cyan-300 cursor-pointer"
-              >
-                {verificationAction === 'resend' || delivery?.status === 'sending'
-                  ? isAr ? 'جاري إرسال رابط التفعيل…' : 'Sending verification link…'
-                  : isAr ? 'إعادة إرسال رابط التفعيل' : 'Resend verification email'}
-              </button>
-            )}
-            <button
-              type="button"
-              disabled={Boolean(verificationAction)}
-              onClick={() => void handleSignOut()}
-              className="rounded-lg border border-slate-700 bg-slate-950 hover:bg-slate-800 disabled:opacity-50 px-4 py-2.5 text-xs font-semibold text-slate-300 cursor-pointer"
-            >
-              {isAr ? 'تسجيل الخروج' : 'Sign Out'}
-            </button>
-          </div>
-        </div>
+        <AccountVerificationCard language={language} client />
       ) : (
         /* Authenticated SaaS Workspace Canvas (Sidebar + Main Viewport) */
         <div className="flex flex-col lg:flex-row gap-6">
@@ -789,11 +533,6 @@ const ClientPortalContent: React.FC<ClientPortalContentProps> = ({
                   <p role="status">{isAr ? 'بانتظار تحميل بيانات الحساب من قاعدة البيانات… تأكّد من اتصالك بالإنترنت.' : 'Waiting for your account data. Check your internet connection if this persists.'}</p>
                 )}
               </div>
-            )}
-            {draftOnlyInMemory && (
-              <p role="status" className="rounded-lg border border-amber-500/40 p-3 text-xs text-amber-200">
-                {isAr ? 'المسودة متاحة في هذه الصفحة فقط. أبقِها مفتوحة حتى يتم الحفظ.' : 'The draft is only available on this page. Keep it open until saving completes.'}
-              </p>
             )}
             {draftSaving && (
               <p role="status" className="rounded-lg border border-cyan-500/40 p-3 text-xs text-cyan-200">
@@ -1080,6 +819,7 @@ const ClientPortalContent: React.FC<ClientPortalContentProps> = ({
               />
             )}
 
+            {section === 'register' && <PrivateAccountReview language={language} user={user} companies={companies} canLinkCompany={isAdmin} />}
             {section === 'register' && accountReady && !draftSaving && !awaitingSavedAccount && (
               <ClientRegistrationSection
                 language={language}
@@ -1090,9 +830,6 @@ const ClientPortalContent: React.FC<ClientPortalContentProps> = ({
                   ...input, autoCreateCompanyWorkspace: pendingDraft.autoCreateCompanyWorkspace,
                 }, false) : undefined}
                 onSaved={pendingDraft ? finishPendingProfile : undefined}
-                allAccounts={allAccounts}
-                companies={companies}
-                isAdmin={isAdmin}
               />
             )}
           </div>

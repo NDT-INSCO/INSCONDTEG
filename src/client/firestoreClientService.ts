@@ -329,7 +329,12 @@ export function isPortalFirestoreReady(): boolean {
 /* 1. Client Registration & Accounts                                          */
 /* -------------------------------------------------------------------------- */
 
-const PENDING_REG_DRAFT_KEY_PREFIX = 'insco_pending_client_reg_v1_';
+const LEGACY_REG_DRAFT_KEY_PREFIX = 'insco_pending_client_reg_v1_';
+let pendingRegistration: { uid: string; draft: ClientRegistrationDraftInput } | null = null;
+
+export function isCurrentClientUser(uid: string): boolean {
+  return auth?.currentUser?.uid === uid;
+}
 
 // Persist only profile fields. Never serialize form credentials or tokens.
 function pickRegistrationDraft(value: unknown): ClientRegistrationDraftInput | null {
@@ -354,33 +359,34 @@ function pickRegistrationDraft(value: unknown): ClientRegistrationDraftInput | n
 }
 
 export function savePendingRegistrationDraft(uid: string, draft: ClientRegistrationDraftInput): boolean {
-  try {
-    const safeDraft = pickRegistrationDraft(draft);
-    if (!safeDraft) return false;
-    localStorage.setItem(`${PENDING_REG_DRAFT_KEY_PREFIX}${uid}`, JSON.stringify(safeDraft));
-    return true;
-  } catch {
-    return false;
-  }
+  if (!isCurrentClientUser(uid)) return false;
+  const safe = pickRegistrationDraft(draft);
+  if (!safe) return false;
+  pendingRegistration = { uid, draft: safe };
+  return true;
 }
 
 export function loadPendingRegistrationDraft(uid: string): ClientRegistrationDraftInput | null {
+  if (!isCurrentClientUser(uid)) return null;
+  if (pendingRegistration?.uid === uid) return pendingRegistration.draft;
+  // Recover a legacy draft for its signed-in owner once, without keeping a
+  // plaintext copy on disk. New drafts never go to browser storage.
   try {
-    const raw = localStorage.getItem(`${PENDING_REG_DRAFT_KEY_PREFIX}${uid}`);
-    return raw ? pickRegistrationDraft(JSON.parse(raw)) : null;
+    const key = `${LEGACY_REG_DRAFT_KEY_PREFIX}${uid}`;
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    localStorage.removeItem(key);
+    const draft = pickRegistrationDraft(JSON.parse(raw));
+    if (!draft) return null;
+    pendingRegistration = { uid, draft };
+    return draft;
   } catch {
     return null;
   }
 }
 
 export function clearPendingRegistrationDraft(uid: string): void {
-  try {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.removeItem(`${PENDING_REG_DRAFT_KEY_PREFIX}${uid}`);
-    }
-  } catch {
-    // Ignore storage failures
-  }
+  if (pendingRegistration?.uid === uid) pendingRegistration = null;
 }
 
 export type ClientProfileSaveResult = 'created' | 'updated' | 'existing';
@@ -405,7 +411,7 @@ export function formatClientProfileError(err: unknown, language: 'ar' | 'en'): s
 }
 
 function requireCurrentClient(user: User): void {
-  if (auth?.currentUser?.uid !== user.uid) {
+  if (!isCurrentClientUser(user.uid)) {
     throw Object.assign(new Error('Client session changed'), { code: 'unauthenticated' });
   }
 }
@@ -484,9 +490,10 @@ export async function createInitialCompanyFromRegistration(
     hasActiveTestingDossier: true,
     sector: draft.sector?.trim() || 'Industrial & Contracting',
     commercialRegNo: draft.commercialRegNo?.trim(),
-    contactPerson: draft.fullName.trim(),
-    contactEmail: (draft.companyEmail || draft.personalEmail || user.email || '').trim(),
-    contactPhone: (draft.companyPhone || draft.phone || user.phoneNumber || '').trim(),
+    // Company dossiers may later be reassigned. Only copy explicitly
+    // provided company contacts, never the registrant’s personal details.
+    contactEmail: draft.companyEmail?.trim(),
+    contactPhone: draft.companyPhone?.trim(),
     projectLocation: (draft.cityGovernorate || draft.companyAddress || '').trim(),
     activeScope: draft.activeScope?.trim(),
     legacySinceYear: String(new Date().getFullYear()),
@@ -507,35 +514,10 @@ export function subscribeMyClientAccount(
     doc(db, 'client_accounts', uid),
     { includeMetadataChanges: true },
     snap => {
-      if (snap.metadata.fromCache || snap.metadata.hasPendingWrites) return;
+      if (!isCurrentClientUser(uid) || snap.metadata.fromCache || snap.metadata.hasPendingWrites) return;
       onData(snap.exists() ? (snap.data() as ClientAccount) : null);
     },
     onError
-  );
-}
-
-export function subscribeAllClientAccounts(
-  onData: (accounts: ClientAccount[]) => void,
-  onError?: (error: Error) => void
-): Unsubscribe {
-  if (!db) {
-    onData([]);
-    return () => {};
-  }
-  const path = 'client_accounts';
-  const q = query(collection(db, 'client_accounts'), orderBy('updatedAt', 'desc'));
-  return onSnapshot(
-    q,
-    snap => {
-      onData(snap.docs.map(d => d.data() as ClientAccount));
-    },
-    err => {
-      try {
-        handleFirestoreError(err, OperationType.LIST, path);
-      } catch (wrapped) {
-        onError?.(wrapped instanceof Error ? wrapped : new Error(String(wrapped)));
-      }
-    }
   );
 }
 
@@ -666,7 +648,9 @@ export function subscribeClientRequests(
 
   return onSnapshot(
     q,
+    { includeMetadataChanges: true },
     snap => {
+      if (!isCurrentClientUser(uid) || snap.metadata.fromCache || snap.metadata.hasPendingWrites) return;
       const requests = snap.docs.map(d => ({
         id: d.id,
         ...(d.data() as Omit<ClientRequest, 'id'>),
@@ -869,7 +853,9 @@ export function subscribeCompanies(
 
   return onSnapshot(
     q,
+    { includeMetadataChanges: true },
     snap => {
+      if (!isCurrentClientUser(uid) || snap.metadata.fromCache || snap.metadata.hasPendingWrites) return;
       const list = snap.docs.map(d => ({
         id: d.id,
         ...(d.data() as Omit<CompanyRecord, 'id'>),
@@ -1049,7 +1035,9 @@ export function subscribeCompanyReports(
 
   return onSnapshot(
     q,
+    { includeMetadataChanges: true },
     snap => {
+      if (!isCurrentClientUser(uid) || snap.metadata.fromCache || snap.metadata.hasPendingWrites) return;
       const list = snap.docs.map(d => ({
         id: d.id,
         ...(d.data() as Omit<CompanyInspectionReport, 'id'>),
@@ -1290,7 +1278,9 @@ export function subscribeCompanyEmployees(
 
   return onSnapshot(
     q,
+    { includeMetadataChanges: true },
     snap => {
+      if (!isCurrentClientUser(uid) || snap.metadata.fromCache || snap.metadata.hasPendingWrites) return;
       const list = snap.docs.map(d => ({
         id: d.id,
         ...(d.data() as Omit<CompanyEmployee, 'id'>),
@@ -1419,7 +1409,9 @@ export function subscribeCompanyAttendance(
 
   return onSnapshot(
     q,
+    { includeMetadataChanges: true },
     snap => {
+      if (!isCurrentClientUser(uid) || snap.metadata.fromCache || snap.metadata.hasPendingWrites) return;
       const list = snap.docs.map(d => ({
         id: d.id,
         ...(d.data() as Omit<AttendanceLog, 'id'>),

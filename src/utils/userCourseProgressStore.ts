@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ENGINEERING_DISCIPLINES } from '../data/academyCurriculum';
+import { readAccountAcademyProgress, saveAccountModuleCompletion } from '../account/academyAccountProgress';
 
 export const USER_COURSE_PROGRESS_STORAGE_KEY = 'insco_user_course_progress_v1';
 const LEGACY_COMPLETED_MODULES_KEY = 'insco_academy_completed_modules';
@@ -230,6 +231,19 @@ function createDefaultUsers(initialCurrentModules: string[]): UserModuleProgress
 }
 
 export function readUserCourseProgress(): UserCourseProgressState {
+  const account = readAccountAcademyProgress();
+  if (account) return {
+    version: 1,
+    activeUserId: account.uid,
+    users: [{
+      id: account.uid,
+      nameEn: account.name || 'My account', nameAr: account.name || 'حسابي',
+      roleEn: 'INSCO Academy learner', roleAr: 'متدرّب أكاديمية إنسكو',
+      primaryDisciplineId: 'conventional_ndt',
+      completedModuleIds: sanitizeModuleIds([...account.modules.values()].filter(progress => progress.completedAt).map(progress => progress.moduleId)),
+      updatedAt: '',
+    }],
+  };
   const legacyActiveModules = readLegacyCompletedModuleIds();
   try {
     if (typeof localStorage === 'undefined') {
@@ -326,6 +340,7 @@ export function syncActiveUserModuleCompletion(
   completed: boolean
 ): UserCourseProgressState {
   const current = readUserCourseProgress();
+  if (readAccountAcademyProgress()) return current; // Device-only cohort tools
   if (!VALID_MODULE_IDS.has(moduleId)) return current;
 
   const nowIso = new Date().toISOString();
@@ -362,6 +377,10 @@ export function setUserModuleCompleted(
   if (!VALID_MODULE_IDS.has(moduleId)) return current;
 
   const resolvedUserId = targetUserId || current.activeUserId;
+  if (readAccountAcademyProgress()) {
+    if (resolvedUserId === current.activeUserId) void saveAccountModuleCompletion(moduleId, completed);
+    return current;
+  }
   const nowIso = new Date().toISOString();
 
   const nextUsers = current.users.map((user) => {
@@ -413,6 +432,7 @@ export function toggleUserModuleCompleted(
 
 export function setActiveProgressUser(userId: string): UserCourseProgressState {
   const current = readUserCourseProgress();
+  if (readAccountAcademyProgress()) return current; // Device-only cohort tools
   const target = current.users.find((u) => u.id === userId);
   if (!target) return current;
 
@@ -452,6 +472,7 @@ export function addProgressUser(input: AddProgressUserInput): UserCourseProgress
   if (!trimmedName) return readUserCourseProgress();
 
   const current = readUserCourseProgress();
+  if (readAccountAcademyProgress()) return current; // Device-only cohort tools
   const disc =
     ENGINEERING_DISCIPLINES.find((d) => d.id === input.primaryDisciplineId) ||
     ENGINEERING_DISCIPLINES[0];
@@ -497,6 +518,7 @@ export function addProgressUser(input: AddProgressUserInput): UserCourseProgress
 
 export function removeProgressUser(userId: string): UserCourseProgressState {
   const current = readUserCourseProgress();
+  if (readAccountAcademyProgress()) return current; // Device-only cohort tools
   if (current.users.length <= 1) return current;
 
   const remaining = current.users.filter((u) => u.id !== userId);
@@ -520,6 +542,7 @@ export function removeProgressUser(userId: string): UserCourseProgressState {
 
 export function resetUserModuleProgress(userId?: string): UserCourseProgressState {
   const current = readUserCourseProgress();
+  if (readAccountAcademyProgress()) return current; // Device-only cohort tools
   const resolvedId = userId || current.activeUserId;
   const nowIso = new Date().toISOString();
 

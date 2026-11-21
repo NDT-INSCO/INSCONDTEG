@@ -11,6 +11,7 @@ interface ClientRegistrationFormFieldsProps {
   lockPersonalEmail?: boolean;
   lockPrimaryPhone?: boolean;
   showAutoCreateCompanyToggle?: boolean;
+  requireCompanyDetails?: boolean;
 }
 
 export const ClientRegistrationFormFields: React.FC<ClientRegistrationFormFieldsProps> = ({
@@ -21,6 +22,7 @@ export const ClientRegistrationFormFields: React.FC<ClientRegistrationFormFields
   lockPersonalEmail = false,
   lockPrimaryPhone = false,
   showAutoCreateCompanyToggle = false,
+  requireCompanyDetails = true,
 }) => {
   const isAr = language === 'ar';
 
@@ -72,11 +74,11 @@ export const ClientRegistrationFormFields: React.FC<ClientRegistrationFormFields
 
           <label className="space-y-1">
             <span className="text-slate-300 block font-semibold">
-              {isAr ? 'رقم الهاتف الأساسي / واتساب *' : 'Primary Phone / WhatsApp *'}
+              {isAr ? 'رقم الهاتف الأساسي / واتساب' : 'Primary Phone / WhatsApp'}{requireCompanyDetails ? ' *' : ''}
             </span>
             <input
               type="tel"
-              required
+              required={requireCompanyDetails}
               disabled={lockPrimaryPhone}
               name="phone"
               value={value.phone}
@@ -157,11 +159,11 @@ export const ClientRegistrationFormFields: React.FC<ClientRegistrationFormFields
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
           <label className="space-y-1">
             <span className="text-slate-300 block font-semibold">
-              {isAr ? 'اسم الشركة الرسمي (عربي) *' : 'Company Official Name *'}
+              {isAr ? 'اسم الشركة الرسمي (عربي)' : 'Company Official Name'}{requireCompanyDetails ? ' *' : ''}
             </span>
             <input
               type="text"
-              required
+              required={requireCompanyDetails}
               name="organizationName"
               value={value.organizationName}
               onChange={e => patch('organizationName', e.target.value)}

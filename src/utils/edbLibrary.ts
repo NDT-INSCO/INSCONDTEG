@@ -1,3 +1,4 @@
+import { academyActivityStorage } from '../account/academyAccountProgress';
 import { NDT_TEXTBOOKS } from '../data/ndeTextbooksData';
 import { NDE_ED_COURSES, NDE_ED_SOURCE_MAP } from '../data/ndeEd';
 import { courseToEdb, textbookToEdb } from '../edb/convert';
@@ -149,7 +150,7 @@ export async function loadEdbDocument(entry: EdbIndexEntry): Promise<{ document:
 
 export function readEdbProgress(): Record<string, EdbBookProgress> {
   try {
-    const raw = localStorage.getItem(EDB_PROGRESS_KEY);
+    const raw = academyActivityStorage.getItem(EDB_PROGRESS_KEY);
     if (!raw) return {};
     const parsed: unknown = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
@@ -186,7 +187,7 @@ export function saveEdbProgress(id: string, patch: Partial<EdbBookProgress>): Ed
   };
   all[id] = next;
   try {
-    localStorage.setItem(EDB_PROGRESS_KEY, JSON.stringify(all));
+    academyActivityStorage.setItem(EDB_PROGRESS_KEY, JSON.stringify(all));
   } catch {
     // Private mode or quota: reading still works for this session.
   }

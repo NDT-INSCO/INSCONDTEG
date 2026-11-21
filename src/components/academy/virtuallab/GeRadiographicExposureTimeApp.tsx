@@ -1,5 +1,6 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useLayoutEffect, useRef } from 'react';
 import * as d3 from 'd3';
+import { animate } from 'motion/react';
 import {
   Clock,
   Radio,
@@ -31,7 +32,9 @@ import {
   Copy,
   Check,
   Activity,
-  Crosshair
+  Crosshair,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import {
   DEFAULT_UNIT_SYSTEM_CHANGE_EVENT,
@@ -433,6 +436,271 @@ export const interpolateBeamDecayAtNorm = (profile: BeamDecayProfile, normX: num
     hvlAtDepth: Number(hvlAtDepth.toFixed(2)),
     inCavity
   };
+};
+
+// Resample any BeamDecayPoint array onto a fixed-size uniform normX grid so SVG `d` paths
+// always preserve identical vertex count & command topology for smooth CSS morph transitions.
+export const sampleUniformCurvePoints = (
+  points: BeamDecayPoint[],
+  segments: number = 96
+): Array<{ normX: number; intensityPct: number }> => {
+  if (points.length === 0) return [];
+  const sampled: Array<{ normX: number; intensityPct: number }> = [];
+  let cursor = 0;
+  for (let i = 0; i <= segments; i++) {
+    const targetX = i / segments;
+    while (cursor < points.length - 2 && points[cursor + 1].normX < targetX) {
+      cursor++;
+    }
+    const p0 = points[cursor];
+    const p1 = points[Math.min(points.length - 1, cursor + 1)];
+    const span = p1.normX - p0.normX;
+    const t = span > 1e-6 ? Math.max(0, Math.min(1, (targetX - p0.normX) / span)) : 0;
+    const intensityPct = p0.intensityPct + (p1.intensityPct - p0.intensityPct) * t;
+    sampled.push({ normX: targetX, intensityPct });
+  }
+  return sampled;
+};
+
+interface SvgCurveCoord {
+  x: number;
+  y: number;
+}
+
+const buildSvgCurveD = (pts: SvgCurveCoord[]): string =>
+  pts.map((pt, idx) => `${idx === 0 ? 'M' : 'L'} ${pt.x.toFixed(1)} ${pt.y.toFixed(1)}`).join(' ');
+
+const buildSvgAreaD = (curveD: string, pts: SvgCurveCoord[], plotBottom: number): string => {
+  if (!curveD || pts.length === 0) return '';
+  return `${curveD} L ${pts[pts.length - 1].x.toFixed(1)} ${plotBottom} L ${pts[0].x.toFixed(1)} ${plotBottom} Z`;
+};
+
+interface AnimatedBeamDecayCurveGroupProps {
+  targetPoints: SvgCurveCoord[];
+  plotBottom: number;
+  entryDotPos: { cx: number; cy: number };
+  exitDotPos: { cx: number; cy: number };
+  is4dViewActive: boolean;
+  is4dPlaying: boolean;
+  photonAccentColor: string;
+  photonCoreColor: string;
+  photonDurationSec: number;
+}
+
+// Drives on-demand 300ms interpolated updates to the SVG `d` and dot attributes using Framer Motion `animate()`
+// whenever curve parameters (e.g. material, SFD distance, thickness, technique, or 4D day) change.
+const AnimatedBeamDecayCurveGroup: React.FC<AnimatedBeamDecayCurveGroupProps> = ({
+  targetPoints,
+  plotBottom,
+  entryDotPos,
+  exitDotPos,
+  is4dViewActive,
+  is4dPlaying,
+  photonAccentColor,
+  photonCoreColor,
+  photonDurationSec
+}) => {
+  const durationMs = is4dViewActive && is4dPlaying ? 160 : 300;
+  const targetCurveD = useMemo(() => buildSvgCurveD(targetPoints), [targetPoints]);
+  const targetAreaD = useMemo(
+    () => buildSvgAreaD(targetCurveD, targetPoints, plotBottom),
+    [targetCurveD, targetPoints, plotBottom]
+  );
+
+  // Freeze initial JSX attribute values at mount so React re-renders never stomp mid-flight interpolated DOM attributes
+  const mountInitialRef = useRef({
+    curveD: targetCurveD,
+    areaD: targetAreaD,
+    entryCx: entryDotPos.cx.toFixed(1),
+    entryCy: entryDotPos.cy.toFixed(1),
+    exitCx: exitDotPos.cx.toFixed(1),
+    exitCy: exitDotPos.cy.toFixed(1)
+  });
+
+  const areaRef = useRef<SVGPathElement | null>(null);
+  const curveRef = useRef<SVGPathElement | null>(null);
+  const flowRef = useRef<SVGPathElement | null>(null);
+  const entryDotRef = useRef<SVGCircleElement | null>(null);
+  const exitDotRef = useRef<SVGCircleElement | null>(null);
+
+  const renderedStateRef = useRef<{
+    points: SvgCurveCoord[];
+    entry: { cx: number; cy: number };
+    exit: { cx: number; cy: number };
+  }>({
+    points: targetPoints,
+    entry: entryDotPos,
+    exit: exitDotPos
+  });
+
+  const targetSignature = `${targetCurveD}|${entryDotPos.cx.toFixed(1)},${entryDotPos.cy.toFixed(1)}|${exitDotPos.cx.toFixed(1)},${exitDotPos.cy.toFixed(1)}|${plotBottom}`;
+  const lastTargetSignatureRef = useRef<string>(targetSignature);
+  const activeAnimationRef = useRef<{ stop: () => void } | null>(null);
+  const latestTargetsRef = useRef({
+    points: targetPoints,
+    entry: entryDotPos,
+    exit: exitDotPos,
+    plotBottom,
+    durationMs
+  });
+  latestTargetsRef.current = {
+    points: targetPoints,
+    entry: entryDotPos,
+    exit: exitDotPos,
+    plotBottom,
+    durationMs
+  };
+
+  useEffect(() => {
+    return () => {
+      activeAnimationRef.current?.stop();
+      activeAnimationRef.current = null;
+    };
+  }, []);
+
+  useLayoutEffect(() => {
+    if (targetSignature === lastTargetSignatureRef.current) {
+      return;
+    }
+    lastTargetSignatureRef.current = targetSignature;
+
+    const { points: nextPoints, entry: nextEntry, exit: nextExit, plotBottom: nextPlotBottom, durationMs: nextDurationMs } =
+      latestTargetsRef.current;
+
+    const applySnapshot = (
+      pts: SvgCurveCoord[],
+      entry: { cx: number; cy: number },
+      exit: { cx: number; cy: number }
+    ) => {
+      const nextCurveD = buildSvgCurveD(pts);
+      const nextAreaD = buildSvgAreaD(nextCurveD, pts, nextPlotBottom);
+      areaRef.current?.setAttribute('d', nextAreaD);
+      curveRef.current?.setAttribute('d', nextCurveD);
+      flowRef.current?.setAttribute('d', nextCurveD);
+      entryDotRef.current?.setAttribute('cx', entry.cx.toFixed(1));
+      entryDotRef.current?.setAttribute('cy', entry.cy.toFixed(1));
+      exitDotRef.current?.setAttribute('cx', exit.cx.toFixed(1));
+      exitDotRef.current?.setAttribute('cy', exit.cy.toFixed(1));
+      renderedStateRef.current = { points: pts, entry, exit };
+    };
+
+    activeAnimationRef.current?.stop();
+    activeAnimationRef.current = null;
+
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (prefersReducedMotion || renderedStateRef.current.points.length !== nextPoints.length) {
+      applySnapshot(nextPoints, nextEntry, nextExit);
+      return;
+    }
+
+    const from = renderedStateRef.current;
+    const to = {
+      points: nextPoints,
+      entry: nextEntry,
+      exit: nextExit
+    };
+
+    // Keep current rendered geometry on commit frame so the visual curve never jumps before interpolating
+    applySnapshot(from.points, from.entry, from.exit);
+
+    const controls = animate(0, 1, {
+      duration: nextDurationMs / 1000,
+      ease: [0.22, 1, 0.36, 1],
+      onUpdate: (t) => {
+        const interpPoints = to.points.map((pt, idx) => {
+          const f = from.points[idx] ?? pt;
+          return {
+            x: f.x + (pt.x - f.x) * t,
+            y: f.y + (pt.y - f.y) * t
+          };
+        });
+        const interpEntry = {
+          cx: from.entry.cx + (to.entry.cx - from.entry.cx) * t,
+          cy: from.entry.cy + (to.entry.cy - from.entry.cy) * t
+        };
+        const interpExit = {
+          cx: from.exit.cx + (to.exit.cx - from.exit.cx) * t,
+          cy: from.exit.cy + (to.exit.cy - from.exit.cy) * t
+        };
+        applySnapshot(interpPoints, interpEntry, interpExit);
+      },
+      onComplete: () => {
+        applySnapshot(to.points, to.entry, to.exit);
+        if (activeAnimationRef.current === controls) {
+          activeAnimationRef.current = null;
+        }
+      }
+    });
+
+    activeAnimationRef.current = controls;
+  }, [targetSignature]);
+
+  return (
+    <g data-testid="ge-beam-decay-animated-group" data-transition-ms={durationMs}>
+      <path
+        ref={areaRef}
+        data-testid="ge-beam-decay-area"
+        d={mountInitialRef.current.areaD}
+        fill="url(#geDecayAreaGrad)"
+        className="rt-beam-curve-color-transition"
+        pointerEvents="none"
+      />
+      <path
+        ref={curveRef}
+        data-testid="ge-beam-decay-curve-path"
+        data-transition-ms={durationMs}
+        d={mountInitialRef.current.curveD}
+        fill="none"
+        stroke={is4dViewActive ? '#22d3ee' : photonAccentColor}
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="rt-beam-curve-color-transition"
+        pointerEvents="none"
+      />
+      <path
+        ref={flowRef}
+        data-testid="ge-beam-decay-curve-flow"
+        d={mountInitialRef.current.curveD}
+        fill="none"
+        stroke={is4dViewActive ? '#cffafe' : photonCoreColor}
+        strokeWidth="2.2"
+        strokeDasharray="10 18"
+        strokeLinecap="round"
+        opacity="0.92"
+        className="rt-photon-curve-flow rt-beam-curve-color-transition"
+        style={{ '--rt-photon-duration': `${photonDurationSec}s` } as React.CSSProperties}
+        pointerEvents="none"
+      />
+
+      <circle
+        ref={entryDotRef}
+        data-testid="ge-beam-decay-entry-dot"
+        cx={mountInitialRef.current.entryCx}
+        cy={mountInitialRef.current.entryCy}
+        r="4"
+        fill={is4dViewActive ? '#22d3ee' : '#fbbf24'}
+        stroke="#020617"
+        strokeWidth="1.5"
+        className="rt-beam-curve-color-transition"
+      />
+      <circle
+        ref={exitDotRef}
+        data-testid="ge-beam-decay-exit-dot"
+        cx={mountInitialRef.current.exitCx}
+        cy={mountInitialRef.current.exitCy}
+        r="4.5"
+        fill="#10b981"
+        stroke="#020617"
+        strokeWidth="1.5"
+        className="rt-beam-curve-color-transition"
+      />
+    </g>
+  );
 };
 
 export interface Ge4dDecayShiftSnapshot {
@@ -966,6 +1234,7 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
   const [secondaryFilmId, setSecondaryFilmId] = useState<GeFilmId>('d7');
   const [hasInterleafScreen, setHasInterleafScreen] = useState<boolean>(false);
   const [wideLatitudeGov, setWideLatitudeGov] = useState<GeWideLatitudeGoverning>('primary_film');
+  const [compositeTimeCorrectionFactor, setCompositeTimeCorrectionFactor] = useState<number>(0.55);
 
   // Recent Sources tracking (tracks last 3 selected sources)
   const [recentSources, setRecentSources] = useState<GeSourceType[]>(() => {
@@ -1066,6 +1335,10 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
   const [beamHoverNormX, setBeamHoverNormX] = useState<number | null>(null);
 
   // 4D Time-Based Isotope Decay Animation Overlay State
+  const [showBeamOverlay, setShowBeamOverlay] = useState<boolean>(true);
+  const [showLeadScreenOverlay, setShowLeadScreenOverlay] = useState<boolean>(true);
+  const [showPbPhotoelectronPaths, setShowPbPhotoelectronPaths] = useState<boolean>(true);
+  const [showWeldProfileOverlay, setShowWeldProfileOverlay] = useState<boolean>(true);
   const [is4dViewActive, setIs4dViewActive] = useState<boolean>(false);
   const [is4dPlaying, setIs4dPlaying] = useState<boolean>(false);
   const [playbackSpeed4d, setPlaybackSpeed4d] = useState<0.5 | 1 | 2>(1);
@@ -1104,7 +1377,9 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
       primaryFilmId: filmId,
       secondaryFilmId: filmLoadingMode !== 'single' ? secondaryFilmId : undefined,
       hasInterleafLeadScreen: hasInterleafScreen,
-      wideLatitudeGoverning: wideLatitudeGov
+      wideLatitudeGoverning: wideLatitudeGov,
+      compositeTimeCorrectionFactor:
+        filmLoadingMode === 'dual_composite' ? compositeTimeCorrectionFactor : undefined
     };
 
     return {
@@ -1146,7 +1421,8 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
     filmLoadingMode,
     secondaryFilmId,
     hasInterleafScreen,
-    wideLatitudeGov
+    wideLatitudeGov,
+    compositeTimeCorrectionFactor
   ]);
 
   const calcResult: GeExposureResult = useMemo(
@@ -1394,6 +1670,7 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
     setSecondaryFilmId('d7');
     setHasInterleafScreen(false);
     setWideLatitudeGov('primary_film');
+    setCompositeTimeCorrectionFactor(0.55);
 
     setMaterialThicknessMm(initialThicknessMm);
     setWeldReinforcementMm(2.5);
@@ -1414,6 +1691,11 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
     setIsTimerRunning(false);
     setIsTimerCompleted(false);
     setShowTechniqueSheetModal(false);
+    setShowBeamOverlay(true);
+    setShowLeadScreenOverlay(true);
+    setShowPbPhotoelectronPaths(true);
+    setShowWeldProfileOverlay(true);
+    setIs4dPlaying(false);
 
     setResetConfirmed(true);
     setTimeout(() => setResetConfirmed(false), 2000);
@@ -2043,10 +2325,111 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
 
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-amber-500/20 pb-4 relative z-10">
           <div>
-            <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
-              {isAr ? 'زمن التعريض المحسوب بدقة GE' : 'Calculated Radiographic Exposure Time'}
-            </span>
-            <div className="flex items-baseline gap-3 mt-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                {isAr ? 'زمن التعريض المحسوب بدقة GE' : 'Calculated Radiographic Exposure Time'}
+              </span>
+              <button
+                type="button"
+                data-testid="ge-hud-toggle-beam-overlay"
+                data-overlay-visible={showBeamOverlay ? 'true' : 'false'}
+                aria-pressed={!showBeamOverlay}
+                onClick={() => {
+                  setShowBeamOverlay((prev) => {
+                    if (prev) setIs4dPlaying(false);
+                    return !prev;
+                  });
+                }}
+                title={
+                  showBeamOverlay
+                    ? isAr
+                      ? 'إخفاء مخطط 4D وكثافة الحزمة للتركيز على الحسابات الرقمية الأساسية'
+                      : 'Hide 4D / Beam Intensity overlay to focus on basic numeric calculations'
+                    : isAr
+                    ? 'إظهار مخطط 4D وكثافة الحزمة'
+                    : 'Show 4D / Beam Intensity overlay'
+                }
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono font-bold transition cursor-pointer ${
+                  showBeamOverlay
+                    ? 'bg-slate-800/80 border-slate-700 text-slate-300 hover:text-white hover:border-amber-500/50'
+                    : 'bg-amber-500/20 border-amber-500/60 text-amber-300 hover:bg-amber-500/30'
+                }`}
+              >
+                {showBeamOverlay ? (
+                  <EyeOff className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                ) : (
+                  <Eye className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                )}
+                <span>
+                  {showBeamOverlay
+                    ? isAr
+                      ? 'إخفاء مخطط 4D والحزمة'
+                      : 'Hide 4D / Beam Overlay'
+                    : isAr
+                    ? 'إظهار مخطط 4D والحزمة'
+                    : 'Show 4D / Beam Overlay'}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                data-testid="ge-hud-toggle-lead-screen-overlay"
+                data-layer-active={showLeadScreenOverlay ? 'true' : 'false'}
+                aria-pressed={showLeadScreenOverlay}
+                onClick={() => setShowLeadScreenOverlay((prev) => !prev)}
+                title={
+                  isAr
+                    ? 'إظهار أو إخفاء طبقة شدة شاشات الرصاص (Pb) داخل مخطط 4D'
+                    : 'Toggle Lead-Screen (Pb) intensity intensification overlay inside the 4D beam visualizer'
+                }
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono font-bold transition cursor-pointer ${
+                  showLeadScreenOverlay
+                    ? 'bg-emerald-500/15 border-emerald-500/50 text-emerald-300 hover:bg-emerald-500/25'
+                    : 'bg-slate-800/70 border-slate-700 text-slate-400 hover:text-slate-200'
+                } ${!showBeamOverlay ? 'opacity-60' : ''}`}
+              >
+                <Zap className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                <span>
+                  {showLeadScreenOverlay
+                    ? isAr
+                      ? 'شدة شاشات Pb: ظاهر'
+                      : 'Pb Screen Intensity: ON'
+                    : isAr
+                    ? 'شدة شاشات Pb: مخفي'
+                    : 'Pb Screen Intensity: OFF'}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                data-testid="ge-hud-toggle-weld-profile-overlay"
+                data-layer-active={showWeldProfileOverlay ? 'true' : 'false'}
+                aria-pressed={showWeldProfileOverlay}
+                onClick={() => setShowWeldProfileOverlay((prev) => !prev)}
+                title={
+                  isAr
+                    ? 'إظهار أو إخفاء مُصوِّر مقطع تقوية اللحام داخل مخطط 4D'
+                    : 'Toggle Weld-Reinforcement profile visualizer inside the 4D beam visualizer'
+                }
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono font-bold transition cursor-pointer ${
+                  showWeldProfileOverlay
+                    ? 'bg-amber-500/15 border-amber-500/50 text-amber-300 hover:bg-amber-500/25'
+                    : 'bg-slate-800/70 border-slate-700 text-slate-400 hover:text-slate-200'
+                } ${!showBeamOverlay ? 'opacity-60' : ''}`}
+              >
+                <Activity className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                <span>
+                  {showWeldProfileOverlay
+                    ? isAr
+                      ? 'مقطع تقوية اللحام: ظاهر'
+                      : 'Weld Profile Visualizer: ON'
+                    : isAr
+                    ? 'مقطع تقوية اللحام: مخفي'
+                    : 'Weld Profile Visualizer: OFF'}
+                </span>
+              </button>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 mt-1">
               <span
                 data-testid="ge-calculated-exposure-display"
                 className="text-4xl sm:text-6xl font-black font-mono tracking-tight text-slate-900 dark:text-white tabular-nums"
@@ -2056,6 +2439,16 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
               <span className="text-lg sm:text-2xl font-mono font-bold text-amber-600 dark:text-amber-400 tabular-nums">
                 ({calcResult.calculatedTotalSeconds}s)
               </span>
+              <button
+                type="button"
+                data-testid="ge-hud-print-technique-card-btn"
+                onClick={() => setShowTechniqueSheetModal(true)}
+                aria-label={isAr ? 'طباعة كارت تقنية التصوير الإشعاعي' : 'Print Technique Card'}
+                title={isAr ? 'فتح وطباعة كارت تقنية التصوير الإشعاعي (ASME Sec V)' : 'Print Technique Card (ASME Sec V)'}
+                className="inline-flex items-center justify-center p-2 rounded-xl border border-amber-500/40 bg-slate-800/80 hover:bg-amber-500/20 hover:border-amber-400 text-amber-300 hover:text-amber-200 transition cursor-pointer shadow-sm"
+              >
+                <Printer className="w-4 h-4 shrink-0" aria-hidden="true" />
+              </button>
             </div>
 
             {calcResult.isMultiFilm && (
@@ -2077,7 +2470,9 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                         D₁ ({calcResult.film1PredictedDensity.toFixed(2)}) + D₂ ({calcResult.film2PredictedDensity?.toFixed(2)}) ={' '}
                         <strong className="text-amber-400">{calcResult.compositeSuperimposedDensity?.toFixed(2)} H&D</strong>
                       </span>
-                      <span className="ms-1.5 text-emerald-400 font-bold">(-45% time · ×{calcResult.multiFilmTimeFactor})</span>
+                      <span className="ms-1.5 text-emerald-400 font-bold">
+                        ({Math.round((calcResult.multiFilmTimeFactor - 1) * 100)}% time · ×{calcResult.multiFilmTimeFactor.toFixed(2)})
+                      </span>
                     </>
                   ) : (
                     <>
@@ -3369,19 +3764,70 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
             </span>
           </div>
 
-          {/* Dual Composite Note (ASME Section V T-282.1) */}
+          {/* Dual Composite Note & Fine-Tuning Time-Correction Factor Slider (ASME Section V T-282.1) */}
           {filmLoadingMode === 'dual_composite' && (
-            <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs font-mono space-y-1">
+            <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs font-mono space-y-2.5">
               <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-bold">
                 <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
                 <span>ASME Sec V T-282.1 Superimposed Viewing</span>
               </div>
               <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-tight">
                 {isAr
-                  ? 'يتم تحميل فيلمين متطابقين في نفس الكاسيت وقراءتهما متطابقين؛ تجمع الكثافات الضوئية مما يخفض وقت التعريض بنسبة 45% (معامل 0.55×).'
-                  : 'Two identical films exposed together and viewed superimposed. Densities sum (D = D1 + D2), reducing required exposure time by ~45% (0.55x factor).'}
+                  ? `يتم تحميل فيلمين متطابقين في نفس الكاسيت وقراءتهما متطابقين؛ تجمع الكثافات الضوئية مما يضبط وقت التعريض عبر معامل تصحيح الزمن (${compositeTimeCorrectionFactor.toFixed(2)}×).`
+                  : `Two identical films exposed together and viewed superimposed. Densities sum (D = D1 + D2), scaling exposure duration via the Time-Correction Factor (${compositeTimeCorrectionFactor.toFixed(2)}x).`}
               </p>
-              <div className="text-[10px] text-amber-500 font-bold pt-0.5">
+
+              {/* Time-Correction Factor Fine-Tuning Slider */}
+              <div className="pt-1 space-y-1.5 border-t border-amber-500/20">
+                <div className="flex items-center justify-between gap-2">
+                  <label
+                    htmlFor="ge-composite-time-correction-slider"
+                    className="text-[11px] font-bold text-slate-700 dark:text-slate-200"
+                  >
+                    {isAr ? 'معامل تصحيح الزمن (Time-Correction Factor):' : 'Time-Correction Factor:'}
+                  </label>
+                  <div className="flex items-center gap-1.5 tabular-nums">
+                    <span
+                      data-testid="ge-composite-time-correction-value"
+                      className="font-black text-amber-600 dark:text-amber-400"
+                    >
+                      ×{compositeTimeCorrectionFactor.toFixed(2)}
+                    </span>
+                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
+                      ({Math.round((compositeTimeCorrectionFactor - 1) * 100)}%)
+                    </span>
+                    {Math.abs(compositeTimeCorrectionFactor - 0.55) > 0.005 && (
+                      <button
+                        type="button"
+                        data-testid="ge-composite-time-correction-reset"
+                        onClick={() => setCompositeTimeCorrectionFactor(0.55)}
+                        className="px-1.5 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 text-[10px] text-amber-700 dark:text-amber-300 font-bold cursor-pointer"
+                      >
+                        0.55×
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <input
+                  id="ge-composite-time-correction-slider"
+                  type="range"
+                  data-testid="ge-composite-time-correction-slider"
+                  aria-label={isAr ? 'معامل تصحيح الزمن للأفلام المتراكبة' : 'Time-Correction Factor'}
+                  min={0.40}
+                  max={0.85}
+                  step={0.01}
+                  value={compositeTimeCorrectionFactor}
+                  onChange={(e) => setCompositeTimeCorrectionFactor(Number(e.target.value))}
+                  className={`w-full h-1.5 bg-slate-300 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer ${unitRangeAccentClass}`}
+                />
+                <div className="flex justify-between text-[10px] text-slate-500 tabular-nums">
+                  <span>0.40× (-60%)</span>
+                  <span>0.55× (ASME Std)</span>
+                  <span>0.85× (-15%)</span>
+                </div>
+              </div>
+
+              <div className="text-[10px] text-amber-600 dark:text-amber-500 font-bold pt-0.5 tabular-nums">
                 D₁ ({calcResult.film1PredictedDensity.toFixed(2)}) + D₂ ({calcResult.film2PredictedDensity?.toFixed(2)}) = {calcResult.compositeSuperimposedDensity?.toFixed(2)} H&D
               </div>
             </div>
@@ -3533,37 +3979,53 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
       {/* -------------------------------------------------------------------
           LIVE EXPOSURE PATH & BEAM INTENSITY DECAY OVERLAY
       ------------------------------------------------------------------- */}
-      {(() => {
+      {showBeamOverlay && (() => {
         const pathLeft = 196;
         const pathWidth = 396;
         const plotTop = 46;
         const plotBottom = 226;
         const plotHeight = plotBottom - plotTop;
-        const sourceCenterX = 46;
+        const clampedSfdCm = Math.max(25, Math.min(200, sfdCm));
+        const sourceCenterX =
+          clampedSfdCm <= 70
+            ? Number((62 - ((clampedSfdCm - 25) / 45) * 16).toFixed(1))
+            : Number((46 - Math.min(1, (clampedSfdCm - 70) / 80) * 22).toFixed(1));
+        const collimatorX = Number((sourceCenterX + 22).toFixed(1));
         const sourceCenterY = 136;
         const filmPlaneX = pathLeft + pathWidth + 14;
 
-        const normToX = (normX: number) => pathLeft + normX * pathWidth;
-        const intensityToY = (pct: number) => plotBottom - (Math.max(0, Math.min(100, pct)) / 100) * plotHeight;
+        // Inverse-square distance scaling relative to standard 70 cm SFD (exact 1.0 at 70 cm)
+        const sfdDistanceFactor = Number(Math.pow(70 / Math.max(20, clampedSfdCm), 2).toFixed(4));
+        const yAxisMaxPct = Math.max(100, Number((100 * sfdDistanceFactor).toFixed(2)));
+        const curveTransitionClass =
+          is4dViewActive && is4dPlaying ? 'rt-beam-curve-transition-playback' : 'rt-beam-curve-transition';
 
-        const baselineCurveD = beamDecayProfile.points
-          .map((pt, idx) => `${idx === 0 ? 'M' : 'L'} ${normToX(pt.normX).toFixed(1)} ${intensityToY(pt.intensityPct).toFixed(1)}`)
+        const normToX = (normX: number) => pathLeft + normX * pathWidth;
+        const intensityToY = (pct: number) =>
+          plotBottom - (Math.max(0, Math.min(yAxisMaxPct, pct)) / yAxisMaxPct) * plotHeight;
+
+        const uniformBaselinePoints = sampleUniformCurvePoints(beamDecayProfile.points, 96);
+        const baselineCurveD = uniformBaselinePoints
+          .map(
+            (pt, idx) =>
+              `${idx === 0 ? 'M' : 'L'} ${normToX(pt.normX).toFixed(1)} ${intensityToY(pt.intensityPct * sfdDistanceFactor).toFixed(1)}`
+          )
           .join(' ');
         const activeCurvePoints = is4dViewActive ? shift4d.shiftedBeamPoints : beamDecayProfile.points;
-        const curveD = activeCurvePoints
-          .map((pt, idx) => `${idx === 0 ? 'M' : 'L'} ${normToX(pt.normX).toFixed(1)} ${intensityToY(pt.intensityPct).toFixed(1)}`)
-          .join(' ');
-        const areaD = `${curveD} L ${normToX(1).toFixed(1)} ${plotBottom} L ${normToX(0).toFixed(1)} ${plotBottom} Z`;
+        const uniformActivePoints = sampleUniformCurvePoints(activeCurvePoints, 96);
+        const targetCurveCoords: SvgCurveCoord[] = uniformActivePoints.map((pt) => ({
+          x: Number(normToX(pt.normX).toFixed(1)),
+          y: Number(intensityToY(pt.intensityPct * sfdDistanceFactor).toFixed(1))
+        }));
 
         const activeDecayScale = is4dViewActive ? shift4d.decayFraction : 1;
-        const displayedExitPct = is4dViewActive ? shift4d.shiftedExitIntensityPct : beamDecayProfile.exitIntensityPct;
+        const rawExitPct = is4dViewActive ? shift4d.shiftedExitIntensityPct : beamDecayProfile.exitIntensityPct;
+        const displayedExitPct = Number((rawExitPct * sfdDistanceFactor).toFixed(2));
         const baseProbePoint = beamDecayProbePoint ?? beamDecayProfile.points[beamDecayProfile.points.length - 1];
-        const activePoint: BeamDecayPoint = is4dViewActive
-          ? {
-              ...baseProbePoint,
-              intensityPct: Number((baseProbePoint.intensityPct * activeDecayScale).toFixed(2))
-            }
-          : baseProbePoint;
+        const activePoint: BeamDecayPoint = {
+          ...baseProbePoint,
+          intensityPct: Number((baseProbePoint.intensityPct * activeDecayScale * sfdDistanceFactor).toFixed(2))
+        };
         const probeSvgX = beamDecayProbePoint ? normToX(beamDecayProbePoint.normX) : null;
         const probeSvgY = beamDecayProbePoint ? intensityToY(activePoint.intensityPct) : null;
 
@@ -3591,33 +4053,35 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
         const formatLen = (mmVal: number) =>
           unitSystem === 'imperial' ? `${(mmVal / 25.4).toFixed(3)}"` : `${mmVal.toFixed(1)} mm`;
 
-        // Synchronize photon travel speed & stream cadence with active isotope / 4D decayed intensity
-        const effectiveIntensityRhm = is4dViewActive
+        // Synchronize photon travel speed & stream cadence with active isotope / SFD distance / 4D decayed intensity
+        const baseEffectiveRhm = is4dViewActive
           ? shift4d.doseRate1mRhm
           : selectedIsotope.category === 'gamma'
             ? Math.max(0.2, calcResult.currentLiveActivityCi * selectedIsotope.gammaConstantRhmPerCi)
             : Math.max(0.5, tubeMa * Math.pow(Math.max(60, tubeKv) / 180, 2) * 3.8);
+        const effectiveIntensityRhm = Number((baseEffectiveRhm * sfdDistanceFactor).toFixed(2));
         const intensityNorm = Math.max(
           0,
           Math.min(1, Math.log10(Math.max(1, effectiveIntensityRhm)) / Math.log10(120))
         );
-        const photonDurationSec = is4dViewActive
+        const photonDurationSec = is4dViewActive && sfdCm === 70
           ? shift4d.photonDurationSec
           : Number((3.1 - intensityNorm * 2.45).toFixed(2));
-        const streamCycleSec = is4dViewActive
+        const streamCycleSec = is4dViewActive && sfdCm === 70
           ? shift4d.streamCycleSec
           : Number((photonDurationSec * 0.62).toFixed(2));
         const photonParticleCount = is4dViewActive
           ? shift4d.photonParticleCount
           : Math.max(4, Math.min(9, Math.round(4 + intensityNorm * 5)));
         const photonExitOpacity = Number(
-          Math.max(0.2, Math.min(0.92, 0.2 + (displayedExitPct / 100) * 0.72)).toFixed(2)
+          Math.max(0.2, Math.min(0.92, 0.2 + (Math.min(100, displayedExitPct) / 100) * 0.72)).toFixed(2)
         );
         const photonAccentColor = selectedIsotope.category === 'xray' ? '#38bdf8' : '#fbbf24';
         const photonCoreColor = selectedIsotope.category === 'xray' ? '#e0f2fe' : '#fef3c7';
         const photonTravelDx = filmPlaneX - (sourceCenterX + 6);
         const photonLanePattern = [0, -0.52, 0.52, -0.24, 0.24, -0.68, 0.68, -0.1, 0.1];
-        const sourceConeOpacityMultiplier = is4dViewActive ? Math.max(0.28, activeDecayScale) : 1;
+        const sourceConeOpacityMultiplier =
+          (is4dViewActive ? Math.max(0.28, activeDecayScale) : 1) * Math.max(0.35, Math.min(1.2, sfdDistanceFactor));
 
         return (
           <div
@@ -3654,6 +4118,56 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                     <span>{isAr ? 'عرض 4D الزمني للاضمحلال' : '4D Decay View'}</span>
                     <span className="px-1 py-0.5 rounded bg-slate-900/10 dark:bg-white/10 text-[9px] uppercase">
                       {is4dViewActive ? (isAr ? 'مفعّل' : 'ON') : isAr ? 'إيقاف' : 'OFF'}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="ge-beam-toggle-lead-screen-overlay"
+                    data-layer-active={showLeadScreenOverlay ? 'true' : 'false'}
+                    aria-pressed={showLeadScreenOverlay}
+                    onClick={() => setShowLeadScreenOverlay((prev) => !prev)}
+                    title={
+                      isAr
+                        ? 'إظهار أو إخفاء طبقة شدة شاشات الرصاص (Pb) لتقليل التزاحم البصري في مسار الحزمة'
+                        : 'Toggle Lead Screen (Pb) intensity overlay visibility to declutter the beam visualization'
+                    }
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono font-bold transition-colors cursor-pointer ${
+                      showLeadScreenOverlay
+                        ? 'bg-emerald-500/15 border-emerald-500/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/25'
+                        : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                    }`}
+                  >
+                    {showLeadScreenOverlay ? (
+                      <Eye className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                    ) : (
+                      <EyeOff className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                    )}
+                    <span>{isAr ? 'طبقة شدة Pb' : 'Lead Screen (Pb) Overlay'}</span>
+                    <span className="px-1 py-0.5 rounded bg-slate-900/10 dark:bg-white/10 text-[9px] uppercase">
+                      {showLeadScreenOverlay ? (isAr ? 'ظاهر' : 'ON') : isAr ? 'مخفي' : 'OFF'}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="ge-beam-toggle-pb-photoelectron-paths"
+                    data-layer-active={showPbPhotoelectronPaths ? 'true' : 'false'}
+                    aria-pressed={showPbPhotoelectronPaths}
+                    onClick={() => setShowPbPhotoelectronPaths((prev) => !prev)}
+                    title={
+                      isAr
+                        ? 'إظهار أو إخفاء مسارات الفوتوإلكترونات الثانوية (e⁻) المتجهة من شاشات الرصاص إلى مستوى الفيلم'
+                        : 'Toggle secondary photoelectron (e⁻) intensification vector paths from Pb screens to the film plane'
+                    }
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono font-bold transition-colors cursor-pointer ${
+                      showPbPhotoelectronPaths
+                        ? 'bg-teal-500/15 border-teal-500/60 text-teal-700 dark:text-teal-300 hover:bg-teal-500/25'
+                        : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                    } ${!showLeadScreenOverlay ? 'opacity-55' : ''}`}
+                  >
+                    <Zap className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                    <span>{isAr ? 'مسارات e⁻ للرصاص' : 'Pb e⁻ Paths'}</span>
+                    <span className="px-1 py-0.5 rounded bg-slate-900/10 dark:bg-white/10 text-[9px] uppercase">
+                      {showPbPhotoelectronPaths ? (isAr ? 'ظاهر' : 'ON') : isAr ? 'مخفي' : 'OFF'}
                     </span>
                   </button>
                 </div>
@@ -4041,6 +4555,26 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                     <stop offset="65%" stopColor="#0ea5e9" stopOpacity="0.14" />
                     <stop offset="100%" stopColor="#020617" stopOpacity="0.02" />
                   </linearGradient>
+
+                  {/* Lead-Screen (Pb) Secondary Photoelectron Intensification Gradient */}
+                  <linearGradient id="gePbIntensificationGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#34d399" stopOpacity="0.04" />
+                    <stop offset="50%" stopColor="#10b981" stopOpacity={hasLeadScreens ? '0.42' : '0.12'} />
+                    <stop offset="100%" stopColor="#38bdf8" stopOpacity="0.04" />
+                  </linearGradient>
+
+                  {/* Arrowhead marker for secondary photoelectron (e⁻) intensification vectors */}
+                  <marker
+                    id="gePbElectronArrow"
+                    viewBox="0 0 8 8"
+                    refX="6"
+                    refY="4"
+                    markerWidth="4.2"
+                    markerHeight="4.2"
+                    orient="auto"
+                  >
+                    <path d="M 0 1 L 7 4 L 0 7 z" fill="#34d399" />
+                  </marker>
                 </defs>
 
                 {/* Zone Headers */}
@@ -4068,6 +4602,7 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                       : `${sourceCenterX},${sourceCenterY} ${pathLeft},${plotTop - 10} ${pathLeft},${plotBottom + 10}`
                   }
                   fill="url(#geSfdConeGrad)"
+                  className={curveTransitionClass}
                 />
 
                 {/* Animated Radiation Photon Stream Lines inside SFD cone */}
@@ -4085,7 +4620,7 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                         strokeWidth={idx === 1 ? '1.8' : '1.1'}
                         strokeDasharray="6 6"
                         opacity={(isTimerRunning ? 0.95 : 0.65) * Math.max(0.35, activeDecayScale)}
-                        className="rt-photon-beam-flow"
+                        className={`rt-photon-beam-flow ${curveTransitionClass}`}
                         style={
                           {
                             '--rt-photon-stream-duration': `${streamCycleSec}s`,
@@ -4100,9 +4635,9 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                 {/* Tungsten Collimator Jaws (when enabled) */}
                 {hasCollimator && (
                   <g data-testid="ge-beam-collimator-jaws">
-                    <rect x="68" y={plotTop - 4} width="14" height="58" rx="2" fill="#334155" stroke="#64748b" strokeWidth="1" />
-                    <rect x="68" y={plotBottom - 54} width="14" height="58" rx="2" fill="#334155" stroke="#64748b" strokeWidth="1" />
-                    <text x="75" y={plotTop - 9} fill="#cbd5e1" fontSize="8.5" fontFamily="monospace" textAnchor="middle">
+                    <rect x={collimatorX} y={plotTop - 4} width="14" height="58" rx="2" fill="#334155" stroke="#64748b" strokeWidth="1" className={curveTransitionClass} />
+                    <rect x={collimatorX} y={plotBottom - 54} width="14" height="58" rx="2" fill="#334155" stroke="#64748b" strokeWidth="1" className={curveTransitionClass} />
+                    <text x={collimatorX + 7} y={plotTop - 9} fill="#cbd5e1" fontSize="8.5" fontFamily="monospace" textAnchor="middle" className={curveTransitionClass}>
                       W-Coll
                     </text>
                   </g>
@@ -4115,25 +4650,25 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                   r={isTimerRunning ? '18' : '14'}
                   fill={photonAccentColor}
                   opacity={(isTimerRunning ? 0.28 : 0.16) * Math.max(0.35, activeDecayScale)}
-                  className={isTimerRunning ? 'ut-beam-cone-pulse' : undefined}
+                  className={isTimerRunning ? `ut-beam-cone-pulse ${curveTransitionClass}` : curveTransitionClass}
                 />
-                <circle cx={sourceCenterX} cy={sourceCenterY} r="10" fill="#0f172a" stroke={photonAccentColor} strokeWidth="2" />
-                <circle cx={sourceCenterX} cy={sourceCenterY} r="3.5" fill={photonAccentColor} />
-                <text x={sourceCenterX} y={sourceCenterY + 26} fill={photonAccentColor} fontSize="10" fontWeight="bold" fontFamily="monospace" textAnchor="middle">
+                <circle cx={sourceCenterX} cy={sourceCenterY} r="10" fill="#0f172a" stroke={photonAccentColor} strokeWidth="2" className={curveTransitionClass} />
+                <circle cx={sourceCenterX} cy={sourceCenterY} r="3.5" fill={photonAccentColor} className={curveTransitionClass} />
+                <text x={sourceCenterX} y={sourceCenterY + 26} fill={photonAccentColor} fontSize="10" fontWeight="bold" fontFamily="monospace" textAnchor="middle" className={curveTransitionClass}>
                   {selectedIsotope.chemicalSymbol}
                 </text>
-                <text x={sourceCenterX} y={sourceCenterY + 38} fill="#94a3b8" fontSize="8.5" fontFamily="monospace" textAnchor="middle">
+                <text x={sourceCenterX} y={sourceCenterY + 38} fill="#94a3b8" fontSize="8.5" fontFamily="monospace" textAnchor="middle" className={curveTransitionClass}>
                   {sourceType.startsWith('xray')
                     ? `${tubeKv}kV · ${tubeMa}mA`
                     : `${(is4dViewActive ? shift4d.liveActivityCi : calcResult.currentLiveActivityCi)}Ci`}
                 </text>
 
                 {/* SFD Dimension Span */}
-                <line x1={sourceCenterX} y1="252" x2={filmPlaneX} y2="252" stroke="#475569" strokeWidth="1" strokeDasharray="3 3" />
-                <line x1={sourceCenterX} y1="246" x2={sourceCenterX} y2="258" stroke="#64748b" strokeWidth="1.5" />
+                <line x1={sourceCenterX} y1="252" x2={filmPlaneX} y2="252" stroke="#475569" strokeWidth="1" strokeDasharray="3 3" className={curveTransitionClass} />
+                <line x1={sourceCenterX} y1="246" x2={sourceCenterX} y2="258" stroke="#64748b" strokeWidth="1.5" className={curveTransitionClass} />
                 <line x1={filmPlaneX} y1="246" x2={filmPlaneX} y2="258" stroke="#64748b" strokeWidth="1.5" />
-                <rect x="290" y="243" width="146" height="16" rx="4" fill="#0f172a" stroke="#334155" strokeWidth="1" />
-                <text x="363" y="254" fill="#e2e8f0" fontSize="9.5" fontFamily="monospace" textAnchor="middle">
+                <rect x="275" y="243" width="184" height="16" rx="4" fill="#0f172a" stroke="#334155" strokeWidth="1" />
+                <text x="367" y="254" fill="#e2e8f0" fontSize="9.5" fontFamily="monospace" textAnchor="middle">
                   SFD: {unitSystem === 'imperial' ? `${sfdInches}"` : `${sfdCm} cm`} · t_eq: {formatLen(beamDecayProfile.effectiveSteelThicknessMm)}
                 </text>
 
@@ -4154,16 +4689,55 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                         stroke={isCavity ? '#334155' : isWeld ? '#d97706' : '#475569'}
                         strokeWidth="1"
                         strokeDasharray={isCavity ? '4 3' : undefined}
+                        className={curveTransitionClass}
                       />
-                      {/* Weld crown profile indicator on exit face */}
-                      {isWeld && (
-                        <path
-                          d={`M ${segX} ${plotTop + 18} Q ${segX + segW + 6} ${sourceCenterY} ${segX} ${plotBottom - 18}`}
-                          fill="rgba(245, 158, 11, 0.18)"
-                          stroke="#f59e0b"
-                          strokeWidth="1.2"
-                          opacity="0.7"
-                        />
+                      {/* Weld-Reinforcement Profile Visualizer Overlay */}
+                      {isWeld && showWeldProfileOverlay && (
+                        <g
+                          data-testid="ge-weld-reinforcement-profile-overlay"
+                          data-weld-mm={weldReinforcementMm.toFixed(1)}
+                          pointerEvents="none"
+                        >
+                          <path
+                            d={`M ${segX} ${plotTop + 14} Q ${segX + segW + Math.min(18, Math.max(6, weldReinforcementMm * 2.4))} ${sourceCenterY} ${segX} ${plotBottom - 14}`}
+                            fill="rgba(245, 158, 11, 0.24)"
+                            stroke="#fbbf24"
+                            strokeWidth="1.6"
+                            opacity="0.88"
+                          />
+                          <line
+                            x1={segX}
+                            y1={plotTop + 14}
+                            x2={segX}
+                            y2={plotBottom - 14}
+                            stroke="#f59e0b"
+                            strokeWidth="1"
+                            strokeDasharray="3 2"
+                            opacity="0.7"
+                          />
+                          <rect
+                            x={Math.max(pathLeft + 2, segX - 24)}
+                            y={plotTop + 18}
+                            width="46"
+                            height="14"
+                            rx="3"
+                            fill="#0f172a"
+                            fillOpacity="0.88"
+                            stroke="#f59e0b"
+                            strokeWidth="0.8"
+                          />
+                          <text
+                            x={Math.max(pathLeft + 25, segX - 1)}
+                            y={plotTop + 28}
+                            fill="#fbbf24"
+                            fontSize="7.5"
+                            fontWeight="bold"
+                            fontFamily="monospace"
+                            textAnchor="middle"
+                          >
+                            +{formatLen(weldReinforcementMm)}
+                          </text>
+                        </g>
                       )}
                       {segW >= 36 && (
                         <text
@@ -4318,6 +4892,7 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                         strokeWidth={tick.pct === 50 ? '1' : '0.8'}
                         strokeDasharray={tick.pct === 0 || tick.pct === 100 ? undefined : '3 3'}
                         opacity={tick.pct === 50 ? 0.55 : 0.45}
+                        className={curveTransitionClass}
                       />
                       <text
                         x={pathLeft - 5}
@@ -4326,6 +4901,7 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                         fontSize="8.5"
                         fontFamily="monospace"
                         textAnchor="end"
+                        className={curveTransitionClass}
                       >
                         {tick.label}
                       </text>
@@ -4336,12 +4912,12 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                 {/* HVL Milestone Vertical Markers */}
                 {beamDecayProfile.hvlMarkers.map((marker) => {
                   const mx = normToX(marker.normX);
-                  const my = intensityToY(marker.intensityPct * activeDecayScale);
+                  const my = intensityToY(marker.intensityPct * activeDecayScale * sfdDistanceFactor);
                   return (
                     <g key={marker.hvlIndex} data-testid={`ge-beam-hvl-marker-${marker.hvlIndex}`}>
-                      <line x1={mx} y1={plotTop} x2={mx} y2={plotBottom} stroke="#38bdf8" strokeWidth="1" strokeDasharray="3 3" opacity="0.6" />
-                      <circle cx={mx} cy={my} r="3" fill="#38bdf8" stroke="#020617" strokeWidth="1.2" />
-                      <text x={mx} y={plotBottom - 5} fill="#38bdf8" fontSize="8" fontWeight="bold" fontFamily="monospace" textAnchor="middle">
+                      <line x1={mx} y1={plotTop} x2={mx} y2={plotBottom} stroke="#38bdf8" strokeWidth="1" strokeDasharray="3 3" opacity="0.6" className={curveTransitionClass} />
+                      <circle cx={mx} cy={my} r="3" fill="#38bdf8" stroke="#020617" strokeWidth="1.2" className={curveTransitionClass} />
+                      <text x={mx} y={plotBottom - 5} fill="#38bdf8" fontSize="8" fontWeight="bold" fontFamily="monospace" textAnchor="middle" className={curveTransitionClass}>
                         {marker.hvlIndex}HVL
                       </text>
                     </g>
@@ -4359,8 +4935,9 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                       strokeWidth="1.6"
                       strokeDasharray="5 4"
                       opacity="0.72"
+                      className={curveTransitionClass}
                     />
-                    <circle cx={normToX(0)} cy={intensityToY(100)} r="3.2" fill="#94a3b8" opacity="0.8" />
+                    <circle cx={normToX(0)} cy={intensityToY(100 * sfdDistanceFactor)} r="3.2" fill="#94a3b8" opacity="0.8" className={curveTransitionClass} />
                     <rect
                       x={pathLeft + 8}
                       y={plotTop + 6}
@@ -4385,49 +4962,23 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                   </g>
                 )}
 
-                {/* Overlaid Exponential Beam Intensity Decay Curve + Synchronized Photon Flux Flow */}
-                <path d={areaD} fill="url(#geDecayAreaGrad)" pointerEvents="none" />
-                <path
-                  data-testid="ge-beam-decay-curve-path"
-                  d={curveD}
-                  fill="none"
-                  stroke={is4dViewActive ? '#22d3ee' : photonAccentColor}
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  pointerEvents="none"
-                />
-                <path
-                  data-testid="ge-beam-decay-curve-flow"
-                  d={curveD}
-                  fill="none"
-                  stroke={is4dViewActive ? '#cffafe' : photonCoreColor}
-                  strokeWidth="2.2"
-                  strokeDasharray="10 18"
-                  strokeLinecap="round"
-                  opacity="0.92"
-                  className="rt-photon-curve-flow"
-                  style={{ '--rt-photon-duration': `${photonDurationSec}s` } as React.CSSProperties}
-                  pointerEvents="none"
-                />
-
-                {/* Entry and Exit Dots */}
-                <circle
-                  cx={normToX(0)}
-                  cy={intensityToY(100 * activeDecayScale)}
-                  r="4"
-                  fill={is4dViewActive ? '#22d3ee' : '#fbbf24'}
-                  stroke="#020617"
-                  strokeWidth="1.5"
-                />
-                <circle
-                  data-testid="ge-beam-decay-exit-dot"
-                  cx={normToX(1)}
-                  cy={intensityToY(displayedExitPct)}
-                  r="4.5"
-                  fill="#10b981"
-                  stroke="#020617"
-                  strokeWidth="1.5"
+                {/* Overlaid Exponential Beam Intensity Decay Curve + Synchronized Photon Flux Flow (300ms Motion Interpolation) */}
+                <AnimatedBeamDecayCurveGroup
+                  targetPoints={targetCurveCoords}
+                  plotBottom={plotBottom}
+                  entryDotPos={{
+                    cx: normToX(0),
+                    cy: intensityToY(100 * activeDecayScale * sfdDistanceFactor)
+                  }}
+                  exitDotPos={{
+                    cx: normToX(1),
+                    cy: intensityToY(displayedExitPct)
+                  }}
+                  is4dViewActive={is4dViewActive}
+                  is4dPlaying={is4dPlaying}
+                  photonAccentColor={photonAccentColor}
+                  photonCoreColor={photonCoreColor}
+                  photonDurationSec={photonDurationSec}
                 />
 
                 {/* Interactive Crosshair Probe when Hovering/Scrubbing */}
@@ -4533,6 +5084,153 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                       stroke="#94a3b8"
                       strokeWidth="0.8"
                     />
+                  )}
+
+                  {/* Lead-Screen (Pb) Intensity & Photoelectron Intensification Overlay */}
+                  {showLeadScreenOverlay && (
+                    <g
+                      data-testid="ge-lead-screen-intensity-overlay"
+                      data-lead-screens-enabled={hasLeadScreens ? 'true' : 'false'}
+                      pointerEvents="none"
+                    >
+                      <rect
+                        x={filmPlaneX - 6}
+                        y={plotTop + 2}
+                        width={calcResult.isMultiFilm ? (hasInterleafScreen ? 52 : 47) : 37}
+                        height={plotHeight - 4}
+                        rx="5"
+                        fill="url(#gePbIntensificationGrad)"
+                        stroke={hasLeadScreens ? '#10b981' : '#64748b'}
+                        strokeWidth="1"
+                        strokeDasharray={hasLeadScreens ? undefined : '3 2'}
+                        opacity={hasLeadScreens ? 0.92 : 0.55}
+                      />
+                      {showPbPhotoelectronPaths && (hasLeadScreens || (calcResult.isMultiFilm && hasInterleafScreen)) && (() => {
+                        const film1X = filmPlaneX + (hasLeadScreens ? 8 : 0);
+                        const film1TargetX = film1X + 4.5;
+                        const film2X = filmPlaneX + (hasLeadScreens ? (hasInterleafScreen ? 24 : 19) : hasInterleafScreen ? 16 : 11);
+                        const rearFilmTargetX = calcResult.isMultiFilm ? film2X + 4 : film1TargetX;
+                        const backPbInnerX = filmPlaneX + (calcResult.isMultiFilm ? (hasInterleafScreen ? 34 : 29) : 19);
+                        const interleafX = filmPlaneX + (hasLeadScreens ? 19 : 11);
+
+                        return (
+                          <g
+                            data-testid="ge-pb-photoelectron-paths"
+                            data-front-pb={hasLeadScreens ? 'true' : 'false'}
+                            data-back-pb={hasLeadScreens ? 'true' : 'false'}
+                            data-interleaf-pb={calcResult.isMultiFilm && hasInterleafScreen ? 'true' : 'false'}
+                            pointerEvents="none"
+                          >
+                            {hasLeadScreens && (
+                              <>
+                                {/* Forward-scattered secondary photoelectron vectors from Front Pb to Film 1 plane */}
+                                {[-50, -25, 0, 25, 50].map((dyOff, idx) => (
+                                  <g key={`front-pb-vec-${idx}`}>
+                                    <circle
+                                      cx={filmPlaneX + 5.5}
+                                      cy={sourceCenterY + dyOff}
+                                      r="1.3"
+                                      fill="#6ee7b7"
+                                      opacity="0.95"
+                                    />
+                                    <line
+                                      data-vector-origin="front_pb"
+                                      x1={filmPlaneX + 6}
+                                      y1={sourceCenterY + dyOff}
+                                      x2={film1TargetX}
+                                      y2={sourceCenterY + dyOff - (dyOff === 0 ? 0 : Math.sign(dyOff) * 3)}
+                                      stroke="#34d399"
+                                      strokeWidth="1.25"
+                                      strokeDasharray="2.5 1.5"
+                                      markerEnd="url(#gePbElectronArrow)"
+                                      opacity="0.95"
+                                    />
+                                  </g>
+                                ))}
+                                {/* Backscattered secondary photoelectron vectors from Back Pb to rear Film plane */}
+                                {[-50, -25, 0, 25, 50].map((dyOff, idx) => (
+                                  <g key={`back-pb-vec-${idx}`}>
+                                    <circle
+                                      cx={backPbInnerX + 0.5}
+                                      cy={sourceCenterY + dyOff}
+                                      r="1.3"
+                                      fill="#5eead4"
+                                      opacity="0.92"
+                                    />
+                                    <line
+                                      data-vector-origin="back_pb"
+                                      x1={backPbInnerX}
+                                      y1={sourceCenterY + dyOff}
+                                      x2={rearFilmTargetX}
+                                      y2={sourceCenterY + dyOff - (dyOff === 0 ? 0 : Math.sign(dyOff) * 3)}
+                                      stroke="#2dd4bf"
+                                      strokeWidth="1.25"
+                                      strokeDasharray="2.5 1.5"
+                                      markerEnd="url(#gePbElectronArrow)"
+                                      opacity="0.92"
+                                    />
+                                  </g>
+                                ))}
+                              </>
+                            )}
+                            {calcResult.isMultiFilm && hasInterleafScreen && (
+                              <>
+                                {/* Bidirectional secondary photoelectron vectors from Interleaf 0.025mm Pb foil into Film 1 & Film 2 */}
+                                {[-34, 0, 34].map((dyOff, idx) => (
+                                  <g key={`interleaf-pb-vec-${idx}`}>
+                                    <line
+                                      data-vector-origin="interleaf_pb"
+                                      x1={interleafX}
+                                      y1={sourceCenterY + dyOff}
+                                      x2={film1X + 5.5}
+                                      y2={sourceCenterY + dyOff}
+                                      stroke="#67e8f9"
+                                      strokeWidth="1.1"
+                                      strokeDasharray="2 1.5"
+                                      markerEnd="url(#gePbElectronArrow)"
+                                      opacity="0.9"
+                                    />
+                                    <line
+                                      data-vector-origin="interleaf_pb"
+                                      x1={interleafX + 3.5}
+                                      y1={sourceCenterY + dyOff}
+                                      x2={film2X + 3.5}
+                                      y2={sourceCenterY + dyOff}
+                                      stroke="#67e8f9"
+                                      strokeWidth="1.1"
+                                      strokeDasharray="2 1.5"
+                                      markerEnd="url(#gePbElectronArrow)"
+                                      opacity="0.9"
+                                    />
+                                  </g>
+                                ))}
+                              </>
+                            )}
+                          </g>
+                        );
+                      })()}
+                      <rect
+                        x={filmPlaneX - 8}
+                        y={plotTop - 13}
+                        width="56"
+                        height="13"
+                        rx="3"
+                        fill="#0f172a"
+                        stroke={hasLeadScreens ? '#10b981' : '#475569'}
+                        strokeWidth="0.8"
+                      />
+                      <text
+                        x={filmPlaneX + 20}
+                        y={plotTop - 4}
+                        fill={hasLeadScreens ? '#34d399' : '#94a3b8'}
+                        fontSize="7.5"
+                        fontWeight="bold"
+                        fontFamily="monospace"
+                        textAnchor="middle"
+                      >
+                        {hasLeadScreens ? 'Pb +e⁻ Gain' : 'No Pb (1×)'}
+                      </text>
+                    </g>
                   )}
 
                   {/* Exit Readout Box */}

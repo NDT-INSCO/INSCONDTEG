@@ -1,3 +1,4 @@
+import { academyActivityStorage } from '../account/academyAccountProgress';
 import { getCompletedModules, getCompletedTopics, getQuizResults } from './curriculumProgress';
 import { db, auth } from '../firebase/config';
 import { collection, addDoc, doc, setDoc, getDocs, query, orderBy, limit, serverTimestamp } from 'firebase/firestore';
@@ -359,7 +360,7 @@ export function calculateXp(stats: {
 // Get or initialize current student profile
 export function getCurrentStudentProfile(): StudentPerformer {
   try {
-    const raw = localStorage.getItem(LOCAL_STUDENT_PROFILE_KEY);
+    const raw = academyActivityStorage.getItem(LOCAL_STUDENT_PROFILE_KEY);
     const completedModulesMap = getCompletedModules();
     const completedModules = Object.keys(completedModulesMap).filter(k => completedModulesMap[k]);
     const completedTopicsMap = getCompletedTopics();
@@ -374,14 +375,14 @@ export function getCurrentStudentProfile(): StudentPerformer {
 
     let storedBonusQuizXp = 0;
     try {
-      const rawBonusXp = localStorage.getItem(LESSON_QUIZ_XP_TOTAL_STORAGE_KEY);
+      const rawBonusXp = academyActivityStorage.getItem(LESSON_QUIZ_XP_TOTAL_STORAGE_KEY);
       if (rawBonusXp) {
         const parsedXp = Number(rawBonusXp);
         if (Number.isFinite(parsedXp) && parsedXp > 0) {
           storedBonusQuizXp = Math.round(parsedXp);
         }
       }
-      const rawLessonRecords = localStorage.getItem(LESSON_QUIZ_RECORDS_STORAGE_KEY);
+      const rawLessonRecords = academyActivityStorage.getItem(LESSON_QUIZ_RECORDS_STORAGE_KEY);
       if (rawLessonRecords) {
         const parsedRecords = JSON.parse(rawLessonRecords) as Record<
           string,
@@ -529,7 +530,7 @@ export function updateStudentProfile(updates: Partial<StudentPerformer>): Studen
   const current = getCurrentStudentProfile();
   const merged = { ...current, ...updates, isCurrentUser: true };
   try {
-    localStorage.setItem(LOCAL_STUDENT_PROFILE_KEY, JSON.stringify(merged));
+    academyActivityStorage.setItem(LOCAL_STUDENT_PROFILE_KEY, JSON.stringify(merged));
     safeDispatchEvent('insco_leaderboard_updated');
   } catch (err) {
     console.error('Failed to update student profile:', err);
@@ -540,7 +541,7 @@ export function updateStudentProfile(updates: Partial<StudentPerformer>): Studen
 // Study sessions logging
 export function getStudySessions(): StudySessionLog[] {
   try {
-    const raw = localStorage.getItem(LOCAL_STUDY_SESSIONS_KEY);
+    const raw = academyActivityStorage.getItem(LOCAL_STUDY_SESSIONS_KEY);
     if (!raw) {
       // Seed with initial realistic study sessions for the user so it's not totally empty
       const initial: StudySessionLog[] = [
@@ -549,7 +550,7 @@ export function getStudySessions(): StudySessionLog[] {
         { id: 'sess_3', date: new Date(Date.now() - 1 * 24 * 3600 * 1000).toISOString(), durationMinutes: 30, topicOrDiscipline: 'API 510 In-Service Vessel Exam', sessionType: 'quiz_prep' },
         { id: 'sess_4', date: new Date().toISOString(), durationMinutes: 25, topicOrDiscipline: 'PWHT Thermal Soak Parameters', sessionType: 'focus_timer' }
       ];
-      localStorage.setItem(LOCAL_STUDY_SESSIONS_KEY, JSON.stringify(initial));
+      academyActivityStorage.setItem(LOCAL_STUDY_SESSIONS_KEY, JSON.stringify(initial));
       return initial;
     }
     return JSON.parse(raw);
@@ -566,7 +567,7 @@ export function logStudySession(session: Omit<StudySessionLog, 'id'>): { totalMi
       id: 'sess_' + Date.now().toString(36)
     };
     sessions.unshift(newSession);
-    localStorage.setItem(LOCAL_STUDY_SESSIONS_KEY, JSON.stringify(sessions));
+    academyActivityStorage.setItem(LOCAL_STUDY_SESSIONS_KEY, JSON.stringify(sessions));
 
     const totalMinutes = sessions.reduce((acc, s) => acc + s.durationMinutes, 0);
     const totalHours = Number((totalMinutes / 60).toFixed(1));
@@ -610,7 +611,7 @@ export function getKnowledgeLeaderboard(options?: {
   // Load cohort from local storage if custom additions exist
   let cohort = INITIAL_COHORT;
   try {
-    const raw = localStorage.getItem(LOCAL_LEADERBOARD_STORAGE_KEY);
+    const raw = academyActivityStorage.getItem(LOCAL_LEADERBOARD_STORAGE_KEY);
     if (raw) {
       cohort = JSON.parse(raw);
     }

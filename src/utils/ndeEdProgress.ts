@@ -1,3 +1,4 @@
+import { academyActivityStorage } from '../account/academyAccountProgress';
 import { NDE_ED_COURSES, NDE_ED_LESSONS } from '../data/ndeEd';
 
 export const NDE_ED_PROGRESS_KEY = 'insco_nde_ed_progress_v1';
@@ -35,7 +36,7 @@ const validCourseIds = new Set(NDE_ED_COURSES.map(course => course.id));
 
 export function readNdeEdProgress(): NdeEdProgressState {
   try {
-    const raw = localStorage.getItem(NDE_ED_PROGRESS_KEY);
+    const raw = academyActivityStorage.getItem(NDE_ED_PROGRESS_KEY);
     if (!raw) return { ...EMPTY };
     const parsed: unknown = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return { ...EMPTY };
@@ -87,7 +88,7 @@ export function readNdeEdProgress(): NdeEdProgressState {
 function write(state: NdeEdProgressState): NdeEdProgressState {
   const next = { ...state, updatedAt: new Date().toISOString() };
   try {
-    localStorage.setItem(NDE_ED_PROGRESS_KEY, JSON.stringify(next));
+    academyActivityStorage.setItem(NDE_ED_PROGRESS_KEY, JSON.stringify(next));
   } catch {
     // Storage may be unavailable; the current session still keeps state in React.
   }
@@ -149,7 +150,7 @@ export function getCourseProgress(courseId: string, state = readNdeEdProgress())
 
 export function resetNdeEdProgress(): NdeEdProgressState {
   try {
-    localStorage.removeItem(NDE_ED_PROGRESS_KEY);
+    academyActivityStorage.removeItem(NDE_ED_PROGRESS_KEY);
   } catch {
     // ignore
   }

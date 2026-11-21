@@ -38,7 +38,7 @@ beforeEach(() => {
 
 afterEach(() => cleanup());
 
-test('phone normalization, verification status check, and pending draft storage work properly', () => {
+test('phone normalization and verification work; an unauthenticated draft is rejected', () => {
   assert.equal(service.normalizeE164Phone('010 1234 5678'), '+201012345678');
   assert.equal(service.normalizeE164Phone('00966501234567'), '+966501234567');
   assert.equal(service.normalizeE164Phone('+201122334455'), '+201122334455');
@@ -62,17 +62,13 @@ test('phone normalization, verification status check, and pending draft storage 
   assert.equal(service.isVerifiedPortalUser(verifiedPhoneUser), true);
   assert.equal(service.detectUserAuthMethod(verifiedPhoneUser), 'phone');
 
-  service.savePendingRegistrationDraft('u_1', {
+  assert.equal(service.savePendingRegistrationDraft('u_1', {
     fullName: 'Eng. Omar',
     phone: '+201000000001',
     organizationName: 'Delta Testing Co',
     commercialRegNo: 'CR-9988',
     taxCardNo: '100-200-300',
-  });
-  const loaded = service.loadPendingRegistrationDraft('u_1');
-  assert.equal(loaded?.organizationName, 'Delta Testing Co');
-  assert.equal(loaded?.taxCardNo, '100-200-300');
-  service.clearPendingRegistrationDraft('u_1');
+  }), false);
   assert.equal(service.loadPendingRegistrationDraft('u_1'), null);
 });
 
@@ -120,7 +116,7 @@ test('ClientAuthOnboardingCard renders Email, Phone OTP, and Google registration
   assert.ok(ui.getByTestId('client-portal-google-signin'));
 });
 
-test('ClientRegistrationSection renders complete saved personal & company profile and admin details', () => {
+test('ClientRegistrationSection renders the owner’s personal and company profile without an account list', () => {
   const fakeUser = {
     uid: 'client_phone_1',
     email: null,
@@ -150,9 +146,6 @@ test('ClientRegistrationSection renders complete saved personal & company profil
       language="en"
       user={fakeUser}
       account={account}
-      allAccounts={[account]}
-      companies={[]}
-      isAdmin={true}
     />
   );
 
@@ -160,6 +153,6 @@ test('ClientRegistrationSection renders complete saved personal & company profil
   assert.ok(ui.getByText('APPROVED'));
   assert.equal((ui.getByLabelText(/Commercial Reg No\./) as HTMLInputElement).value, 'CR-774411');
   assert.equal((ui.getByLabelText(/Tax Card \/ VAT No\./) as HTMLInputElement).value, '405-607-809');
-  assert.ok(ui.getByText(/CR: CR-774411/));
-  assert.ok(ui.getByText(/Tax: 405-607-809/));
+  assert.equal(ui.queryByText(/Registered Client Accounts/), null);
+  assert.ok(ui.getByText('Account privacy'));
 });

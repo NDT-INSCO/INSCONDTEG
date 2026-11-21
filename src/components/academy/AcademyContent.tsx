@@ -5,6 +5,7 @@ import type { AcademyTab } from '../../academyTabs';
 import { EducationalAcademy } from '../EducationalAcademy';
 import { AcademyPageHeader } from './AcademyShell';
 import { AcademyHub } from './AcademyHub';
+import { AcademyAccountScope } from './AcademyAccountScope';
 import { AcademyDisciplineIndex } from './AcademyDisciplineIndex';
 import { AcademyDisciplinePage } from './AcademyDisciplinePage';
 import {
@@ -35,7 +36,11 @@ interface AcademyContentProps {
  * fetched once, when the academy is actually opened — the corporate profile
  * never pays for them.
  */
-export const AcademyContent: React.FC<AcademyContentProps> = ({
+export const AcademyContent: React.FC<AcademyContentProps> = props => (
+  <AcademyAccountScope language={props.language}><AcademyPage {...props} /></AcademyAccountScope>
+);
+
+const AcademyPage: React.FC<AcademyContentProps> = ({
   language,
   route,
   onOpenHash,

@@ -1,0 +1,29 @@
+name: account-privacy
+
+on:
+  push:
+    branches: [main, 'arena/**']
+    paths: ['.github/workflows/account-privacy.yml', 'firestore.rules', 'firebase*.json', 'tests/accountPrivacy.emulator.test.ts', 'src/account/**', 'package*.json']
+  pull_request:
+    paths: ['.github/workflows/account-privacy.yml', 'firestore.rules', 'firebase*.json', 'tests/accountPrivacy.emulator.test.ts', 'src/account/**', 'package*.json']
+
+permissions:
+  contents: read
+
+jobs:
+  firestore-emulator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: npm ci
+      - run: npm run lint:rules
+      - run: npm run test:account-rules:emulator

@@ -34,11 +34,13 @@ import {
 import { Language } from '../../types';
 import { ENGINEERING_DISCIPLINES } from '../../data/academyCurriculum';
 import { KNOWLEDGE_LESSONS } from '../../data/academyKnowledge';
+import { academyActivityStorage, readAccountAcademyProgress } from '../../account/academyAccountProgress';
 import {
   getCompletedModules,
   getCompletedTopics,
   getQuizResults,
-  markModuleCompleted
+  markModuleCompleted,
+  unmarkModuleCompleted,
 } from '../../utils/curriculumProgress';
 
 const KNOWLEDGE_STORAGE_KEY = 'insco_knowledge_read_v1';
@@ -116,7 +118,7 @@ export const AcademyRoadmap: React.FC<AcademyRoadmapProps> = ({
   // Sync progress from localStorage
   const refreshProgress = () => {
     try {
-      const storedLessons = JSON.parse(localStorage.getItem(KNOWLEDGE_STORAGE_KEY) || '[]');
+      const storedLessons = JSON.parse(academyActivityStorage.getItem(KNOWLEDGE_STORAGE_KEY) || '[]');
       setReadLessonIds(Array.isArray(storedLessons) ? storedLessons : []);
     } catch {
       setReadLessonIds([]);
@@ -250,7 +252,7 @@ export const AcademyRoadmap: React.FC<AcademyRoadmapProps> = ({
       }
       setReadLessonIds(next);
       try {
-        localStorage.setItem(KNOWLEDGE_STORAGE_KEY, JSON.stringify(next));
+        academyActivityStorage.setItem(KNOWLEDGE_STORAGE_KEY, JSON.stringify(next));
       } catch (err) {
         console.error(err);
       }
@@ -260,11 +262,8 @@ export const AcademyRoadmap: React.FC<AcademyRoadmapProps> = ({
       const current = Boolean(completedModulesMap[rawId]);
       if (current) {
         // Unmark
-        const updated = { ...completedModulesMap };
-        delete updated[rawId];
-        setCompletedModulesMap(updated);
-        localStorage.setItem('insco_academy_completed_modules', JSON.stringify(updated));
-        window.dispatchEvent(new CustomEvent('insco_progress_updated', { detail: { moduleId: rawId } }));
+        unmarkModuleCompleted(rawId);
+        refreshProgress();
       } else {
         markModuleCompleted(rawId, 100);
         refreshProgress();
@@ -278,7 +277,7 @@ export const AcademyRoadmap: React.FC<AcademyRoadmapProps> = ({
       // Mark all foundation lessons read
       const foundationIds = KNOWLEDGE_LESSONS.map(l => l.id);
       setReadLessonIds(foundationIds);
-      localStorage.setItem(KNOWLEDGE_STORAGE_KEY, JSON.stringify(foundationIds));
+      academyActivityStorage.setItem(KNOWLEDGE_STORAGE_KEY, JSON.stringify(foundationIds));
       window.dispatchEvent(new CustomEvent('insco_progress_updated'));
     } else if (tierTarget === 'tier1_level1') {
       // Mark level 1 conventional modules completed
@@ -298,8 +297,8 @@ export const AcademyRoadmap: React.FC<AcademyRoadmapProps> = ({
   };
 
   const handleResetProgress = () => {
-    localStorage.removeItem(KNOWLEDGE_STORAGE_KEY);
-    localStorage.removeItem('insco_academy_completed_modules');
+    academyActivityStorage.removeItem(KNOWLEDGE_STORAGE_KEY);
+    academyActivityStorage.removeItem('insco_academy_completed_modules');
     setReadLessonIds([]);
     setCompletedModulesMap({});
     window.dispatchEvent(new CustomEvent('insco_progress_updated'));
@@ -573,7 +572,7 @@ export const AcademyRoadmap: React.FC<AcademyRoadmapProps> = ({
             </div>
 
             {/* Quick Demo Simulator Buttons for Testing */}
-            <div className="flex items-center gap-2 text-xs">
+            {!readAccountAcademyProgress() && <div className="flex items-center gap-2 text-xs">
               <span className="text-slate-400 hidden sm:inline">{isAr ? 'محاكاة التقدم:' : 'Demo Simulator:'}</span>
               <button
                 onClick={() => handleSimulateStage('tier0_foundation')}
@@ -603,7 +602,7 @@ export const AcademyRoadmap: React.FC<AcademyRoadmapProps> = ({
               >
                 <RotateCcw className="w-3 h-3" />
               </button>
-            </div>
+            </div>}
           </div>
 
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight">

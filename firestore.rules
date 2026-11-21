@@ -80,8 +80,8 @@ service cloud.firestore {
         && data.uid == userId
         && data.fullName is string && data.fullName.size() >= 2 && data.fullName.size() <= 120
         && data.email is string && data.email.size() >= 3 && data.email.size() <= 160
-        && data.phone is string && data.phone.size() >= 5 && data.phone.size() <= 40
-        && data.organizationName is string && data.organizationName.size() >= 2 && data.organizationName.size() <= 160
+        && data.phone is string && (data.phone == '' || (data.phone.size() >= 5 && data.phone.size() <= 40))
+        && data.organizationName is string && (data.organizationName == '' || (data.organizationName.size() >= 2 && data.organizationName.size() <= 160))
         && (!('requestedCompanyCode' in data) || (data.requestedCompanyCode is string && data.requestedCompanyCode.size() <= 32 && data.requestedCompanyCode.matches('^[A-Z0-9\\-]*$')))
         && (!('assignedCompanyId' in data) || (data.assignedCompanyId is string && data.assignedCompanyId.size() <= 128))
         && (!('assignedCompanyCode' in data) || (data.assignedCompanyCode is string && data.assignedCompanyCode.size() <= 32))
@@ -434,7 +434,8 @@ service cloud.firestore {
           'isPassed', 'score', 'unlockedCertificate', 'completedAt'
         ])
         && isValidId(data.userId)
-        && data.moduleId is string && data.moduleId.size() >= 1 && data.moduleId.size() <= 80
+        && data.moduleId is string && data.moduleId.matches('^[a-zA-Z0-9_-]{1,80}$')
+        && (!('completedAt' in data) || data.completedAt == null || data.completedAt is timestamp)
         && (!('disciplineId' in data) || (data.disciplineId is string && data.disciplineId.size() <= 80))
         && (!('completedTopics' in data) || (data.completedTopics is list && data.completedTopics.size() <= 200))
         && (!('completedCount' in data) || (data.completedCount is number && data.completedCount >= 0 && data.completedCount <= 200))
@@ -464,27 +465,76 @@ service cloud.firestore {
     }
 
     // -------------------------------------------------------------------------
-    // Client Accounts (PII isolated to account owner or verified admin)
+    // Private account reviews: administrator-managed permission, exact subject,
+    // append-only reason and case ID, short server-timed authorization.
     // -------------------------------------------------------------------------
-    match /client_accounts/{userId} {
-      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
-      allow list: if isAdminEmail() || (isVerifiedUser() && existing().uid == request.auth.uid);
+    function isAccountReviewer() {
+      return isSignedIn() && request.auth.token.email_verified == true
+        && get(/databases/$(database)/documents/account_reviewers/$(request.auth.uid)).data.enabled == true;
+    }
 
-      allow create: if isVerifiedUser()
+    function hasAccountReview(userId) {
+      let grant = get(/databases/$(database)/documents/account_review_access/$(request.auth.uid)).data;
+      return grant.subjectUid == userId && grant.createdAt + duration.value(5, 'm') > request.time;
+    }
+
+    function isAccountReviewEvent(data) {
+      return data.keys().hasAll(['reviewerUid', 'subjectUid', 'caseReference', 'reason', 'createdAt'])
+        && data.keys().hasOnly(['reviewerUid', 'subjectUid', 'caseReference', 'reason', 'createdAt'])
+        && data.reviewerUid == request.auth.uid
+        && isValidId(data.subjectUid) && data.subjectUid != data.reviewerUid
+        && data.caseReference is string && data.caseReference.matches('^[a-zA-Z0-9-]{4,40}$')
+        && data.reason in ['account_support', 'company_link', 'data_request']
+        && data.createdAt == request.time;
+    }
+
+    function isAccountReviewGrant(data) {
+      let event = getAfter(/databases/$(database)/documents/account_review_audit/$(data.auditId)).data;
+      return !exists(/databases/$(database)/documents/account_review_audit/$(data.auditId))
+        && event.reviewerUid == request.auth.uid && event.subjectUid == data.subjectUid
+        && event.createdAt == request.time && data.createdAt == request.time;
+    }
+
+    function hasCompanyLinkReview(userId) {
+      let grant = get(/databases/$(database)/documents/account_review_access/$(request.auth.uid)).data;
+      return grant.subjectUid == userId && grant.createdAt + duration.value(5, 'm') > request.time
+        && get(/databases/$(database)/documents/account_review_audit/$(grant.auditId)).data.reason == 'company_link';
+    }
+
+    // Membership is assigned/revoked only by a trusted operator using IAM.
+    match /account_reviewers/{reviewerUid} {
+      allow get: if isOwner(reviewerUid) && request.auth.token.email_verified == true;
+    }
+
+    match /account_review_audit/{auditId} {
+      allow create: if isValidId(auditId) && isAccountReviewer() && isAccountReviewEvent(incoming())
+        && getAfter(/databases/$(database)/documents/account_review_access/$(request.auth.uid)).data.auditId == auditId;
+      // No browser reads, updates, or deletes, including by reviewers.
+      // Audit supervisors access the collection through separately granted IAM.
+    }
+
+    match /account_review_access/{reviewerUid} {
+      allow create, update: if isOwner(reviewerUid) && isAccountReviewer()
+        && incoming().keys().hasAll(['auditId', 'subjectUid', 'createdAt'])
+        && incoming().keys().hasOnly(['auditId', 'subjectUid', 'createdAt'])
+        && isValidId(incoming().auditId) && isValidId(incoming().subjectUid)
+        && isAccountReviewGrant(incoming());
+    }
+
+    // No browser-side bulk reads of private profiles, even for administrators.
+    match /client_accounts/{userId} {
+      allow get: if isValidId(userId) && isVerifiedUser()
+        && (isOwner(userId) || (isAccountReviewer() && hasAccountReview(userId)));
+
+      allow create: if isVerifiedUser() && isOwner(userId)
         && isValidId(userId)
         && isValidClientAccount(incoming(), userId)
         && incoming().createdAt == request.time
         && incoming().updatedAt == request.time
-        && (
-          isAdmin()
-          || (
-            isOwner(userId)
-            && incoming().role == 'client'
-            && incoming().approvalStatus == 'pending'
-            && (!('assignedCompanyId' in incoming()) || incoming().assignedCompanyId == '')
-            && (!('assignedCompanyCode' in incoming()) || incoming().assignedCompanyCode == '')
-          )
-        );
+        && (incoming().role == 'client' && incoming().approvalStatus == 'pending'
+          || (isAdminEmail() && incoming().role == 'admin' && incoming().approvalStatus == 'approved'))
+        && (!('assignedCompanyId' in incoming()) || incoming().assignedCompanyId == '')
+        && (!('assignedCompanyCode' in incoming()) || incoming().assignedCompanyCode == '');
 
       allow update: if isVerifiedUser()
         && isValidId(userId)
@@ -493,29 +543,18 @@ service cloud.firestore {
         && incoming().createdAt == existing().createdAt
         && incoming().updatedAt == request.time
         && (
-          (isAdmin() && incoming().diff(existing()).affectedKeys().hasOnly([
-            'approvalStatus', 'role', 'assignedCompanyId', 'assignedCompanyCode',
-            'fullName', 'email', 'phone', 'organizationName', 'sector',
+          (isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly([
+            'fullName', 'email', 'phone', 'organizationName', 'requestedCompanyCode', 'sector',
             'jobTitle', 'nationalId', 'secondaryPhone', 'personalAddress',
             'organizationNameEn', 'commercialRegNo', 'taxCardNo',
             'companyPhone', 'companyEmail', 'website', 'companyAddress',
             'cityGovernorate', 'activeScope', 'updatedAt'
           ]))
-          || (
-            isOwner(userId)
-            && incoming().role == existing().role
-            && incoming().approvalStatus == existing().approvalStatus
+          || (isAccountReviewer() && isAdmin() && hasCompanyLinkReview(userId)
             && incoming().diff(existing()).affectedKeys().hasOnly([
-              'fullName', 'email', 'phone', 'organizationName', 'requestedCompanyCode', 'sector',
-              'jobTitle', 'nationalId', 'secondaryPhone', 'personalAddress',
-              'organizationNameEn', 'commercialRegNo', 'taxCardNo',
-              'companyPhone', 'companyEmail', 'website', 'companyAddress',
-              'cityGovernorate', 'activeScope', 'updatedAt'
-            ])
-          )
+              'approvalStatus', 'assignedCompanyId', 'assignedCompanyCode', 'updatedAt'
+            ]))
         );
-
-      allow delete: if isValidId(userId) && isAdmin();
     }
 
     // -------------------------------------------------------------------------
@@ -975,14 +1014,16 @@ service cloud.firestore {
     }
 
     match /user_module_progress/{progressId} {
-      allow get: if isValidId(progressId)
-        && (isAdmin() || (isVerifiedUser() && existing().userId == request.auth.uid));
-      allow list: if isAdminEmail()
-        || (isVerifiedUser() && existing().userId == request.auth.uid);
-      allow create, update: if isVerifiedUser()
-        && isValidId(progressId)
-        && isValidModuleProgress(incoming())
-        && incoming().userId == request.auth.uid;
+      allow get: if isValidId(progressId) && isVerifiedUser()
+        && (existing().userId == request.auth.uid || (isAccountReviewer() && hasAccountReview(existing().userId)));
+      allow list: if isVerifiedUser() && existing().userId == request.auth.uid;
+      allow create: if isVerifiedUser() && isValidId(progressId)
+        && isValidModuleProgress(incoming()) && incoming().userId == request.auth.uid
+        && progressId == (incoming().userId + '_' + incoming().moduleId);
+      allow update: if isVerifiedUser() && isValidId(progressId)
+        && isValidModuleProgress(incoming()) && existing().userId == request.auth.uid
+        && incoming().userId == existing().userId && incoming().moduleId == existing().moduleId;
+      allow delete: if isVerifiedUser() && isValidId(progressId) && existing().userId == request.auth.uid;
     }
 
     match /quiz_leaderboard/{entryId} {

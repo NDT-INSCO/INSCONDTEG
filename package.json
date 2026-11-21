@@ -17,7 +17,7 @@
     "test:cert": "tsx --test tests/certificationCenter.test.tsx",
     "test:company": "tsx --test tests/companyProfile.test.tsx",
     "test:rfq": "tsx --test tests/rfqSubmit.test.ts && tsx --test tests/rfqGateway.test.ts",
-    "test:admin": "tsx --test tests/adminGateway.test.ts tests/adminHosted.test.ts tests/adminPasskeys.test.ts tests/adminPortal.test.tsx",
+    "test:admin": "tsx --test tests/adminGateway.test.ts tests/adminHosted.test.ts tests/adminNetlify.test.ts tests/adminPasskeys.test.ts tests/adminPortal.test.tsx",
     "test:fleet": "tsx --test tests/fleetCalibration.test.tsx",
     "test:a11y": "tsx --test tests/a11yClickables.test.tsx",
     "test:ux": "tsx --test tests/uxNavigation.test.tsx && tsx --test tests/academyStations.test.tsx",
@@ -44,7 +44,8 @@
     "test:portals": "tsx --test tests/portalIsolation.test.tsx",
     "docs:check": "tsx scripts/compare-docs-build.ts",
     "test:simlabs": "tsx --test tests/simLabsRtLayout.test.tsx",
-    "build:vercel": "SITE_BASE=/ VITE_ADMIN_PORTAL_URL= VITE_RFQ_ENDPOINT= vite build --outDir dist"
+    "build:hosted": "SITE_BASE=/ VITE_ADMIN_PORTAL_URL= VITE_RFQ_ENDPOINT= vite build --outDir dist",
+    "build:vercel": "npm run build:hosted"
   },
   "dependencies": {
     "@google/genai": "^2.31.0",
@@ -67,12 +68,14 @@
     "qrcode": "^1.5.4",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
+    "serverless-http": "^4.0.0",
     "three": "^0.186.1",
     "vite": "^8.3.0",
     "ws": "^8.22.0"
   },
   "devDependencies": {
     "@firebase/eslint-plugin-security-rules": "^0.0.2",
+    "@netlify/types": "^3.3.1",
     "@testing-library/react": "^16.3.3",
     "@types/canvas-confetti": "^1.9.0",
     "@types/d3": "^7.4.3",

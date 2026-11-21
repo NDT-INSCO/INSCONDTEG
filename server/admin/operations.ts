@@ -19,7 +19,7 @@ interface OperationsOptions {
   tutorConfigured?: boolean;
 }
 
-/** The same API is used by the standalone Node server and the Vercel function. */
+/** The same API is used by the standalone Node server and the hosted functions. */
 export async function createOperations(env: NodeJS.ProcessEnv, { production, baseDir = process.cwd(), requireHosted, tutorConfigured = false }: OperationsOptions) {
   const config = adminConfig(env, production);
   const useHosted = requireHosted || Boolean(env.ADMIN_DATABASE_URL?.trim() || env.TURSO_DATABASE_URL?.trim()

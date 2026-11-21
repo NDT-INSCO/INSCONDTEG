@@ -1,3 +1,4 @@
+import { academyActivityStorage } from '../account/academyAccountProgress';
 import { Language } from '../types';
 import { getCompletedModules, getQuizResults } from './curriculumProgress';
 
@@ -580,7 +581,7 @@ export function getOfficialExams(): OfficialExam[] {
 
 export function getExamRegistrations(): ExamRegistration[] {
   try {
-    const raw = localStorage.getItem(REGISTRATIONS_STORAGE_KEY);
+    const raw = academyActivityStorage.getItem(REGISTRATIONS_STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -604,7 +605,7 @@ export function registerForExam(registrationData: Omit<ExamRegistration, 'regist
 
   registrations.push(newRecord);
   try {
-    localStorage.setItem(REGISTRATIONS_STORAGE_KEY, JSON.stringify(registrations));
+    academyActivityStorage.setItem(REGISTRATIONS_STORAGE_KEY, JSON.stringify(registrations));
     window.dispatchEvent(new CustomEvent('insco_exam_registered', { detail: newRecord }));
   } catch (err) {
     console.error('Failed to save exam registration:', err);
@@ -617,7 +618,7 @@ export function cancelExamRegistration(registrationId: string): boolean {
   try {
     const current = getExamRegistrations();
     const filtered = current.filter(r => r.registrationId !== registrationId);
-    localStorage.setItem(REGISTRATIONS_STORAGE_KEY, JSON.stringify(filtered));
+    academyActivityStorage.setItem(REGISTRATIONS_STORAGE_KEY, JSON.stringify(filtered));
     window.dispatchEvent(new CustomEvent('insco_exam_registration_cancelled', { detail: { registrationId } }));
     return true;
   } catch {

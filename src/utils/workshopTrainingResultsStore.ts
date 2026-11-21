@@ -1,3 +1,4 @@
+import { academyActivityStorage } from '../account/academyAccountProgress';
 import { ExtendedWeldFlawId } from '../data/utWeldDefectsCatalog';
 import { recordSimulationAttempt } from './simulationHistoryStore';
 
@@ -98,7 +99,7 @@ const INITIAL_SEED_ATTEMPTS: WorkshopTrainingAttempt[] = [
 
 export function getWorkshopTrainingAttempts(): WorkshopTrainingAttempt[] {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = academyActivityStorage.getItem(STORAGE_KEY);
     if (!raw) return INITIAL_SEED_ATTEMPTS;
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed) && parsed.length > 0) {
@@ -177,7 +178,7 @@ export function gradeAndRecordWorkshopAttempt(input: {
   try {
     const existing = getWorkshopTrainingAttempts();
     const updated = [attempt, ...existing].slice(0, 30);
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    academyActivityStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
     window.dispatchEvent(new CustomEvent(UPDATE_EVENT));
   } catch {
     // ignore storage errors in restricted environments
@@ -230,7 +231,7 @@ export function gradeAndRecordWorkshopAttempt(input: {
 
 export function resetWorkshopTrainingAttempts(): void {
   try {
-    window.localStorage.removeItem(STORAGE_KEY);
+    academyActivityStorage.removeItem(STORAGE_KEY);
     window.dispatchEvent(new CustomEvent(UPDATE_EVENT));
   } catch {
     // ignore

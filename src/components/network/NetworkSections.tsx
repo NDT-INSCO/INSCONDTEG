@@ -822,6 +822,11 @@ export const NetworkVerify: React.FC<{ language: Language; onOpenSection: (s: Ne
                 ? 'مراجعة الشهادة لا تعني التحقق من الهوية، والعكس صحيح. لا تُمنح أي شارة تلقائياً.'
                 : 'A checked certificate does not imply a verified identity, and vice versa. No badge is ever granted automatically.'}
             </p>
+            <p className="mt-1.5 text-[10px] leading-relaxed text-slate-400">
+              {isAr
+                ? 'العضوية تستخدم جلسة حساب إنسكو الموحّد نفسها (بريد مؤكَّد واحد لكل الأقسام) — لا يُنشأ حساب ثانٍ للشبكة.'
+                : 'Membership uses the same unified INSCO account session (one confirmed email across every section) — no second account is created for the network.'}
+            </p>
           </Panel>
           <Panel label={isAr ? 'الطلب' : 'Request'}>
             <div className="flex flex-col gap-1.5">

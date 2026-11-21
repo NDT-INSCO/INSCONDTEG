@@ -8,6 +8,8 @@ import { MobileNavDrawer } from './components/MobileNavDrawer';
 import { GlobalHeaderSearch } from './components/GlobalHeaderSearch';
 import { GlobalThemeSwitcher } from './components/GlobalThemeSwitcher';
 import { GlobalAppConfigControl } from './components/GlobalAppConfigControl';
+import { SiteAccountActions } from './components/account/SiteAccountActions';
+import { SiteAccountProvider, useSiteAccount } from './account/SiteAccountContext';
 import { InscoDualAiDock } from './components/ai/InscoDualAiDock';
 import { Language } from './types';
 import { AcademyTab } from './academyTabs';
@@ -116,6 +118,12 @@ function ClientLoading({ isAr }: { isAr: boolean }) {
       </div>
     </div>
   );
+}
+
+/** Drop any page-local private state immediately on an account switch. */
+function PublicRouteMain({ children, className }: React.ComponentProps<'main'>) {
+  const { user } = useSiteAccount();
+  return <main key={user ? `account:${user.uid}` : 'guest'} className={className}>{children}</main>;
 }
 
 const LANGUAGE_KEY = 'insco_language_v1';
@@ -629,6 +637,7 @@ export const App: React.FC = () => {
   }
 
   return (
+    <SiteAccountProvider>
     <div
       dir={isAr ? 'rtl' : 'ltr'}
       data-theme={theme}
@@ -686,7 +695,7 @@ export const App: React.FC = () => {
               type="button"
               aria-label={isAr ? 'الرئيسية - شركة إنسكو' : 'INSCO Home Profile'}
               onClick={() => openCompany()}
-              className={`flex items-center gap-2.5 text-start cursor-pointer group ${portal === 'client' ? 'min-w-0' : ''}`}
+              className="flex min-w-0 items-center gap-2.5 text-start cursor-pointer group"
             >
               <div
                 className={`p-2 rounded-lg border transition ${
@@ -705,10 +714,10 @@ export const App: React.FC = () => {
                   <Building2 className="w-5 h-5" aria-hidden="true" />
                 )}
               </div>
-              <div className={portal === 'client' ? 'min-w-0' : 'whitespace-nowrap'}>
-                <div className={`text-base sm:text-lg font-black text-white tracking-tight ${portal === 'client' ? 'truncate' : ''}`}>
-                  {portal === 'client' && <span className="sm:hidden">{isAr ? 'إنسكو' : 'INSCO'}</span>}
-                  <span className={portal === 'client' ? 'hidden sm:inline' : undefined}>
+              <div className="min-w-0">
+                <div className="truncate text-base sm:text-lg font-black text-white tracking-tight">
+                  <span className="sm:hidden">{isAr ? 'إنسكو' : 'INSCO'}</span>
+                  <span className="hidden sm:inline">
                     {isAr ? 'الشركة الدولية للخدمات والمقاولات - إنسكو' : 'INSCO Industrial'}
                   </span>
                 </div>
@@ -721,7 +730,7 @@ export const App: React.FC = () => {
                         : 'text-cyan-400'
                   }`}
                 >
-                  <span className={portal === 'client' ? 'min-w-0 truncate' : undefined}>
+                  <span className="min-w-0 truncate">
                     {portal === 'academy'
                       ? isAr
                         ? 'مسار المتدرّب · البوابة الهندسية'
@@ -734,8 +743,8 @@ export const App: React.FC = () => {
                           ? 'أكاديمية إنسكو NDT'
                           : 'INSCO NDT Academy'}
                   </span>
-                  <span aria-hidden="true" className={`text-slate-600 ${portal === 'client' ? 'hidden lg:inline' : ''}`}>·</span>
-                  <span className={portal === 'client' ? 'hidden lg:inline shrink-0' : undefined}>CP/2026-10</span>
+                  <span aria-hidden="true" className="hidden lg:inline text-slate-600">·</span>
+                  <span className="hidden lg:inline shrink-0">CP/2026-10</span>
                 </div>
               </div>
             </button>
@@ -847,11 +856,12 @@ export const App: React.FC = () => {
               </button>
             </div>
           </div>
+          <SiteAccountActions language={language} onOpenProfile={() => openClient('register')} />
         </header>
       </div>
 
       {/* ------------------------------ the pages ---------------------------- */}
-      <main className={`flex-1 ${route.portal === 'company' ? 'pb-20 xl:pb-0' : ''}`}>
+      <PublicRouteMain className={`flex-1 ${route.portal === 'company' ? 'pb-20 xl:pb-0' : ''}`}>
         {route.portal === 'company' && route.page === 'home' && (
           <CompanyPortal
             language={language}
@@ -930,7 +940,7 @@ export const App: React.FC = () => {
             />
           </div>
         )}
-      </main>
+      </PublicRouteMain>
 
       {/* One mobile menu for all portals, each audience in its own group. */}
       <MobileNavDrawer
@@ -1036,5 +1046,6 @@ export const App: React.FC = () => {
         onOpenAcademy={tab => openAcademy(tab)}
       />
     </div>
+    </SiteAccountProvider>
   );
 };

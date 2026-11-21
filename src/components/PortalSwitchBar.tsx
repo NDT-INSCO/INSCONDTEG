@@ -80,7 +80,7 @@ export const PortalSwitchBar: React.FC<PortalSwitchBarProps> = ({
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-1.5 flex items-center justify-between gap-3">
-        <div className={`flex items-center gap-2 min-w-0 ${portal === 'client' ? 'flex-wrap md:flex-nowrap' : ''}`}>
+        <div className="flex min-w-0 flex-wrap items-center gap-2 md:flex-nowrap">
           <span className="hidden md:inline text-[10px] font-mono uppercase tracking-wider text-slate-500 whitespace-nowrap">
             {isAr ? 'المسار الحالي' : 'Current path'}
           </span>

@@ -29,7 +29,7 @@ import {
   type ServiceFamilyId,
 } from './serviceFamilies';
 
-export type PortalId = 'company' | 'client' | 'academy';
+export type PortalId = 'company' | 'client' | 'academy' | 'network';
 
 /* -------------------------------- client ---------------------------------- */
 
@@ -169,6 +169,127 @@ export function academySectionTabs(section: AcademySectionId): readonly AcademyT
   return ACADEMY_SECTION_TABS[section];
 }
 
+/* -------------------------------- network --------------------------------- */
+
+/**
+ * The professional network — the fourth portal.
+ *
+ * It is a community, not a brochure: the sections are the things a member does
+ * (read the feed, look someone up, join a group, find a job), never a mix of
+ * corporate or academy material.
+ */
+export const NETWORK_SECTIONS = [
+  'feed',
+  'profile',
+  'groups',
+  'people',
+  'jobs',
+  'articles',
+  'events',
+  'companies',
+  'messages',
+  'notifications',
+  'search',
+  'verify',
+] as const;
+
+export type NetworkSectionId = (typeof NETWORK_SECTIONS)[number];
+
+const NETWORK_SECTION_LABELS: Record<NetworkSectionId, { ar: string; en: string }> = {
+  feed: { ar: 'المنشورات', en: 'Feed' },
+  profile: { ar: 'ملفي المهني', en: 'My profile' },
+  groups: { ar: 'المجموعات', en: 'Groups' },
+  people: { ar: 'الخبراء والأعضاء', en: 'People & experts' },
+  jobs: { ar: 'الفرص المهنية', en: 'Jobs' },
+  articles: { ar: 'المقالات', en: 'Articles' },
+  events: { ar: 'الفعاليات', en: 'Events' },
+  companies: { ar: 'المؤسسات', en: 'Organisations' },
+  messages: { ar: 'الرسائل', en: 'Messages' },
+  notifications: { ar: 'الإشعارات', en: 'Notifications' },
+  search: { ar: 'البحث', en: 'Search' },
+  verify: { ar: 'التحقق المهني', en: 'Verification' },
+};
+
+/** One word per section, for the narrow four-column phone navigation. */
+export const NETWORK_SECTION_SHORT: Record<NetworkSectionId, { ar: string; en: string }> = {
+  feed: { ar: 'المنشورات', en: 'Feed' },
+  profile: { ar: 'ملفي', en: 'Profile' },
+  groups: { ar: 'المجموعات', en: 'Groups' },
+  people: { ar: 'الخبراء', en: 'People' },
+  jobs: { ar: 'الفرص', en: 'Jobs' },
+  articles: { ar: 'المقالات', en: 'Articles' },
+  events: { ar: 'الفعاليات', en: 'Events' },
+  companies: { ar: 'المؤسسات', en: 'Orgs' },
+  messages: { ar: 'الرسائل', en: 'Inbox' },
+  notifications: { ar: 'الإشعارات', en: 'Alerts' },
+  search: { ar: 'البحث', en: 'Search' },
+  verify: { ar: 'التحقق', en: 'Verified' },
+};
+
+export function networkSectionLabel(section: NetworkSectionId, language: 'ar' | 'en'): string {
+  return NETWORK_SECTION_LABELS[section][language];
+}
+
+export function networkSectionShort(section: NetworkSectionId, language: 'ar' | 'en'): string {
+  return NETWORK_SECTION_SHORT[section][language];
+}
+
+/** What each section is for, in one line — used on the cards and the page header. */
+export const NETWORK_SECTION_COPY: Record<NetworkSectionId, { ar: string; en: string }> = {
+  feed: {
+    ar: 'منشورات ونقاشات فنية وأسئلة ميدانية ودراسات حالة — مصنّفة بالتخصص.',
+    en: 'Technical posts, field questions and case studies — sorted by discipline.',
+  },
+  profile: {
+    ar: 'هويتك المهنية: المسمّى، التخصص، مستويات NDT، الخبرة، والشهادات وحالة التحقق منها.',
+    en: 'Your professional identity: headline, discipline, NDT levels, experience, and certificates with their verification state.',
+  },
+  groups: {
+    ar: 'مجموعات متخصصة: UT · PAUT/TOFD · RT · فحص اللحام · PWHT · QA/QC · التآكل والمواد.',
+    en: 'Discipline groups: UT · PAUT/TOFD · RT · welding inspection · PWHT · QA/QC · corrosion & materials.',
+  },
+  people: {
+    ar: 'دليل الخبراء واقتراحات زملاء من نفس التخصص، مع طلب اتصال أو متابعة.',
+    en: 'The expert directory and colleague suggestions from your discipline, with connect or follow.',
+  },
+  jobs: {
+    ar: 'وظائف وفرص ومهام فحص في الموقع — بفلاتر التخصص والدولة والخبرة.',
+    en: 'Jobs, contracts and site inspection assignments — filtered by discipline, country and experience.',
+  },
+  articles: {
+    ar: 'مقالات وأبحاث ودراسات حالة، وربطها بدروس الأكاديمية عند توفر الصلة.',
+    en: 'Articles, research and case studies, linked to academy lessons where they apply.',
+  },
+  events: {
+    ar: 'ورش العمل والندوات والمؤتمرات المهنية وتسجيل الحضور.',
+    en: 'Workshops, seminars and professional conferences, with registration.',
+  },
+  companies: {
+    ar: 'صفحات المؤسسات: الخدمات والقطاعات والوظائف والأخبار — ومنها صفحة إنسكو.',
+    en: 'Organisation pages: services, sectors, jobs and news — including the INSCO page.',
+  },
+  messages: {
+    ar: 'رسائل مباشرة بين الأعضاء، منفصلة تماماً عن طلبات عروض الأسعار.',
+    en: 'Direct messages between members, kept entirely apart from quote requests.',
+  },
+  notifications: {
+    ar: 'طلبات الاتصال والتعليقات والتفاعلات وإشعارات المجموعات، بضبط كامل.',
+    en: 'Connection requests, comments, reactions and group notices, fully adjustable.',
+  },
+  search: {
+    ar: 'بحث واحد في الأشخاص والمجموعات والوظائف والمقالات والفعاليات.',
+    en: 'One search across people, groups, jobs, articles and events.',
+  },
+  verify: {
+    ar: 'INSCO Verified Professional: التحقق من الهوية والتحقق من الشهادة كمسارين منفصلين.',
+    en: 'INSCO Verified Professional: identity verification and credential verification as two separate tracks.',
+  },
+};
+
+export function isNetworkSectionId(value: string): value is NetworkSectionId {
+  return (NETWORK_SECTIONS as readonly string[]).includes(value);
+}
+
 /* -------------------------------- routes ---------------------------------- */
 
 export type CompanyRoute =
@@ -194,7 +315,11 @@ export type ClientRoute = {
   companyId?: string;
 };
 
-export type Route = CompanyRoute | ClientRoute | AcademyRoute;
+export type NetworkRoute =
+  | { portal: 'network'; page: 'home' }
+  | { portal: 'network'; page: 'section'; section: NetworkSectionId; entryId?: string };
+
+export type Route = CompanyRoute | ClientRoute | AcademyRoute | NetworkRoute;
 
 const DISCIPLINE_SLUG = /^[a-z0-9][a-z0-9_-]*$/i;
 const COMPANY_DOC_SLUG = /^[a-zA-Z0-9_-]{1,128}$/;
@@ -222,6 +347,16 @@ export function parseRoute(hash: string): Route {
       return { portal: 'client', page: 'section', section: sec };
     }
     return { portal: 'client', page: 'section', section: 'overview' };
+  }
+
+  if (parts[0] === 'network') {
+    if (parts.length === 1) return { portal: 'network', page: 'home' };
+    const section = parts[1];
+    if (isNetworkSectionId(section)) {
+      const entryId = rawParts[2] && COMPANY_DOC_SLUG.test(rawParts[2]) ? rawParts[2] : undefined;
+      return { portal: 'network', page: 'section', section, ...(entryId ? { entryId } : {}) };
+    }
+    return { portal: 'network', page: 'home' };
   }
 
   if (parts[0] === 'academy') {
@@ -276,6 +411,10 @@ export function routeToHash(route: Route): string {
     }
     return `#client/${route.section}`;
   }
+  if (route.portal === 'network') {
+    if (route.page === 'home') return '#network';
+    return route.entryId ? `#network/${route.section}/${route.entryId}` : `#network/${route.section}`;
+  }
   if (route.page === 'hub') return '#academy';
   if (route.page === 'disciplines') return '#academy/disciplines';
   if (route.page === 'discipline') return `#academy/disciplines/${route.disciplineId}`;
@@ -310,6 +449,14 @@ export function academySectionHash(
 }
 
 /** True for every route that renders inside the academy portal. */
+export function networkSectionHash(section: NetworkSectionId, entryId?: string): string {
+  return entryId ? `#network/${section}/${entryId}` : `#network/${section}`;
+}
+
+export function isNetworkRoute(route: Route): route is NetworkRoute {
+  return route.portal === 'network';
+}
+
 export function isAcademyRoute(route: Route): route is AcademyRoute {
   return route.portal === 'academy';
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { BriefcaseBusiness, Building2, GraduationCap, ChevronLeft, ChevronRight, Users } from 'lucide-react';
+import { BriefcaseBusiness, Building2, GraduationCap, ChevronLeft, ChevronRight, Users, Network } from 'lucide-react';
 import type { Language } from '../types';
 import type { PortalId } from '../utils/portalRoutes';
 
@@ -19,7 +19,7 @@ interface PortalSwitchBarProps {
 }
 
 /**
- * The permanent indicator at the very top of every screen across the three portals.
+ * The permanent indicator at the very top of every screen across the four portals.
  */
 export const PortalSwitchBar: React.FC<PortalSwitchBarProps> = ({
   language,
@@ -46,7 +46,9 @@ export const PortalSwitchBar: React.FC<PortalSwitchBarProps> = ({
         ? 'bg-cyan-600 text-white shadow-sm'
         : id === 'client'
           ? 'bg-emerald-600 text-white shadow-sm'
-          : 'bg-amber-500 text-slate-950 shadow-sm';
+          : id === 'network'
+            ? 'bg-violet-600 text-white shadow-sm'
+            : 'bg-amber-500 text-slate-950 shadow-sm';
     return (
       <button
         type="button"
@@ -68,11 +70,13 @@ export const PortalSwitchBar: React.FC<PortalSwitchBarProps> = ({
   return (
     <div
       className={`border-b text-[11px] ${
-        portal === 'academy'
-          ? 'border-amber-500/20 bg-[#0b0c1c]'
-          : portal === 'client'
-            ? 'border-emerald-500/25 bg-slate-950'
-            : 'border-slate-800 bg-slate-950'
+        portal === 'network'
+          ? 'border-violet-500/30 bg-[#0a0a18]'
+          : portal === 'academy'
+            ? 'border-amber-500/20 bg-[#0b0c1c]'
+            : portal === 'client'
+              ? 'border-emerald-500/25 bg-slate-950'
+              : 'border-slate-800 bg-slate-950'
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-1.5 flex items-center justify-between gap-3">
@@ -82,14 +86,19 @@ export const PortalSwitchBar: React.FC<PortalSwitchBarProps> = ({
           </span>
           <div
             role="group"
-            aria-label={isAr ? 'تبديل المسار بين بوابة الشركة وبوابة العملاء والأكاديمية' : 'Switch between Company, Client, and Academy portals'}
+            aria-label={
+              isAr
+                ? 'تبديل المسار بين بوابة الشركة وبوابة العملاء والأكاديمية والشبكة الهندسية'
+                : 'Switch between Company, Client, Academy and Engineering Network portals'
+            }
             className="flex items-center gap-1 rounded-lg border border-slate-800 bg-slate-900/60 p-0.5"
           >
             {door('company', 'بوابة الشركة', 'Company portal', 'الشركة', 'Company', Building2)}
             {door('client', 'بوابة العملاء', 'Client portal', 'العملاء', 'Clients', BriefcaseBusiness)}
             {door('academy', 'أكاديمية إنسكو', 'INSCO Academy', 'الأكاديمية', 'Academy', GraduationCap)}
+            {door('network', 'الشبكة الهندسية', 'Engineering Network', 'الشبكة', 'Network', Network)}
           </div>
-          {onOpenCommunity && (
+          {onOpenCommunity && portal !== 'network' && (
             <button
               type="button"
               onClick={onOpenCommunity}

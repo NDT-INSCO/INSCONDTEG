@@ -5,14 +5,16 @@
  * learners). The chooser gets shown once, the answer is remembered, and the
  * header keeps an explicit switch so nobody is locked in.
  */
-export type PortalChoice = 'company' | 'client' | 'academy';
+export type PortalChoice = 'company' | 'client' | 'academy' | 'network';
 
 export const PORTAL_CHOICE_KEY = 'insco_portal_choice_v1';
 
 export function readPortalChoice(): PortalChoice | null {
   try {
     const value = localStorage.getItem(PORTAL_CHOICE_KEY);
-    return value === 'company' || value === 'client' || value === 'academy' ? value : null;
+    return value === 'company' || value === 'client' || value === 'academy' || value === 'network'
+      ? value
+      : null;
   } catch {
     return null;
   }
@@ -41,12 +43,14 @@ interface ChooserConditions {
   hasAcademyHash: boolean;
   /** True when the URL already asks for the client portal (`#client`). */
   hasClientHash?: boolean;
+  /** True when the URL already asks for the engineering network (`#network`). */
+  hasNetworkHash?: boolean;
   /** True when the URL already asks for the demonstrations page (`#demo`). */
   hasDemoHash?: boolean;
   /** True when the URL carries any in-page anchor of the corporate profile. */
   hasAnchorHash?: boolean;
   /** Current view, so a deep link never gets covered by a modal. */
-  view: 'company' | 'client' | 'academy' | 'demo' | 'service';
+  view: 'company' | 'client' | 'academy' | 'network' | 'demo' | 'service';
 }
 
 /**
@@ -57,11 +61,12 @@ export function shouldOfferPortalChooser({
   choice,
   hasAcademyHash,
   hasClientHash = false,
+  hasNetworkHash = false,
   hasDemoHash = false,
   hasAnchorHash = false,
   view,
 }: ChooserConditions): boolean {
   if (choice) return false;
-  if (hasAcademyHash || hasClientHash || hasDemoHash || hasAnchorHash) return false;
+  if (hasAcademyHash || hasClientHash || hasNetworkHash || hasDemoHash || hasAnchorHash) return false;
   return view === 'company';
 }

@@ -82,6 +82,8 @@ test('ClientAuthOnboardingCard renders Email, Phone OTP, and Google registration
       language="en"
       firebaseReady={true}
       authReady={true}
+      initialMode="register"
+      onRegistrationReady={() => {}}
       onOpenCompanyPortal={() => {}}
     />
   );

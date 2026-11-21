@@ -7,6 +7,7 @@ interface ClientRegistrationFormFieldsProps {
   language: Language;
   value: ClientRegistrationDraftInput;
   onChange: (next: ClientRegistrationDraftInput) => void;
+  showPersonalEmail?: boolean;
   lockPersonalEmail?: boolean;
   lockPrimaryPhone?: boolean;
   showAutoCreateCompanyToggle?: boolean;
@@ -16,6 +17,7 @@ export const ClientRegistrationFormFields: React.FC<ClientRegistrationFormFields
   language,
   value,
   onChange,
+  showPersonalEmail = true,
   lockPersonalEmail = false,
   lockPrimaryPhone = false,
   showAutoCreateCompanyToggle = false,
@@ -46,6 +48,7 @@ export const ClientRegistrationFormFields: React.FC<ClientRegistrationFormFields
             <input
               type="text"
               required
+              name="fullName"
               value={value.fullName}
               onChange={e => patch('fullName', e.target.value)}
               placeholder={isAr ? 'م. أحمد محمود عبد الله' : 'Eng. Ahmed Mahmoud'}
@@ -59,6 +62,7 @@ export const ClientRegistrationFormFields: React.FC<ClientRegistrationFormFields
             </span>
             <input
               type="text"
+              name="jobTitle"
               value={value.jobTitle ?? ''}
               onChange={e => patch('jobTitle', e.target.value)}
               placeholder={isAr ? 'مدير جودة QA/QC أو مهندس مشاريع' : 'QA/QC Manager / Project Engineer'}
@@ -74,6 +78,7 @@ export const ClientRegistrationFormFields: React.FC<ClientRegistrationFormFields
               type="tel"
               required
               disabled={lockPrimaryPhone}
+              name="phone"
               value={value.phone}
               onChange={e => patch('phone', e.target.value)}
               placeholder="+20 100 000 0000"
@@ -87,6 +92,7 @@ export const ClientRegistrationFormFields: React.FC<ClientRegistrationFormFields
             </span>
             <input
               type="tel"
+              name="secondaryPhone"
               value={value.secondaryPhone ?? ''}
               onChange={e => patch('secondaryPhone', e.target.value)}
               placeholder="+20 120 000 0000"
@@ -94,19 +100,22 @@ export const ClientRegistrationFormFields: React.FC<ClientRegistrationFormFields
             />
           </label>
 
-          <label className="space-y-1">
-            <span className="text-slate-300 block">
-              {isAr ? 'البريد الإلكتروني الشخصي' : 'Personal Email'}
-            </span>
-            <input
-              type="email"
-              disabled={lockPersonalEmail}
-              value={value.personalEmail ?? ''}
-              onChange={e => patch('personalEmail', e.target.value)}
-              placeholder="name@domain.com"
-              className="w-full rounded-lg border border-slate-700 bg-slate-900 disabled:bg-slate-950/60 disabled:text-slate-400 px-3 py-2 font-mono text-xs text-white focus:border-cyan-500 focus:outline-none"
-            />
-          </label>
+          {showPersonalEmail && (
+            <label className="space-y-1">
+              <span className="text-slate-300 block">
+                {isAr ? 'البريد الإلكتروني الشخصي' : 'Personal Email'}
+              </span>
+              <input
+                type="email"
+                disabled={lockPersonalEmail}
+                name="personalEmail"
+                value={value.personalEmail ?? ''}
+                onChange={e => patch('personalEmail', e.target.value)}
+                placeholder="name@domain.com"
+                className="w-full rounded-lg border border-slate-700 bg-slate-900 disabled:bg-slate-950/60 disabled:text-slate-400 px-3 py-2 font-mono text-xs text-white focus:border-cyan-500 focus:outline-none"
+              />
+            </label>
+          )}
 
           <label className="space-y-1">
             <span className="text-slate-300 block">
@@ -114,6 +123,7 @@ export const ClientRegistrationFormFields: React.FC<ClientRegistrationFormFields
             </span>
             <input
               type="text"
+              name="nationalId"
               value={value.nationalId ?? ''}
               onChange={e => patch('nationalId', e.target.value)}
               placeholder={isAr ? 'اختياري للتحقق الإداري' : 'Optional identity reference'}
@@ -127,6 +137,7 @@ export const ClientRegistrationFormFields: React.FC<ClientRegistrationFormFields
             </span>
             <input
               type="text"
+              name="personalAddress"
               value={value.personalAddress ?? ''}
               onChange={e => patch('personalAddress', e.target.value)}
               placeholder={isAr ? 'الشارع، الحي، المدينة، الدولة' : 'Street, District, City, Country'}
@@ -151,6 +162,7 @@ export const ClientRegistrationFormFields: React.FC<ClientRegistrationFormFields
             <input
               type="text"
               required
+              name="organizationName"
               value={value.organizationName}
               onChange={e => patch('organizationName', e.target.value)}
               placeholder={isAr ? 'شركة ... للمشروعات الصناعية' : 'Company Official Name'}
@@ -164,6 +176,7 @@ export const ClientRegistrationFormFields: React.FC<ClientRegistrationFormFields
             </span>
             <input
               type="text"
+              name="organizationNameEn"
               value={value.organizationNameEn ?? ''}
               onChange={e => patch('organizationNameEn', e.target.value)}
               placeholder="e.g. Nile Delta Industrial Co."
@@ -177,6 +190,7 @@ export const ClientRegistrationFormFields: React.FC<ClientRegistrationFormFields
             </span>
             <input
               type="text"
+              name="sector"
               value={value.sector ?? ''}
               onChange={e => patch('sector', e.target.value)}
               placeholder={isAr ? 'بترول وغاز / طاقة / بتروكيماويات / مقاولات' : 'Oil & Gas / Power / EPC'}
@@ -190,6 +204,7 @@ export const ClientRegistrationFormFields: React.FC<ClientRegistrationFormFields
             </span>
             <input
               type="text"
+              name="commercialRegNo"
               value={value.commercialRegNo ?? ''}
               onChange={e => patch('commercialRegNo', e.target.value)}
               placeholder="CR-123456"
@@ -203,6 +218,7 @@ export const ClientRegistrationFormFields: React.FC<ClientRegistrationFormFields
             </span>
             <input
               type="text"
+              name="taxCardNo"
               value={value.taxCardNo ?? ''}
               onChange={e => patch('taxCardNo', e.target.value)}
               placeholder="100-200-300"
@@ -216,6 +232,7 @@ export const ClientRegistrationFormFields: React.FC<ClientRegistrationFormFields
             </span>
             <input
               type="tel"
+              name="companyPhone"
               value={value.companyPhone ?? ''}
               onChange={e => patch('companyPhone', e.target.value)}
               placeholder="+20 2 0000 0000"
@@ -229,6 +246,7 @@ export const ClientRegistrationFormFields: React.FC<ClientRegistrationFormFields
             </span>
             <input
               type="email"
+              name="companyEmail"
               value={value.companyEmail ?? ''}
               onChange={e => patch('companyEmail', e.target.value)}
               placeholder="info@company.com"
@@ -242,6 +260,7 @@ export const ClientRegistrationFormFields: React.FC<ClientRegistrationFormFields
             </span>
             <input
               type="text"
+              name="cityGovernorate"
               value={value.cityGovernorate ?? ''}
               onChange={e => patch('cityGovernorate', e.target.value)}
               placeholder={isAr ? 'القاهرة / السويس / الجيزة، مصر' : 'Cairo / Suez, Egypt'}
@@ -255,6 +274,8 @@ export const ClientRegistrationFormFields: React.FC<ClientRegistrationFormFields
             </span>
             <input
               type="url"
+              autoComplete="url"
+              name="website"
               value={value.website ?? ''}
               onChange={e => patch('website', e.target.value)}
               placeholder="https://company.com"
@@ -268,6 +289,7 @@ export const ClientRegistrationFormFields: React.FC<ClientRegistrationFormFields
             </span>
             <input
               type="text"
+              name="companyAddress"
               value={value.companyAddress ?? ''}
               onChange={e => patch('companyAddress', e.target.value)}
               placeholder={isAr ? 'المنطقة الصناعية، القطعة...' : 'Industrial Zone, Plot...'}
@@ -281,6 +303,7 @@ export const ClientRegistrationFormFields: React.FC<ClientRegistrationFormFields
             </span>
             <input
               type="text"
+              name="requestedCompanyCode"
               value={value.requestedCompanyCode ?? ''}
               onChange={e => patch('requestedCompanyCode', sanitizeUpperCode(e.target.value))}
               placeholder="INS-CO-0101"
@@ -296,6 +319,7 @@ export const ClientRegistrationFormFields: React.FC<ClientRegistrationFormFields
             </span>
             <textarea
               rows={2}
+              name="activeScope"
               value={value.activeScope ?? ''}
               onChange={e => patch('activeScope', e.target.value)}
               placeholder={
@@ -308,10 +332,18 @@ export const ClientRegistrationFormFields: React.FC<ClientRegistrationFormFields
           </label>
         </div>
 
-        {showAutoCreateCompanyToggle && (
+        {showAutoCreateCompanyToggle && value.requestedCompanyCode && (
+          <p className="text-xs text-cyan-200">
+            {isAr
+              ? 'سيُحفظ الكود لطلب ربط ملف الشركة الموجود، من دون إنشاء ملف مكرر.'
+              : 'This code will be saved for linking an existing company, without creating a duplicate dossier.'}
+          </p>
+        )}
+        {showAutoCreateCompanyToggle && !value.requestedCompanyCode && (
           <label className="flex items-start gap-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-200 cursor-pointer">
             <input
               type="checkbox"
+              name="autoCreateCompanyWorkspace"
               checked={Boolean(value.autoCreateCompanyWorkspace)}
               onChange={e => patch('autoCreateCompanyWorkspace', e.target.checked)}
               className="mt-0.5 accent-emerald-500"

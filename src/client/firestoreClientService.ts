@@ -1,16 +1,19 @@
 import {
+  browserLocalPersistence,
+  browserSessionPersistence,
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
   onAuthStateChanged,
   RecaptchaVerifier,
   sendEmailVerification,
   sendPasswordResetEmail,
+  setPersistence,
   signInWithEmailAndPassword,
   signInWithPhoneNumber,
   signInWithPopup,
   signOut,
-  updateProfile,
   type ConfirmationResult,
+  type IdTokenResult,
   type User,
 } from 'firebase/auth';
 import {
@@ -24,6 +27,7 @@ import {
   onSnapshot,
   orderBy,
   query,
+  runTransaction,
   serverTimestamp,
   setDoc,
   updateDoc,
@@ -38,7 +42,6 @@ import {
   handleFirestoreError,
   isFirebaseConfigured,
   OperationType,
-  testConnection,
 } from '../firebase/config';
 import {
   BLUEPRINT_LIMITS,
@@ -104,8 +107,13 @@ export function detectUserAuthMethod(user: User | null): ClientAuthMethod {
   return 'google';
 }
 
+export function normalizePhoneDigits(value: string): string {
+  // Accept Arabic and Eastern Arabic numerals in contact/OTP phone inputs.
+  return value.replace(/[٠-٩۰-۹]/g, digit => String(digit.charCodeAt(0) & 0xf));
+}
+
 export function normalizeE164Phone(raw: string): string {
-  const trimmed = raw.trim().replace(/[\s\-()]/g, '');
+  const trimmed = normalizePhoneDigits(raw).trim().replace(/[\s\-()]/g, '');
   if (!trimmed) return '';
   if (trimmed.startsWith('+')) return trimmed;
   if (trimmed.startsWith('00')) return `+${trimmed.slice(2)}`;
@@ -114,98 +122,149 @@ export function normalizeE164Phone(raw: string): string {
   return `+${trimmed}`;
 }
 
-export function formatFirebaseAuthError(err: unknown, language: 'ar' | 'en'): string {
-  const isAr = language === 'ar';
-  const code = (err as { code?: string })?.code ?? '';
-  const message = err instanceof Error ? err.message : String(err);
-
-  if (code === 'auth/operation-not-allowed') {
-    return isAr
-      ? 'هذه الطريقة غير مفعّلة بعد في لوحة تحكم Firebase (Authentication → Sign-in method). يمكنك الدخول بحساب Google أو تفعيل Email/Phone من Firebase Console.'
-      : 'This sign-in provider is not yet enabled in Firebase Console (Authentication → Sign-in method). Enable it in Console or use Google Sign-In.';
-  }
-  if (code === 'auth/email-already-in-use') {
-    return isAr
-      ? 'هذا البريد الإلكتروني مسجل بالفعل. بدّل إلى تبويب "تسجيل الدخول" للدخول لحسابك.'
-      : 'This email is already registered. Switch to Sign In mode to log into your account.';
-  }
-  if (code === 'auth/wrong-password' || code === 'auth/invalid-credential' || code === 'auth/user-not-found') {
-    return isAr
-      ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة.'
-      : 'Invalid email or password.';
-  }
-  if (code === 'auth/weak-password') {
-    return isAr
-      ? 'كلمة المرور ضعيفة — يرجى استخدام 6 أحرف أو أرقام على الأقل.'
-      : 'Password is too weak — please use at least 6 characters.';
-  }
-  if (code === 'auth/invalid-phone-number') {
-    return isAr
-      ? 'صيغة رقم الهاتف غير صحيحة. يرجى كتابته بالصيغة الدولية مثل +2010XXXXXXXX.'
-      : 'Invalid phone number format. Use international format e.g. +2010XXXXXXXX.';
-  }
-  if (code === 'auth/invalid-verification-code' || code === 'auth/code-expired') {
-    return isAr
-      ? 'رمز التحقق SMS غير صحيح أو انتهت صلاحيته. اطلب رمزاً جديداً.'
-      : 'Invalid or expired SMS verification code. Please request a new code.';
-  }
-  if (code === 'auth/billing-not-enabled') {
-    return isAr
-      ? 'إرسال رسائل SMS الهاتفية يتطلب تفعيل خطة Blaze أو إضافة أرقام اختبار في Firebase Console → Authentication → Phone.'
-      : 'SMS phone verification requires Firebase Blaze billing or configured test phone numbers in Firebase Console.';
-  }
-  if (code === 'auth/too-many-requests') {
-    return isAr
-      ? 'تم إرسال محاولات كثيرة مؤخراً. يرجى الانتظار بضع دقائق ثم المحاولة مرة أخرى.'
-      : 'Too many attempts. Please wait a few minutes and try again.';
-  }
-  if (code === 'auth/popup-closed-by-user') {
-    return isAr
-      ? 'تم إغلاق نافذة تسجيل الدخول بحساب Google قبل الإتمام.'
-      : 'Google sign-in popup was closed before completing.';
-  }
-  return message;
+function firebaseErrorCode(err: unknown): string | undefined {
+  return (err as { code?: string } | null)?.code;
 }
 
-export async function signInClientPortalWithGoogle(): Promise<User | null> {
-  if (!auth) {
-    throw new Error('Firebase Auth is not initialized.');
+export function formatFirebaseAuthError(err: unknown, language: 'ar' | 'en'): string {
+  const isAr = language === 'ar';
+  switch (firebaseErrorCode(err)) {
+    case 'auth/operation-not-allowed':
+    case 'auth/admin-restricted-operation':
+      return isAr
+        ? 'طريقة الدخول هذه غير مفعّلة. استخدم طريقة أخرى أو تواصل مع دعم إنسكو.'
+        : 'This sign-in method is not enabled. Use another method or contact INSCO support.';
+    case 'auth/app-not-authorized':
+    case 'auth/configuration-not-found':
+      return isAr
+        ? 'خدمة إنشاء الحساب غير مهيّأة على هذا الموقع. تواصل مع دعم إنسكو.'
+        : 'Account registration is not configured for this website. Contact INSCO support.';
+    case 'auth/unauthorized-domain':
+      return isAr
+        ? 'عنوان الموقع الحالي غير معتمد لتسجيل الدخول. افتح بوابة إنسكو من رابطها الرسمي أو تواصل مع الدعم.'
+        : 'This website address is not authorized for sign-in. Open the official INSCO site or contact support.';
+    case 'auth/email-already-in-use':
+      return isAr
+        ? 'هذا البريد مسجّل بالفعل. اختر «تسجيل الدخول»، أو استخدم «نسيت كلمة المرور؟».'
+        : 'This email is already registered. Sign in or use “Forgot password?”.';
+    case 'auth/account-exists-with-different-credential':
+      return isAr
+        ? 'استخدم طريقة تسجيل الدخول التي أنشأت بها الحساب أول مرة.'
+        : 'Use the sign-in method you originally used to create your account.';
+    case 'auth/wrong-password':
+    case 'auth/invalid-credential':
+    case 'auth/invalid-login-credentials':
+    case 'auth/user-not-found':
+      return isAr
+        ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة. يمكنك طلب رابط لإعادة تعيين كلمة المرور.'
+        : 'Incorrect email or password. You can request a password reset link.';
+    case 'auth/invalid-email':
+      return isAr ? 'يرجى إدخال بريد إلكتروني صحيح.' : 'Please enter a valid email address.';
+    case 'auth/weak-password':
+    case 'auth/password-does-not-meet-requirements':
+      return isAr
+        ? 'كلمة المرور لا تستوفي شروط الحساب. اختر كلمة مرور أطول تجمع بين الأحرف والأرقام والرموز.'
+        : 'The password does not meet the account requirements. Use a longer password with letters, numbers and symbols.';
+    case 'auth/user-token-expired':
+    case 'auth/invalid-user-token':
+      return isAr
+        ? 'انتهت صلاحية الجلسة. سجّل الخروج ثم ادخل مرة أخرى.'
+        : 'Your session has expired. Sign out and sign in again.';
+    case 'auth/user-disabled':
+      return isAr ? 'الحساب غير متاح. تواصل مع دعم إنسكو.' : 'This account is unavailable. Contact INSCO support.';
+    case 'auth/invalid-phone-number':
+      return isAr
+        ? 'صيغة رقم الهاتف غير صحيحة. اكتبه بالصيغة الدولية مثل +2010XXXXXXXX.'
+        : 'Invalid phone number format. Use international format, e.g. +2010XXXXXXXX.';
+    case 'auth/invalid-verification-code':
+    case 'auth/code-expired':
+      return isAr
+        ? 'رمز التحقق غير صحيح أو انتهت صلاحيته. اطلب رمزاً جديداً.'
+        : 'Invalid or expired SMS verification code. Request a new code.';
+    case 'auth/billing-not-enabled':
+      return isAr
+        ? 'رسائل التحقق غير متاحة حالياً. استخدم البريد الإلكتروني أو حساب Google.'
+        : 'SMS verification is currently unavailable. Use email or Google sign-in.';
+    case 'auth/too-many-requests':
+      return isAr
+        ? 'محاولات كثيرة. انتظر بضع دقائق ثم أعد المحاولة.'
+        : 'Too many attempts. Wait a few minutes and try again.';
+    case 'auth/network-request-failed':
+      return isAr
+        ? 'تعذّر الاتصال بخدمة تسجيل الدخول. تحقق من الإنترنت وحاول مرة أخرى.'
+        : 'Could not reach the sign-in service. Check your connection and try again.';
+    case 'auth/web-storage-unsupported':
+      return isAr
+        ? 'المتصفح يمنع حفظ جلسة الدخول. اسمح بتخزين بيانات الموقع أو جرّب متصفحاً آخر.'
+        : 'The browser blocked session storage. Allow site storage or try another browser.';
+    case 'auth/popup-blocked':
+      return isAr
+        ? 'المتصفح حظر نافذة دخول Google. اسمح بالنوافذ المنبثقة ثم حاول مجدداً.'
+        : 'The browser blocked Google sign-in. Allow popups and try again.';
+    case 'auth/popup-closed-by-user':
+      return isAr
+        ? 'أُغلقت نافذة تسجيل الدخول بحساب Google قبل الإتمام.'
+        : 'The Google sign-in window was closed before completing.';
+    default:
+      return isAr
+        ? 'تعذّر إتمام العملية. حاول مرة أخرى، أو تواصل مع دعم إنسكو إذا استمرت المشكلة.'
+        : 'Could not complete the operation. Try again or contact INSCO support if it persists.';
   }
+}
+
+async function prepareClientSession(rememberMe: boolean) {
+  if (!auth) throw new Error('Firebase Auth is not initialized');
+  try {
+    await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
+  } catch {
+    throw Object.assign(new Error('Could not set browser session persistence'), { code: 'auth/web-storage-unsupported' });
+  }
+  return auth;
+}
+
+export async function signInClientPortalWithGoogle(rememberMe?: boolean): Promise<User> {
+  // The corporate QR entry point shares this helper and has no session toggle.
+  const clientAuth = rememberMe === undefined ? auth : await prepareClientSession(rememberMe);
+  if (!clientAuth) throw new Error('Firebase Auth is not initialized');
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
-  const cred = await signInWithPopup(auth, provider);
+  const cred = await signInWithPopup(clientAuth, provider);
   return cred.user;
 }
 
 export async function signUpClientPortalWithEmail(
   email: string,
   password: string,
-  displayName?: string
+  rememberMe: boolean
 ): Promise<User> {
-  if (!auth) {
-    throw new Error('Firebase Auth is not initialized.');
-  }
-  const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
-  if (displayName?.trim()) {
-    await updateProfile(cred.user, { displayName: displayName.trim().slice(0, 120) });
-  }
-  try {
-    await sendEmailVerification(cred.user);
-  } catch (verifyErr) {
-    console.warn('Could not dispatch email verification immediately:', verifyErr);
-  }
+  const clientAuth = await prepareClientSession(rememberMe);
+  // Account creation signs the user in. Email delivery and saving the draft
+  // must report their own outcomes rather than treating it as a failed signup.
+  const cred = await createUserWithEmailAndPassword(clientAuth, email.trim(), password);
   return cred.user;
 }
 
 export async function signInClientPortalWithEmail(
   email: string,
-  password: string
+  password: string,
+  rememberMe: boolean
 ): Promise<User> {
-  if (!auth) {
-    throw new Error('Firebase Auth is not initialized.');
-  }
-  const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
+  const clientAuth = await prepareClientSession(rememberMe);
+  const cred = await signInWithEmailAndPassword(clientAuth, email.trim(), password);
   return cred.user;
+}
+
+export async function confirmClientPortalVerification(user: User, refresh = false): Promise<boolean> {
+  if (refresh) await user.reload();
+  if (!isVerifiedPortalUser(user)) return false;
+
+  // Firestore authorizes using ID token claims, not the mutable User object.
+  const isVerifiedToken = ({ claims, signInProvider }: IdTokenResult) =>
+    claims.email_verified === true || (
+      signInProvider === 'phone' && typeof claims.phone_number === 'string' && claims.phone_number.length >= 5
+    );
+  if (!refresh && isVerifiedToken(await user.getIdTokenResult())) return true;
+  return isVerifiedToken(await user.getIdTokenResult(true));
 }
 
 export async function resendClientVerificationEmail(user: User): Promise<void> {
@@ -213,35 +272,37 @@ export async function resendClientVerificationEmail(user: User): Promise<void> {
 }
 
 export async function sendClientPasswordReset(email: string): Promise<void> {
-  if (!auth) {
-    throw new Error('Firebase Auth is not initialized.');
+  if (!auth) throw new Error('Firebase Auth is not initialized');
+  try {
+    await sendPasswordResetEmail(auth, email.trim());
+  } catch (err) {
+    // Give the same response for unknown or disabled accounts, even if the
+    // Firebase project has not enabled email enumeration protection.
+    if (!['auth/user-not-found', 'auth/user-disabled'].includes(firebaseErrorCode(err) ?? '')) throw err;
   }
-  await sendPasswordResetEmail(auth, email.trim());
 }
 
 export async function sendClientPhoneOtp(
   rawPhone: string,
-  recaptchaContainerId: string
+  recaptchaContainerId: string,
+  rememberMe: boolean
 ): Promise<ConfirmationResult> {
-  if (!auth) {
-    throw new Error('Firebase Auth is not initialized.');
-  }
   const e164Phone = normalizeE164Phone(rawPhone);
-  if (e164Phone.length < 8) {
-    throw new Error('Please enter a valid international phone number (e.g. +2010XXXXXXXX).');
+  if (!/^\+[1-9]\d{7,14}$/.test(e164Phone)) {
+    throw Object.assign(new Error('Invalid phone number'), { code: 'auth/invalid-phone-number' });
   }
-  const verifier = new RecaptchaVerifier(auth, recaptchaContainerId, {
+  const clientAuth = await prepareClientSession(rememberMe);
+  const verifier = new RecaptchaVerifier(clientAuth, recaptchaContainerId, {
     size: 'invisible',
   });
   try {
-    return await signInWithPhoneNumber(auth, e164Phone, verifier);
-  } catch (err) {
+    return await signInWithPhoneNumber(clientAuth, e164Phone, verifier);
+  } finally {
     try {
       verifier.clear();
     } catch {
       // Ignore cleanup error
     }
-    throw err;
   }
 }
 
@@ -257,7 +318,6 @@ export function observeClientPortalAuth(
     callback(null);
     return () => {};
   }
-  void testConnection();
   return onAuthStateChanged(auth, callback);
 }
 
@@ -271,25 +331,43 @@ export function isPortalFirestoreReady(): boolean {
 
 const PENDING_REG_DRAFT_KEY_PREFIX = 'insco_pending_client_reg_v1_';
 
-export function savePendingRegistrationDraft(
-  uid: string,
-  draft: ClientRegistrationDraftInput
-): void {
+// Persist only profile fields. Never serialize form credentials or tokens.
+function pickRegistrationDraft(value: unknown): ClientRegistrationDraftInput | null {
+  if (!value || typeof value !== 'object') return null;
+  const source = value as Record<string, unknown>;
+  const { fullName, phone, organizationName } = source;
+  if (typeof fullName !== 'string' || typeof phone !== 'string' || typeof organizationName !== 'string') return null;
+  const draft: ClientRegistrationDraftInput = { fullName, phone, organizationName };
+  const optionalFields = [
+    'personalEmail', 'jobTitle', 'nationalId', 'secondaryPhone', 'personalAddress',
+    'organizationNameEn', 'sector', 'commercialRegNo', 'taxCardNo', 'companyPhone',
+    'companyEmail', 'website', 'companyAddress', 'cityGovernorate', 'activeScope', 'requestedCompanyCode',
+  ] as const;
+  for (const field of optionalFields) {
+    const val = source[field];
+    if (typeof val === 'string') draft[field] = val;
+  }
+  if (typeof source.autoCreateCompanyWorkspace === 'boolean') {
+    draft.autoCreateCompanyWorkspace = source.autoCreateCompanyWorkspace;
+  }
+  return draft;
+}
+
+export function savePendingRegistrationDraft(uid: string, draft: ClientRegistrationDraftInput): boolean {
   try {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(`${PENDING_REG_DRAFT_KEY_PREFIX}${uid}`, JSON.stringify(draft));
-    }
+    const safeDraft = pickRegistrationDraft(draft);
+    if (!safeDraft) return false;
+    localStorage.setItem(`${PENDING_REG_DRAFT_KEY_PREFIX}${uid}`, JSON.stringify(safeDraft));
+    return true;
   } catch {
-    // Ignore storage failures
+    return false;
   }
 }
 
 export function loadPendingRegistrationDraft(uid: string): ClientRegistrationDraftInput | null {
   try {
-    if (typeof localStorage === 'undefined') return null;
     const raw = localStorage.getItem(`${PENDING_REG_DRAFT_KEY_PREFIX}${uid}`);
-    if (!raw) return null;
-    return JSON.parse(raw) as ClientRegistrationDraftInput;
+    return raw ? pickRegistrationDraft(JSON.parse(raw)) : null;
   } catch {
     return null;
   }
@@ -305,21 +383,45 @@ export function clearPendingRegistrationDraft(uid: string): void {
   }
 }
 
+export type ClientProfileSaveResult = 'created' | 'updated' | 'existing';
+
+export function formatClientProfileError(err: unknown, language: 'ar' | 'en'): string {
+  const isAr = language === 'ar';
+  switch (firebaseErrorCode(err)) {
+    case 'unauthenticated':
+      return isAr ? 'سجّل الدخول مرة أخرى ثم أعد المحاولة.' : 'Sign in again and retry.';
+    case 'permission-denied':
+      return isAr
+        ? 'قاعدة البيانات رفضت العملية. تأكّد من تفعيل حسابك، وتواصل مع دعم إنسكو إذا استمرت المشكلة.'
+        : 'The database denied the operation. Check that your account is verified or contact INSCO support.';
+    case 'unavailable':
+    case 'deadline-exceeded':
+      return isAr
+        ? 'تعذّر الاتصال بقاعدة البيانات. تحقق من الإنترنت ثم أعد المحاولة.'
+        : 'Could not reach the database. Check your internet connection and retry.';
+    default:
+      return isAr ? 'تعذّر إتمام العملية. أعد المحاولة.' : 'Could not complete the operation. Try again.';
+  }
+}
+
+function requireCurrentClient(user: User): void {
+  if (auth?.currentUser?.uid !== user.uid) {
+    throw Object.assign(new Error('Client session changed'), { code: 'unauthenticated' });
+  }
+}
+
 export async function saveClientRegistration(
   user: User,
   input: ClientRegistrationDraftInput,
-  existingAccount: ClientAccount | null
-): Promise<void> {
+  { createOnly = false } = {}
+): Promise<ClientProfileSaveResult> {
   if (!db) throw new Error('Firestore not initialized');
-  const path = `client_accounts/${user.uid}`;
+  requireCurrentClient(user);
   const docRef = doc(db, 'client_accounts', user.uid);
   const reqCode = sanitizeUpperCode(input.requestedCompanyCode ?? '');
-  const resolvedEmail = clampStr(
-    input.personalEmail || user.email || `${user.uid.slice(0, 12)}@phone.insco.local`,
-    160
-  );
-  const resolvedPhone = clampStr(input.phone || user.phoneNumber || '', 40);
-  const authMethod = existingAccount?.authMethod ?? detectUserAuthMethod(user);
+  const resolvedEmail = clampStr(input.personalEmail, 160) || clampStr(user.email ?? undefined, 160)
+    || `${user.uid.slice(0, 12)}@phone.insco.local`;
+  const resolvedPhone = clampStr(input.phone, 40) || clampStr(user.phoneNumber ?? undefined, 40);
 
   const extendedFields = {
     fullName: clampStr(input.fullName, BLUEPRINT_LIMITS.SHORT_NAME_MAX),
@@ -343,45 +445,39 @@ export async function saveClientRegistration(
     activeScope: clampStr(input.activeScope, 1000),
   };
 
-  try {
-    if (!existingAccount) {
-      await setDoc(docRef, {
-        uid: user.uid,
-        ...extendedFields,
-        authMethod,
-        assignedCompanyId: '',
-        assignedCompanyCode: '',
-        role: isVerifiedAdminUser(user) ? 'admin' : 'client',
-        approvalStatus: isVerifiedAdminUser(user) ? 'approved' : 'pending',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-    } else {
-      await updateDoc(docRef, {
-        ...extendedFields,
-        updatedAt: serverTimestamp(),
-      });
+  // Use the server record, not a possibly stale snapshot, to decide between
+  // create and update. Automatic onboarding must not overwrite any existing
+  // profile, including one saved in another tab during the verification flow.
+  return runTransaction(db, async transaction => {
+    const snapshot = await transaction.get(docRef);
+    requireCurrentClient(user);
+    if (snapshot.exists()) {
+      if (createOnly) return 'existing';
+      transaction.update(docRef, { ...extendedFields, updatedAt: serverTimestamp() });
+      return 'updated';
     }
-  } catch (err) {
-    handleFirestoreError(
-      err,
-      existingAccount ? OperationType.UPDATE : OperationType.CREATE,
-      path
-    );
-  }
+    const isAdmin = isVerifiedAdminUser(user);
+    transaction.set(docRef, {
+      uid: user.uid,
+      ...extendedFields,
+      authMethod: detectUserAuthMethod(user),
+      assignedCompanyId: '',
+      assignedCompanyCode: '',
+      role: isAdmin ? 'admin' : 'client',
+      approvalStatus: isAdmin ? 'approved' : 'pending',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    return 'created';
+  });
 }
 
 export async function createInitialCompanyFromRegistration(
   user: User,
-  draft: ClientRegistrationDraftInput,
-  existingCompanies: readonly CompanyRecord[] = []
+  draft: ClientRegistrationDraftInput
 ): Promise<CompanyRecord> {
-  const code =
-    sanitizeUpperCode(draft.requestedCompanyCode ?? '') ||
-    generateNextCompanyCode(existingCompanies.map(c => c.companyCode));
-
+  requireCurrentClient(user);
   return createCompanyWithUniqueCode(user.uid, {
-    companyCode: code,
     nameAr: draft.organizationName.trim(),
     nameEn: (draft.organizationNameEn || draft.organizationName).trim(),
     archiveCategory: 'new_onboarding',
@@ -407,19 +503,14 @@ export function subscribeMyClientAccount(
     onData(null);
     return () => {};
   }
-  const path = `client_accounts/${uid}`;
   return onSnapshot(
     doc(db, 'client_accounts', uid),
+    { includeMetadataChanges: true },
     snap => {
+      if (snap.metadata.fromCache || snap.metadata.hasPendingWrites) return;
       onData(snap.exists() ? (snap.data() as ClientAccount) : null);
     },
-    err => {
-      try {
-        handleFirestoreError(err, OperationType.GET, path);
-      } catch (wrapped) {
-        onError?.(wrapped instanceof Error ? wrapped : new Error(String(wrapped)));
-      }
-    }
+    onError
   );
 }
 
@@ -571,21 +662,17 @@ export function subscribeClientRequests(
   const path = 'client_requests';
   const q = isAdmin
     ? query(collection(db, 'client_requests'), orderBy('createdAt', 'desc'))
-    : query(
-        collection(db, 'client_requests'),
-        where('submittedByUid', '==', uid),
-        orderBy('createdAt', 'desc')
-      );
+    : query(collection(db, 'client_requests'), where('submittedByUid', '==', uid));
 
   return onSnapshot(
     q,
     snap => {
-      onData(
-        snap.docs.map(d => ({
-          id: d.id,
-          ...(d.data() as Omit<ClientRequest, 'id'>),
-        }))
-      );
+      const requests = snap.docs.map(d => ({
+        id: d.id,
+        ...(d.data() as Omit<ClientRequest, 'id'>),
+      }));
+      if (!isAdmin) requests.sort((a, b) => createdAtMs(b.createdAt) - createdAtMs(a.createdAt));
+      onData(requests);
     },
     err => {
       try {
@@ -604,7 +691,7 @@ export function subscribeClientRequests(
 export async function createCompanyWithUniqueCode(
   creatorUid: string,
   input: {
-    companyCode: string;
+    companyCode?: string;
     nameAr: string;
     nameEn: string;
     archiveCategory: ArchiveCategory;
@@ -624,7 +711,10 @@ export async function createCompanyWithUniqueCode(
   }
 ): Promise<CompanyRecord> {
   if (!db) throw new Error('Firestore not initialized');
-  const companyCode = sanitizeUpperCode(input.companyCode);
+  const companyRef = doc(collection(db, 'companies'));
+  // The private archive cannot list everyone else's codes. Derive a code
+  // for self-service onboarding from the unique document ID instead.
+  const companyCode = sanitizeUpperCode(input.companyCode ?? `INS-CO-${companyRef.id}`);
   if (
     companyCode.length < BLUEPRINT_LIMITS.COMPANY_CODE_MIN ||
     !BLUEPRINT_LIMITS.COMPANY_CODE_REGEX.test(companyCode)
@@ -632,7 +722,6 @@ export async function createCompanyWithUniqueCode(
     throw new Error('Invalid company code format');
   }
 
-  const companyRef = doc(collection(db, 'companies'));
   const codeRef = doc(db, 'company_codes', companyCode);
   const path = `companies/${companyRef.id}`;
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import type { ConfirmationResult, User } from 'firebase/auth';
 import {
   BriefcaseBusiness,
@@ -13,10 +13,8 @@ import {
 import type { Language } from '../../types';
 import type { ClientAuthMethod, ClientRegistrationDraftInput } from '../../client/types';
 import {
-  createInitialCompanyFromRegistration,
   formatFirebaseAuthError,
-  saveClientRegistration,
-  savePendingRegistrationDraft,
+  normalizePhoneDigits,
   sendClientPasswordReset,
   sendClientPhoneOtp,
   signInClientPortalWithEmail,
@@ -30,7 +28,8 @@ interface ClientAuthOnboardingCardProps {
   firebaseReady: boolean;
   authReady: boolean;
   onOpenCompanyPortal: () => void;
-  onRegistrationCompleted?: (user: User) => void;
+  initialMode?: 'register' | 'signin';
+  onRegistrationReady: (user: User, draft: ClientRegistrationDraftInput, sendVerification: boolean) => void;
 }
 
 const EMPTY_DRAFT: ClientRegistrationDraftInput = {
@@ -56,245 +55,329 @@ const EMPTY_DRAFT: ClientRegistrationDraftInput = {
   autoCreateCompanyWorkspace: true,
 };
 
+type DraftTextField = Exclude<keyof ClientRegistrationDraftInput, 'autoCreateCompanyWorkspace'>;
+const DRAFT_TEXT_FIELDS = (Object.keys(EMPTY_DRAFT) as Array<keyof ClientRegistrationDraftInput>)
+  .filter((key): key is DraftTextField => key !== 'autoCreateCompanyWorkspace');
+
+type AuthFailure = { message: string; input?: HTMLInputElement | null; recoverSignIn?: boolean };
+
+function namedInput(fields: HTMLCollection | HTMLFormControlsCollection | undefined, name: string) {
+  const control = fields?.namedItem(name);
+  return control && 'tagName' in control && control.tagName === 'INPUT' ? control as HTMLInputElement : null;
+}
+
+function normalizeSignupWebsite(value: string | undefined): string | null {
+  const site = value?.trim() ?? '';
+  if (!site) return '';
+  try {
+    const url = new URL(site.includes('://') ? site : `https://${site}`);
+    return ['http:', 'https:'].includes(url.protocol) && url.hostname.includes('.') && !url.username && !url.password
+      ? url.href
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 export const ClientAuthOnboardingCard: React.FC<ClientAuthOnboardingCardProps> = ({
   language,
   firebaseReady,
   authReady,
   onOpenCompanyPortal,
-  onRegistrationCompleted,
+  initialMode = 'signin',
+  onRegistrationReady,
 }) => {
   const isAr = language === 'ar';
 
-  const [mode, setMode] = useState<'register' | 'signin'>('register');
-  const [provider, setProvider] = useState<ClientAuthMethod>('google');
-
-  // Credentials state
-  const [authEmail, setAuthEmail] = useState('');
-  const [authPassword, setAuthPassword] = useState('');
-  const [authConfirmPassword, setAuthConfirmPassword] = useState('');
-
-  // Phone OTP state
+  const [mode, setMode] = useState(initialMode);
+  const [provider, setProvider] = useState<ClientAuthMethod>('email');
+  const isRegister = mode === 'register';
+  const emailForm = useRef<HTMLFormElement>(null);
+  const registrationFields = useRef<HTMLFieldSetElement>(null);
+  const lastEmail = useRef('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [authPhone, setAuthPhone] = useState('');
   const [otpConfirmation, setOtpConfirmation] = useState<ConfirmationResult | null>(null);
   const [otpCode, setOtpCode] = useState('');
-  const [sendingOtp, setSendingOtp] = useState(false);
-
-  // Full Personal + Company Draft State
   const [draft, setDraft] = useState<ClientRegistrationDraftInput>(EMPTY_DRAFT);
-
-  const [submitting, setSubmitting] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [action, setAction] = useState<'auth' | 'reset' | 'sms' | null>(null);
+  const [failure, setFailure] = useState<AuthFailure | null>(null);
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
+  const canSubmit = firebaseReady && authReady && !action;
+  const submitting = action === 'auth';
+  const sendingOtp = action === 'sms';
+  const targetPhone = isRegister ? draft.phone : authPhone;
 
-  const syncEmailIntoDraft = (nextEmail: string) => {
-    setAuthEmail(nextEmail);
-    setDraft(prev => ({
-      ...prev,
-      personalEmail: prev.personalEmail || nextEmail,
-    }));
+  const reportError = (message: string, input?: HTMLInputElement | null) => setFailure({ message, input });
+  const clearMessages = () => {
+    setFailure(null);
+    setInfoMsg(null);
   };
 
-  const syncPhoneIntoDraft = (nextPhone: string) => {
-    setAuthPhone(nextPhone);
-    setDraft(prev => ({
-      ...prev,
-      phone: nextPhone,
-    }));
+  const clearOtp = () => {
+    setOtpConfirmation(null);
+    setOtpCode('');
   };
 
-  const validateFullRegistrationDraft = (): string | null => {
-    const effectivePhone = (provider === 'phone' ? authPhone || draft.phone : draft.phone).trim();
-    if (draft.fullName.trim().length < 2) {
-      return isAr ? 'يرجى إدخال الاسم الكامل للمفوّض.' : 'Please enter the representative Full Name.';
-    }
-    if (effectivePhone.length < 5) {
-      return isAr ? 'يرجى إدخال رقم الهاتف الأساسي بشكل صحيح.' : 'Please enter a valid primary Phone number.';
-    }
-    if (draft.organizationName.trim().length < 2) {
-      return isAr ? 'يرجى إدخال اسم الشركة الرسمي.' : 'Please enter the official Company / Organization Name.';
-    }
-    return null;
+  const emailInput = (name: string) => namedInput(emailForm.current?.elements, name);
+  const emailField = () => emailInput('username');
+  const profileInput = (field: keyof ClientRegistrationDraftInput) => namedInput(registrationFields.current?.elements, field);
+
+  const switchAuthView = () => {
+    const field = emailField();
+    if (field) lastEmail.current = field.value;
+    clearMessages();
+    clearOtp();
   };
 
-  const finalizeVerifiedUserProfile = async (signedUser: User) => {
-    const mergedDraft: ClientRegistrationDraftInput = {
-      ...draft,
-      fullName: draft.fullName.trim() || signedUser.displayName || 'Client Account',
-      personalEmail: (draft.personalEmail || authEmail || signedUser.email || '').trim(),
-      phone: (draft.phone || authPhone || signedUser.phoneNumber || '').trim(),
+  const updateDraft = (next: ClientRegistrationDraftInput) => {
+    if (next.phone !== draft.phone) clearOtp();
+    setDraft(next);
+  };
+
+  const captureDraft = (): ClientRegistrationDraftInput => {
+    const next = { ...draft };
+    // Autofill can update the fields without triggering React change events.
+    // Whitelist profile fields here so no password or OTP enters the draft.
+    for (const field of DRAFT_TEXT_FIELDS) {
+      const input = profileInput(field);
+      if (input) next[field] = input.value;
+    }
+    next.autoCreateCompanyWorkspace = profileInput('autoCreateCompanyWorkspace')?.checked ?? next.autoCreateCompanyWorkspace;
+    setDraft(next);
+    return next;
+  };
+
+  const validateDraft = (input: ClientRegistrationDraftInput): ClientRegistrationDraftInput | null => {
+    const phone = normalizePhoneDigits(input.phone).trim();
+    const issue = (field: keyof ClientRegistrationDraftInput, ar: string, en: string) => {
+      reportError(isAr ? ar : en, profileInput(field));
+      return null;
     };
-
-    if (signedUser.emailVerified || provider === 'phone') {
-      await saveClientRegistration(signedUser, mergedDraft, null);
-      if (mergedDraft.autoCreateCompanyWorkspace) {
-        try {
-          await createInitialCompanyFromRegistration(signedUser, mergedDraft);
-        } catch (companyErr) {
-          console.warn('Optional initial company workspace creation skipped:', companyErr);
-        }
-      }
-      onRegistrationCompleted?.(signedUser);
-    } else {
-      savePendingRegistrationDraft(signedUser.uid, mergedDraft);
+    if (input.fullName.trim().length < 2) {
+      return issue('fullName', 'اكتب الاسم الكامل للمفوّض.', 'Enter the representative’s full name.');
     }
+    if (phone.replace(/\D/g, '').length < 5) {
+      return issue('phone', 'اكتب رقم الهاتف الأساسي بالأرقام.', 'Enter a valid primary phone number.');
+    }
+    if (input.organizationName.trim().length < 2) {
+      return issue('organizationName', 'اكتب اسم الشركة الرسمي.', 'Enter the official company name.');
+    }
+    if (profileInput('personalEmail')?.validity.typeMismatch) {
+      return issue('personalEmail', 'صحّح البريد الشخصي أو اترك الحقل الاختياري فارغاً.', 'Correct the personal email or leave the optional field blank.');
+    }
+    if (profileInput('companyEmail')?.validity.typeMismatch) {
+      return issue('companyEmail', 'صحّح بريد الشركة أو اترك الحقل الاختياري فارغاً.', 'Correct the company email or leave the optional field blank.');
+    }
+    const website = normalizeSignupWebsite(input.website);
+    if (website === null) {
+      return issue('website', 'اكتب موقع الشركة بشكل صحيح (مثال: www.company.com) أو اتركه فارغاً.', 'Enter a valid company website (e.g. www.company.com) or leave it blank.');
+    }
+    return { ...input, phone, website };
+  };
+
+  const handOffDraft = (signedUser: User, details: ClientRegistrationDraftInput, accountEmail?: string) => {
+    onRegistrationReady(signedUser, {
+      ...details,
+      fullName: details.fullName.trim(),
+      personalEmail: (accountEmail ?? (details.personalEmail?.trim() || signedUser.email || '')).trim(),
+      phone: (signedUser.phoneNumber || details.phone).trim(),
+    }, accountEmail !== undefined);
   };
 
   const handleGoogleAction = async () => {
-    setErrorMsg(null);
-    setInfoMsg(null);
-    if (mode === 'register') {
-      const validationErr = validateFullRegistrationDraft();
-      if (validationErr) {
-        setErrorMsg(validationErr);
-        return;
-      }
-    }
-    setSubmitting(true);
+    if (!canSubmit) return;
+    clearMessages();
+    const details = isRegister ? validateDraft(captureDraft()) : null;
+    if (isRegister && !details) return;
+    setAction('auth');
     try {
-      const signedUser = await signInClientPortalWithGoogle();
-      if (signedUser && mode === 'register') {
-        await finalizeVerifiedUserProfile(signedUser);
-      }
+      const signedUser = await signInClientPortalWithGoogle(rememberMe);
+      if (details) handOffDraft(signedUser, details);
     } catch (err) {
-      setErrorMsg(formatFirebaseAuthError(err, language));
+      reportError(formatFirebaseAuthError(err, language));
     } finally {
-      setSubmitting(false);
+      setAction(null);
     }
   };
 
-  const handleEmailSubmit = async (e: React.FormEvent) => {
+  const handleEmailSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setErrorMsg(null);
-    setInfoMsg(null);
+    if (!canSubmit) return;
+    clearMessages();
 
-    if (!authEmail.trim() || !authEmail.includes('@')) {
-      setErrorMsg(isAr ? 'يرجى إدخال بريد إلكتروني صحيح.' : 'Please enter a valid email address.');
+    // Read the native form at submission time: some password managers fill
+    // the inputs without dispatching React change events. Never trim passwords.
+    const liveDraft = isRegister ? captureDraft() : null;
+    const fields = new FormData(e.currentTarget);
+    const email = String(fields.get('username') ?? '').trim();
+    const password = String(fields.get('password') ?? '');
+    if (!email || !emailField()?.validity.valid) {
+      reportError(isAr ? 'اكتب بريد الحساب بشكل صحيح.' : 'Enter a valid account email address.', emailField());
       return;
     }
-    if (authPassword.length < 6) {
-      setErrorMsg(isAr ? 'كلمة المرور يجب ألا تقل عن 6 أحرف.' : 'Password must be at least 6 characters.');
+    if (!password) {
+      reportError(isAr ? 'اكتب كلمة المرور.' : 'Enter your password.', emailInput('password'));
       return;
     }
-
-    if (mode === 'register') {
-      if (authPassword !== authConfirmPassword) {
-        setErrorMsg(isAr ? 'كلمتا المرور غير متطابقتين.' : 'Passwords do not match.');
-        return;
-      }
-      const validationErr = validateFullRegistrationDraft();
-      if (validationErr) {
-        setErrorMsg(validationErr);
-        return;
-      }
+    if (liveDraft && password.length < 6) {
+      reportError(isAr ? 'استخدم كلمة مرور من 6 أحرف على الأقل.' : 'Use a password of at least 6 characters.', emailInput('password'));
+      return;
     }
+    if (liveDraft && password !== fields.get('confirm-password')) {
+      reportError(isAr ? 'كلمتا المرور غير متطابقتين.' : 'Passwords do not match.', emailInput('confirm-password'));
+      return;
+    }
+    const details = liveDraft ? validateDraft(liveDraft) : null;
+    if (isRegister && !details) return;
 
-    setSubmitting(true);
+    setAction('auth');
     try {
-      if (mode === 'register') {
-        const createdUser = await signUpClientPortalWithEmail(
-          authEmail,
-          authPassword,
-          draft.fullName
-        );
-        savePendingRegistrationDraft(createdUser.uid, {
-          ...draft,
-          personalEmail: authEmail.trim(),
-        });
-        setInfoMsg(
-          isAr
-            ? 'تم إنشاء حسابك وإرسال رابط تفعيل إلى بريدك الإلكتروني.'
-            : 'Account created and verification email dispatched.'
-        );
+      if (details) {
+        const createdUser = await signUpClientPortalWithEmail(email, password, rememberMe);
+        handOffDraft(createdUser, details, createdUser.email || email);
       } else {
-        await signInClientPortalWithEmail(authEmail, authPassword);
+        await signInClientPortalWithEmail(email, password, rememberMe);
       }
     } catch (err) {
-      setErrorMsg(formatFirebaseAuthError(err, language));
+      const message = formatFirebaseAuthError(err, language);
+      setFailure({
+        message: isRegister ? `${isAr ? 'تعذّر إنشاء الحساب.' : 'Could not create the account.'} ${message}` : message,
+        recoverSignIn: isRegister && (err as { code?: string } | null)?.code === 'auth/email-already-in-use',
+      });
     } finally {
-      setSubmitting(false);
+      setAction(null);
     }
   };
 
   const handlePasswordReset = async () => {
-    setErrorMsg(null);
-    setInfoMsg(null);
-    if (!authEmail.trim() || !authEmail.includes('@')) {
-      setErrorMsg(
+    if (!canSubmit) return;
+    clearMessages();
+    const field = emailField();
+    if (!field?.value.trim() || !field.validity.valid) {
+      reportError(
         isAr
-          ? 'اكتب بريدك الإلكتروني أولاً ثم اضغط استعادة كلمة المرور.'
-          : 'Enter your email address first to send a password reset link.'
+          ? 'اكتب بريد الحساب بشكل صحيح أولاً، ثم اضغط «نسيت كلمة المرور؟».'
+          : 'Enter a valid account email first, then select “Forgot password?”.'
       );
+      field?.focus();
       return;
     }
+    setAction('reset');
     try {
-      await sendClientPasswordReset(authEmail);
+      await sendClientPasswordReset(field.value);
       setInfoMsg(
         isAr
-          ? 'تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني.'
-          : 'Password reset link sent to your email address.'
+          ? 'إذا كان البريد مرتبطاً بحساب، سيصلك رابط لإعادة تعيين كلمة المرور. راجع الوارد والبريد غير المرغوب فيه.'
+          : 'If this email belongs to an account, you will receive a reset link. Check your inbox and spam folder.'
       );
     } catch (err) {
-      setErrorMsg(formatFirebaseAuthError(err, language));
+      reportError(formatFirebaseAuthError(err, language));
+    } finally {
+      setAction(null);
     }
   };
 
   const handleSendPhoneOtp = async () => {
-    setErrorMsg(null);
-    setInfoMsg(null);
+    if (!canSubmit) return;
+    clearMessages();
 
-    const targetPhone = (authPhone || draft.phone).trim();
-    if (targetPhone.length < 7) {
-      setErrorMsg(
-        isAr
-          ? 'أدخل رقم التليفون بالصيغة الدولية مثل +2010XXXXXXXX.'
-          : 'Enter an international phone number e.g. +2010XXXXXXXX.'
-      );
-      return;
-    }
+    const details = isRegister ? validateDraft(captureDraft()) : null;
+    if (isRegister && !details) return;
 
-    if (mode === 'register') {
-      const validationErr = validateFullRegistrationDraft();
-      if (validationErr) {
-        setErrorMsg(validationErr);
-        return;
-      }
-    }
-
-    setSendingOtp(true);
+    setAction('sms');
     try {
-      const confirmation = await sendClientPhoneOtp(targetPhone, 'client-phone-recaptcha');
+      const confirmation = await sendClientPhoneOtp(details?.phone ?? targetPhone, 'client-phone-recaptcha', rememberMe);
       setOtpConfirmation(confirmation);
+      setOtpCode('');
       setInfoMsg(
         isAr
           ? 'تم إرسال رمز التحقق SMS إلى رقم هاتفك. أدخل الكود المكون من 6 أرقام أدناه.'
           : 'SMS verification code sent. Enter the 6-digit OTP code below.'
       );
     } catch (err) {
-      setErrorMsg(formatFirebaseAuthError(err, language));
+      reportError(formatFirebaseAuthError(err, language));
     } finally {
-      setSendingOtp(false);
+      setAction(null);
     }
   };
 
   const handleVerifyPhoneOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!otpConfirmation || otpCode.trim().length < 4) {
-      setErrorMsg(isAr ? 'أدخل رمز التحقق SMS المرسل إليك.' : 'Enter the SMS verification code.');
+    if (!canSubmit || !otpConfirmation) return;
+    clearMessages();
+    const code = normalizePhoneDigits(otpCode).trim();
+    if (!/^\d{6}$/.test(code)) {
+      reportError(isAr ? 'أدخل رمز التحقق من 6 أرقام.' : 'Enter the 6-digit SMS verification code.');
       return;
     }
-    setSubmitting(true);
-    setErrorMsg(null);
+    const details = isRegister ? validateDraft(captureDraft()) : null;
+    if (isRegister && !details) return;
+    setAction('auth');
     try {
-      const cred = await otpConfirmation.confirm(otpCode.trim());
-      if (mode === 'register') {
-        await finalizeVerifiedUserProfile(cred.user);
-      }
+      const cred = await otpConfirmation.confirm(code);
+      if (details) handOffDraft(cred.user, details);
     } catch (err) {
-      setErrorMsg(formatFirebaseAuthError(err, language));
+      reportError(formatFirebaseAuthError(err, language));
     } finally {
-      setSubmitting(false);
+      setAction(null);
     }
   };
+
+  const feedback = (
+    <>
+      {!firebaseReady && (
+        <p role="alert" className="rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-xs text-rose-200">
+          {isAr ? 'خدمة تسجيل دخول العملاء غير متاحة حالياً. حاول لاحقاً أو تواصل مع الدعم.' : 'Client sign-in is unavailable. Try again later or contact support.'}
+        </p>
+      )}
+      {failure && (
+        <div role="alert" className="rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-xs text-rose-200 space-y-2">
+          <p>{failure.message}</p>
+          {failure.input && (
+            <button type="button" className="text-cyan-200 font-bold underline" onClick={() => {
+              failure.input?.focus({ preventScroll: true });
+              failure.input?.scrollIntoView?.({ block: 'center' });
+            }}>
+              {isAr ? 'راجع الحقل' : 'Review field'}
+            </button>
+          )}
+          {failure.recoverSignIn && (
+            <button type="button" className="text-cyan-200 font-bold underline" onClick={() => {
+              switchAuthView();
+              setMode('signin');
+              emailForm.current?.scrollIntoView?.({ block: 'center' });
+            }}>
+              {isAr ? 'ادخل بالبريد نفسه' : 'Sign in with this email'}
+            </button>
+          )}
+        </div>
+      )}
+      {infoMsg && (
+        <div role="status" className="flex items-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-xs text-emerald-200">
+          <CheckCircle2 className="w-4 h-4 shrink-0" aria-hidden="true" />
+          <span>{infoMsg}</span>
+        </div>
+      )}
+    </>
+  );
+
+  const rememberOption = (
+    <label className="flex items-start gap-2.5 text-xs text-slate-300">
+      <input
+        type="checkbox"
+        name="remember-session"
+        checked={rememberMe}
+        disabled={Boolean(action) || (provider === 'phone' && Boolean(otpConfirmation))}
+        onChange={e => setRememberMe(e.target.checked)}
+        className="mt-0.5 accent-cyan-500"
+      />
+      <span>
+        <strong className="block text-slate-100">{isAr ? 'ابقني مسجّلاً على هذا الجهاز' : 'Keep me signed in on this device'}</strong>
+        {isAr ? 'استخدمه على جهازك الخاص فقط. هذا الخيار لا يحفظ كلمة المرور.' : 'Use only on a private device. This does not save your password.'}
+      </span>
+    </label>
+  );
 
   return (
     <div
@@ -327,23 +410,25 @@ export const ClientAuthOnboardingCard: React.FC<ClientAuthOnboardingCardProps> =
         <div
           role="tablist"
           aria-label={isAr ? 'وضع الدخول والتسجيل' : 'Authentication Mode'}
-          className="inline-flex rounded-xl border border-slate-800 bg-slate-950 p-1 text-xs shrink-0 self-start"
+          className="grid w-full grid-cols-2 rounded-xl border border-slate-800 bg-slate-950 p-1 text-xs sm:w-auto lg:shrink-0 self-start"
         >
           <button
             type="button"
             role="tab"
             aria-selected={mode === 'register'}
+            disabled={Boolean(action)}
             onClick={() => {
+              if (mode === 'register') return;
+              switchAuthView();
               setMode('register');
-              setErrorMsg(null);
             }}
-            className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 font-bold transition cursor-pointer whitespace-nowrap ${
+            className={`inline-flex min-w-0 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-center font-bold transition cursor-pointer sm:whitespace-nowrap sm:px-3.5 ${
               mode === 'register'
                 ? 'bg-amber-500 text-slate-950'
                 : 'text-slate-300 hover:text-white'
             }`}
           >
-            <UserPlus className="w-3.5 h-3.5" aria-hidden="true" />
+            <UserPlus className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
             <span>{isAr ? 'إنشاء حساب جديد' : 'Create Account'}</span>
           </button>
 
@@ -351,17 +436,19 @@ export const ClientAuthOnboardingCard: React.FC<ClientAuthOnboardingCardProps> =
             type="button"
             role="tab"
             aria-selected={mode === 'signin'}
+            disabled={Boolean(action)}
             onClick={() => {
+              if (mode === 'signin') return;
+              switchAuthView();
               setMode('signin');
-              setErrorMsg(null);
             }}
-            className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 font-bold transition cursor-pointer whitespace-nowrap ${
+            className={`inline-flex min-w-0 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-center font-bold transition cursor-pointer sm:whitespace-nowrap sm:px-3.5 ${
               mode === 'signin'
                 ? 'bg-cyan-600 text-white'
                 : 'text-slate-300 hover:text-white'
             }`}
           >
-            <LogIn className="w-3.5 h-3.5" aria-hidden="true" />
+            <LogIn className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
             <span>{isAr ? 'تسجيل الدخول' : 'Sign In'}</span>
           </button>
         </div>
@@ -402,10 +489,12 @@ export const ClientAuthOnboardingCard: React.FC<ClientAuthOnboardingCardProps> =
                 key={item.id}
                 type="button"
                 data-testid={`auth-method-tab-${item.id}`}
+                aria-pressed={active}
+                disabled={Boolean(action)}
                 onClick={() => {
+                  if (provider === item.id) return;
+                  switchAuthView();
                   setProvider(item.id);
-                  setErrorMsg(null);
-                  setInfoMsg(null);
                 }}
                 className={`flex items-center justify-center gap-2 rounded-xl border px-3.5 py-2.5 font-bold transition cursor-pointer ${
                   active
@@ -421,48 +510,30 @@ export const ClientAuthOnboardingCard: React.FC<ClientAuthOnboardingCardProps> =
         </div>
       </div>
 
-      {/* Registration Full Form Fields (Personal + Company) when mode === 'register' */}
-      {mode === 'register' && (
-        <ClientRegistrationFormFields
-          language={language}
-          value={draft}
-          onChange={next => {
-            setDraft(next);
-            if (provider === 'email' && next.personalEmail && !authEmail) {
-              setAuthEmail(next.personalEmail);
-            }
-            if (provider === 'phone' && next.phone && !authPhone) {
-              setAuthPhone(next.phone);
-            }
-          }}
-          showAutoCreateCompanyToggle={true}
-        />
-      )}
-
-      {/* Alerts / Info Banners */}
-      {errorMsg && (
-        <div
-          role="alert"
-          className="rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-xs text-rose-200"
-        >
-          {errorMsg}
-        </div>
-      )}
-
-      {infoMsg && (
-        <div
-          role="status"
-          className="flex items-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-xs text-emerald-200"
-        >
-          <CheckCircle2 className="w-4 h-4 shrink-0" aria-hidden="true" />
-          <span>{infoMsg}</span>
-        </div>
+      {isRegister && provider !== 'email' && (
+        <fieldset ref={registrationFields} disabled={Boolean(action)}>
+          <ClientRegistrationFormFields
+            language={language}
+            value={draft}
+            onChange={updateDraft}
+            showAutoCreateCompanyToggle
+          />
+        </fieldset>
       )}
 
       {/* Provider Action Panel */}
       <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-4 sm:p-5 space-y-4">
         {provider === 'email' && (
-          <form onSubmit={e => void handleEmailSubmit(e)} className="space-y-4">
+          <form
+            id={isRegister ? 'client-signup' : 'client-signin'}
+            key={mode}
+            ref={emailForm}
+            method="post"
+            noValidate={isRegister}
+            aria-busy={submitting}
+            onSubmit={e => void handleEmailSubmit(e)}
+            className="space-y-4"
+          >
             <div className="flex items-center gap-2 text-xs font-black text-white">
               <Mail className="w-4 h-4 text-cyan-400" aria-hidden="true" />
               <span>
@@ -483,9 +554,13 @@ export const ClientAuthOnboardingCard: React.FC<ClientAuthOnboardingCardProps> =
                 </span>
                 <input
                   type="email"
+                  name="username"
+                  autoComplete="username"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  dir="ltr"
                   required
-                  value={authEmail}
-                  onChange={e => syncEmailIntoDraft(e.target.value)}
+                  defaultValue={lastEmail.current || (isRegister ? draft.personalEmail : '')}
                   placeholder="client@company.com"
                   className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 font-mono text-xs text-white focus:border-cyan-500 focus:outline-none"
                 />
@@ -497,10 +572,11 @@ export const ClientAuthOnboardingCard: React.FC<ClientAuthOnboardingCardProps> =
                 </span>
                 <input
                   type="password"
+                  name="password"
+                  autoComplete={isRegister ? 'new-password' : 'current-password'}
+                  dir="ltr"
                   required
-                  minLength={6}
-                  value={authPassword}
-                  onChange={e => setAuthPassword(e.target.value)}
+                  minLength={isRegister ? 6 : undefined}
                   placeholder="••••••"
                   className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 font-mono text-xs text-white focus:border-cyan-500 focus:outline-none"
                 />
@@ -513,10 +589,11 @@ export const ClientAuthOnboardingCard: React.FC<ClientAuthOnboardingCardProps> =
                   </span>
                   <input
                     type="password"
+                    name="confirm-password"
+                    autoComplete="new-password"
+                    dir="ltr"
                     required
                     minLength={6}
-                    value={authConfirmPassword}
-                    onChange={e => setAuthConfirmPassword(e.target.value)}
                     placeholder="••••••"
                     className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 font-mono text-xs text-white focus:border-cyan-500 focus:outline-none"
                   />
@@ -524,22 +601,42 @@ export const ClientAuthOnboardingCard: React.FC<ClientAuthOnboardingCardProps> =
               )}
             </div>
 
+            {isRegister && (
+              <fieldset ref={registrationFields} disabled={Boolean(action)}>
+                <ClientRegistrationFormFields
+                  language={language}
+                  value={draft}
+                  onChange={updateDraft}
+                  showPersonalEmail={false}
+                  showAutoCreateCompanyToggle
+                />
+              </fieldset>
+            )}
+            {isRegister && (
+              <p className="text-xs text-slate-300">
+                {isAr
+                  ? 'الحقول بعلامة * مطلوبة فقط. باقي البيانات تقدر تضيفها بعد تفعيل حسابك.'
+                  : 'Only fields marked * are required. You can add other details after verifying your account.'}
+              </p>
+            )}
+            {rememberOption}
+            {feedback}
             <div className="flex flex-wrap items-center justify-between gap-3">
               <button
                 type="submit"
-                disabled={!firebaseReady || !authReady || submitting}
+                disabled={!canSubmit}
                 className="inline-flex items-center gap-2 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 px-5 py-2.5 text-xs font-black text-slate-950 transition cursor-pointer"
               >
                 <KeyRound className="w-4 h-4" aria-hidden="true" />
                 <span>
                   {submitting
                     ? isAr
-                      ? 'جاري التنفيذ...'
-                      : 'Processing...'
+                      ? isRegister ? 'جاري إنشاء الحساب…' : 'جاري تسجيل الدخول…'
+                      : isRegister ? 'Creating the account…' : 'Signing in…'
                     : mode === 'register'
                       ? isAr
-                        ? 'إنشاء الحساب وحفظ جميع البيانات'
-                        : 'Create Account & Save Details'
+                        ? 'إنشاء الحساب وإرسال رابط التفعيل'
+                        : 'Create Account & Send Verification Link'
                       : isAr
                         ? 'دخول بالبريد الإلكتروني'
                         : 'Sign In with Email'}
@@ -549,15 +646,20 @@ export const ClientAuthOnboardingCard: React.FC<ClientAuthOnboardingCardProps> =
               {mode === 'signin' && (
                 <button
                   type="button"
+                  disabled={!canSubmit}
                   onClick={() => void handlePasswordReset()}
-                  className="text-xs font-semibold text-cyan-400 hover:text-cyan-300 cursor-pointer"
+                  className="text-xs font-semibold text-cyan-400 hover:text-cyan-300 disabled:opacity-50 cursor-pointer"
                 >
-                  {isAr ? 'نسيت كلمة المرور؟' : 'Forgot password?'}
+                  {action === 'reset'
+                    ? isAr ? 'جاري طلب الرابط…' : 'Requesting link…'
+                    : isAr ? 'نسيت كلمة المرور؟' : 'Forgot password?'}
                 </button>
               )}
             </div>
           </form>
         )}
+
+        {provider !== 'email' && rememberOption}
 
         {provider === 'phone' && (
           <div className="space-y-4">
@@ -577,8 +679,14 @@ export const ClientAuthOnboardingCard: React.FC<ClientAuthOnboardingCardProps> =
                 </span>
                 <input
                   type="tel"
-                  value={authPhone || draft.phone}
-                  onChange={e => syncPhoneIntoDraft(e.target.value)}
+                  autoComplete="tel"
+                  disabled={Boolean(action)}
+                  value={targetPhone}
+                  onChange={e => {
+                    clearOtp();
+                    if (isRegister) setDraft({ ...draft, phone: e.target.value });
+                    else setAuthPhone(e.target.value);
+                  }}
                   placeholder="+201000000000"
                   className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 font-mono text-xs text-white focus:border-cyan-500 focus:outline-none"
                 />
@@ -587,7 +695,7 @@ export const ClientAuthOnboardingCard: React.FC<ClientAuthOnboardingCardProps> =
               <div>
                 <button
                   type="button"
-                  disabled={!firebaseReady || !authReady || sendingOtp}
+                  disabled={!canSubmit}
                   onClick={() => void handleSendPhoneOtp()}
                   className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 px-4 py-2 text-xs font-black text-white transition cursor-pointer"
                 >
@@ -610,6 +718,7 @@ export const ClientAuthOnboardingCard: React.FC<ClientAuthOnboardingCardProps> =
             </div>
 
             <div id="client-phone-recaptcha" />
+            {feedback}
 
             {otpConfirmation && (
               <form
@@ -622,6 +731,8 @@ export const ClientAuthOnboardingCard: React.FC<ClientAuthOnboardingCardProps> =
                   </span>
                   <input
                     type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
                     required
                     value={otpCode}
                     onChange={e => setOtpCode(e.target.value)}
@@ -631,7 +742,7 @@ export const ClientAuthOnboardingCard: React.FC<ClientAuthOnboardingCardProps> =
                 </label>
                 <button
                   type="submit"
-                  disabled={submitting}
+                  disabled={!canSubmit}
                   className="inline-flex items-center gap-2 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 px-5 py-2.5 text-xs font-black text-slate-950 cursor-pointer"
                 >
                   <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
@@ -656,6 +767,7 @@ export const ClientAuthOnboardingCard: React.FC<ClientAuthOnboardingCardProps> =
 
         {provider === 'google' && (
           <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="basis-full empty:hidden">{feedback}</div>
             <div className="text-xs text-slate-300">
               {mode === 'register'
                 ? isAr
@@ -669,7 +781,7 @@ export const ClientAuthOnboardingCard: React.FC<ClientAuthOnboardingCardProps> =
             <button
               type="button"
               data-testid="client-portal-google-signin"
-              disabled={!firebaseReady || !authReady || submitting}
+              disabled={!canSubmit}
               onClick={() => void handleGoogleAction()}
               className="inline-flex items-center gap-2 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 px-5 py-2.5 text-xs sm:text-sm font-black text-slate-950 transition cursor-pointer"
             >

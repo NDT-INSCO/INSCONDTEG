@@ -217,7 +217,9 @@ test('the banner tells the truth about what is live and what is still a prototyp
 });
 
 test('write actions are genuinely disabled, not merely styled to look disabled', () => {
-  for (const section of ['feed', 'jobs', 'groups', 'messages', 'verify'] as const) {
+  // The feed is live now, so it is checked in its own suite; these sections are
+  // still prototypes and must keep every write visibly disabled.
+  for (const section of ['jobs', 'groups', 'messages', 'verify'] as const) {
     const { getAllByTestId, unmount } = render(
       <NetworkPortal
         language="ar"
@@ -237,7 +239,7 @@ test('write actions are genuinely disabled, not merely styled to look disabled',
   }
 });
 
-test('the composer and the message box cannot be typed into', () => {
+test('the message box cannot be typed into, and the feed offers no dead composer', () => {
   const feed = render(
     <NetworkPortal
       language="ar"
@@ -247,8 +249,10 @@ test('the composer and the message box cannot be typed into', () => {
       onOpenAcademy={() => {}}
     />
   );
-  const composer = feed.getByTestId('network-composer-disabled') as HTMLTextAreaElement;
-  assert.equal(composer.disabled, true);
+  // Without an account service the feed shows its unavailable state rather than
+  // a composer that accepts text and then fails to publish it.
+  assert.ok(feed.getByTestId('network-feed-unavailable'));
+  assert.equal(feed.container.querySelector('textarea'), null);
   feed.unmount();
 
   const messages = render(

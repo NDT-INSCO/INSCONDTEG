@@ -4,7 +4,7 @@
  * and report dossier/builder interactions.
  */
 import React from 'react';
-import { afterEach, beforeEach, test } from 'node:test';
+import { afterEach, beforeEach, mock, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
 
@@ -25,6 +25,13 @@ Object.assign(globalThis, {
 dom.window.scrollTo = () => {};
 dom.window.HTMLElement.prototype.scrollIntoView = () => {};
 
+// These tests cover routing and rendering, not live Firebase connectivity.
+// ClientAuthFlow exercises authentication and writes against local fixtures.
+const firebaseConfig = await import('../src/firebase/config');
+mock.module('../src/firebase/config.ts', {
+  namedExports: { ...firebaseConfig, auth: null, db: null, isFirebaseConfigured: false },
+});
+
 const { App } = await import('../src/App');
 const routes = await import('../src/utils/portalRoutes');
 const { PORTAL_CHOICE_KEY } = await import('../src/utils/portalChoice');
@@ -33,7 +40,8 @@ const clientTypes = await import('../src/client/types');
 const { getReportTemplate, REPORT_TEMPLATES } = await import('../src/client/reportTemplates');
 const { ClientCompaniesSection } = await import('../src/components/client/ClientCompaniesSection');
 const { ClientCompanyDossier } = await import('../src/components/client/ClientCompanyDossier');
-const { render, fireEvent, cleanup, waitFor, within } = await import('@testing-library/react');
+const { render, fireEvent, cleanup, configure, waitFor, within } = await import('@testing-library/react');
+configure({ asyncUtilTimeout: 3000 });
 
 beforeEach(() => {
   localStorage.clear();

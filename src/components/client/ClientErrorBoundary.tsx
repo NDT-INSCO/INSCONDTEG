@@ -9,7 +9,6 @@ interface ClientErrorBoundaryProps {
 
 interface ClientErrorBoundaryState {
   hasError: boolean;
-  message: string;
 }
 
 export class ClientErrorBoundary extends React.Component<
@@ -18,14 +17,11 @@ export class ClientErrorBoundary extends React.Component<
 > {
   constructor(props: ClientErrorBoundaryProps) {
     super(props);
-    this.state = { hasError: false, message: '' };
+    this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(error: Error): ClientErrorBoundaryState {
-    return {
-      hasError: true,
-      message: error?.message || 'Unexpected portal error',
-    };
+  static getDerivedStateFromError(): ClientErrorBoundaryState {
+    return { hasError: true };
   }
 
   componentDidCatch(error: Error): void {
@@ -56,14 +52,11 @@ export class ClientErrorBoundary extends React.Component<
                 ? 'تحقق من صلاحية الحساب أو الاتصال بقاعدة البيانات ثم أعد المحاولة.'
                 : 'Please verify your account permissions or database connection and try again.'}
             </p>
-            <pre className="mt-2 rounded-lg bg-slate-950 border border-slate-800 p-2.5 text-[11px] font-mono text-rose-300 overflow-x-auto max-h-36">
-              {this.state.message}
-            </pre>
           </div>
         </div>
         <button
           type="button"
-          onClick={() => this.setState({ hasError: false, message: '' })}
+          onClick={() => this.setState({ hasError: false })}
           className="inline-flex items-center gap-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 px-4 py-2 text-xs font-bold text-white transition cursor-pointer"
         >
           <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />

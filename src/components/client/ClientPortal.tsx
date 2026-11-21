@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { User } from 'firebase/auth';
 import {
   Bell,
@@ -20,6 +20,7 @@ import type { ClientSectionId } from '../../utils/portalRoutes';
 import type {
   AttendanceLog,
   ClientAccount,
+  ClientRegistrationDraftInput,
   ClientRequest,
   CommunityConnection,
   CommunityOpportunity,
@@ -31,14 +32,17 @@ import type {
 } from '../../client/types';
 import {
   clearPendingRegistrationDraft,
+  confirmClientPortalVerification,
   createInitialCompanyFromRegistration,
+  formatClientProfileError,
+  formatFirebaseAuthError,
   isPortalFirestoreReady,
   isVerifiedAdminUser,
-  isVerifiedPortalUser,
   loadPendingRegistrationDraft,
   observeClientPortalAuth,
   resendClientVerificationEmail,
   saveClientRegistration,
+  savePendingRegistrationDraft,
   signOutClientPortal,
   subscribeAllClientAccounts,
   subscribeClientRequests,
@@ -53,7 +57,9 @@ import {
   subscribeMyCommunityWorkspace,
   subscribeMyConnections,
   updateEmployeeLiveLocation,
+  type ClientProfileSaveResult,
 } from '../../client/firestoreClientService';
+import { sanitizeUpperCode } from '../../client/types';
 import { getLocalWorkforceSnapshot } from '../../client/workforceLocalStore';
 import { publishSiteTelemetrySnapshot } from '../../ai/telemetryStore';
 import { ClientErrorBoundary } from './ClientErrorBoundary';
@@ -73,23 +79,111 @@ interface ClientPortalProps {
   onOpenCompanyPortal: () => void;
 }
 
-export const ClientPortal: React.FC<ClientPortalProps> = ({
+type VerificationDelivery = { status: 'sending' | 'sent' } | { status: 'failed'; error: unknown };
+
+interface RegistrationHandoff {
+  uid: string;
+  draft: ClientRegistrationDraftInput;
+  storedLocally: boolean;
+  delivery?: VerificationDelivery;
+}
+
+export const ClientPortal: React.FC<ClientPortalProps> = props => {
+  const [authReady, setAuthReady] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [handoff, setHandoff] = useState<RegistrationHandoff | null>(null);
+
+  useEffect(() => observeClientPortalAuth(current => {
+    setUser(current);
+    setAuthReady(true);
+  }), []);
+
+  const handleRegistrationReady = useCallback((
+    newUser: User,
+    draft: ClientRegistrationDraftInput,
+    sendVerification: boolean
+  ) => {
+    // Firebase can replace the signed-out form before its signup promise
+    // resolves. Hand the draft to the portal before trying to send email.
+    setHandoff({
+      uid: newUser.uid,
+      draft,
+      storedLocally: savePendingRegistrationDraft(newUser.uid, draft),
+      delivery: sendVerification ? { status: 'sending' } : undefined,
+    });
+    if (sendVerification) {
+      const updateDelivery = (delivery: VerificationDelivery) => setHandoff(current =>
+        current?.draft === draft ? { ...current, delivery } : current
+      );
+      void resendClientVerificationEmail(newUser).then(
+        () => updateDelivery({ status: 'sent' }),
+        error => updateDelivery({ status: 'failed', error })
+      );
+    }
+  }, []);
+
+  const handleDraftSaved = useCallback((uid: string) => {
+    clearPendingRegistrationDraft(uid);
+    setHandoff(current => current?.uid === uid ? null : current);
+  }, []);
+
+  return (
+    <ClientErrorBoundary key={user ? `client:${user.uid}` : 'signed-out'} language={props.language}>
+      <ClientPortalContent
+        {...props}
+        user={user}
+        authReady={authReady}
+        handoff={handoff?.uid === user?.uid ? handoff : null}
+        onRegistrationReady={handleRegistrationReady}
+        onDraftSaved={handleDraftSaved}
+      />
+    </ClientErrorBoundary>
+  );
+};
+
+interface ClientPortalContentProps extends ClientPortalProps {
+  user: User | null;
+  authReady: boolean;
+  handoff: RegistrationHandoff | null;
+  onRegistrationReady: React.ComponentProps<typeof ClientAuthOnboardingCard>['onRegistrationReady'];
+  onDraftSaved: (uid: string) => void;
+}
+
+type PendingSaveState =
+  | { status: 'idle' | 'saving' | 'saved' | 'existing' | 'creating-company' | 'company-failed' }
+  | { status: 'failed'; error: unknown };
+
+type VerificationFeedback = { status: 'unverified' | 'resent' } | { status: 'error'; error: unknown };
+
+const ClientPortalContent: React.FC<ClientPortalContentProps> = ({
   language,
   section,
   companyId,
   onNavigateSection,
   onOpenCompanyPortal,
+  user,
+  authReady,
+  handoff,
+  onRegistrationReady,
+  onDraftSaved,
 }) => {
   const isAr = language === 'ar';
   const firebaseReady = isPortalFirestoreReady();
+  const [checkingSession, setCheckingSession] = useState(Boolean(user));
+  const [isVerifiedUser, setIsVerifiedUser] = useState(false);
+  const [verificationNotice, setVerificationNotice] = useState<VerificationFeedback | null>(null);
+  const [verificationAction, setVerificationAction] = useState<'refresh' | 'resend' | 'signout' | null>(null);
 
-  const [authReady, setAuthReady] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
-  const [verificationTick, setVerificationTick] = useState(0);
-  const [verificationNotice, setVerificationNotice] = useState<string | null>(null);
-  const [committingPendingDraft, setCommittingPendingDraft] = useState(false);
+  const [restoredDraft, setRestoredDraft] = useState(() => user ? loadPendingRegistrationDraft(user.uid) : null);
+  const pendingDraft = handoff?.draft ?? restoredDraft;
+  const [draftSave, setDraftSave] = useState<PendingSaveState>({ status: 'idle' });
+  const savingDraft = useRef(false);
 
-  const [myAccount, setMyAccount] = useState<ClientAccount | null>(null);
+  const [loadedAccount, setLoadedAccount] = useState<ClientAccount | null>();
+  const [accountError, setAccountError] = useState<Error | null>(null);
+  const [accountReadAttempt, setAccountReadAttempt] = useState(0);
+  const myAccount = loadedAccount ?? null;
+  const accountReady = loadedAccount !== undefined;
   const [allAccounts, setAllAccounts] = useState<ClientAccount[]>([]);
   const [requests, setRequests] = useState<ClientRequest[]>([]);
   const [companies, setCompanies] = useState<CompanyRecord[]>([]);
@@ -109,23 +203,22 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
   const [reportsLoading, setReportsLoading] = useState(false);
 
   const [loadingData, setLoadingData] = useState(false);
-  const [runtimeError, setRuntimeError] = useState<Error | null>(null);
-
-  if (runtimeError) {
-    throw runtimeError;
-  }
-
-  const isAdmin = useMemo(() => isVerifiedAdminUser(user), [user, verificationTick]);
-  const isVerifiedUser = useMemo(() => isVerifiedPortalUser(user), [user, verificationTick]);
+  const [workspaceLoadError, setWorkspaceLoadError] = useState(false);
+  const handleWorkspaceLoadError = useCallback(() => {
+    setLoadingData(false);
+    setWorkspaceLoadError(true);
+  }, []);
+  const isAdmin = isVerifiedUser && isVerifiedAdminUser(user);
 
   useEffect(() => {
-    const unsub = observeClientPortalAuth(current => {
-      setUser(current);
-      setAuthReady(true);
-      if (current) setGuestAuthOpen(false);
-    });
-    return unsub;
-  }, []);
+    if (!user) return;
+    let active = true;
+    void confirmClientPortalVerification(user).then(
+      verified => { if (active) setIsVerifiedUser(verified); },
+      error => { if (active) setVerificationNotice({ status: 'error', error }); }
+    ).finally(() => { if (active) setCheckingSession(false); });
+    return () => { active = false; };
+  }, [user]);
 
   // Public + Authenticated INSCO Community streams
   useEffect(() => {
@@ -150,22 +243,21 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
   }, [firebaseReady, isAdmin]);
 
   useEffect(() => {
-    if (!authReady || !user || !isVerifiedUser || !firebaseReady) {
-      setMyAccount(null);
-      setAllAccounts([]);
-      setRequests([]);
-      setCompanies([]);
-      setMyCommunityProfile(null);
-      setMyConnections([]);
-      return;
-    }
+    if (!user || !isVerifiedUser || !firebaseReady) return;
+    setAccountError(null);
+    return subscribeMyClientAccount(user.uid, setLoadedAccount, setAccountError);
+  }, [user, isVerifiedUser, firebaseReady, accountReadAttempt]);
 
+  useEffect(() => {
+    if (!user || !isVerifiedUser || !firebaseReady) return;
+
+    // Non-profile reads must not prevent customers from using their account
+    // or saving their details (a missing index, for example, affects one list).
     setLoadingData(true);
-    const unsubAccount = subscribeMyClientAccount(user.uid, setMyAccount, setRuntimeError);
     const unsubMyCommunity = subscribeMyCommunityWorkspace(
       user.uid,
       setMyCommunityProfile,
-      setRuntimeError
+      handleWorkspaceLoadError
     );
     const unsubConnections = subscribeMyConnections(user.uid, setMyConnections, () => {});
     const unsubRequests = subscribeClientRequests(
@@ -175,7 +267,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
         setRequests(data);
         setLoadingData(false);
       },
-      setRuntimeError
+      handleWorkspaceLoadError
     );
     const unsubCompanies = subscribeCompanies(
       user.uid,
@@ -184,21 +276,20 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
         setCompanies(data);
         setLoadingData(false);
       },
-      setRuntimeError
+      handleWorkspaceLoadError
     );
     const unsubAllAccounts = isAdmin
-      ? subscribeAllClientAccounts(setAllAccounts, setRuntimeError)
+      ? subscribeAllClientAccounts(setAllAccounts, handleWorkspaceLoadError)
       : () => {};
 
     return () => {
-      unsubAccount();
       unsubMyCommunity();
       unsubConnections();
       unsubRequests();
       unsubCompanies();
       unsubAllAccounts();
     };
-  }, [authReady, user, isVerifiedUser, isAdmin, firebaseReady]);
+  }, [user, isVerifiedUser, isAdmin, firebaseReady, handleWorkspaceLoadError]);
 
   // Publish live operational telemetry snapshot for INSCO Site Manager AI Agent
   useEffect(() => {
@@ -243,31 +334,49 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
     communityOpportunities,
   ]);
 
-  // Auto-commit pending Email registration draft once email_verified becomes true
-  useEffect(() => {
-    if (!authReady || !user || !isVerifiedUser || !firebaseReady || myAccount || committingPendingDraft) {
+  const finishPendingProfile = useCallback(async (
+    input: ClientRegistrationDraftInput,
+    result: ClientProfileSaveResult
+  ) => {
+    if (!user || !pendingDraft) return;
+    onDraftSaved(user.uid);
+    setRestoredDraft(null);
+    if (result === 'existing') {
+      setDraftSave({ status: 'existing' });
       return;
     }
-    const pendingDraft = loadPendingRegistrationDraft(user.uid);
-    if (!pendingDraft) return;
 
-    setCommittingPendingDraft(true);
-    void (async () => {
+    if (result === 'created' && pendingDraft.autoCreateCompanyWorkspace && !sanitizeUpperCode(input.requestedCompanyCode ?? '')) {
+      setDraftSave({ status: 'creating-company' });
       try {
-        await saveClientRegistration(user, pendingDraft, null);
-        if (pendingDraft.autoCreateCompanyWorkspace) {
-          try {
-            await createInitialCompanyFromRegistration(user, pendingDraft);
-          } catch (coErr) {
-            console.warn('Auto-create company skipped:', coErr);
-          }
-        }
-        clearPendingRegistrationDraft(user.uid);
-      } finally {
-        setCommittingPendingDraft(false);
+        await createInitialCompanyFromRegistration(user, input);
+      } catch {
+        // The profile, including company contact/details, is already saved.
+        // A separate dossier failure must not cause a retry of the profile.
+        setDraftSave({ status: 'company-failed' });
+        return;
       }
-    })();
-  }, [authReady, user, isVerifiedUser, firebaseReady, myAccount, committingPendingDraft]);
+    }
+    setDraftSave({ status: 'saved' });
+  }, [user, pendingDraft, onDraftSaved]);
+
+  const savePendingProfile = useCallback(async () => {
+    if (!user || !isVerifiedUser || !pendingDraft || !accountReady || accountError || savingDraft.current) return;
+    savingDraft.current = true;
+    setDraftSave({ status: 'saving' });
+    try {
+      const result = myAccount ? 'existing' : await saveClientRegistration(user, pendingDraft, { createOnly: true });
+      await finishPendingProfile(pendingDraft, result);
+    } catch (error) {
+      setDraftSave({ status: 'failed', error });
+    } finally {
+      savingDraft.current = false;
+    }
+  }, [user, isVerifiedUser, pendingDraft, accountReady, accountError, myAccount, finishPendingProfile]);
+
+  useEffect(() => {
+    if (draftSave.status === 'idle') void savePendingProfile();
+  }, [draftSave.status, savePendingProfile]);
 
   const activeCompany = useMemo(
     () => (companyId ? companies.find(c => c.id === companyId) ?? null : null),
@@ -294,12 +403,12 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
         setActiveCompanyReports(data);
         setReportsLoading(false);
       },
-      err => {
+      () => {
         setReportsLoading(false);
-        setRuntimeError(err);
+        handleWorkspaceLoadError();
       }
     );
-  }, [authReady, user, activeCompany, isAdmin]);
+  }, [authReady, user, activeCompany, isAdmin, handleWorkspaceLoadError]);
 
   useEffect(() => {
     if (!authReady || !user || !trackedCompanyId) {
@@ -312,20 +421,20 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
       user.uid,
       isAdmin,
       setActiveCompanyEmployees,
-      setRuntimeError
+      handleWorkspaceLoadError
     );
     const unsubAtt = subscribeCompanyAttendance(
       trackedCompanyId,
       user.uid,
       isAdmin,
       setActiveCompanyAttendance,
-      setRuntimeError
+      handleWorkspaceLoadError
     );
     return () => {
       unsubEmps();
       unsubAtt();
     };
-  }, [authReady, user, trackedCompanyId, isAdmin]);
+  }, [authReady, user, trackedCompanyId, isAdmin, handleWorkspaceLoadError]);
 
   const handleRequestEmployeeLocationUpdate = (emp: CompanyEmployee) => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) return;
@@ -345,29 +454,74 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
   };
 
   const handleRefreshVerification = async () => {
-    if (!user) return;
+    if (!user || checkingSession || verificationAction) return;
     setVerificationNotice(null);
-    await user.reload();
-    setVerificationTick(v => v + 1);
-    if (!isVerifiedPortalUser(user)) {
-      setVerificationNotice(
-        isAr
-          ? 'لم يتم تأكيد البريد الإلكتروني بعد. افتح رسالة التفعيل في بريدك واضغط الرابط ثم أعد المحاولة.'
-          : 'Email is not verified yet. Click the verification link in your inbox, then refresh again.'
-      );
+    setVerificationAction('refresh');
+    try {
+      const verified = await confirmClientPortalVerification(user, true);
+      if (verified) {
+        setIsVerifiedUser(true);
+      } else {
+        setVerificationNotice({ status: 'unverified' });
+      }
+    } catch (err) {
+      setVerificationNotice({ status: 'error', error: err });
+    } finally {
+      setVerificationAction(null);
     }
   };
 
   const handleResendVerification = async () => {
-    if (!user) return;
+    if (!user?.email || checkingSession || verificationAction || handoff?.delivery?.status === 'sending') return;
     setVerificationNotice(null);
-    await resendClientVerificationEmail(user);
-    setVerificationNotice(
-      isAr
-        ? `تم إرسال رابط التفعيل مجدداً إلى ${user.email}`
-        : `Verification link resent to ${user.email}`
-    );
+    setVerificationAction('resend');
+    try {
+      await resendClientVerificationEmail(user);
+      setVerificationNotice({ status: 'resent' });
+    } catch (err) {
+      setVerificationNotice({ status: 'error', error: err });
+    } finally {
+      setVerificationAction(null);
+    }
   };
+
+  const handleSignOut = async () => {
+    if (verificationAction) return;
+    setVerificationNotice(null);
+    setVerificationAction('signout');
+    try {
+      await signOutClientPortal();
+    } catch (err) {
+      setVerificationNotice({ status: 'error', error: err });
+    } finally {
+      setVerificationAction(null);
+    }
+  };
+
+  const delivery = handoff?.delivery;
+  const verificationError = verificationNotice?.status === 'error'
+    ? formatFirebaseAuthError(verificationNotice.error, language)
+    : null;
+  let checkpointText = verificationError;
+  let checkpointError = Boolean(verificationError);
+  if (verificationNotice?.status === 'unverified') {
+    checkpointText = isAr
+      ? 'لم يكتمل تفعيل البريد بعد. افتح رابط التفعيل ثم حاول مرة أخرى.'
+      : 'Email activation has not completed. Open the verification link and try again.';
+  } else if (verificationNotice?.status === 'resent' || delivery?.status === 'sent') {
+    checkpointText ??= isAr
+      ? 'تم إرسال رابط التفعيل. راجع الوارد والبريد غير المرغوب فيه.'
+      : 'Verification link sent. Check your inbox and spam folder.';
+  } else if (!verificationNotice && delivery?.status === 'failed') {
+    checkpointError = true;
+    checkpointText = isAr
+      ? `لم يُرسل رابط التفعيل. ${formatFirebaseAuthError(delivery.error, language)}`
+      : `Verification email was not sent. ${formatFirebaseAuthError(delivery.error, language)}`;
+  }
+  const draftSaving = draftSave.status === 'saving' || Boolean(pendingDraft && draftSave.status === 'idle' && accountReady && !accountError);
+  const awaitingSavedAccount = !myAccount && draftSave.status !== 'idle'
+    && draftSave.status !== 'failed' && !draftSaving;
+  const draftOnlyInMemory = Boolean(handoff && !handoff.storedLocally);
 
   const navItems: Array<{
     id: ClientSectionId;
@@ -421,435 +575,529 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
   );
 
   return (
-    <ClientErrorBoundary language={language}>
-      <div data-testid="client-portal-root" className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-        {!user && section === 'community' && !guestAuthOpen ? (
-          <CommunityWorkspacesHub
+    <div data-testid="client-portal-root" className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+      {!authReady || checkingSession ? (
+        <div role="status" className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 text-sm text-slate-200">
+          {isAr ? 'جاري التحقّق من جلسة العميل…' : 'Checking your client session…'}
+        </div>
+      ) : !user && section === 'community' && !guestAuthOpen ? (
+        <CommunityWorkspacesHub
+          language={language}
+          user={null}
+          account={null}
+          myProfile={null}
+          directoryProfiles={communityDirectory}
+          companies={[]}
+          posts={communityPosts}
+          opportunities={communityOpportunities}
+          connections={[]}
+          isAdmin={false}
+          onRequireSignIn={() => setGuestAuthOpen(true)}
+          onOpenCompanies={() => setGuestAuthOpen(true)}
+          onOpenTimeClock={() => setGuestAuthOpen(true)}
+        />
+      ) : !user ? (
+        /* Unauthenticated Multi-Provider Sign-In & Complete Registration View */
+        <div className="space-y-4">
+          {guestAuthOpen && section === 'community' && (
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setGuestAuthOpen(false)}
+                className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-cyan-400 cursor-pointer"
+              >
+                {isAr ? 'العودة إلى مجتمع INSCO ←' : '← Back to INSCO Community'}
+              </button>
+            </div>
+          )}
+          <ClientAuthOnboardingCard
+            key={section === 'register' ? 'register' : 'signin'}
             language={language}
-            user={null}
-            account={null}
-            myProfile={null}
-            directoryProfiles={communityDirectory}
-            companies={[]}
-            posts={communityPosts}
-            opportunities={communityOpportunities}
-            connections={[]}
-            isAdmin={false}
-            onRequireSignIn={() => setGuestAuthOpen(true)}
-            onOpenCompanies={() => setGuestAuthOpen(true)}
-            onOpenTimeClock={() => setGuestAuthOpen(true)}
+            firebaseReady={firebaseReady}
+            authReady={authReady}
+            initialMode={section === 'register' ? 'register' : 'signin'}
+            onOpenCompanyPortal={onOpenCompanyPortal}
+            onRegistrationReady={onRegistrationReady}
           />
-        ) : !user ? (
-          /* Unauthenticated Multi-Provider Sign-In & Complete Registration View */
-          <div className="space-y-4">
-            {guestAuthOpen && section === 'community' && (
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => setGuestAuthOpen(false)}
-                  className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-cyan-400 cursor-pointer"
-                >
-                  {isAr ? 'العودة إلى مجتمع INSCO ←' : '← Back to INSCO Community'}
-                </button>
-              </div>
-            )}
-            <ClientAuthOnboardingCard
-              language={language}
-              firebaseReady={firebaseReady}
-              authReady={authReady}
-              onOpenCompanyPortal={onOpenCompanyPortal}
-            />
+        </div>
+      ) : !isVerifiedUser ? (
+        /* Email Verification Checkpoint before Firestore Profile Activation */
+        <div className="max-w-2xl mx-auto rounded-2xl border border-amber-500/40 bg-slate-900/80 p-6 sm:p-8 space-y-4">
+          <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-amber-300">
+            <MailCheck className="w-4 h-4" aria-hidden="true" />
+            <span>{isAr ? 'التحقّق من الحساب' : 'Verify Your Account'}</span>
           </div>
-        ) : !isVerifiedUser ? (
-          /* Email Verification Checkpoint before Firestore Profile Activation */
-          <div className="max-w-2xl mx-auto rounded-2xl border border-amber-500/40 bg-slate-900/80 p-6 sm:p-8 space-y-4">
-            <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-amber-300">
-              <MailCheck className="w-4 h-4" aria-hidden="true" />
-              <span>{isAr ? 'تفعيل البريد الإلكتروني مطلوب' : 'Email Verification Required'}</span>
-            </div>
-            <h2 className="text-xl font-black text-white">
+          <h2 className="text-xl font-black text-white">
+            {isAr ? 'أكد حسابك قبل استخدام بوابة العملاء' : 'Verify your account to use the Client Portal'}
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+            {user.email
+              ? isAr
+                ? <>افتح رابط التفعيل في بريدك <bdi className="break-all">{user.email}</bdi>، ثم اضغط «تحقق من التفعيل». إذا لم تجد الرسالة، راجع البريد غير المرغوب فيه أو اطلب إرسالها مرة أخرى.</>
+                : <>Open the verification link for <bdi className="break-all">{user.email}</bdi>, then select “Check verification”. Check spam or resend the email if needed.</>
+              : isAr
+                ? 'أعد التحقق من الجلسة أو سجّل الدخول بالطريقة التي وثّقت بها حسابك.'
+                : 'Check your session again or sign in using the method you verified.'}
+          </p>
+          {pendingDraft && !draftOnlyInMemory && (
+            <p className="text-xs text-slate-300">
               {isAr
-                ? 'تم إنشاء حسابك — بقي خطوة تفعيل البريد الإلكتروني'
-                : 'Account Created — Confirm Your Email to Activate Workspace'}
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              {isAr
-                ? `أرسلنا رابط تفعيل إلى (${user.email}). افتح الرسالة واضغط رابط التأكيد، ثم اضغط "تحقق من التفعيل الآن" ليتم حفظ جميع بياناتك الشخصية وبيانات شركتك وتفعيل البوابة فوراً.`
-                : `We sent a verification link to (${user.email}). Click the link in your inbox, then click Refresh Status to save your personal & company profile automatically.`}
+                ? 'بياناتك مسودة مؤقتة في هذا المتصفح. سيبدأ حفظها في حسابك بعد التحقق من التفعيل.'
+                : 'Your details are a temporary draft in this browser. We’ll save them to your account after verification.'}
             </p>
-            {verificationNotice && (
-              <div role="status" className="rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-200 flex items-center gap-2">
-                <Bell className="w-4 h-4 shrink-0" />
-                <span>{verificationNotice}</span>
-              </div>
-            )}
-            <div className="flex flex-wrap items-center gap-3 pt-2">
+          )}
+          {draftOnlyInMemory && (
+            <p role="alert" className="text-xs text-amber-300">
+              {isAr
+                ? 'المتصفح لم يحفظ المسودة. أبقِ الصفحة مفتوحة حتى يتم حفظ بياناتك في الحساب.'
+                : 'Your browser could not store the draft. Keep this page open until your details are saved to your account.'}
+            </p>
+          )}
+          {checkpointText && (
+            <div role={checkpointError ? 'alert' : 'status'} className={`rounded-lg border px-3 py-2 text-xs flex items-center gap-2 ${checkpointError ? 'border-rose-500/40 bg-rose-500/10 text-rose-200' : 'border-cyan-500/40 bg-cyan-500/10 text-cyan-200'}`}>
+              <Bell className="w-4 h-4 shrink-0" aria-hidden="true" />
+              <span>{checkpointText}</span>
+            </div>
+          )}
+          <div className="flex flex-wrap items-center gap-3 pt-2">
+            <button
+              type="button"
+              disabled={Boolean(verificationAction)}
+              onClick={() => void handleRefreshVerification()}
+              className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 px-4 py-2.5 text-xs font-black text-white cursor-pointer"
+            >
+              <RefreshCw className="w-4 h-4" aria-hidden="true" />
+              <span>{verificationAction === 'refresh'
+                ? isAr ? 'جاري التحقق…' : 'Checking…'
+                : isAr ? 'تحقق من التفعيل' : 'Check verification'}</span>
+            </button>
+            {user.email && (
               <button
                 type="button"
-                onClick={() => void handleRefreshVerification()}
-                className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-4 py-2.5 text-xs font-black text-white cursor-pointer"
-              >
-                <RefreshCw className="w-4 h-4" aria-hidden="true" />
-                <span>{isAr ? 'تحقق من التفعيل الآن' : 'I Verified — Refresh Status'}</span>
-              </button>
-              <button
-                type="button"
+                disabled={Boolean(verificationAction) || delivery?.status === 'sending'}
                 onClick={() => void handleResendVerification()}
-                className="rounded-lg border border-cyan-500/40 bg-cyan-500/10 hover:bg-cyan-500/20 px-4 py-2.5 text-xs font-bold text-cyan-300 cursor-pointer"
+                className="rounded-lg border border-cyan-500/40 bg-cyan-500/10 hover:bg-cyan-500/20 disabled:opacity-50 px-4 py-2.5 text-xs font-bold text-cyan-300 cursor-pointer"
               >
-                {isAr ? 'إعادة إرسال رابط التفعيل' : 'Resend Verification Email'}
+                {verificationAction === 'resend' || delivery?.status === 'sending'
+                  ? isAr ? 'جاري إرسال رابط التفعيل…' : 'Sending verification link…'
+                  : isAr ? 'إعادة إرسال رابط التفعيل' : 'Resend verification email'}
               </button>
+            )}
+            <button
+              type="button"
+              disabled={Boolean(verificationAction)}
+              onClick={() => void handleSignOut()}
+              className="rounded-lg border border-slate-700 bg-slate-950 hover:bg-slate-800 disabled:opacity-50 px-4 py-2.5 text-xs font-semibold text-slate-300 cursor-pointer"
+            >
+              {isAr ? 'تسجيل الخروج' : 'Sign Out'}
+            </button>
+          </div>
+        </div>
+      ) : (
+        /* Authenticated SaaS Workspace Canvas (Sidebar + Main Viewport) */
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Sidebar Navigation (260px on lg+) */}
+          <aside className="lg:w-64 shrink-0 space-y-4">
+            <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-white truncate">
+                    {myAccount?.fullName || user.displayName || user.email || user.phoneNumber}
+                  </div>
+                  <div className="text-[11px] font-mono text-slate-400 truncate">
+                    {user.email || user.phoneNumber}
+                  </div>
+                </div>
+                {isAdmin && (
+                  <span
+                    title={isAr ? 'حساب إدارة العمليات' : 'Operations Admin'}
+                    className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 font-mono text-[10px] font-bold text-amber-300 shrink-0"
+                  >
+                    ADMIN
+                  </span>
+                )}
+              </div>
+
+              {myAccount?.assignedCompanyCode && (
+                <div className="rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-1.5 text-[11px] font-mono text-cyan-300">
+                  {isAr ? 'كود الشركة: ' : 'Code: '}
+                  <strong>{myAccount.assignedCompanyCode}</strong>
+                </div>
+              )}
+
+              <nav aria-label={isAr ? 'تنقل بوابة العملاء' : 'Client Portal Navigation'} className="space-y-1">
+                {navItems.map(item => {
+                  const active = section === item.id;
+                  const Icon = item.Icon;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => onNavigateSection(item.id)}
+                      className={`w-full flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-xs font-bold transition cursor-pointer ${
+                        active
+                          ? 'bg-emerald-600 text-white'
+                          : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2 truncate">
+                        <Icon className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                        <span className="truncate">{isAr ? item.labelAr : item.labelEn}</span>
+                      </span>
+                      {typeof item.count === 'number' && (
+                        <span className="font-mono tabular-nums text-[11px] opacity-85">
+                          {item.count}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </nav>
+
               <button
                 type="button"
-                onClick={() => void signOutClientPortal()}
-                className="rounded-lg border border-slate-700 bg-slate-950 hover:bg-slate-800 px-4 py-2.5 text-xs font-semibold text-slate-300 cursor-pointer"
+                disabled={Boolean(verificationAction)}
+                onClick={() => void handleSignOut()}
+                className="w-full flex items-center justify-center gap-2 rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition cursor-pointer"
               >
-                {isAr ? 'تسجيل الخروج' : 'Sign Out'}
+                <LogOut className="w-3.5 h-3.5" aria-hidden="true" />
+                <span>{isAr ? 'تسجيل الخروج' : 'Sign Out'}</span>
               </button>
             </div>
-          </div>
-        ) : (
-          /* Authenticated SaaS Workspace Canvas (Sidebar + Main Viewport) */
-          <div className="flex flex-col lg:flex-row gap-6">
-            {/* Sidebar Navigation (260px on lg+) */}
-            <aside className="lg:w-64 shrink-0 space-y-4">
-              <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4 space-y-3">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="text-xs font-bold text-white truncate">
-                      {myAccount?.fullName || user.displayName || user.email || user.phoneNumber}
-                    </div>
-                    <div className="text-[11px] font-mono text-slate-400 truncate">
-                      {user.email || user.phoneNumber}
-                    </div>
-                  </div>
-                  {isAdmin && (
-                    <span
-                      title={isAr ? 'حساب إدارة العمليات' : 'Operations Admin'}
-                      className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 font-mono text-[10px] font-bold text-amber-300 shrink-0"
-                    >
-                      ADMIN
-                    </span>
-                  )}
-                </div>
+          </aside>
 
-                {myAccount?.assignedCompanyCode && (
-                  <div className="rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-1.5 text-[11px] font-mono text-cyan-300">
-                    {isAr ? 'كود الشركة: ' : 'Code: '}
-                    <strong>{myAccount.assignedCompanyCode}</strong>
-                  </div>
-                )}
-
-                <nav aria-label={isAr ? 'تنقل بوابة العملاء' : 'Client Portal Navigation'} className="space-y-1">
-                  {navItems.map(item => {
-                    const active = section === item.id;
-                    const Icon = item.Icon;
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => onNavigateSection(item.id)}
-                        className={`w-full flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-xs font-bold transition cursor-pointer ${
-                          active
-                            ? 'bg-emerald-600 text-white'
-                            : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                        }`}
-                      >
-                        <span className="flex items-center gap-2 truncate">
-                          <Icon className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
-                          <span className="truncate">{isAr ? item.labelAr : item.labelEn}</span>
-                        </span>
-                        {typeof item.count === 'number' && (
-                          <span className="font-mono tabular-nums text-[11px] opacity-85">
-                            {item.count}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </nav>
-
-                <button
-                  type="button"
-                  onClick={() => void signOutClientPortal()}
-                  className="w-full flex items-center justify-center gap-2 rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition cursor-pointer"
-                >
-                  <LogOut className="w-3.5 h-3.5" aria-hidden="true" />
-                  <span>{isAr ? 'تسجيل الخروج' : 'Sign Out'}</span>
-                </button>
-              </div>
-            </aside>
-
-            {/* Main Content Viewport */}
-            <div className="flex-1 min-w-0 space-y-5">
-              {section === 'overview' && (
-                <div className="space-y-5" data-testid="client-overview-section">
-                  <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div>
-                      <div className="text-[11px] font-mono uppercase tracking-wider text-emerald-400">
-                        {isAdmin
-                          ? isAr
-                            ? 'مركز إدارة العملاء والملفات'
-                            : 'Operations & Client Dossier Command'
-                          : isAr
-                            ? 'بوابة العميل الإلكترونية'
-                            : 'Client Self-Service Workspace'}
-                      </div>
-                      <h1 className="text-xl font-black text-white mt-0.5">
-                        {isAr ? 'لوحة متابعة الطلبات وأرشيف الشركات' : 'Client Requests & Company Dossiers Overview'}
-                      </h1>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => onNavigateSection('timeclock')}
-                        className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3.5 py-2 text-xs font-bold text-emerald-300 hover:bg-emerald-500/20 transition cursor-pointer whitespace-nowrap"
-                      >
-                        {isAr ? 'بوابة الحضور والانصراف' : 'Worker Time-Clock'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onNavigateSection('requests')}
-                        className="rounded-lg bg-amber-500 hover:bg-amber-400 px-3.5 py-2 text-xs font-black text-slate-950 transition cursor-pointer whitespace-nowrap"
-                      >
-                        {isAr ? 'طلب اختبار جديد' : 'New Request'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onNavigateSection('companies')}
-                        className="rounded-lg border border-slate-700 bg-slate-950 px-3.5 py-2 text-xs font-bold text-cyan-300 hover:bg-slate-800 transition cursor-pointer whitespace-nowrap"
-                      >
-                        {isAr ? 'أرشيف الشركات والريبورتات' : 'Companies & Reports'}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* KPI Summary Grid */}
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
-                      <div className="text-xs text-slate-400">{isAr ? 'طلبات العملاء' : 'Client Requests'}</div>
-                      <div className="text-2xl font-black text-white font-mono tabular-nums mt-1">
-                        {requests.length}
-                      </div>
-                    </div>
-                    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
-                      <div className="text-xs text-slate-400">{isAr ? 'شركات قيد الاختبار' : 'Active Testing'}</div>
-                      <div className="text-2xl font-black text-emerald-400 font-mono tabular-nums mt-1">
-                        {activeTestingCount}
-                      </div>
-                    </div>
-                    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
-                      <div className="text-xs text-slate-400">{isAr ? 'أرشيف قديم' : 'Legacy Archive'}</div>
-                      <div className="text-2xl font-black text-amber-400 font-mono tabular-nums mt-1">
-                        {legacyCount}
-                      </div>
-                    </div>
-                    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
-                      <div className="text-xs text-slate-400">{isAr ? 'إجمالي الريبورتات' : 'Total Reports'}</div>
-                      <div className="text-2xl font-black text-cyan-400 font-mono tabular-nums mt-1">
-                        {totalReportsCount}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Quick Prompt to Complete Registration if New Client */}
-                  {!myAccount && (
-                    <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div className="flex items-start gap-2.5 text-xs">
-                        <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                        <div>
-                          <div className="font-bold text-white">
-                            {isAr
-                              ? 'استكمل بيانات تسجيل شركتك في الموقع'
-                              : 'Complete your organization registration'}
-                          </div>
-                          <div className="text-slate-300 mt-0.5">
-                            {isAr
-                              ? 'أضف اسم شركتك ورقم التواصل (أو الكود الخاص بكم) لتسهيل ربط ملف التقارير بحسابك.'
-                              : 'Add your company name and phone (or existing Company Code) so operations can link your dossier.'}
-                          </div>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => onNavigateSection('register')}
-                        className="rounded-lg bg-amber-500 hover:bg-amber-400 px-3.5 py-2 text-xs font-black text-slate-950 whitespace-nowrap cursor-pointer shrink-0"
-                      >
-                        {isAr ? 'إكمال التسجيل الآن' : 'Register Organization'}
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Active Testing Companies Quick Cards */}
-                  <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-sm font-black text-white">
-                        {isAr ? 'الشركات قيد الاختبار والملفات النشطة' : 'Active Testing Company Files'}
-                      </h2>
-                      <button
-                        type="button"
-                        onClick={() => onNavigateSection('companies')}
-                        className="text-xs font-semibold text-cyan-400 hover:text-cyan-300 cursor-pointer"
-                      >
-                        {isAr ? 'عرض الأرشيف الكامل ←' : 'View Full Archive →'}
-                      </button>
-                    </div>
-
-                    {companies.length === 0 ? (
-                      <div className="text-xs text-slate-400 py-4">
-                        {isAr
-                          ? 'لا توجد ملفات شركات مرتبطة حالياً. انتقل إلى قسم "أرشيف الشركات والملفات" لبدء الإضافة.'
-                          : 'No company files linked yet. Open Companies & Dossiers to add or request linking.'}
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {companies.slice(0, 4).map(co => (
-                          <button
-                            key={co.id}
-                            type="button"
-                            onClick={() => onNavigateSection('companies', co.id)}
-                            className="text-start rounded-lg border border-slate-800 bg-slate-950/70 hover:border-cyan-500/50 p-4 transition cursor-pointer space-y-1.5"
-                          >
-                            <div className="flex items-center justify-between gap-2 text-xs font-mono">
-                              <span className="font-bold text-cyan-300 tabular-nums">{co.companyCode}</span>
-                              <span className="text-slate-400 tabular-nums">
-                                {co.reportsCount ?? 0} {isAr ? 'تقرير' : 'reports'}
-                              </span>
-                            </div>
-                            <div className="text-sm font-bold text-white line-clamp-1">
-                              {isAr ? co.nameAr : co.nameEn}
-                            </div>
-                            <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400">
-                              <FolderOpen className="w-3.5 h-3.5" aria-hidden="true" />
-                              <span>{isAr ? 'فتح فايل التقارير والبيانات' : 'Open Dossier & Reports'}</span>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {section === 'requests' && (
-                <ClientRequestsSection
-                  language={language}
-                  user={user}
-                  account={myAccount}
-                  requests={requests}
-                  companies={companies}
-                  isAdmin={isAdmin}
-                  loading={loadingData}
-                  onCompanyCreatedFromRequest={newCompanyId =>
-                    onNavigateSection('companies', newCompanyId)
-                  }
-                />
-              )}
-
-              {section === 'companies' && (
-                activeCompany ? (
-                  <ClientCompanyDossier
-                    language={language}
-                    company={activeCompany}
-                    reports={activeCompanyReports}
-                    employees={activeCompanyEmployees}
-                    attendanceLogs={activeCompanyAttendance}
-                    reportsLoading={reportsLoading}
-                    isAdmin={isAdmin}
-                    currentUid={user.uid}
-                    onBackToArchive={() => onNavigateSection('companies')}
-                    onRequestEmployeeLocationUpdate={handleRequestEmployeeLocationUpdate}
-                    isUpdatingEmployeeLocation={updatingLocation}
-                    onOpenTimeClock={() => {
-                      setSelectedWorkforceCompanyId(activeCompany.id);
-                      onNavigateSection('timeclock');
-                    }}
-                  />
-                ) : companyId && loadingData ? (
-                  <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-6 space-y-3" aria-busy="true">
-                    <div className="h-5 w-52 rounded bg-slate-800 animate-pulse" />
-                    <div className="h-24 rounded-lg bg-slate-950/60 animate-pulse" />
-                  </div>
-                ) : companyId && !loadingData ? (
-                  <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-6 space-y-3">
-                    <div className="text-sm font-black text-white">
-                      {isAr
-                        ? 'ملف الشركة غير متاح أو غير مرتبط بحسابك'
-                        : 'Company dossier unavailable or not linked to your account'}
-                    </div>
-                    <p className="text-xs text-slate-400">
-                      {isAr
-                        ? `تعذر العثور على ملف للشركة بالمعرّف (${companyId}) ضمن صلاحيات الحساب الحالي.`
-                        : `No accessible company dossier matched ID "${companyId}" under your signed-in account.`}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => onNavigateSection('companies')}
-                      className="rounded-lg border border-slate-700 bg-slate-950 hover:bg-slate-800 px-3.5 py-2 text-xs font-bold text-cyan-300 transition cursor-pointer"
-                    >
-                      {isAr ? 'العودة إلى أرشيف الشركات' : 'Return to Companies Archive'}
+          {/* Main Content Viewport */}
+          <div className="flex-1 min-w-0 space-y-5">
+            {verificationError && (
+              <p role="alert" className="rounded-lg border border-rose-500/40 p-3 text-xs text-rose-200">{verificationError}</p>
+            )}
+            {workspaceLoadError && (
+              <p role="status" className="rounded-lg border border-amber-500/40 p-3 text-xs text-amber-200">
+                {isAr ? 'تعذّر تحميل بعض قوائم البوابة. يمكنك متابعة استخدام ملفك الشخصي.' : 'Some portal lists could not be loaded. You can still use your profile.'}
+              </p>
+            )}
+            {(section === 'register' || pendingDraft) && !accountReady && (
+              <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 text-sm text-slate-200">
+                {accountError ? (
+                  <div role="alert" className="space-y-2 text-rose-200">
+                    <p>{isAr ? 'تعذّر تحميل بيانات الحساب.' : 'Could not load your account.'} {formatClientProfileError(accountError, language)}</p>
+                    <button type="button" className="font-bold text-cyan-300 underline" onClick={() => setAccountReadAttempt(n => n + 1)}>
+                      {isAr ? 'أعد تحميل بيانات الحساب' : 'Retry loading account'}
                     </button>
                   </div>
                 ) : (
-                  <ClientCompaniesSection
-                    language={language}
-                    companies={companies}
-                    loading={loadingData}
-                    isAdmin={isAdmin}
-                    currentUid={user.uid}
-                    onOpenCompanyDossier={id => onNavigateSection('companies', id)}
-                  />
-                )
-              )}
+                  <p role="status">{isAr ? 'بانتظار تحميل بيانات الحساب من قاعدة البيانات… تأكّد من اتصالك بالإنترنت.' : 'Waiting for your account data. Check your internet connection if this persists.'}</p>
+                )}
+              </div>
+            )}
+            {draftOnlyInMemory && (
+              <p role="status" className="rounded-lg border border-amber-500/40 p-3 text-xs text-amber-200">
+                {isAr ? 'المسودة متاحة في هذه الصفحة فقط. أبقِها مفتوحة حتى يتم الحفظ.' : 'The draft is only available on this page. Keep it open until saving completes.'}
+              </p>
+            )}
+            {draftSaving && (
+              <p role="status" className="rounded-lg border border-cyan-500/40 p-3 text-xs text-cyan-200">
+                {isAr ? 'جاري حفظ بياناتك في الحساب…' : 'Saving your details to your account…'}
+              </p>
+            )}
+            {draftSave.status === 'failed' && (
+              <div role="alert" className="rounded-lg border border-rose-500/40 p-3 space-y-2 text-xs text-rose-200">
+                <p>{isAr ? 'لم تُحفظ بياناتك في الحساب بعد. المسودة ما زالت موجودة.' : 'Your details have not been saved to your account. Your draft is still available.'} {formatClientProfileError(draftSave.error, language)}</p>
+                {section !== 'register' && (
+                  <button type="button" className="font-bold text-cyan-300 underline" onClick={() => onNavigateSection('register')}>
+                    {isAr ? 'راجع المسودة وأعد الحفظ' : 'Review draft and retry saving'}
+                  </button>
+                )}
+              </div>
+            )}
+            {(draftSave.status === 'saved' || draftSave.status === 'creating-company' || draftSave.status === 'company-failed') && (
+              <div role="status" className="rounded-lg border border-emerald-500/40 p-3 space-y-1 text-xs text-emerald-200">
+                <p>{isAr ? 'تم حفظ بياناتك الشخصية وبيانات الشركة في حسابك.' : 'Your personal and company details were saved to your account.'}</p>
+                {draftSave.status === 'creating-company' && <p>{isAr ? 'جاري إنشاء ملف الشركة…' : 'Creating your company dossier…'}</p>}
+                {draftSave.status === 'company-failed' && (
+                  <p className="text-amber-200">
+                    {isAr ? 'لم يُنشأ ملف التقارير المنفصل. يمكنك إنشاؤه من أرشيف الشركات.' : 'The separate company dossier could not be created. You can create it in Companies & Dossiers.'}
+                  </p>
+                )}
+              </div>
+            )}
+            {draftSave.status === 'existing' && (
+              <p role="status" className="rounded-lg border border-cyan-500/40 p-3 text-xs text-cyan-200">
+                {isAr ? 'لديك ملف محفوظ بالفعل. لم نستبدله بمسودة التسجيل.' : 'Your profile already exists. It was not replaced with the registration draft.'}
+              </p>
+            )}
+            {section === 'overview' && (
+              <div className="space-y-5" data-testid="client-overview-section">
+                <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="text-[11px] font-mono uppercase tracking-wider text-emerald-400">
+                      {isAdmin
+                        ? isAr
+                          ? 'مركز إدارة العملاء والملفات'
+                          : 'Operations & Client Dossier Command'
+                        : isAr
+                          ? 'بوابة العميل الإلكترونية'
+                          : 'Client Self-Service Workspace'}
+                    </div>
+                    <h1 className="text-xl font-black text-white mt-0.5">
+                      {isAr ? 'لوحة متابعة الطلبات وأرشيف الشركات' : 'Client Requests & Company Dossiers Overview'}
+                    </h1>
+                  </div>
 
-              {section === 'timeclock' && (
-                <EmployeeTimeClockPortal
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onNavigateSection('timeclock')}
+                      className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3.5 py-2 text-xs font-bold text-emerald-300 hover:bg-emerald-500/20 transition cursor-pointer whitespace-nowrap"
+                    >
+                      {isAr ? 'بوابة الحضور والانصراف' : 'Worker Time-Clock'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onNavigateSection('requests')}
+                      className="rounded-lg bg-amber-500 hover:bg-amber-400 px-3.5 py-2 text-xs font-black text-slate-950 transition cursor-pointer whitespace-nowrap"
+                    >
+                      {isAr ? 'طلب اختبار جديد' : 'New Request'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onNavigateSection('companies')}
+                      className="rounded-lg border border-slate-700 bg-slate-950 px-3.5 py-2 text-xs font-bold text-cyan-300 hover:bg-slate-800 transition cursor-pointer whitespace-nowrap"
+                    >
+                      {isAr ? 'أرشيف الشركات والريبورتات' : 'Companies & Reports'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* KPI Summary Grid */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                    <div className="text-xs text-slate-400">{isAr ? 'طلبات العملاء' : 'Client Requests'}</div>
+                    <div className="text-2xl font-black text-white font-mono tabular-nums mt-1">
+                      {requests.length}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                    <div className="text-xs text-slate-400">{isAr ? 'شركات قيد الاختبار' : 'Active Testing'}</div>
+                    <div className="text-2xl font-black text-emerald-400 font-mono tabular-nums mt-1">
+                      {activeTestingCount}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                    <div className="text-xs text-slate-400">{isAr ? 'أرشيف قديم' : 'Legacy Archive'}</div>
+                    <div className="text-2xl font-black text-amber-400 font-mono tabular-nums mt-1">
+                      {legacyCount}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                    <div className="text-xs text-slate-400">{isAr ? 'إجمالي الريبورتات' : 'Total Reports'}</div>
+                    <div className="text-2xl font-black text-cyan-400 font-mono tabular-nums mt-1">
+                      {totalReportsCount}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick Prompt to Complete Registration if New Client */}
+                {loadedAccount === null && !draftSaving && !awaitingSavedAccount && (
+                  <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-start gap-2.5 text-xs">
+                      <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                      <div>
+                        <div className="font-bold text-white">
+                          {isAr
+                            ? 'استكمل بيانات تسجيل شركتك في الموقع'
+                            : 'Complete your organization registration'}
+                        </div>
+                        <div className="text-slate-300 mt-0.5">
+                          {isAr
+                            ? 'أضف اسم شركتك ورقم التواصل (أو الكود الخاص بكم) لتسهيل ربط ملف التقارير بحسابك.'
+                            : 'Add your company name and phone (or existing Company Code) so operations can link your dossier.'}
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onNavigateSection('register')}
+                      className="rounded-lg bg-amber-500 hover:bg-amber-400 px-3.5 py-2 text-xs font-black text-slate-950 whitespace-nowrap cursor-pointer shrink-0"
+                    >
+                      {isAr ? 'إكمال التسجيل الآن' : 'Register Organization'}
+                    </button>
+                  </div>
+                )}
+
+                {/* Active Testing Companies Quick Cards */}
+                <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-sm font-black text-white">
+                      {isAr ? 'الشركات قيد الاختبار والملفات النشطة' : 'Active Testing Company Files'}
+                    </h2>
+                    <button
+                      type="button"
+                      onClick={() => onNavigateSection('companies')}
+                      className="text-xs font-semibold text-cyan-400 hover:text-cyan-300 cursor-pointer"
+                    >
+                      {isAr ? 'عرض الأرشيف الكامل ←' : 'View Full Archive →'}
+                    </button>
+                  </div>
+
+                  {companies.length === 0 ? (
+                    <div className="text-xs text-slate-400 py-4">
+                      {isAr
+                        ? 'لا توجد ملفات شركات مرتبطة حالياً. انتقل إلى قسم "أرشيف الشركات والملفات" لبدء الإضافة.'
+                        : 'No company files linked yet. Open Companies & Dossiers to add or request linking.'}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {companies.slice(0, 4).map(co => (
+                        <button
+                          key={co.id}
+                          type="button"
+                          onClick={() => onNavigateSection('companies', co.id)}
+                          className="text-start rounded-lg border border-slate-800 bg-slate-950/70 hover:border-cyan-500/50 p-4 transition cursor-pointer space-y-1.5"
+                        >
+                          <div className="flex items-center justify-between gap-2 text-xs font-mono">
+                            <span className="font-bold text-cyan-300 tabular-nums">{co.companyCode}</span>
+                            <span className="text-slate-400 tabular-nums">
+                              {co.reportsCount ?? 0} {isAr ? 'تقرير' : 'reports'}
+                            </span>
+                          </div>
+                          <div className="text-sm font-bold text-white line-clamp-1">
+                            {isAr ? co.nameAr : co.nameEn}
+                          </div>
+                          <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400">
+                            <FolderOpen className="w-3.5 h-3.5" aria-hidden="true" />
+                            <span>{isAr ? 'فتح فايل التقارير والبيانات' : 'Open Dossier & Reports'}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {section === 'requests' && (
+              <ClientRequestsSection
+                language={language}
+                user={user}
+                account={myAccount}
+                requests={requests}
+                companies={companies}
+                isAdmin={isAdmin}
+                loading={loadingData}
+                onCompanyCreatedFromRequest={newCompanyId =>
+                  onNavigateSection('companies', newCompanyId)
+                }
+              />
+            )}
+
+            {section === 'companies' && (
+              activeCompany ? (
+                <ClientCompanyDossier
                   language={language}
-                  currentUid={user.uid}
-                  companies={companies}
-                  selectedCompanyId={trackedCompanyId}
-                  onSelectCompany={id => setSelectedWorkforceCompanyId(id)}
+                  company={activeCompany}
+                  reports={activeCompanyReports}
                   employees={activeCompanyEmployees}
                   attendanceLogs={activeCompanyAttendance}
-                  onCreateCompanyShortcut={() => onNavigateSection('companies')}
-                />
-              )}
-
-              {section === 'community' && (
-                <CommunityWorkspacesHub
-                  language={language}
-                  user={user}
-                  account={myAccount}
-                  myProfile={myCommunityProfile}
-                  directoryProfiles={communityDirectory}
-                  companies={companies}
-                  posts={communityPosts}
-                  opportunities={communityOpportunities}
-                  connections={myConnections}
-                  requests={requests}
-                  attendanceLogs={activeCompanyAttendance}
+                  reportsLoading={reportsLoading}
                   isAdmin={isAdmin}
-                  onRequireSignIn={() => setGuestAuthOpen(true)}
-                  onOpenCompanies={() => onNavigateSection('companies')}
-                  onOpenTimeClock={() => onNavigateSection('timeclock')}
+                  currentUid={user.uid}
+                  onBackToArchive={() => onNavigateSection('companies')}
+                  onRequestEmployeeLocationUpdate={handleRequestEmployeeLocationUpdate}
+                  isUpdatingEmployeeLocation={updatingLocation}
+                  onOpenTimeClock={() => {
+                    setSelectedWorkforceCompanyId(activeCompany.id);
+                    onNavigateSection('timeclock');
+                  }}
                 />
-              )}
-
-              {section === 'register' && (
-                <ClientRegistrationSection
+              ) : companyId && loadingData ? (
+                <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-6 space-y-3" aria-busy="true">
+                  <div className="h-5 w-52 rounded bg-slate-800 animate-pulse" />
+                  <div className="h-24 rounded-lg bg-slate-950/60 animate-pulse" />
+                </div>
+              ) : companyId && !loadingData ? (
+                <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-6 space-y-3">
+                  <div className="text-sm font-black text-white">
+                    {isAr
+                      ? 'ملف الشركة غير متاح أو غير مرتبط بحسابك'
+                      : 'Company dossier unavailable or not linked to your account'}
+                  </div>
+                  <p className="text-xs text-slate-400">
+                    {isAr
+                      ? `تعذر العثور على ملف للشركة بالمعرّف (${companyId}) ضمن صلاحيات الحساب الحالي.`
+                      : `No accessible company dossier matched ID "${companyId}" under your signed-in account.`}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => onNavigateSection('companies')}
+                    className="rounded-lg border border-slate-700 bg-slate-950 hover:bg-slate-800 px-3.5 py-2 text-xs font-bold text-cyan-300 transition cursor-pointer"
+                  >
+                    {isAr ? 'العودة إلى أرشيف الشركات' : 'Return to Companies Archive'}
+                  </button>
+                </div>
+              ) : (
+                <ClientCompaniesSection
                   language={language}
-                  user={user}
-                  account={myAccount}
-                  allAccounts={allAccounts}
                   companies={companies}
+                  loading={loadingData}
                   isAdmin={isAdmin}
+                  currentUid={user.uid}
+                  onOpenCompanyDossier={id => onNavigateSection('companies', id)}
                 />
-              )}
-            </div>
+              )
+            )}
+
+            {section === 'timeclock' && (
+              <EmployeeTimeClockPortal
+                language={language}
+                currentUid={user.uid}
+                companies={companies}
+                selectedCompanyId={trackedCompanyId}
+                onSelectCompany={id => setSelectedWorkforceCompanyId(id)}
+                employees={activeCompanyEmployees}
+                attendanceLogs={activeCompanyAttendance}
+                onCreateCompanyShortcut={() => onNavigateSection('companies')}
+              />
+            )}
+
+            {section === 'community' && (
+              <CommunityWorkspacesHub
+                language={language}
+                user={user}
+                account={myAccount}
+                myProfile={myCommunityProfile}
+                directoryProfiles={communityDirectory}
+                companies={companies}
+                posts={communityPosts}
+                opportunities={communityOpportunities}
+                connections={myConnections}
+                requests={requests}
+                attendanceLogs={activeCompanyAttendance}
+                isAdmin={isAdmin}
+                onRequireSignIn={() => setGuestAuthOpen(true)}
+                onOpenCompanies={() => onNavigateSection('companies')}
+                onOpenTimeClock={() => onNavigateSection('timeclock')}
+              />
+            )}
+
+            {section === 'register' && accountReady && !draftSaving && !awaitingSavedAccount && (
+              <ClientRegistrationSection
+                language={language}
+                user={user}
+                account={myAccount}
+                pendingDraft={pendingDraft}
+                onSaveDraft={pendingDraft && !myAccount ? input => onRegistrationReady(user, {
+                  ...input, autoCreateCompanyWorkspace: pendingDraft.autoCreateCompanyWorkspace,
+                }, false) : undefined}
+                onSaved={pendingDraft ? finishPendingProfile : undefined}
+                allAccounts={allAccounts}
+                companies={companies}
+                isAdmin={isAdmin}
+              />
+            )}
           </div>
-        )}
-      </div>
-    </ClientErrorBoundary>
+        </div>
+      )}
+    </div>
   );
 };

@@ -579,14 +579,14 @@ export const App: React.FC = () => {
               type="button"
               aria-label={isAr ? 'الرئيسية - شركة إنسكو' : 'INSCO Home Profile'}
               onClick={() => openCompany()}
-              className="flex items-center gap-2.5 text-start cursor-pointer group"
+              className={`flex items-center gap-2.5 text-start cursor-pointer group ${portal === 'client' ? 'min-w-0' : ''}`}
             >
               <div
                 className={`p-2 rounded-lg border transition ${
                   portal === 'academy'
                     ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 group-hover:border-amber-400'
                     : portal === 'client'
-                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 group-hover:border-emerald-400'
+                      ? 'shrink-0 bg-emerald-500/10 border-emerald-500/30 text-emerald-400 group-hover:border-emerald-400'
                       : 'bg-cyan-600/10 border border-cyan-500/30 text-cyan-400 group-hover:border-cyan-400'
                 }`}
               >
@@ -598,11 +598,12 @@ export const App: React.FC = () => {
                   <Building2 className="w-5 h-5" aria-hidden="true" />
                 )}
               </div>
-              <div className="whitespace-nowrap">
-                <div className="text-base sm:text-lg font-black text-white tracking-tight">
-                  {isAr
-                    ? 'الشركة الدولية للخدمات والمقاولات - إنسكو'
-                    : 'INSCO Industrial'}
+              <div className={portal === 'client' ? 'min-w-0' : 'whitespace-nowrap'}>
+                <div className={`text-base sm:text-lg font-black text-white tracking-tight ${portal === 'client' ? 'truncate' : ''}`}>
+                  {portal === 'client' && <span className="sm:hidden">{isAr ? 'إنسكو' : 'INSCO'}</span>}
+                  <span className={portal === 'client' ? 'hidden sm:inline' : undefined}>
+                    {isAr ? 'الشركة الدولية للخدمات والمقاولات - إنسكو' : 'INSCO Industrial'}
+                  </span>
                 </div>
                 <div
                   className={`text-[11px] font-mono flex items-center gap-1.5 ${
@@ -613,7 +614,7 @@ export const App: React.FC = () => {
                         : 'text-cyan-400'
                   }`}
                 >
-                  <span>
+                  <span className={portal === 'client' ? 'min-w-0 truncate' : undefined}>
                     {portal === 'academy'
                       ? isAr
                         ? 'مسار المتدرّب · البوابة الهندسية'
@@ -626,8 +627,8 @@ export const App: React.FC = () => {
                           ? 'أكاديمية إنسكو NDT'
                           : 'INSCO NDT Academy'}
                   </span>
-                  <span aria-hidden="true" className="text-slate-600">·</span>
-                  <span>CP/2026-10</span>
+                  <span aria-hidden="true" className={`text-slate-600 ${portal === 'client' ? 'hidden lg:inline' : ''}`}>·</span>
+                  <span className={portal === 'client' ? 'hidden lg:inline shrink-0' : undefined}>CP/2026-10</span>
                 </div>
               </div>
             </button>

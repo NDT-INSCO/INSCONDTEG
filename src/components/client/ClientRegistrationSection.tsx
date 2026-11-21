@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import type { User } from 'firebase/auth';
 import { CheckCircle2, Link2, Mail, Phone, ShieldCheck, UserCheck } from 'lucide-react';
 import type { Language } from '../../types';
@@ -12,8 +12,9 @@ import {
 import {
   adminApproveAndLinkClientAccount,
   detectUserAuthMethod,
-  loadPendingRegistrationDraft,
+  formatClientProfileError,
   saveClientRegistration,
+  type ClientProfileSaveResult,
 } from '../../client/firestoreClientService';
 import { ClientRegistrationFormFields } from './ClientRegistrationFormFields';
 
@@ -21,6 +22,9 @@ interface ClientRegistrationSectionProps {
   language: Language;
   user: User;
   account: ClientAccount | null;
+  pendingDraft?: ClientRegistrationDraftInput | null;
+  onSaveDraft?: (input: ClientRegistrationDraftInput) => void;
+  onSaved?: (input: ClientRegistrationDraftInput, result: ClientProfileSaveResult) => void;
   allAccounts: ClientAccount[];
   companies: CompanyRecord[];
   isAdmin: boolean;
@@ -28,9 +32,10 @@ interface ClientRegistrationSectionProps {
 
 function buildInitialDraft(
   user: User,
-  account: ClientAccount | null
+  account: ClientAccount | null,
+  pendingDraft?: ClientRegistrationDraftInput | null
 ): ClientRegistrationDraftInput {
-  const pending = !account ? loadPendingRegistrationDraft(user.uid) : null;
+  const pending = !account ? pendingDraft : null;
   return {
     fullName: account?.fullName || pending?.fullName || user.displayName || '',
     personalEmail: account?.email || pending?.personalEmail || user.email || '',
@@ -59,6 +64,9 @@ export const ClientRegistrationSection: React.FC<ClientRegistrationSectionProps>
   language,
   user,
   account,
+  pendingDraft,
+  onSaveDraft,
+  onSaved,
   allAccounts,
   companies,
   isAdmin,
@@ -66,9 +74,10 @@ export const ClientRegistrationSection: React.FC<ClientRegistrationSectionProps>
   const isAr = language === 'ar';
   const authMethod = account?.authMethod ?? detectUserAuthMethod(user);
 
-  const [formDraft, setFormDraft] = useState<ClientRegistrationDraftInput>(() =>
-    buildInitialDraft(user, account)
-  );
+  // Use live values until the customer starts editing. New snapshots (for
+  // example, an approval or company link from staff) must not erase edits.
+  const [edits, setEdits] = useState<ClientRegistrationDraftInput | null>(null);
+  const formDraft = edits ?? buildInitialDraft(user, account, pendingDraft);
   const [saving, setSaving] = useState(false);
   const [savedOk, setSavedOk] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -76,12 +85,9 @@ export const ClientRegistrationSection: React.FC<ClientRegistrationSectionProps>
   // Admin link map per account
   const [selectedCompanyByUid, setSelectedCompanyByUid] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-    setFormDraft(buildInitialDraft(user, account));
-  }, [account, user]);
-
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (saving) return;
     setErrorMsg(null);
     setSavedOk(false);
 
@@ -100,17 +106,19 @@ export const ClientRegistrationSection: React.FC<ClientRegistrationSectionProps>
 
     setSaving(true);
     try {
-      await saveClientRegistration(
-        user,
-        {
-          ...formDraft,
-          requestedCompanyCode: sanitizeUpperCode(formDraft.requestedCompanyCode ?? ''),
-        },
-        account
-      );
-      setSavedOk(true);
+      const input = {
+        ...formDraft,
+        requestedCompanyCode: sanitizeUpperCode(formDraft.requestedCompanyCode ?? ''),
+      };
+      onSaveDraft?.(input);
+      const result = await saveClientRegistration(user, input);
+      onSaved?.(input, result);
+      setEdits(null);
+      setSavedOk(!onSaved);
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : String(err));
+      setErrorMsg(
+        (isAr ? 'لم تُحفظ التعديلات. ' : 'Changes were not saved. ') + formatClientProfileError(err, language)
+      );
     } finally {
       setSaving(false);
     }
@@ -193,14 +201,19 @@ export const ClientRegistrationSection: React.FC<ClientRegistrationSectionProps>
           </div>
         </div>
 
-        <ClientRegistrationFormFields
-          language={language}
-          value={formDraft}
-          onChange={setFormDraft}
-          lockPersonalEmail={Boolean(user.email && authMethod !== 'phone')}
-          lockPrimaryPhone={Boolean(user.phoneNumber && authMethod === 'phone')}
-          showAutoCreateCompanyToggle={false}
-        />
+        <fieldset disabled={saving}>
+          <ClientRegistrationFormFields
+            language={language}
+            value={formDraft}
+            onChange={next => {
+              setEdits(next);
+              setSavedOk(false);
+            }}
+            lockPersonalEmail={Boolean(user.email && authMethod !== 'phone')}
+            lockPrimaryPhone={Boolean(user.phoneNumber && authMethod === 'phone')}
+            showAutoCreateCompanyToggle={false}
+          />
+        </fieldset>
 
         {errorMsg && (
           <div

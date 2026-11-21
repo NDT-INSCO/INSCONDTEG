@@ -6,7 +6,6 @@ import {
   NetworkArticles,
   NetworkCompanies,
   NetworkEvents,
-  NetworkFeed,
   NetworkGroups,
   NetworkJobs,
   NetworkMessages,
@@ -24,6 +23,9 @@ import { useOptionalSiteAccount } from '../../account/SiteAccountContext';
  */
 const NetworkProfileSection = lazy(() =>
   import('./NetworkProfileSection').then(module => ({ default: module.NetworkProfileSection }))
+);
+const NetworkFeedSection = lazy(() =>
+  import('./NetworkFeedSection').then(module => ({ default: module.NetworkFeedSection }))
 );
 const NetworkDirectorySection = lazy(() =>
   import('./NetworkDirectorySection').then(module => ({ default: module.NetworkDirectorySection }))
@@ -101,7 +103,17 @@ export const NetworkPortal: React.FC<NetworkPortalProps> = ({
   const body = (() => {
     switch (section) {
       case 'feed':
-        return <NetworkFeed language={language} onOpenSection={openSection} />;
+        return (
+          <div data-testid="network-section-feed">
+            <Suspense fallback={<LoadingSection language={language} />}>
+              <NetworkFeedSection
+                language={language}
+                onOpenAccount={openAccountPanel}
+                onOpenProfile={() => openSection('profile')}
+              />
+            </Suspense>
+          </div>
+        );
       case 'profile':
         return (
           <div data-testid="network-section-profile">
@@ -141,7 +153,17 @@ export const NetworkPortal: React.FC<NetworkPortalProps> = ({
       case 'verify':
         return <NetworkVerify language={language} onOpenSection={openSection} />;
       default:
-        return <NetworkFeed language={language} onOpenSection={openSection} />;
+        return (
+          <div data-testid="network-section-feed">
+            <Suspense fallback={<LoadingSection language={language} />}>
+              <NetworkFeedSection
+                language={language}
+                onOpenAccount={openAccountPanel}
+                onOpenProfile={() => openSection('profile')}
+              />
+            </Suspense>
+          </div>
+        );
     }
   })();
 
@@ -149,7 +171,9 @@ export const NetworkPortal: React.FC<NetworkPortalProps> = ({
     <div
       data-portal="network"
       data-section={section}
-      data-prototype={section === 'profile' || section === 'people' ? 'partial' : 'true'}
+      data-prototype={
+        section === 'feed' || section === 'profile' || section === 'people' ? 'partial' : 'true'
+      }
       {...(entryId ? { 'data-entry-id': entryId } : {})}
       className="min-h-screen bg-[#07070f] text-slate-200"
       dir={language === 'ar' ? 'rtl' : 'ltr'}

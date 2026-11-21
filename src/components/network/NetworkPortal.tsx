@@ -84,7 +84,7 @@ export const NetworkPortal: React.FC<NetworkPortalProps> = ({
       dir={language === 'ar' ? 'rtl' : 'ltr'}
     >
       <NetworkHeader language={language} section={section} onOpenSection={openSection} />
-      <main className="mx-auto max-w-7xl px-4 py-4 sm:px-6">{body}</main>
+      <main id="insco-main" tabIndex={-1} className="mx-auto max-w-7xl px-4 py-4 sm:px-6">{body}</main>
       <NetworkFooter language={language} onOpenCompany={onOpenCompany} onOpenAcademy={onOpenAcademy} />
     </div>
   );

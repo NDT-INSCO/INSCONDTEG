@@ -113,6 +113,21 @@ function CompanyLoading({ language }: { language: Language }) {
   );
 }
 
+function SkipToContent({ language }: { language: Language }) {
+  return (
+    <a
+      href="#insco-main"
+      className="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-3 focus:z-[90] focus:rounded-lg focus:bg-sky-200 focus:px-4 focus:py-2 focus:font-bold focus:text-slate-950"
+      onClick={event => {
+        event.preventDefault();
+        document.getElementById('insco-main')?.focus();
+      }}
+    >
+      {language === 'ar' ? 'تخطَّ إلى المحتوى' : 'Skip to content'}
+    </a>
+  );
+}
+
 function ClientLoading({ isAr }: { isAr: boolean }) {
   return (
     <div
@@ -361,7 +376,9 @@ export const App: React.FC = () => {
   // Back/forward between portals, service pages, demos and academy deep links.
   useEffect(() => {
     const onHashChange = () => {
-      setRoute(parseRoute(window.location.hash));
+      const next = parseRoute(window.location.hash);
+      setRoute(next);
+      if (next.portal === 'company' && next.page !== 'home') window.scrollTo({ top: 0, behavior: 'auto' });
       setQuoteService(undefined);
       setChooserOpen(false);
       setAdminOpen(window.location.hash === ADMIN_HASH);
@@ -575,6 +592,7 @@ export const App: React.FC = () => {
         data-portal="network"
         className={`min-h-screen flex flex-col font-sans ${isLight ? 'bg-[#f6f6fb] text-slate-900' : 'bg-[#07070f] text-slate-100'}`}
       >
+        <SkipToContent language={language} />
         <div className="sticky top-0 z-50">
           <PortalSwitchBar
             language={language}
@@ -619,6 +637,7 @@ export const App: React.FC = () => {
         isLight ? 'bg-slate-50 text-slate-900' : 'bg-slate-950 text-slate-100'
       }`}
     >
+      <SkipToContent language={language} />
       <div id="site-chrome" className="sticky top-0 z-50">
         {mapsQuotaExceeded && (
           <div className="bg-amber-50 border-b border-amber-200 text-amber-900 px-4 py-2.5 text-xs md:text-sm text-center sticky top-0 z-50 shadow-sm">
@@ -690,7 +709,7 @@ export const App: React.FC = () => {
                 <div className="truncate text-base sm:text-lg font-black text-white tracking-tight">
                   <span className="sm:hidden">{isAr ? 'إنسكو' : 'INSCO'}</span>
                   <span className="hidden sm:inline">
-                    {isAr ? 'الشركة الدولية للخدمات والمقاولات - إنسكو' : 'INSCO Industrial'}
+                    {portal === 'company' ? 'INSCO NDT' : isAr ? 'إنسكو' : 'INSCO'}
                   </span>
                 </div>
                 <div
@@ -788,7 +807,7 @@ export const App: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => openCompany('rfq')}
-                    className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black transition whitespace-nowrap cursor-pointer"
+                    className="hidden xl:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-300 hover:bg-sky-200 text-slate-950 text-xs font-black transition whitespace-nowrap cursor-pointer"
                   >
                     <FileText className="w-3.5 h-3.5" aria-hidden="true" />
                     <span>{isAr ? 'اطلب عرض سعر' : 'Request a quote'}</span>
@@ -827,14 +846,7 @@ export const App: React.FC = () => {
       {/* ------------------------------ the pages ---------------------------- */}
       <PublicRouteMain className={`flex-1 ${route.portal === 'company' ? 'pb-20 xl:pb-0' : ''}`}>
         {route.portal === 'company' && route.page === 'home' && (
-          <CompanyPortal
-            language={language}
-            onNavigateToAcademy={() => openAcademyHash('#academy')}
-            onNavigateToClient={sec => openClient(sec ?? 'companies')}
-            onOpenCompanyDossier={companyId => openClient('companies', companyId)}
-            onOpenDemo={() => openDemo()}
-            onOpenService={openService}
-          />
+          <CompanyPortal language={language} onNavigateToAcademy={() => openAcademyHash('#academy')} />
         )}
 
         {route.portal === 'company' && route.page === 'home' && <CompanyAnchor id={route.anchor} />}
@@ -858,21 +870,26 @@ export const App: React.FC = () => {
         )}
 
         {route.portal === 'company' && route.page === 'service' && (
+          <>
           <CompanyServicePage
             language={language}
             family={serviceFamilyById(route.family) ?? serviceFamilyById('ndt')!}
+            methodId={route.method}
             onBack={() => openCompany('services')}
             onOpenFamily={openService}
             onRequestQuote={handleRequestQuoteFor}
             onOpenDemo={anchorId => openDemo(anchorId)}
             onOpenAcademy={tab => openAcademy(tab as AcademyTab | undefined)}
           />
+          <CompanyAnchor id={route.method ? `service-method-${route.method}` : undefined} />
+          </>
         )}
 
         {route.portal === 'company' && route.page === 'demo' && (
           <Suspense fallback={<CompanyLoading language={language} />}>
             <CompanyDemoPortal
               language={language}
+              anchor={route.anchor}
               onBack={() => openCompany()}
               onRequestQuote={() => openCompany('rfq')}
               onOpenAcademy={tab => openAcademy(tab as AcademyTab | undefined)}
@@ -955,7 +972,7 @@ export const App: React.FC = () => {
           <button
             type="button"
             onClick={() => openCompany('rfq')}
-            className="flex-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 px-3 py-2.5 text-sm font-black transition cursor-pointer"
+            className="flex-1 rounded-lg bg-sky-300 hover:bg-sky-200 text-slate-950 px-3 py-2.5 text-sm font-black transition cursor-pointer"
           >
             {isAr ? 'اطلب عرض سعر' : 'Request a quote'}
           </button>
@@ -1024,7 +1041,7 @@ export const App: React.FC = () => {
             : route.portal === 'academy' && route.page === 'section'
               ? route.section
               : route.portal === 'company'
-                ? route.page
+                ? route.page === 'detail' ? route.detail : route.page
                 : undefined
         }
         onOpenCompany={sectionId => openCompany(sectionId)}

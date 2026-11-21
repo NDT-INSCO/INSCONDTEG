@@ -78,40 +78,27 @@ test('a remembered visitor is not asked again', () => {
 
 /* ------------------------------ corporate order --------------------------- */
 
-test('the corporate page answers the buyer in order and keeps the labs off it', () => {
+test('the compact landing tells the buyer story without mounting detail tools', () => {
   const ui = render(<CompanyPortal language="ar" onNavigateToAcademy={() => {}} />);
-  const ids = [...ui.container.querySelectorAll('section[id]')].map(section => section.id);
-
-  const order = ['services', 'certifications', 'fleet-inspector', 'projects', 'vault', 'contact'];
-  const positions = order.map(id => ids.indexOf(id));
-  assert.ok(positions.every(index => index >= 0), `missing section(s): ${JSON.stringify({ ids, positions })}`);
-  for (let i = 1; i < positions.length; i += 1) {
-    assert.ok(
-      positions[i - 1] < positions[i],
-      `wrong order around ${order[i - 1]} → ${order[i]}: ${ids.join(', ')}`
-    );
+  const sections = [...ui.container.querySelectorAll('section[aria-labelledby]')];
+  assert.deepEqual(sections.map(section => section.getAttribute('aria-labelledby')), [
+    'corporate-hero-title', 'corporate-overview-title', 'corporate-services-title', 'corporate-equipment-title',
+    'corporate-projects-title', 'corporate-academy-title', 'corporate-contact-title',
+  ]);
+  for (const moved of ['hologram-lab', 'pwht-simulator', 'radiography-viewer', 'ultrasonic-lab', 'fleet-inspector',
+    'rfq', 'cost-estimator', 'inspector-qr-access', 'field-attendance-timeline']) {
+    assert.equal(ui.container.querySelector(`#${moved}`), null, `${moved} belongs on its own page`);
   }
-
-  // The demonstrations moved to their own page; they must not sit before the
-  // accreditations any more.
-  for (const lab of ['hologram-lab', 'pwht-simulator', 'radiography-viewer', 'ultrasonic-lab']) {
-    assert.equal(ids.includes(lab), false, `${lab} still competes with the commercial content`);
-  }
-
-  // …and the estimator became a step inside the RFQ section.
-  const contact = ui.container.querySelector('section#contact')!;
-  assert.ok(contact.querySelector('#cost-estimator'), 'estimator must live inside the RFQ section');
+  assert.equal(ui.queryByTestId('company-hero-banner'), null);
 });
 
-test('the hero leads with the quote action, not the brochure', () => {
+test('the first screen has just the two portal journeys and one illustrative image', () => {
   const ui = render(<CompanyPortal language="ar" onNavigateToAcademy={() => {}} />);
-  const hero = ui.container.querySelector('section')!;
-  const buttons = [...hero.querySelectorAll('button, a')].map(el => (el.textContent || '').trim());
-  const quoteIndex = buttons.findIndex(label => /اطلب عرض سعر/.test(label));
-  const brochureIndex = buttons.findIndex(label => /ملف الشركة/.test(label));
-
-  assert.ok(quoteIndex >= 0, `hero has no quote action: ${buttons.join(' | ')}`);
-  assert.ok(brochureIndex > quoteIndex, 'the brochure must come after the primary quote action');
+  const hero = within(ui.getByTestId('corporate-landing-hero'));
+  assert.equal(hero.getByRole('link', { name: 'استكشف خدماتنا' }).getAttribute('href'), '#services');
+  assert.ok(hero.getByRole('button', { name: 'الأكاديمية الهندسية' }));
+  assert.equal(hero.getAllByRole('link').length + hero.getAllByRole('button').length, 2);
+  assert.equal(hero.getAllByRole('img').length, 1);
 });
 
 /* --------------------------------- demo page ------------------------------ */
@@ -188,16 +175,16 @@ test('requesting a quote from a service page pre-selects that service in the RFQ
   assert.equal(dom.window.location.hash, '#rfq', 'the quote has its own shareable address');
 });
 
-test('the services section links each family to its own page', () => {
-  const opened: string[] = [];
-  const ui = render(
-    <CompanyPortal language="ar" onNavigateToAcademy={() => {}} onOpenService={id => opened.push(id)} />
-  );
-
-  fireEvent.click(ui.getByRole('button', { name: /الفحص غير الإتلافي \(NDT Inspection\)/ }));
-  fireEvent.click(ui.getByRole('button', { name: /خدمات الجودة والضغط والتأهيل/ }));
-
-  assert.deepEqual(opened, ['ndt', 'quality']);
+test('the core service cards are shareable method links; the full catalogue retains the other families', async () => {
+  const ui = render(<CompanyPortal language="ar" onNavigateToAcademy={() => {}} />);
+  assert.deepEqual([...ui.container.querySelectorAll('.corporate-service-card')].map(link => link.getAttribute('href')), [
+    '#services/ndt/ut', '#services/ndt/rt', '#services/ndt/mt', '#services/ndt/pt', '#services/ndt/vt', '#services/pwht',
+  ]);
+  cleanup();
+  dom.window.history.replaceState(null, '', '/-Project-/#services');
+  const catalogue = render(<App />);
+  fireEvent.click(await catalogue.findByRole('button', { name: /تحليل المواد والصلادة/ }, { timeout: 6000 }));
+  assert.equal(dom.window.location.hash, '#services/materials');
 });
 
 test('each route sets its own document title', () => {
@@ -225,4 +212,16 @@ test('a corporate detail bookmark opens its own page and leaves the landing page
   assert.equal(ui.queryByTestId('company-hero-banner'), null);
   assert.equal(dom.window.location.hash, '#standards-matrix');
   assert.match(document.title, /الجودة والشهادات/);
+});
+
+
+test('a method bookmark stays shareable and preselects the correct quote scope', async () => {
+  dom.window.history.replaceState(null, '', '/-Project-/#services/ndt/rt');
+  const ui = render(<App />);
+  assert.ok(ui.container.querySelector('#service-method-rt'));
+  fireEvent.click(ui.getByRole('button', { name: /اطلب عرض سعر لهذه الخدمة/ }));
+  await waitFor(() => {
+    const select = ui.container.querySelector<HTMLSelectElement>('#rfq select');
+    assert.equal(select?.value, 'rt_gamma');
+  }, { timeout: 6000 });
 });

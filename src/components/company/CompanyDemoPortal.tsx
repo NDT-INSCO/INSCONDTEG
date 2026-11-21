@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ArrowLeft, ArrowRight, ArrowUpRight, FlaskConical, Gauge, ScanLine, Thermometer, Layers3 } from 'lucide-react';
 import { Language } from '../../types';
 import { CtaButton } from '../ui/CtaButton';
+import { CompanyHero } from './CompanyHero';
+import type { CompanyDemoAnchor } from '../../utils/companyRoutes';
 import { AdvancedMotionVisualizerSection } from './AdvancedMotionVisualizerSection';
 import { PwhtCycleSimulator } from './PwhtCycleSimulator';
 import { RadiographicFilmViewer } from './RadiographicFilmViewer';
@@ -9,6 +11,7 @@ import { CompanyUltrasonicLabSection } from './CompanyUltrasonicLabSection';
 
 interface CompanyDemoPortalProps {
   language: Language;
+  anchor?: CompanyDemoAnchor;
   onBack: () => void;
   onRequestQuote: () => void;
   onOpenAcademy: (tab?: string) => void;
@@ -51,12 +54,17 @@ const DEMOS = [
  */
 export const CompanyDemoPortal: React.FC<CompanyDemoPortalProps> = ({
   language,
+  anchor,
   onBack,
   onRequestQuote,
   onOpenAcademy,
 }) => {
   const isAr = language === 'ar';
   const ArrowIcon = isAr ? ArrowLeft : ArrowRight;
+  const [showcase, setShowcase] = useState(anchor === 'inspection-showcase');
+  useEffect(() => {
+    if (anchor === 'inspection-showcase') setShowcase(true);
+  }, [anchor]);
 
   return (
     <div className="space-y-0">
@@ -113,6 +121,17 @@ export const CompanyDemoPortal: React.FC<CompanyDemoPortalProps> = ({
         </div>
       </section>
 
+      <details
+        id="inspection-showcase"
+        open={showcase}
+        onToggle={event => setShowcase(event.currentTarget.open)}
+        className="border-b border-slate-800 bg-slate-950"
+      >
+        <summary className="mx-auto max-w-7xl cursor-pointer px-4 py-5 font-bold text-cyan-300 focus-visible:outline focus-visible:outline-2 sm:px-6">
+          {isAr ? 'افتح المشهد الثلاثي وأدوات التحكم' : 'Open 3D showcase and controls'}
+        </summary>
+        {showcase && <CompanyHero language={language} headingLevel="h2" onNavigateToAcademy={() => onOpenAcademy()} onNavigateToSection={onRequestQuote} />}
+      </details>
       <AdvancedMotionVisualizerSection language={language} />
       <PwhtCycleSimulator language={language} />
       <RadiographicFilmViewer language={language} onOpenFullRtLab={() => onOpenAcademy('rt_lab')} />

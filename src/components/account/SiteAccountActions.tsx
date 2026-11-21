@@ -73,7 +73,7 @@ export function SiteAccountActions({ language, onOpenProfile }: { language: Lang
                 <button type="button" onClick={() => open('signin')} className={`${button} border border-slate-700 text-slate-200 hover:bg-slate-800`} aria-haspopup="dialog">
                   <LogIn className="h-3.5 w-3.5" aria-hidden="true" />{isAr ? 'تسجيل الدخول' : 'Sign in'}
                 </button>
-                <button type="button" onClick={() => open('register')} className={`${button} bg-emerald-400 text-slate-950 hover:bg-emerald-300`} aria-haspopup="dialog">
+                <button type="button" onClick={() => open('register')} className={`${button} bg-sky-300 text-slate-950 hover:bg-sky-200`} aria-haspopup="dialog">
                   <UserPlus className="h-3.5 w-3.5" aria-hidden="true" />{isAr ? 'إنشاء حساب' : 'Create account'}
                 </button>
               </>
@@ -110,7 +110,7 @@ export function SiteAccountActions({ language, onOpenProfile }: { language: Lang
               <AccountPrivacyNotice language={language} />
               {notice?.status === 'error' && <p role="alert" className="text-xs text-rose-200">{isAr ? 'تعذّر تسجيل الخروج. أعد المحاولة.' : 'Could not sign out. Please retry.'}</p>}
               <div className="flex flex-wrap gap-2">
-                <button type="button" className={`${button} bg-emerald-400 text-slate-950 hover:bg-emerald-300`} onClick={() => { close(); onOpenProfile(); }}>
+                <button type="button" className={`${button} bg-sky-300 text-slate-950 hover:bg-sky-200`} onClick={() => { close(); onOpenProfile(); }}>
                   {isAr ? 'ملفي الخاص' : 'My private profile'}<ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
                 </button>
                 <button type="button" className={`${button} border border-slate-700 text-slate-200 hover:bg-slate-800 disabled:opacity-50`} disabled={Boolean(action)} onClick={() => { void signOut().then(done => { if (done) close(); }); }}>

@@ -32,7 +32,7 @@ const workforceLocalStore = await import('../src/client/workforceLocalStore');
 const { ClientCompaniesSection } = await import('../src/components/client/ClientCompaniesSection');
 const { ClientCompanyDossier } = await import('../src/components/client/ClientCompanyDossier');
 const { EmployeeTimeClockPortal } = await import('../src/components/client/EmployeeTimeClockPortal');
-const { CompanyPortal } = await import('../src/components/company/CompanyPortal');
+const { CompanyFieldTools } = await import('../src/components/company/CompanyFieldTools');
 const { render, fireEvent, cleanup, within } = await import('@testing-library/react');
 
 beforeEach(() => {
@@ -320,14 +320,14 @@ test('EmployeeTimeClockPortal flags outside-perimeter presets before submission'
   assert.ok(ui.getByText(/Inside Project Geofence/));
 });
 
-/* --------- 5. CompanyPortal Geofenced Attendance Timeline & Filtering ------ */
+/* --------- 5. Field tools Geofenced Attendance Timeline & Filtering ------ */
 
-test('CompanyPortal displays Geofenced Attendance Timeline, Admin Alerts, and interactive simulator', () => {
+test('Field tools display Geofenced Attendance Timeline, Admin Alerts, and interactive simulator', () => {
   const ui = render(
-    <CompanyPortal
+    <CompanyFieldTools
       language="en"
-      onNavigateToAcademy={() => {}}
-      onNavigateToClient={() => {}}
+      onOpenClient={() => {}}
+      onOpenDossier={() => {}}
     />
   );
 

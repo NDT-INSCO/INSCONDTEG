@@ -37,6 +37,7 @@ const InteractiveInspectionHologram = React.lazy(() =>
 
 interface CompanyHeroProps {
   language: Language;
+  headingLevel?: 'h1' | 'h2';
   onNavigateToAcademy: () => void;
   onNavigateToClient?: () => void;
   onNavigateToSection: (sectionId: string) => void;
@@ -46,6 +47,7 @@ interface CompanyHeroProps {
 
 export const CompanyHero: React.FC<CompanyHeroProps> = ({
   language,
+  headingLevel: Heading = 'h1',
   onNavigateToAcademy,
   onNavigateToClient,
   onNavigateToSection,
@@ -196,9 +198,9 @@ export const CompanyHero: React.FC<CompanyHeroProps> = ({
               <span className="text-xs font-semibold tracking-wider uppercase text-cyan-400">
                 {INSCO_COMPANY_DATA.slogan[language]}
               </span>
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight text-balance">
+              <Heading className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight text-balance">
                 {INSCO_COMPANY_DATA.name[language]}
-              </h1>
+              </Heading>
               <p className="text-lg sm:text-xl text-slate-200 font-medium">
                 {INSCO_COMPANY_DATA.subSlogan[language]}
               </p>

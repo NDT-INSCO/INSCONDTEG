@@ -31,7 +31,7 @@ const { CompanyQrBadge } = await import('../src/components/client/CompanyQrBadge
 const { CompanyQrModal } = await import('../src/components/client/CompanyQrModal');
 const { ClientCompaniesSection } = await import('../src/components/client/ClientCompaniesSection');
 const { ClientCompanyDossier } = await import('../src/components/client/ClientCompanyDossier');
-const { CompanyPortal } = await import('../src/components/company/CompanyPortal');
+const { CompanyFieldTools } = await import('../src/components/company/CompanyFieldTools');
 const { render, fireEvent, cleanup, within } = await import('@testing-library/react');
 
 beforeEach(() => {
@@ -123,19 +123,19 @@ test('CompanyQrModal displays unique company QR, copies URL, opens dossier, and 
   assert.equal(closedCount, 2);
 });
 
-test('CompanyPortal Inspector QR Quick Access section generates QR by Company ID and opens dossier', () => {
+test('Field tools Inspector QR Quick Access section generates QR by Company ID and opens dossier', () => {
   const openedDossiers: string[] = [];
 
   const ui = render(
-    <CompanyPortal
+    <CompanyFieldTools
       language="ar"
-      onNavigateToAcademy={() => {}}
-      onOpenCompanyDossier={id => openedDossiers.push(id)}
+      onOpenClient={() => {}}
+      onOpenDossier={id => openedDossiers.push(id)}
     />
   );
 
   const qrSection = ui.container.querySelector('section#inspector-qr-access');
-  assert.ok(qrSection, 'CompanyPortal must render #inspector-qr-access');
+  assert.ok(qrSection, 'field tools must render #inspector-qr-access');
 
   const input = within(qrSection as HTMLElement).getByLabelText(
     /المعرّف الفردي للشركة المسجلة/

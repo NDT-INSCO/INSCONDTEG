@@ -475,7 +475,7 @@ test('GlobalHeaderSearch filters services, educational modules, and company info
 });
 
 test('the corporate portal keeps express quotation and hands the training syllabus to the academy', async () => {
-  const { CompanyPortal } = await import('../src/components/company/CompanyPortal');
+  const { CompanyQuotePage } = await import('../src/components/company/CompanyQuotePage');
   const { CompanyQuickActionsSection } = await import('../src/components/company/CompanyQuickActionsSection');
   const { buildTrainingSyllabusDocument } = await import('../src/utils/trainingSyllabusGenerator');
 
@@ -493,7 +493,7 @@ test('the corporate portal keeps express quotation and hands the training syllab
   };
 
   try {
-    const ui = render(<CompanyPortal language="en" onNavigateToAcademy={() => {}} />);
+    const ui = render(<CompanyQuotePage language="en" anchor="cost-estimator" />);
 
     // The corporate portal keeps the express quotation card only: the audit
     // asked us to stop mixing a training download into the commercial path.
@@ -536,7 +536,7 @@ test('the corporate portal keeps express quotation and hands the training syllab
 });
 
 test('CompanyProjectCostEstimator computes service budgets & site requirements and transfers scope to RFQ', async () => {
-  const { CompanyPortal } = await import('../src/components/company/CompanyPortal');
+  const { CompanyQuotePage } = await import('../src/components/company/CompanyQuotePage');
   const { calculateProjectEstimate } = await import('../src/utils/projectCostEstimator');
 
   // 1. Verify pure estimator engine across shifts, thickness, and RT RSO allocation
@@ -562,8 +562,8 @@ test('CompanyProjectCostEstimator computes service budgets & site requirements a
   assert.ok(turnaroundRtEst.estimatedRtFilms > 0);
   assert.ok(turnaroundRtEst.totalCertifiedPersonnel > dayEst.totalCertifiedPersonnel);
 
-  // 2. Render CompanyPortal and interact with the Project Cost Estimator UI
-  const ui = render(<CompanyPortal language="en" onNavigateToAcademy={() => {}} />);
+  // 2. Render the RFQ destination and interact with the Project Cost Estimator UI
+  const ui = render(<CompanyQuotePage language="en" anchor="cost-estimator" />);
 
   assert.ok(
     ui.getByText(/Interactive Project Cost & Mobilization Requirements Estimator/i)

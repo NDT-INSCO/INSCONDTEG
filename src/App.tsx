@@ -25,9 +25,11 @@ import {
   clientSectionLabel,
   parseRoute,
   routeToHash,
+  networkSectionLabel,
   type AcademyRoute,
   type ClientRoute,
   type ClientSectionId,
+  type NetworkSectionId,
   type PortalId,
   type Route,
 } from './utils/portalRoutes';
@@ -69,6 +71,13 @@ const CompanyDemoPortal = React.lazy(() =>
 // and inspection report dossiers in its own code-split chunk.
 const ClientPortal = React.lazy(() =>
   import('./components/client/ClientPortal').then(module => ({ default: module.ClientPortal }))
+);
+
+// The engineering network is the fourth portal. It is a community, so it keeps
+// its own header, footer and data — and its own chunk: a visitor reading about
+// PWHT services never downloads a feed.
+const NetworkPortal = React.lazy(() =>
+  import('./components/network/NetworkPortal').then(module => ({ default: module.NetworkPortal }))
 );
 
 // The admin portal (password + passkeys) is a stand-alone page: it replaces the
@@ -127,10 +136,11 @@ function readLanguage(): Language {
   }
 }
 
-/** The view mapped for chooser rules across all three portals. */
-function chooserViewOf(route: Route): 'company' | 'client' | 'academy' | 'demo' | 'service' {
+/** The view mapped for chooser rules across all four portals. */
+function chooserViewOf(route: Route): 'company' | 'client' | 'academy' | 'network' | 'demo' | 'service' {
   if (route.portal === 'academy') return 'academy';
   if (route.portal === 'client') return 'client';
+  if (route.portal === 'network') return 'network';
   if (route.page === 'demo') return 'demo';
   if (route.page === 'service') return 'service';
   return 'company';
@@ -149,6 +159,7 @@ export const App: React.FC = () => {
       choice: readPortalChoice(),
       hasAcademyHash: initial.portal === 'academy',
       hasClientHash: initial.portal === 'client',
+      hasNetworkHash: initial.portal === 'network',
       hasDemoHash: initial.portal === 'company' && initial.page !== 'home',
       // Any hash on the corporate profile is a shared deep link (a section, the
       // footer, a service): a modal must never open on top of it.
@@ -299,14 +310,37 @@ export const App: React.FC = () => {
     });
   }, []);
 
+  /**
+   * The engineering network: `#network`, `#network/<section>`, or a record inside
+   * a section (`#network/profile/<handle>`). Kept on the hash so a member's post
+   * can be linked and shared like any other page.
+   */
+  const openNetwork = useCallback((section: NetworkSectionId = 'feed', entryId?: string) => {
+    const next: Route = {
+      portal: 'network',
+      page: 'section',
+      section,
+      ...(entryId ? { entryId } : {}),
+    };
+    setRoute(next);
+    window.history.pushState(
+      null,
+      '',
+      `${window.location.pathname}${window.location.search}${routeToHash(next)}`
+    );
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    savePortalChoice('network');
+  }, []);
+
   const openPortal = useCallback(
     (next: PortalId) => {
       if (next === portal) return;
       if (next === 'academy') openAcademyHash('#academy');
       else if (next === 'client') openClient('overview');
+      else if (next === 'network') openNetwork('feed');
       else openCompany();
     },
-    [openAcademyHash, openClient, openCompany, portal]
+    [openAcademyHash, openClient, openNetwork, openCompany, portal]
   );
 
   /**
@@ -329,6 +363,13 @@ export const App: React.FC = () => {
         null,
         '',
         `${window.location.pathname}${window.location.search}#client`
+      );
+    } else if (savedChoice === 'network') {
+      setRoute({ portal: 'network', page: 'section', section: 'feed' });
+      window.history.replaceState(
+        null,
+        '',
+        `${window.location.pathname}${window.location.search}#network/feed`
       );
     }
     // Runs once: later portal switches are the visitor's own decision.
@@ -355,6 +396,12 @@ export const App: React.FC = () => {
     const routeTitle = (() => {
       if (route.portal === 'client') {
         return clientSectionLabel(route.section, isAr ? 'ar' : 'en');
+      }
+      if (route.portal === 'network') {
+        const networkName = isAr ? 'الشبكة الهندسية' : 'Engineering Network';
+        return route.page === 'home'
+          ? networkName
+          : `${networkSectionLabel(route.section, isAr ? 'ar' : 'en')} | ${networkName}`;
       }
       if (route.portal === 'academy') {
         if (route.page === 'hub') return isAr ? 'أكاديمية إنسكو الهندسية' : 'INSCO Engineering Academy';
@@ -394,6 +441,7 @@ export const App: React.FC = () => {
     setChooserOpen(false);
     if (choice === 'academy') openAcademyHash('#academy');
     else if (choice === 'client') openClient('overview');
+    else if (choice === 'network') openNetwork('feed');
     else openCompany();
   };
 
@@ -432,6 +480,21 @@ export const App: React.FC = () => {
 
   /** Portal › page › sub-page, for the bar at the very top. */
   const trail: PortalTrailStep[] = useMemo(() => {
+    if (route.portal === 'network') {
+      const steps: PortalTrailStep[] = [
+        {
+          label: isAr ? 'الشبكة الهندسية' : 'Engineering Network',
+          onClick: () => openNetwork('feed'),
+        },
+      ];
+      if (route.page === 'section') {
+        steps.push({ label: networkSectionLabel(route.section, isAr ? 'ar' : 'en') });
+      } else {
+        steps.push({ label: isAr ? 'المنشورات' : 'Feed' });
+      }
+      return steps;
+    }
+
     if (route.portal === 'company') {
       const steps: PortalTrailStep[] = [
         { label: isAr ? 'بوابة الشركة' : 'Company portal', onClick: () => openCompany() },
@@ -482,7 +545,7 @@ export const App: React.FC = () => {
       steps.push({ label: isAr ? 'رئيسية الأكاديمية' : 'Academy home' });
     }
     return steps;
-  }, [route, isAr, language, openCompany, openClient, openAcademyHash]);
+  }, [route, isAr, language, openCompany, openClient, openAcademyHash, openNetwork]);
 
   /** Stand-alone admin page: the site chrome is replaced, not covered. */
   const openAdmin = useCallback(() => {
@@ -503,6 +566,50 @@ export const App: React.FC = () => {
 
   const academyRoute: AcademyRoute | null = route.portal === 'academy' ? route : null;
   const clientRoute: ClientRoute | null = route.portal === 'client' ? route : null;
+
+  /**
+   * The engineering network renders as its own portal: its header, its footer and
+   * its data, with the portal bar above it so a visitor can always leave. It does
+   * not inherit the corporate navigation or the academy shell — that isolation is
+   * the point of a fourth portal, not a detail of styling.
+   */
+  if (route.portal === 'network') {
+    const networkSection: NetworkSectionId = route.page === 'section' ? route.section : 'feed';
+    const networkEntryId = route.page === 'section' ? route.entryId : undefined;
+    return (
+      <div
+        dir={isAr ? 'rtl' : 'ltr'}
+        data-theme={theme}
+        data-portal="network"
+        className={`min-h-screen flex flex-col font-sans ${isLight ? 'bg-[#f6f6fb] text-slate-900' : 'bg-[#07070f] text-slate-100'}`}
+      >
+        <div className="sticky top-0 z-50">
+          <PortalSwitchBar
+            language={language}
+            portal={portal}
+            trail={trail}
+            onSwitchPortal={openPortal}
+          />
+        </div>
+        <Suspense
+          fallback={
+            <div role="status" aria-live="polite" className="p-8 text-sm text-slate-400">
+              {isAr ? 'جارٍ فتح الشبكة الهندسية…' : 'Opening the Engineering Network…'}
+            </div>
+          }
+        >
+          <NetworkPortal
+            language={language}
+            section={networkSection}
+            {...(networkEntryId ? { entryId: networkEntryId } : {})}
+            onOpenSection={openNetwork}
+            onOpenCompany={() => openCompany()}
+            onOpenAcademy={() => openAcademyHash('#academy')}
+          />
+        </Suspense>
+      </div>
+    );
+  }
 
   if (adminOpen) {
     return (
@@ -845,9 +952,10 @@ export const App: React.FC = () => {
         onOpenDemo={() => openDemo()}
         onOpenAcademy={tab => openAcademy(tab)}
         onOpenClient={section => openClient(section)}
+        onOpenNetwork={section => openNetwork(section)}
       />
 
-      {/* First-visit fork across the three portals (never covers a deep link) */}
+      {/* First-visit fork across the four portals (never covers a deep link) */}
       {chooserOpen && (
         <PortalChooser
           language={language}

@@ -34,7 +34,7 @@ export type UserCopilotMode =
   | 'navigate';
 
 export interface UserCopilotContext {
-  portal?: 'company' | 'client' | 'academy' | 'admin';
+  portal?: 'company' | 'client' | 'academy' | 'admin' | 'network';
   section?: string;
   companySummary?: string;
   activeTopic?: string;

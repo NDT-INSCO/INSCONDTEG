@@ -1,5 +1,5 @@
 import React from 'react';
-import { BriefcaseBusiness, Building2, GraduationCap, ArrowLeft, ArrowRight, ShieldCheck } from 'lucide-react';
+import { BriefcaseBusiness, Building2, GraduationCap, ArrowLeft, ArrowRight, ShieldCheck, Network } from 'lucide-react';
 import { Language } from '../types';
 import { INSCO_COMPANY_DATA } from '../data/inscoCompanyData';
 import { useEscapeKey } from '../utils/a11y';
@@ -12,7 +12,8 @@ interface PortalChooserProps {
 }
 
 /**
- * First-visit fork across the corporate profile, the client portal, and the academy.
+ * First-visit fork across the corporate profile, the client portal, the academy,
+ * and the engineering network.
  */
 export const PortalChooser: React.FC<PortalChooserProps> = ({ language, onChoose, onDismiss }) => {
   const isAr = language === 'ar';
@@ -42,19 +43,19 @@ export const PortalChooser: React.FC<PortalChooserProps> = ({ language, onChoose
       >
         <div className="px-5 sm:px-8 pt-6 pb-4 border-b border-slate-800 text-center space-y-2">
           <div className="text-[11px] font-mono uppercase tracking-wider text-cyan-400">
-            {isAr ? 'INSCO · منصة ثلاثية المسارات' : 'INSCO · Unified Three-Portal Platform'}
+            {isAr ? 'INSCO · منصة متعددة المسارات' : 'INSCO · One platform, four portals'}
           </div>
           <h2 id={titleId} className="text-xl sm:text-2xl font-black text-white">
             {isAr ? 'اختر المسار الذي يناسبك' : 'Choose the path that fits you'}
           </h2>
           <p id={descId} className="text-xs sm:text-sm text-slate-400 max-w-2xl mx-auto leading-relaxed">
             {isAr
-              ? 'بوابة الشركة للخدمات والمشروعات. بوابة العملاء لتسجيل الشركات وطلبات الفحص وملفات التقارير المكوّدة. الأكاديمية للمهندسين والمتدرّبين.'
-              : 'Corporate portal for services & projects. Client portal for registration, service requests, coded company archives & reports. Academy for engineers & trainees.'}
+              ? 'بوابة الشركة للخدمات والمشروعات. بوابة العملاء لتسجيل الشركات وطلبات الفحص وملفات التقارير المكوّدة. الأكاديمية للمهندسين والمتدرّبين. والشبكة الهندسية للمجتمع المهني.'
+              : 'Corporate portal for services & projects. Client portal for registration, service requests, coded company archives & reports. Academy for engineers & trainees. The Engineering Network for the professional community.'}
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 sm:p-6">
+        <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 sm:p-6 xl:grid-cols-4">
           <button
             type="button"
             autoFocus
@@ -112,6 +113,27 @@ export const PortalChooser: React.FC<PortalChooserProps> = ({ language, onChoose
             </span>
             <span className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-white">
               {isAr ? 'دخول الأكاديمية' : 'Enter the academy'}
+              <ArrowIcon className="w-3.5 h-3.5" />
+            </span>
+          </button>
+
+          <button
+            type="button"
+            data-testid="portal-choice-network"
+            onClick={() => onChoose('network')}
+            className="group text-start rounded-xl border border-slate-700 bg-slate-900/60 hover:border-violet-400/70 focus-visible:border-violet-400 p-5 transition cursor-pointer"
+          >
+            <span className="inline-flex items-center gap-2 text-violet-300 font-bold text-sm">
+              <Network className="w-4 h-4" />
+              {isAr ? 'الشبكة الهندسية' : 'Engineering Network'}
+            </span>
+            <span className="block mt-2 text-xs text-slate-400 leading-relaxed">
+              {isAr
+                ? 'مجتمع مهني متخصص: منشورات ومجموعات تخصصية · وظائف · خبراء · مؤسسات · تحقق مهني (تصور قيد التطوير).'
+                : 'A specialist community: posts & discipline groups · jobs · experts · organisations · professional verification (design prototype).'}
+            </span>
+            <span className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-white">
+              {isAr ? 'استعراض الشبكة' : 'Preview the network'}
               <ArrowIcon className="w-3.5 h-3.5" />
             </span>
           </button>

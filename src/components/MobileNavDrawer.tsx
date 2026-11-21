@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react';
-import { X, Building2, BriefcaseBusiness, GraduationCap, Phone } from 'lucide-react';
+import { X, Building2, BriefcaseBusiness, GraduationCap, Phone, Network } from 'lucide-react';
 import { Language } from '../types';
 import { INSCO_COMPANY_DATA } from '../data/inscoCompanyData';
 import { useEscapeKey } from '../utils/a11y';
 import type { AcademyTab } from '../academyTabs';
-import type { ClientSectionId, PortalId } from '../utils/portalRoutes';
+import type { ClientSectionId, NetworkSectionId, PortalId } from '../utils/portalRoutes';
 import { useDefaultUnitSystem } from '../utils/unitSystemStore';
 
 interface MobileNavDrawerProps {
@@ -17,6 +17,7 @@ interface MobileNavDrawerProps {
   onOpenDemo: () => void;
   onOpenAcademy: (tab?: AcademyTab) => void;
   onOpenClient?: (section?: ClientSectionId) => void;
+  onOpenNetwork?: (section?: NetworkSectionId) => void;
 }
 
 interface DrawerLink {
@@ -40,6 +41,7 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
   onOpenDemo,
   onOpenAcademy,
   onOpenClient,
+  onOpenNetwork,
 }) => {
   const isAr = language === 'ar';
   const { defaultUnitSystem, setDefaultUnitSystem } = useDefaultUnitSystem();
@@ -98,6 +100,26 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
     { labelAr: 'الاختبارات والتقييم', labelEn: 'Exams & assessment', action: academy('quiz') },
     { labelAr: 'متابعة الإنجاز', labelEn: 'Progress tracking', action: academy('completion_map') },
     { labelAr: 'المدرّس الذكي', labelEn: 'AI tutor', action: academy('ask_ai') },
+  ];
+
+  const network = (sec: NetworkSectionId = 'feed') => () => {
+    onClose();
+    onOpenNetwork?.(sec);
+  };
+
+  const networkLinks: DrawerLink[] = [
+    { labelAr: 'المنشورات', labelEn: 'Feed', action: network('feed') },
+    { labelAr: 'ملفي المهني', labelEn: 'My profile', action: network('profile') },
+    { labelAr: 'المجموعات التخصصية', labelEn: 'Discipline groups', action: network('groups') },
+    { labelAr: 'الخبراء والأعضاء', labelEn: 'People & experts', action: network('people') },
+    { labelAr: 'الفرص المهنية', labelEn: 'Jobs', action: network('jobs') },
+    { labelAr: 'المقالات', labelEn: 'Articles', action: network('articles') },
+    { labelAr: 'الفعاليات', labelEn: 'Events', action: network('events') },
+    { labelAr: 'المؤسسات', labelEn: 'Organisations', action: network('companies') },
+    { labelAr: 'الرسائل', labelEn: 'Messages', action: network('messages') },
+    { labelAr: 'الإشعارات', labelEn: 'Notifications', action: network('notifications') },
+    { labelAr: 'البحث', labelEn: 'Search', action: network('search') },
+    { labelAr: 'التحقق المهني', labelEn: 'Verification', action: network('verify') },
   ];
 
   const clientLinks: DrawerLink[] = [
@@ -161,11 +183,13 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
         <nav className="flex-1 overflow-y-auto px-3 pb-6">
           {/* The portal you are in comes first, so the menu never makes you
               scroll past the other audience to find your own pages. */}
-          {(portal === 'academy'
-            ? ['academy', 'client', 'company']
-            : portal === 'client'
-              ? ['client', 'company', 'academy']
-              : ['company', 'client', 'academy']
+          {(portal === 'network'
+            ? ['network', 'academy', 'client', 'company']
+            : portal === 'academy'
+              ? ['academy', 'client', 'company', 'network']
+              : portal === 'client'
+                ? ['client', 'company', 'academy', 'network']
+                : ['company', 'client', 'academy', 'network']
           ).map(group =>
             group === 'company' ? (
               <React.Fragment key="company">
@@ -183,13 +207,24 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
                 </div>
                 {renderGroup(isAr ? 'الطلبات والأرشيف والتقارير' : 'Requests, archive & dossiers', clientLinks)}
               </React.Fragment>
-            ) : (
+            ) : group === 'academy' ? (
               <React.Fragment key="academy">
                 <div className="flex items-center gap-2 px-1 pt-5 text-amber-300 text-xs font-bold">
                   <GraduationCap className="w-3.5 h-3.5" aria-hidden="true" />
                   {isAr ? 'أكاديمية إنسكو' : 'INSCO Academy'}
                 </div>
                 {renderGroup(isAr ? 'رحلة المتعلم' : 'Learning journey', academyLinks)}
+              </React.Fragment>
+            ) : (
+              <React.Fragment key="network">
+                <div className="flex items-center gap-2 px-1 pt-5 text-violet-300 text-xs font-bold">
+                  <Network className="w-3.5 h-3.5" aria-hidden="true" />
+                  {isAr ? 'الشبكة الهندسية' : 'Engineering Network'}
+                  <span className="rounded border border-violet-500/40 bg-violet-500/10 px-1 text-[9px] font-mono font-bold uppercase">
+                    {isAr ? 'تصور' : 'Prototype'}
+                  </span>
+                </div>
+                {renderGroup(isAr ? 'المجتمع المهني' : 'The professional community', networkLinks)}
               </React.Fragment>
             )
           )}

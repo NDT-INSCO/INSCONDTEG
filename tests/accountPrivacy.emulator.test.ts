@@ -47,7 +47,7 @@ const createReview = (db: Firestore, who: string, subjectUid: string, auditId: s
 };
 
 before(async () => {
-  const url = `http://${emulator![0]}:${emulator![2]}/emulator/v1/projects/${projectId}/databases/(default)/documents`;
+  const url = `http://${emulator![0]}/emulator/v1/projects/${projectId}/databases/(default)/documents`;
   const response = await fetch(url, { method: 'DELETE' });
   assert.ok(response.ok, 'Could not reset the test-only emulator');
   await setDoc(doc(consoleOperator, 'account_reviewers', 'reviewer'), { enabled: true });

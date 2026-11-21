@@ -18,12 +18,16 @@ interface CompanyContactSectionProps {
   submitRequest?: typeof submitRfq;
   /** Optional block rendered inside the RFQ section, above the form (the estimator). */
   topSlot?: React.ReactNode;
+  initialService?: string;
+  toolsSlot?: React.ReactNode;
 }
 
 export const CompanyContactSection: React.FC<CompanyContactSectionProps> = ({
   language,
   submitRequest,
   topSlot,
+  initialService,
+  toolsSlot,
 }) => {
   const isAr = language === 'ar';
   const sendToServer = submitRequest ?? submitRfq;
@@ -33,14 +37,14 @@ export const CompanyContactSection: React.FC<CompanyContactSectionProps> = ({
     contactName: '',
     phone: '',
     email: '',
-    serviceType: 'pwht',
+    serviceType: initialService ?? 'pwht',
     projectLocation: '',
     description: '',
   });
 
   const [submittedRef, setSubmittedRef] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [quickQuoteActive, setQuickQuoteActive] = useState<boolean>(false);
+  const [quickQuoteActive, setQuickQuoteActive] = useState(Boolean(initialService));
   const [sending, setSending] = useState<boolean>(false);
   const [failure, setFailure] = useState<{ reason: RfqFailureReason; detail?: string } | null>(null);
 
@@ -65,6 +69,12 @@ export const CompanyContactSection: React.FC<CompanyContactSectionProps> = ({
     window.addEventListener(RFQ_QUICK_ACTION_EVENT, handleQuickAction);
     return () => window.removeEventListener(RFQ_QUICK_ACTION_EVENT, handleQuickAction);
   }, []);
+
+  useEffect(() => {
+    if (!initialService) return;
+    setFormData(prev => ({ ...prev, serviceType: initialService }));
+    setQuickQuoteActive(true);
+  }, [initialService]);
 
   const sendRequest = async () => {
     if (sending) return;
@@ -490,6 +500,7 @@ export const CompanyContactSection: React.FC<CompanyContactSectionProps> = ({
             </div>
           </div>
         </div>
+        {toolsSlot}
       </div>
     </section>
   );

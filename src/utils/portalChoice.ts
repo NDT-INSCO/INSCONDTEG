@@ -2,8 +2,8 @@
  * Which portal the visitor belongs to.
  *
  * The site serves two very different audiences (industrial buyers and NDT
- * learners). The chooser gets shown once, the answer is remembered, and the
- * header keeps an explicit switch so nobody is locked in.
+ * learners). The portal guide is optional. An explicit portal preference is
+ * remembered, and the header keeps a switch so nobody is locked in.
  */
 export type PortalChoice = 'company' | 'client' | 'academy' | 'network';
 
@@ -34,39 +34,4 @@ export function clearPortalChoice(): void {
   } catch {
     /* nothing to clear */
   }
-}
-
-interface ChooserConditions {
-  /** Stored preference, if any. */
-  choice: PortalChoice | null;
-  /** True when the URL already asks for a specific academy tab (`#rt_lab` …). */
-  hasAcademyHash: boolean;
-  /** True when the URL already asks for the client portal (`#client`). */
-  hasClientHash?: boolean;
-  /** True when the URL already asks for the engineering network (`#network`). */
-  hasNetworkHash?: boolean;
-  /** True when the URL already asks for the demonstrations page (`#demo`). */
-  hasDemoHash?: boolean;
-  /** True when the URL carries any in-page anchor of the corporate profile. */
-  hasAnchorHash?: boolean;
-  /** Current view, so a deep link never gets covered by a modal. */
-  view: 'company' | 'client' | 'academy' | 'network' | 'demo' | 'service';
-}
-
-/**
- * Show the chooser only when the visitor has not decided yet *and* no deep link
- * is directing them. A shared `#quiz` or `#client` link must never open behind a modal.
- */
-export function shouldOfferPortalChooser({
-  choice,
-  hasAcademyHash,
-  hasClientHash = false,
-  hasNetworkHash = false,
-  hasDemoHash = false,
-  hasAnchorHash = false,
-  view,
-}: ChooserConditions): boolean {
-  if (choice) return false;
-  if (hasAcademyHash || hasClientHash || hasNetworkHash || hasDemoHash || hasAnchorHash) return false;
-  return view === 'company';
 }

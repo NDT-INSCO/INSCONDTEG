@@ -630,19 +630,21 @@ test('the global form creates a shared account from the academy without leaving 
   assert.equal(documents.get(profilePath)?.organizationName, '', 'private personal profile does not require a company');
   assert.equal(events.filter(event => event === 'create').length, 1);
 
-  for (const hash of ['#services', '#demo', '#academy/disciplines', '#client/community']) {
+  for (const hash of ['#services', '#demo', '#academy/disciplines', '#network/jobs', '#client/community']) {
     await act(async () => {
       dom.window.history.pushState(null, '', `/INSCONDTEG/${hash}`);
       dom.window.dispatchEvent(new dom.window.Event('hashchange'));
     });
-    assert.ok(header.getByRole('button', { name: 'My account' }), hash);
-    assert.equal(header.queryByRole('button', { name: 'Create account' }), null);
+    const current = within(ui.getByTestId('site-account-actions'));
+    assert.ok(current.getByRole('button', { name: 'My account' }), hash);
+    assert.equal(current.queryByRole('button', { name: 'Create account' }), null);
   }
 
-  fireEvent.click(header.getByRole('button', { name: 'My account' }));
+  const finalHeader = within(ui.getByTestId('site-account-actions'));
+  fireEvent.click(finalHeader.getByRole('button', { name: 'My account' }));
   const signedIn = within(ui.getByRole('dialog', { name: 'Your INSCO account' }));
   fireEvent.click(signedIn.getByRole('button', { name: 'Sign out' }));
-  await header.findByRole('button', { name: 'Sign in' });
+  await finalHeader.findByRole('button', { name: 'Sign in' });
   assert.equal(auth.currentUser, null);
   assert.equal(dom.window.location.hash, '#client/community');
   assert.equal(ui.queryByText('Academy Tester'), null);

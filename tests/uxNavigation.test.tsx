@@ -30,7 +30,7 @@ dom.window.HTMLElement.prototype.scrollIntoView = () => {};
 
 const { App } = await import('../src/App');
 const { CompanyPortal } = await import('../src/components/company/CompanyPortal');
-const { shouldOfferPortalChooser, PORTAL_CHOICE_KEY } = await import('../src/utils/portalChoice');
+const { PORTAL_CHOICE_KEY } = await import('../src/utils/portalChoice');
 const serviceFamiliesModule = await import('../src/utils/serviceFamilies');
 const { render, fireEvent, cleanup, within, waitFor } = await import('@testing-library/react');
 
@@ -43,31 +43,16 @@ afterEach(() => cleanup());
 
 /* ------------------------------ chooser rules ----------------------------- */
 
-test('the chooser is offered once, and never on top of a deep link', () => {
-  assert.equal(
-    shouldOfferPortalChooser({ choice: null, hasAcademyHash: false, view: 'company' }),
-    true,
-    'a first-time visitor on the profile should be asked'
-  );
-  assert.equal(
-    shouldOfferPortalChooser({ choice: 'company', hasAcademyHash: false, view: 'company' }),
-    false,
-    'a remembered choice must not be asked again'
-  );
-  assert.equal(
-    shouldOfferPortalChooser({ choice: null, hasAcademyHash: true, view: 'academy' }),
-    false,
-    'a shared #quiz link must open directly'
-  );
-  assert.equal(
-    shouldOfferPortalChooser({ choice: null, hasDemoHash: true, view: 'demo' }),
-    false,
-    'a #demo link must open directly'
-  );
+test('a first visit opens the company page without covering it with a dialog', () => {
+  const ui = render(<App />);
+  assert.equal(ui.queryByRole('dialog'), null);
+  assert.ok(ui.getByRole('button', { name: 'دليل البوابات' }));
+  assert.equal(dom.window.location.hash, '');
 });
 
 test('choosing the corporate door is remembered and closes the dialog', () => {
   const ui = render(<App />);
+  fireEvent.click(ui.getByRole('button', { name: 'دليل البوابات' }));
   const dialog = ui.getByRole('dialog');
   fireEvent.click(within(dialog).getByRole('button', { name: /دخول بوابة الشركة/ }));
 
@@ -77,6 +62,7 @@ test('choosing the corporate door is remembered and closes the dialog', () => {
 
 test('choosing the academy door is remembered and opens the academy', () => {
   const ui = render(<App />);
+  fireEvent.click(ui.getByRole('button', { name: 'دليل البوابات' }));
   const dialog = ui.getByRole('dialog');
   fireEvent.click(within(dialog).getByRole('button', { name: /دخول الأكاديمية/ }));
 
@@ -199,7 +185,7 @@ test('requesting a quote from a service page pre-selects that service in the RFQ
     assert.ok(select, 'the RFQ form must be on screen after the request');
     assert.equal(select!.value, 'pmi_hardness');
   });
-  assert.equal(dom.window.location.hash, '', 'the address bar must not claim a service page');
+  assert.equal(dom.window.location.hash, '#rfq', 'the quote has its own shareable address');
 });
 
 test('the services section links each family to its own page', () => {
@@ -224,4 +210,19 @@ test('each route sets its own document title', () => {
 
   fireEvent.click(ui.getAllByRole('button', { name: /أكاديمية إنسكو/ })[0]);
   assert.match(document.title, /أكاديمية/);
+});
+
+
+test('a corporate detail bookmark opens its own page and leaves the landing page unmounted', async () => {
+  dom.window.history.replaceState(null, '', '/-Project-/#standards-matrix');
+  const ui = render(<App />);
+  const standards = await waitFor(() => {
+    const section = ui.container.querySelector('#standards-matrix');
+    assert.ok(section);
+    return section;
+  }, { timeout: 6000 });
+  assert.equal(standards.closest('[data-company-detail]')?.getAttribute('data-company-detail'), 'quality');
+  assert.equal(ui.queryByTestId('company-hero-banner'), null);
+  assert.equal(dom.window.location.hash, '#standards-matrix');
+  assert.match(document.title, /الجودة والشهادات/);
 });

@@ -15,6 +15,7 @@ interface CompanyFooterProps {
   onOpenClient?: () => void;
   /** Opens the password-protected admin portal. */
   onOpenAdmin?: () => void;
+  onOpenChooser?: () => void;
 }
 
 /**
@@ -32,15 +33,17 @@ export const CompanyFooter: React.FC<CompanyFooterProps> = ({
   onOpenAcademy,
   onOpenClient,
   onOpenAdmin,
+  onOpenChooser,
 }) => {
   const isAr = language === 'ar';
 
   const evidence: { ar: string; en: string; sectionId?: string; action?: () => void }[] = [
     { ar: 'الاعتمادات وشهادات ISO', en: 'Accreditations & ISO', sectionId: 'certifications' },
-    { ar: 'ملف تأهيل المورد', en: 'Vendor qualification dossier', sectionId: 'vault' },
+    { ar: 'ملف التأهيل', en: 'Vendor qualification dossier', sectionId: 'vault' },
     { ar: 'سابقة الأعمال والمشروعات', en: 'Track record & projects', sectionId: 'projects' },
     { ar: 'أسطول وحدات PWHT', en: 'PWHT fleet & equipment', sectionId: 'fleet-inspector' },
     { ar: 'العرض الفني التفاعلي', en: 'Technical demonstrations', action: onOpenDemo },
+    { ar: 'أدوات المفتش والحضور', en: 'Inspector tools & attendance', sectionId: 'inspector-qr-access' },
   ];
 
   return (
@@ -172,7 +175,15 @@ export const CompanyFooter: React.FC<CompanyFooterProps> = ({
           <div>
             © 2026 {INSCO_COMPANY_DATA.name[language]}. {isAr ? 'جميع الحقوق محفوظة.' : 'All rights reserved.'}
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <button type="button" onClick={() => onOpenSection('privacy')} className="cursor-pointer underline underline-offset-4 hover:text-cyan-300">
+              {isAr ? 'خصوصية الحساب' : 'Account privacy'}
+            </button>
+            {onOpenChooser && (
+              <button type="button" onClick={onOpenChooser} className="cursor-pointer underline underline-offset-4 hover:text-cyan-300">
+                {isAr ? 'دليل البوابات' : 'Portal guide'}
+              </button>
+            )}
             <span className="font-mono">{INSCO_COMPANY_DATA.docRef}</span>
             <span aria-hidden="true">·</span>
             <span>ISO 9001:2015 · ISO 14001:2015 · ISO 45001:2018</span>

@@ -26,4 +26,22 @@ jobs:
           java-version: '21'
       - run: npm ci
       - run: npm run lint:rules
-      - run: npm run test:account-rules:emulator
+      - name: Verify authorization with the Firestore emulator
+        # The suite uses only a demo project and synthetic data. Keep the
+        # authorization failure visible in the check even without log access.
+        run: |
+          log=$(mktemp)
+          if npm run test:account-rules:emulator > "$log" 2>&1; then
+            cat "$log"
+          else
+            cat "$log"
+            python3 - "$log" <<'PYLOG'
+          import re, sys
+          with open(sys.argv[1], encoding='utf-8', errors='replace') as file:
+              lines = [re.sub(r'\x1b\[[0-9;]*m', '', line.strip()) for line in file]
+          selected = [line for line in lines if re.search(r'not ok|protocol|error:|code:|failed|Java', line, re.I)]
+          summary = '\n'.join((selected or lines)[-20:])[-3500:]
+          print('::error title=Firestore emulator verification::' + summary.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A'))
+          PYLOG
+            exit 1
+          fi

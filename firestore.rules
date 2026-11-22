@@ -413,6 +413,79 @@ service cloud.firestore {
         && data.updatedAt is timestamp;
     }
 
+    // -------------------------------------------------------------------------
+    // Engineering Network Groups: owner-chosen join and posting policies
+    // -------------------------------------------------------------------------
+    function groupData(groupId) {
+      return get(/databases/$(database)/documents/community_groups/$(groupId)).data;
+    }
+
+    function groupMemberId(groupId, uid) {
+      return groupId + '_' + uid;
+    }
+
+    function groupMemberData(groupId, uid) {
+      return get(/databases/$(database)/documents/community_group_members/$(groupMemberId(groupId, uid))).data;
+    }
+
+    function isGroupOwnerOf(groupId) {
+      return isVerifiedUser()
+        && exists(/databases/$(database)/documents/community_groups/$(groupId))
+        && groupData(groupId).ownerUid == request.auth.uid;
+    }
+
+    function isApprovedGroupMember(groupId) {
+      return isVerifiedUser()
+        && exists(/databases/$(database)/documents/community_groups/$(groupId))
+        && exists(/databases/$(database)/documents/community_group_members/$(groupMemberId(groupId, request.auth.uid)))
+        && groupMemberData(groupId, request.auth.uid).status == 'approved';
+    }
+
+    function isValidCommunityGroup(data) {
+      return data.keys().hasAll([
+          'name', 'description', 'ownerUid', 'ownerName',
+          'joinPolicy', 'postPolicy', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'name', 'description', 'ownerUid', 'ownerName',
+          'joinPolicy', 'postPolicy', 'coverURL', 'createdAt', 'updatedAt'
+        ])
+        && data.name is string && data.name.size() >= 3 && data.name.size() <= 120
+        && data.description is string && data.description.size() >= 5 && data.description.size() <= 1200
+        && data.ownerName is string && data.ownerName.size() >= 2 && data.ownerName.size() <= 120
+        && data.joinPolicy in ['open', 'request', 'invite']
+        && data.postPolicy in ['members', 'owners']
+        && (!('coverURL' in data) || (
+          data.coverURL is string && data.coverURL.matches('https://.*') && data.coverURL.size() <= 500
+        ))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidGroupMember(data) {
+      return data.keys().hasAll(['groupId', 'uid', 'displayName', 'role', 'status', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['groupId', 'uid', 'displayName', 'role', 'status', 'createdAt', 'updatedAt'])
+        && data.groupId is string && data.groupId.size() >= 1 && data.groupId.size() <= 128
+        && data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128
+        && data.displayName is string && data.displayName.size() >= 2 && data.displayName.size() <= 120
+        && data.role in ['owner', 'member']
+        && data.status in ['pending', 'approved', 'rejected']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidGroupPost(data) {
+      return data.keys().hasAll(['authorUid', 'authorName', 'body', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['authorUid', 'authorName', 'authorHeadline', 'title', 'body', 'createdAt', 'updatedAt'])
+        && data.authorUid is string && data.authorUid.size() >= 1 && data.authorUid.size() <= 128
+        && data.authorName is string && data.authorName.size() >= 2 && data.authorName.size() <= 120
+        && (!('authorHeadline' in data) || (data.authorHeadline is string && data.authorHeadline.size() <= 160))
+        && (!('title' in data) || (data.title is string && data.title.size() >= 3 && data.title.size() <= 160))
+        && data.body is string && data.body.size() >= 5 && data.body.size() <= 2000
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
     function isValidCommunityOpportunity(data) {
       return data.keys().hasAll([
           'authorUid', 'authorName', 'authorOrg', 'opportunityType',
@@ -766,6 +839,145 @@ service cloud.firestore {
 
       allow delete: if isValidId(opportunityId)
         && (isAdmin() || (isVerifiedUser() && existing().authorUid == request.auth.uid));
+    }
+
+    // -------------------------------------------------------------------------
+    // Engineering Network Groups
+    //
+    // A group belongs to the member who created it, and *that member* chooses how
+    // people join (open / by request / by invitation) and who may post (every
+    // approved member, or the owner alone). Both choices are enforced here, so a
+    // closed group is closed in the database and not merely in the interface.
+    // -------------------------------------------------------------------------
+    match /community_groups/{groupId} {
+      allow get: if isValidId(groupId);
+      // The group list is public on purpose: name, description and the two policies
+      // are institutional information, carry no personal data, and a visitor must be
+      // able to see what exists before signing in to join.
+      allow list: if true;
+
+      allow create: if isVerifiedUser()
+        && isValidId(groupId)
+        && isValidCommunityGroup(incoming())
+        && incoming().ownerUid == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isVerifiedUser()
+        && isValidId(groupId)
+        && isValidCommunityGroup(incoming())
+        && incoming().ownerUid == existing().ownerUid
+        && incoming().ownerName == existing().ownerName
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        // Only the owner edits the group. There are no counters here to drift.
+        && (isAdmin() || existing().ownerUid == request.auth.uid);
+
+      allow delete: if isVerifiedUser()
+        && isValidId(groupId)
+        && existing().ownerUid == request.auth.uid;
+    }
+
+    match /community_group_members/{memberId} {
+      allow get: if isValidId(memberId) && (
+        isAdmin()
+        || (isSignedIn() && existing().uid == request.auth.uid)
+        || isVerifiedUser()
+      );
+      allow list: if isVerifiedUser() || isAdmin();
+
+      allow create: if isVerifiedUser()
+        && isValidId(memberId)
+        && isValidGroupMember(incoming())
+        && memberId == incoming().groupId + '_' + incoming().uid
+        && exists(/databases/$(database)/documents/community_groups/$(incoming().groupId))
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && (
+          // The owner's own row, written with the group.
+          (
+            incoming().role == 'owner'
+            && incoming().status == 'approved'
+            && incoming().uid == request.auth.uid
+            && groupData(incoming().groupId).ownerUid == request.auth.uid
+          )
+          // Joining an open group is immediate; a request-only group takes a request.
+          || (
+            incoming().role == 'member'
+            && incoming().uid == request.auth.uid
+            && (
+              (groupData(incoming().groupId).joinPolicy == 'open' && incoming().status == 'approved')
+              || (groupData(incoming().groupId).joinPolicy == 'request' && incoming().status == 'pending')
+            )
+          )
+          // An invitation-only group is joined by its owner, not by the visitor.
+          || (
+            incoming().role == 'member'
+            && incoming().status == 'approved'
+            && groupData(incoming().groupId).joinPolicy == 'invite'
+            && groupData(incoming().groupId).ownerUid == request.auth.uid
+          )
+        );
+
+      allow update: if isVerifiedUser()
+        && isValidId(memberId)
+        && isValidGroupMember(incoming())
+        && incoming().uid == existing().uid
+        && incoming().groupId == existing().groupId
+        && incoming().role == existing().role
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        // The owner answers a request. A member can never approve themselves.
+        && (
+          isAdmin()
+          || (
+            isGroupOwnerOf(existing().groupId)
+            && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])
+            && incoming().status in ['approved', 'rejected']
+          )
+        );
+
+      allow delete: if isVerifiedUser()
+        && isValidId(memberId)
+        && (
+          isAdmin()
+          || existing().uid == request.auth.uid
+          || isGroupOwnerOf(existing().groupId)
+        );
+    }
+
+    // A group's own feed. Nothing here touches the public network feed: a post
+    // written for a closed group stays in that group's subcollection.
+    match /community_groups/{groupId}/posts/{postId} {
+      // Reading requires an approved membership — a non-member is refused by the
+      // rules, and the page says so instead of showing an empty group.
+      allow get: if isValidId(groupId) && isValidId(postId) && (isApprovedGroupMember(groupId) || isAdmin());
+      allow list: if isApprovedGroupMember(groupId) || isAdmin();
+
+      allow create: if isVerifiedUser()
+        && isValidId(postId)
+        && isValidGroupPost(incoming())
+        && incoming().authorUid == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && isApprovedGroupMember(groupId)
+        // The owner's second choice: members may post, or the owner alone may.
+        && (groupData(groupId).postPolicy == 'members' || groupData(groupId).ownerUid == request.auth.uid);
+
+      allow update: if isVerifiedUser()
+        && isValidId(postId)
+        && isValidGroupPost(incoming())
+        && incoming().authorUid == existing().authorUid
+        && existing().authorUid == request.auth.uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+
+      allow delete: if isVerifiedUser()
+        && (
+          existing().authorUid == request.auth.uid
+          || isGroupOwnerOf(groupId)
+          || isAdmin()
+        );
     }
 
     // -------------------------------------------------------------------------

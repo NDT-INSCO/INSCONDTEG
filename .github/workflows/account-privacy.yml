@@ -3,9 +3,9 @@ name: account-privacy
 on:
   push:
     branches: [main, 'arena/**']
-    paths: ['.github/workflows/account-privacy.yml', 'firestore.rules', 'firebase*.json', 'tests/accountPrivacy.emulator.test.ts', 'src/account/**', 'package*.json']
+    paths: ['.github/workflows/account-privacy.yml', 'firestore.rules', 'firebase*.json', 'tests/accountPrivacy.emulator.test.ts', 'tests/networkGroups.emulator.test.ts', 'src/account/**', 'src/client/communityGroupsService.ts', 'package*.json']
   pull_request:
-    paths: ['.github/workflows/account-privacy.yml', 'firestore.rules', 'firebase*.json', 'tests/accountPrivacy.emulator.test.ts', 'src/account/**', 'package*.json']
+    paths: ['.github/workflows/account-privacy.yml', 'firestore.rules', 'firebase*.json', 'tests/accountPrivacy.emulator.test.ts', 'tests/networkGroups.emulator.test.ts', 'src/account/**', 'src/client/communityGroupsService.ts', 'package*.json']
 
 permissions:
   contents: read

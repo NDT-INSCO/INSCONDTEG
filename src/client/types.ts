@@ -238,6 +238,51 @@ export interface CommunityPost {
   updatedAt?: unknown;
 }
 
+export type CommunityGroupJoinPolicy = 'open' | 'request' | 'invite';
+export type CommunityGroupPostPolicy = 'members' | 'owners';
+export type CommunityGroupMemberStatus = 'pending' | 'approved' | 'rejected';
+
+/**
+ * A group the members run themselves: the owner picks how people join and who may
+ * post, and `firestore.rules` enforces both choices.
+ */
+export interface CommunityGroup {
+  id: string;
+  name: string;
+  description: string;
+  ownerUid: string;
+  ownerName: string;
+  joinPolicy: CommunityGroupJoinPolicy;
+  postPolicy: CommunityGroupPostPolicy;
+  coverURL?: string;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+}
+
+/** One row per (group, member); the document id is `groupId_uid`. */
+export interface CommunityGroupMember {
+  id: string;
+  groupId: string;
+  uid: string;
+  displayName: string;
+  role: 'owner' | 'member';
+  status: CommunityGroupMemberStatus;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+}
+
+/** A post inside one group. It never enters the public network feed. */
+export interface CommunityGroupPost {
+  id: string;
+  authorUid: string;
+  authorName: string;
+  authorHeadline?: string;
+  title?: string;
+  body: string;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+}
+
 export interface CommunityPostComment {
   id: string;
   postId: string;

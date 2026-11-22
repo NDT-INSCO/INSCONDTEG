@@ -69,7 +69,7 @@ export const PortalSwitchBar: React.FC<PortalSwitchBarProps> = ({
 
   return (
     <div
-      className={`border-b text-[11px] ${
+      className={`portal-switch-strip border-b text-[11px] ${
         portal === 'network'
           ? 'border-violet-500/30 bg-[#0a0a18]'
           : portal === 'academy'

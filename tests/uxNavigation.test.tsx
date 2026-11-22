@@ -98,7 +98,10 @@ test('without motion support the first screen keeps both portal journeys and the
   assert.equal(hero.getByRole('link', { name: 'استكشف خدماتنا' }).getAttribute('href'), '#services');
   assert.ok(hero.getByRole('button', { name: 'الأكاديمية الهندسية' }));
   assert.equal(hero.getAllByRole('link').length + hero.getAllByRole('button').length, 2);
-  assert.equal(hero.getAllByRole('img').length, 1);
+  const backdrop = hero.getByTestId('corporate-masthead-backdrop');
+  assert.equal(backdrop.getAttribute('aria-hidden'), 'true');
+  assert.equal(backdrop.querySelector('img')?.getAttribute('alt'), '');
+  assert.equal(hero.queryByRole('figure'), null, 'the photograph is a background, not a separate frame');
   assert.equal(hero.queryByTestId('corporate-hero-backdrop'), null);
 });
 

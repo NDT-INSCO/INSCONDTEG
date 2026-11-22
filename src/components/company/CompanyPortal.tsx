@@ -32,8 +32,10 @@ const CORE_SERVICES = [
   },
 ];
 
-export function CompanyPortal({ language, onNavigateToAcademy }: {
+export function CompanyPortal({ language, chromeHeight = 0, onMastheadVisibilityChange, onNavigateToAcademy }: {
   language: Language;
+  chromeHeight?: number;
+  onMastheadVisibilityChange?: (visible: boolean) => void;
   onNavigateToAcademy: () => void;
 }) {
   const isAr = language === 'ar';
@@ -44,8 +46,8 @@ export function CompanyPortal({ language, onNavigateToAcademy }: {
   return (
     <div id="top" className="corporate-home">
       <section data-testid="corporate-landing-hero" className="corporate-hero" data-preserve-dark="true" aria-labelledby="corporate-hero-title">
-        <div className="corporate-wrap corporate-hero-grid">
-          <div className="min-w-0">
+        <div className="corporate-wrap corporate-hero-layout">
+          <div className="corporate-hero-copy">
             <div className="corporate-eyebrow" dir="ltr"><span aria-hidden="true" /> INSCO NDT <span className="corporate-eyebrow-rule" aria-hidden="true" /> NDT / PWHT</div>
             <h1 id="corporate-hero-title">
               {isAr ? 'فحص غير إتلافي ومعالجة حرارية للمشروعات الصناعية' : 'Industrial inspection. Documented results.'}
@@ -64,8 +66,12 @@ export function CompanyPortal({ language, onNavigateToAcademy }: {
               </CtaButton>
             </div>
           </div>
-          <CompanyLandingVisual language={language} />
         </div>
+        <CompanyLandingVisual
+          language={language}
+          chromeHeight={chromeHeight}
+          onVisibilityChange={onMastheadVisibilityChange}
+        />
       </section>
 
       <CompanyAnnouncement language={language} />

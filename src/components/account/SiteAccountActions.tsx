@@ -69,7 +69,7 @@ export function SiteAccountActions({
   const button = 'inline-flex min-h-8 items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-bold transition cursor-pointer sm:px-3';
   return (
     <>
-      <div className="border-t border-slate-800/80 bg-slate-950/95" data-testid="site-account-actions">
+      <div className="site-account-strip border-t border-slate-800/80 bg-slate-950/95" data-testid="site-account-actions">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-3 gap-y-1.5 px-3 py-1.5 sm:px-6">
           <span className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-300">
             <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-emerald-400" aria-hidden="true" />

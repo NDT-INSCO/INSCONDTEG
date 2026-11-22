@@ -1,7 +1,7 @@
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ADMIN_API } from '../src/admin/contract';
-import { externalAdminLink } from '../src/admin/public';
+import { externalAdminLink, OFFICIAL_PAGES_ADMIN_URL } from '../src/admin/public';
 
 const help = {
   invalid_url: 'Use the canonical HTTPS admin origin (optionally with #admin), not a Pages URL or a URL with credentials, a query or a subpath.',
@@ -65,15 +65,16 @@ export async function checkAdminHost(raw: string, request = fetch): Promise<Admi
 async function main(args: string[]) {
   if (args.length !== 1 || args[0] === '--help' || args[0] === '-h') {
     console.log('Usage: npm run admin:check -- https://your-admin-host.example');
+    console.log('Check the built-in INSCO Pages destination: npm run admin:check -- --pages-default');
     return args.length === 1 ? 0 : 2;
   }
-  const result = await checkAdminHost(args[0]);
+  const result = await checkAdminHost(args[0] === '--pages-default' ? OFFICIAL_PAGES_ADMIN_URL : args[0]);
   if (result.code !== 'ready') {
     console.error(`✗ ${result.code}${result.status ? ` (HTTP ${result.status})` : ''}: ${help[result.code]}`);
     return result.code === 'invalid_url' ? 2 : 1;
   }
   console.log(`✓ ${result.portal} — signed-out API check passed (HTTP 401, signed_out).`);
-  console.log('Test sign-in and sign-out on that host before setting VITE_ADMIN_PORTAL_URL on Pages.');
+  console.log('Test sign-in and sign-out on that host before publishing the link on Pages.');
   return 0;
 }
 

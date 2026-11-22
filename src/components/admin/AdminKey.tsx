@@ -1,12 +1,12 @@
 import React from 'react';
 import { KeyRound } from 'lucide-react';
 import { ADMIN_HASH } from '../../admin/contract';
-import { externalAdminLink } from '../../admin/public';
+import { adminPortalLink } from '../../admin/public';
 import type { Language } from '../../types';
 
 export function AdminKey({ language, onOpen, highlighted = false }: { language: Language; onOpen?: () => void; highlighted?: boolean }) {
   const label = language === 'ar' ? 'بوابة الإدارة' : 'Admin portal';
-  const external = externalAdminLink();
+  const external = adminPortalLink();
   return (
     <a
       href={external ?? ADMIN_HASH}

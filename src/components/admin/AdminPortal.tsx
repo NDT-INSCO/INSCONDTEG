@@ -3,7 +3,7 @@ import { Fingerprint, Globe2, Inbox, LayoutDashboard, LogOut, Megaphone, RotateC
 import { adminClient, AdminApiError } from '../../admin/client';
 import type { DashboardData, QuoteStatus } from '../../admin/contract';
 import { signInWithPasskey } from '../../admin/passkeyClient';
-import { externalAdminLink } from '../../admin/public';
+import { adminPortalLink } from '../../admin/public';
 import type { Language } from '../../types';
 import { isStaticPages } from '../../utils/staticPages';
 import { AdminAnnouncement } from './AdminAnnouncement';
@@ -30,7 +30,7 @@ const checkFailure = (problem: unknown, recheckSession = false): GateState => ({
 
 export default function AdminPortal(props: PortalProps) {
   const [gate, setGate] = useState<GateState>({ kind: 'checking' });
-  const linkedPortal = externalAdminLink();
+  const linkedPortal = adminPortalLink();
   const staticSite = isStaticPages();
   const checking = gate.kind === 'checking';
   const rechecking = checking && gate.recheckSession === true;

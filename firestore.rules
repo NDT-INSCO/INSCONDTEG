@@ -299,6 +299,7 @@ service cloud.firestore {
           'companyCode', 'specialtyTrades', 'bio', 'companiesManaged',
           'isPublished', 'headline', 'certifications', 'yearsExperience',
           'availabilityStatus', 'followersCount', 'endorsementsCount',
+          'photoURL', 'bannerURL', 'linkedInUrl', 'profileVisibility',
           'createdAt', 'updatedAt'
         ])
         && isValidId(data.uid) && data.uid == userId
@@ -317,6 +318,19 @@ service cloud.firestore {
         && (!('endorsementsCount' in data) || (data.endorsementsCount is number && data.endorsementsCount >= 0 && data.endorsementsCount <= 1000000))
         && data.companiesManaged is number && data.companiesManaged >= 0 && data.companiesManaged <= 10000
         && data.isPublished is bool
+        // Photos and the LinkedIn button. HTTPS only: an http:// image would be
+        // blocked as mixed content on the HTTPS site, and the LinkedIn check keeps
+        // that button from becoming a redirect to anywhere else.
+        && (!('photoURL' in data) || (data.photoURL is string && data.photoURL.matches('https://.*') && data.photoURL.size() <= 500))
+        && (!('bannerURL' in data) || (data.bannerURL is string && data.bannerURL.matches('https://.*') && data.bannerURL.size() <= 500))
+        && (!('linkedInUrl' in data) || (
+          data.linkedInUrl is string
+          && data.linkedInUrl.matches('https://([a-z0-9-]+[.])*(linkedin[.]com|lnkd[.]in)/.*')
+          && data.linkedInUrl.size() <= 500
+        ))
+        // Absence means public: every card written before this field existed keeps
+        // working, and no member is silently hidden by an upgrade.
+        && (!('profileVisibility' in data) || data.profileVisibility in ['public', 'members'])
         && data.createdAt is timestamp
         && data.updatedAt is timestamp;
     }
@@ -561,7 +575,17 @@ service cloud.firestore {
     // Opt-In Public Community Business Directory (Zero PII)
     // -------------------------------------------------------------------------
     match /community_workspaces/{userId} {
-      allow get: if isValidId(userId) && (existing().isPublished == true || isOwner(userId) || isAdmin());
+      // The member page at `#network/people/<uid>` reads this one document. A card
+      // marked «للأعضاء المؤكَّدين» is refused to a signed-out reader here — that is
+      // the enforcement, not a hidden button. Absence of the field means public.
+      allow get: if isValidId(userId) && (
+        isAdmin()
+        || isOwner(userId)
+        || (
+          existing().isPublished == true
+          && (!('profileVisibility' in existing()) || existing().profileVisibility == 'public' || isVerifiedUser())
+        )
+      );
       allow list: if existing().isPublished == true || isAdminEmail() || (isVerifiedUser() && existing().uid == request.auth.uid);
 
       allow create: if isVerifiedUser()

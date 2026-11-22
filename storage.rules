@@ -1,0 +1,29 @@
+rules_version = '2';
+
+// Member photos and banners for the engineering network.
+//
+// Uploads live under the member's own uid, so a signed-in member can never write
+// to someone else's folder. Reading is public because the images are already
+// decorative and PII-free, and because a public profile page must render without a
+// session. Everything outside `community_profiles/{uid}` is closed.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /community_profiles/{userId}/{fileName} {
+      allow read: if true;
+
+      allow write: if request.auth != null
+        && request.auth.uid == userId
+        // Mirrors NETWORK_MEDIA_LIMITS: 4 MB ceiling on any single object; the app
+        // enforces the tighter 2 MB photo limit before the bytes leave the device.
+        && request.resource.size > 0
+        && request.resource.size <= 4 * 1024 * 1024
+        && request.resource.contentType in ['image/jpeg', 'image/png', 'image/webp'];
+
+      allow delete: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

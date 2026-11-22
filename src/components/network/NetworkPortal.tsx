@@ -31,6 +31,9 @@ const NetworkJobsSection = lazy(() =>
 const NetworkDirectorySection = lazy(() =>
   import('./NetworkDirectorySection').then(module => ({ default: module.NetworkDirectorySection }))
 );
+const NetworkMemberProfile = lazy(() =>
+  import('./NetworkMemberProfile').then(module => ({ default: module.NetworkMemberProfile }))
+);
 
 export interface NetworkPortalProps {
   language: Language;
@@ -107,6 +110,23 @@ export const NetworkPortal: React.FC<NetworkPortalProps> = ({
           </div>
         );
       case 'people':
+        /* `#network/people/<uid>` is one member's public page; the bare section is
+           the directory. Same section, two honest screens. */
+        if (entryId) {
+          return (
+            <div data-testid="network-section-member">
+              <Suspense fallback={<LoadingSection language={language} />}>
+                <NetworkMemberProfile
+                  uid={entryId}
+                  language={language}
+                  onOpenAccount={openAccountPanel}
+                  onOpenProfile={() => openSection('profile')}
+                  onOpenDirectory={() => openSection('people')}
+                />
+              </Suspense>
+            </div>
+          );
+        }
         return (
           <div data-testid="network-section-people">
             <Suspense fallback={<LoadingSection language={language} />}>
@@ -114,6 +134,7 @@ export const NetworkPortal: React.FC<NetworkPortalProps> = ({
                 language={language}
                 onOpenAccount={openAccount}
                 onOpenProfile={() => openSection('profile')}
+                onOpenMember={uid => onOpenSection('people', uid)}
               />
             </Suspense>
           </div>

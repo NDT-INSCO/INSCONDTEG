@@ -20,6 +20,10 @@ export interface InscoHero3dBannerProps {
   mode: HeroBanner3dMode;
   cameraPreset: HeroBannerCameraPreset;
   autoOrbit: boolean;
+  /** Decorative homepage scene: no pointer controls and a copy-safe composition. */
+  background?: boolean;
+  paused?: boolean;
+  onReadyChange?: (ready: boolean) => void;
   onInspectedPartChange?: (part: InspectedBannerPart | null) => void;
   className?: string;
 }
@@ -54,14 +58,13 @@ const PART_SPECS: Record<InspectedBannerPart['id'], InspectedBannerPart> = {
   },
 };
 
-function detectSoftwareWebGL(): boolean {
+function detectSoftwareWebGL(context?: WebGL2RenderingContext): boolean {
   try {
-    const testCanvas = document.createElement('canvas');
-    const gl = testCanvas.getContext('webgl2') || testCanvas.getContext('webgl');
+    const gl = context ?? document.createElement('canvas').getContext('webgl2');
     if (!gl) return true;
     const ext = gl.getExtension('WEBGL_debug_renderer_info');
     const rendererStr = ext ? String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)) : String(gl.getParameter(gl.RENDERER));
-    gl.getExtension('WEBGL_lose_context')?.loseContext();
+    if (!context) gl.getExtension('WEBGL_lose_context')?.loseContext();
     return /SwiftShader|llvmpipe|softpipe|Software|Basic Render/i.test(rendererStr);
   } catch {
     return true;
@@ -246,6 +249,9 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
   mode,
   cameraPreset,
   autoOrbit,
+  background = false,
+  paused = false,
+  onReadyChange,
   onInspectedPartChange,
   className = '',
 }) => {
@@ -257,6 +263,7 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
   const modeRef = useRef<HeroBanner3dMode>(mode);
   const presetRef = useRef<HeroBannerCameraPreset>(cameraPreset);
   const autoOrbitRef = useRef<boolean>(autoOrbit);
+  const pausedRef = useRef(paused);
   const isArRef = useRef<boolean>(isAr);
   const userDraggedRef = useRef<boolean>(false);
   const presetTransitionRef = useRef<boolean>(false);
@@ -280,6 +287,11 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
   }, [autoOrbit]);
 
   useEffect(() => {
+    pausedRef.current = paused;
+    if (!paused) renderOnDemand.current?.();
+  }, [paused]);
+
+  useEffect(() => {
     isArRef.current = isAr;
     if (!userDraggedRef.current) presetTransitionRef.current = true;
     renderOnDemand.current?.();
@@ -297,27 +309,34 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
       typeof window.matchMedia === 'function' &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    const isSoftwareGl = detectSoftwareWebGL();
     let renderer: THREE.WebGLRenderer;
-
+    let isSoftwareGl: boolean;
     try {
+      // The homepage can show its photo without asking Three.js to create
+      // another context if WebGL is disabled or unavailable.
+      const canvas = background ? document.createElement('canvas') : undefined;
+      const context = canvas?.getContext('webgl2', { alpha: true, antialias: false });
+      if (background && !context) return;
+      isSoftwareGl = detectSoftwareWebGL(context ?? undefined);
       renderer = new THREE.WebGLRenderer({
-        antialias: !isSoftwareGl,
+        canvas,
+        context: context ?? undefined,
+        antialias: !isSoftwareGl && !background,
         alpha: true,
-        powerPreference: 'high-performance',
+        powerPreference: background ? 'default' : 'high-performance',
       });
     } catch {
-      setWebglUnavailable(true);
+      if (!background) setWebglUnavailable(true);
       return;
     }
 
-    const initW = Math.max(320, container.clientWidth || 960);
-    const initH = Math.max(320, container.clientHeight || 560);
+    const initW = container.clientWidth || 960;
+    const initH = container.clientHeight || 560;
 
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.12;
-    renderer.setPixelRatio(isSoftwareGl ? 1 : Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setPixelRatio(isSoftwareGl ? 1 : Math.min(window.devicePixelRatio || 1, background ? 1.5 : 2));
     renderer.setSize(initW, initH);
     renderer.shadowMap.enabled = !isSoftwareGl;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -328,31 +347,23 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
     renderer.domElement.style.height = '100%';
     container.appendChild(renderer.domElement);
 
-    const handleContextLost = (e: Event) => {
-      e.preventDefault();
-      setWebglUnavailable(true);
-    };
-    const handleContextRestored = () => {
-      setWebglUnavailable(false);
-    };
-    renderer.domElement.addEventListener('webglcontextlost', handleContextLost);
-    renderer.domElement.addEventListener('webglcontextrestored', handleContextRestored);
-
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x020617);
     scene.fog = new THREE.FogExp2(0x020617, 0.048);
 
     // Mandatory studio environment reflection (RoomEnvironment)
     const pmremGenerator = new THREE.PMREMGenerator(renderer);
-    const envTex = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
-    scene.environment = envTex;
+    const room = new RoomEnvironment();
+    const environment = pmremGenerator.fromScene(room, 0.04);
+    scene.environment = environment.texture;
+    room.dispose();
     pmremGenerator.dispose();
 
     const camera = new THREE.PerspectiveCamera(40, initW / initH, 0.1, 80);
     camera.position.set(3.4, 2.25, 7.6);
 
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = !isSoftwareGl && !prefersReducedMotion;
+    const controls = new OrbitControls(camera, background ? null : renderer.domElement);
+    controls.enableDamping = !background && !isSoftwareGl && !prefersReducedMotion;
     controls.dampingFactor = 0.06;
     controls.enableZoom = false; // Preserve smooth vertical page scroll
     controls.enablePan = false;
@@ -768,21 +779,20 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
       }
     };
 
-    renderer.domElement.addEventListener('pointermove', handlePointerMove);
+    if (!background) renderer.domElement.addEventListener('pointermove', handlePointerMove);
 
     // Responsive framing & camera target solver
     const applyResponsiveFraming = (w: number, h: number) => {
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
+      renderOnDemand.current?.();
     };
 
     const handleResize = () => {
-      if (!mountRef.current) return;
-      const w = Math.max(320, mountRef.current.clientWidth);
-      const h = Math.max(320, mountRef.current.clientHeight);
-      applyResponsiveFraming(w, h);
-      renderOnDemand.current?.();
+      const w = container.clientWidth;
+      const h = container.clientHeight;
+      if (w && h) applyResponsiveFraming(w, h);
     };
 
     let resizeObserver: ResizeObserver | null = null;
@@ -795,45 +805,94 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
     // -------------------------------------------------------------------------
     // Main Render Loop (with Software-WebGL GPU fence pacing)
     // -------------------------------------------------------------------------
-    const clock = new THREE.Clock();
+    // Three.js requires WebGL 2, including for the software renderer.
+    const gl = renderer.getContext() as WebGL2RenderingContext;
     let frameId = 0;
+    let timerId = 0;
+    let fence: WebGLSync | null = null;
     let disposed = false;
+    let contextLost = false;
+    let hasDrawn = false;
+    let lastFrameTime = 0;
+    let elapsed = 0;
+    let framedWidth = 0;
+    let framedHeight = 0;
+    let framedOffset = 0;
 
-    const afterDraw = (cb: () => void) => {
-      try {
-        const gl = renderer.getContext() as WebGL2RenderingContext;
-        if (gl && typeof gl.fenceSync === 'function') {
-          const sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
-          gl.flush();
-          const poll = () => {
-            if (disposed) return;
-            const state = sync ? gl.getSyncParameter(sync, gl.SYNC_STATUS) : gl.SIGNALED;
-            if (state === gl.UNSIGNALED) {
-              frameId = window.setTimeout(poll, 5);
-            } else {
-              if (sync) gl.deleteSync(sync);
-              frameId = window.setTimeout(cb, 80);
-            }
-          };
-          frameId = window.setTimeout(poll, 5);
-          return;
-        }
-      } catch {
-        // Fallback if fenceSync unavailable
-      }
-      frameId = window.setTimeout(cb, 80);
+    const cancelQueuedDraw = () => {
+      cancelAnimationFrame(frameId);
+      window.clearTimeout(timerId);
+      frameId = timerId = 0;
+      if (fence) gl.deleteSync(fence);
+      fence = null;
     };
 
-    const tick = () => {
-      if (disposed) return;
-      // Snap to the selected preset/materials in reduced motion rather than interpolating.
-      const dt = prefersReducedMotion ? 10 : Math.min(clock.getDelta(), 0.08);
-      const elapsed = prefersReducedMotion ? 0 : clock.getElapsedTime();
+    const requestFrame = () => {
+      if (!disposed && !contextLost && !frameId && !timerId) frameId = requestAnimationFrame(tick);
+    };
+
+    const afterDraw = () => {
+      fence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+      if (fence) gl.flush();
+      const poll = () => {
+        if (disposed || contextLost) return;
+        if (fence && gl.getSyncParameter(fence, gl.SYNC_STATUS) === gl.UNSIGNALED) {
+          timerId = window.setTimeout(poll, 5);
+          return;
+        }
+        if (fence) gl.deleteSync(fence);
+        fence = null;
+        timerId = window.setTimeout(() => {
+          timerId = 0;
+          requestFrame();
+        }, 80);
+      };
+      timerId = window.setTimeout(poll, 5);
+    };
+
+    const handleContextLost = (e: Event) => {
+      e.preventDefault();
+      contextLost = true;
+      hasDrawn = false;
+      cancelQueuedDraw();
+      if (!background) setWebglUnavailable(true);
+      onReadyChange?.(false);
+    };
+    const handleContextRestored = () => {
+      contextLost = false;
+      if (!background) setWebglUnavailable(false);
+      requestFrame();
+    };
+    renderer.domElement.addEventListener('webglcontextlost', handleContextLost);
+    renderer.domElement.addEventListener('webglcontextrestored', handleContextRestored);
+
+    const tick = (now: number) => {
+      if (disposed || contextLost) {
+        frameId = 0;
+        return;
+      }
+      const animated = !prefersReducedMotion && !pausedRef.current;
+      const delta = lastFrameTime ? Math.min((now - lastFrameTime) / 1000, 0.1) : 0;
+      lastFrameTime = now;
+      if (animated) elapsed += delta;
+      // Snap to the selected preset/materials in reduced motion or the initial backdrop frame.
+      const dt = prefersReducedMotion || (background && !hasDrawn) ? 10 : delta;
 
       const w = container.clientWidth || initW;
-      const isWide = w >= 980;
-      // Frame rig cleanly on the unobstructed visual half (left in RTL Arabic, right in LTR English)
-      const desiredRigX = isWide ? (isArRef.current ? -1.45 : 1.45) : 0;
+      const h = container.clientHeight || initH;
+      const isWide = w >= (background ? 900 : 980);
+      // The homepage uses an off-axis camera to keep the model in the visual
+      // half while the entire desktop banner is backed by the same scene.
+      const offset = background && isWide ? w * (isArRef.current ? 0.235 : -0.235) : 0;
+      if (w !== framedWidth || h !== framedHeight || offset !== framedOffset) {
+        if (offset) camera.setViewOffset(w, h, offset, 0, w, h);
+        else camera.clearViewOffset();
+        if (background) presetTransitionRef.current = true;
+        framedWidth = w;
+        framedHeight = h;
+        framedOffset = offset;
+      }
+      const desiredRigX = !background && isWide ? (isArRef.current ? -1.45 : 1.45) : 0;
       heroRigGroup.position.x = THREE.MathUtils.damp(heroRigGroup.position.x, desiredRigX, 5, dt);
       heroRigGroup.position.y = isWide ? -0.08 : 0.15;
 
@@ -847,7 +906,8 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
         _camGoalPos.set(baseX + 2.4, 2.05, 4.65);
         _camGoalTarget.set(baseX + 0.35, 0.55, 0);
       } else {
-        _camGoalPos.set(baseX + (isArRef.current ? -0.9 : 0.9), 2.15, isWide ? 7.1 : 8.2);
+        const distance = background && isWide ? Math.max(7.5, (h / w) * 23.5) : isWide ? 7.1 : 8.2;
+        _camGoalPos.set(baseX + (isArRef.current ? -0.9 : 0.9), 2.15, distance);
         _camGoalTarget.set(baseX, -0.05, 0);
       }
 
@@ -867,9 +927,9 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
         controls.target.x = THREE.MathUtils.damp(controls.target.x, _camGoalTarget.x, 4, dt);
       }
 
-      controls.autoRotate = autoOrbitRef.current && !prefersReducedMotion && !isSoftwareGl;
+      controls.autoRotate = animated && autoOrbitRef.current && (background ? !presetTransitionRef.current : !isSoftwareGl);
       controls.autoRotateSpeed = 0.65;
-      controls.update();
+      controls.update(background ? delta : undefined);
 
       // Mode-specific Materials, Volumetric Shader & Orbital Scanner Kinematics
       const curMode = modeRef.current;
@@ -927,45 +987,42 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
       }
 
       renderer.render(scene, camera);
+      if (!hasDrawn) {
+        hasDrawn = true;
+        onReadyChange?.(true);
+      }
 
-      if (prefersReducedMotion) return;
-      if (isSoftwareGl) afterDraw(tick);
-      else frameId = requestAnimationFrame(tick);
+      frameId = 0;
+      if (!animated) return;
+      if (isSoftwareGl) afterDraw();
+      else requestFrame();
     };
 
-    const requestStaticFrame = () => {
-      if (disposed || frameId) return;
-      frameId = requestAnimationFrame(() => {
-        tick();
-        frameId = 0;
-      });
-    };
-    if (prefersReducedMotion) {
-      renderOnDemand.current = requestStaticFrame;
-      controls.addEventListener('change', requestStaticFrame);
-      requestStaticFrame();
-    } else tick();
+    renderOnDemand.current = requestFrame;
+    if (prefersReducedMotion) controls.addEventListener('change', requestFrame);
+    requestFrame();
 
     return () => {
       renderOnDemand.current = null;
-      controls.removeEventListener('change', requestStaticFrame);
+      controls.removeEventListener('change', requestFrame);
       disposed = true;
-      cancelAnimationFrame(frameId);
-      clearTimeout(frameId);
+      cancelQueuedDraw();
       resizeObserver?.disconnect();
       window.removeEventListener('resize', handleResize);
       renderer.domElement.removeEventListener('pointermove', handlePointerMove);
       renderer.domElement.removeEventListener('webglcontextlost', handleContextLost);
       renderer.domElement.removeEventListener('webglcontextrestored', handleContextRestored);
-      controls.dispose();
-      envTex.dispose();
+      if (!background) controls.dispose();
+      environment.dispose();
       steelTextures.map.dispose();
       steelTextures.roughnessMap.dispose();
       contactShadowTex.dispose();
       disposeSceneTree(scene);
       renderer.dispose();
+      renderer.forceContextLoss();
+      renderer.domElement.remove();
     };
-  }, []);
+  }, [background, onReadyChange]);
 
   if (webglUnavailable) {
     return (
@@ -1002,7 +1059,7 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
     <div
       ref={mountRef}
       data-testid="insco-3d-banner-canvas-host"
-      aria-label={isAr ? 'مشهد ثلاثي الأبعاد تفاعلي لفحص خطوط الأنابيب' : 'Interactive 3D pipeline NDT & PWHT inspection scene'}
+      aria-label={background ? undefined : isAr ? 'مشهد ثلاثي الأبعاد تفاعلي لفحص خطوط الأنابيب' : 'Interactive 3D pipeline NDT & PWHT inspection scene'}
       className={`relative w-full h-full overflow-hidden select-none ${className}`}
     />
   );

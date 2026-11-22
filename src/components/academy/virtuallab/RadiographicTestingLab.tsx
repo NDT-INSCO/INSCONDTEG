@@ -44,6 +44,8 @@ import { RtSetupAndExposureStage, ExposureState } from './RtSetupAndExposureStag
 import { RtNegatoscopeCanvas } from './RtNegatoscopeCanvas';
 import { RtShootingTechniquesSimulator } from './RtShootingTechniquesSimulator';
 import { GeRadiographicExposureTimeApp } from './GeRadiographicExposureTimeApp';
+import { RtAllCodesAcceptanceSimulator } from './RtAllCodesAcceptanceSimulator';
+import { RtIntegratedFilmWorkbench } from './RtIntegratedFilmWorkbench';
 
 export type RtLabStageId = 'setup' | 'exposure' | 'darkroom' | 'interpretation';
 
@@ -1763,6 +1765,11 @@ export const RadiographicTestingLab: React.FC<RadiographicTestingLabProps> = ({ 
                       H&D = {filmEval.weldMetalDensity} · IQI = {filmEval.visibleWiresCount}/6 wires · Ug ={' '}
                       {ugResult.ugMm} mm
                     </div>
+                    <div className="pt-1.5 border-t border-slate-700/30 text-[11px] text-amber-500 font-bold">
+                      {isAr
+                        ? '↓ راجع محاكاة القبول والرفض المتزامنة عبر الـ 7 أكواد العالمية أسفل الاستمارة'
+                        : '↓ See live 7-code acceptance & rejection thresholds simulator directly below'}
+                    </div>
                   </div>
                 </>
               ) : (
@@ -1873,6 +1880,50 @@ export const RadiographicTestingLab: React.FC<RadiographicTestingLabProps> = ({ 
               )}
             </div>
           </div>
+
+          {/* Interactive 7-Code Radiographic Acceptance & Rejection Simulator */}
+          <RtAllCodesAcceptanceSimulator
+            language={language}
+            specimenWeldTag={specimen.weldTag}
+            specimenWallThicknessMm={specimen.wallThicknessMm}
+            traineeClassification={traineeClassification}
+            traineeLengthMm={traineeLengthMm}
+            activeGoverningCode={governingCode}
+            blindExamMode={blindExamMode}
+            hasSubmitted={submissionResult !== null}
+            officialClassification={specimen.primaryClassification}
+            officialLengthMm={specimen.primaryLengthMm}
+            onSelectGoverningCode={(code) => setGoverningCode(code)}
+            onApplyLengthToReport={(len) => {
+              setTraineeLengthMm(len);
+              setCaliperMeasuredMm(len);
+            }}
+          />
+
+          {/* Integrated Multi-Indication Film Reading, 7-Code Matrix & Official Reporting Workbench */}
+          <RtIntegratedFilmWorkbench
+            language={language}
+            specimen={specimen}
+            source={source}
+            technique={technique}
+            filmClass={filmClass}
+            sfdMm={sfdMm}
+            activityCi={activityCi}
+            kv={kv}
+            ma={ma}
+            hasLeadScreens={hasLeadScreens}
+            hasBackscatterB={hasBackscatterB}
+            iqiPlacement={iqiPlacement}
+            iqiSelection={iqiSelection}
+            ugResult={ugResult}
+            filmEval={filmEval}
+            traineeClassification={traineeClassification}
+            traineeLengthMm={traineeLengthMm}
+            activeGoverningCode={governingCode}
+            blindExamMode={blindExamMode}
+            hasSubmitted={submissionResult !== null}
+            onSelectGoverningCode={(code) => setGoverningCode(code)}
+          />
         </div>
       )}
         </>

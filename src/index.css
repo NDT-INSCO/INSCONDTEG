@@ -501,6 +501,156 @@ body {
     opacity 180ms ease;
 }
 
+@keyframes rtPbElectronFlow {
+  0% {
+    stroke-dashoffset: 16;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+.rt-pb-electron-vector {
+  animation: rtPbElectronFlow 1.05s linear infinite;
+}
+
+@keyframes rtPbEnergyStopOrigin {
+  0%, 100% {
+    stop-color: #fde047;
+    stop-opacity: 0.98;
+  }
+  50% {
+    stop-color: #fef08a;
+    stop-opacity: 1;
+  }
+}
+
+@keyframes rtPbEnergyStopMid {
+  0%, 100% {
+    stop-color: #facc15;
+    stop-opacity: 0.95;
+  }
+  42% {
+    stop-color: #84cc16;
+    stop-opacity: 0.98;
+  }
+  70% {
+    stop-color: #2dd4bf;
+    stop-opacity: 0.96;
+  }
+}
+
+@keyframes rtPbEnergyStopTip {
+  0%, 100% {
+    stop-color: #14b8a6;
+    stop-opacity: 0.92;
+  }
+  50% {
+    stop-color: #2dd4bf;
+    stop-opacity: 0.98;
+  }
+}
+
+@keyframes rtPbEnergyArrowTip {
+  0%, 100% {
+    fill: #14b8a6;
+  }
+  50% {
+    fill: #2dd4bf;
+  }
+}
+
+@keyframes rtPbEnergyOriginSpark {
+  0%, 100% {
+    fill: #fde047;
+  }
+  50% {
+    fill: #fef08a;
+  }
+}
+
+.rt-pb-energy-stop-origin {
+  animation: rtPbEnergyStopOrigin 2.4s ease-in-out infinite;
+}
+
+.rt-pb-energy-stop-mid {
+  animation: rtPbEnergyStopMid 2.4s ease-in-out infinite;
+}
+
+.rt-pb-energy-stop-tip {
+  animation: rtPbEnergyStopTip 2.4s ease-in-out infinite;
+}
+
+.rt-pb-energy-arrow-tip {
+  animation: rtPbEnergyArrowTip 2.4s ease-in-out infinite;
+}
+
+.rt-pb-energy-origin-spark {
+  animation: rtPbEnergyOriginSpark 2.4s ease-in-out infinite;
+}
+
+@keyframes rtPbGhostTrailWakePrimary {
+  0%, 100% {
+    stroke-opacity: 0.48;
+  }
+  50% {
+    stroke-opacity: 0.24;
+  }
+}
+
+@keyframes rtPbGhostTrailWakeResidual {
+  0%, 100% {
+    stroke-opacity: 0.28;
+  }
+  50% {
+    stroke-opacity: 0.1;
+  }
+}
+
+.rt-pb-electron-ghost-trail-primary {
+  filter: blur(1.1px);
+  animation:
+    rtPbElectronFlow var(--rt-pb-ghost-flow-duration, 1.25s) linear infinite,
+    rtPbGhostTrailWakePrimary var(--rt-pb-ghost-wake-duration, 1.8s) ease-in-out infinite;
+}
+
+.rt-pb-electron-ghost-trail-primary.rt-pb-ghost-len-short {
+  --rt-pb-ghost-flow-duration: 0.9s;
+  --rt-pb-ghost-wake-duration: 1.25s;
+}
+
+.rt-pb-electron-ghost-trail-primary.rt-pb-ghost-len-medium {
+  --rt-pb-ghost-flow-duration: 1.25s;
+  --rt-pb-ghost-wake-duration: 1.8s;
+}
+
+.rt-pb-electron-ghost-trail-primary.rt-pb-ghost-len-long {
+  --rt-pb-ghost-flow-duration: 1.65s;
+  --rt-pb-ghost-wake-duration: 2.55s;
+}
+
+.rt-pb-electron-ghost-trail-residual {
+  filter: blur(2.1px);
+  animation:
+    rtPbElectronFlow var(--rt-pb-ghost-flow-duration, 1.55s) linear infinite,
+    rtPbGhostTrailWakeResidual var(--rt-pb-ghost-wake-duration, 2.2s) ease-in-out infinite;
+}
+
+.rt-pb-electron-ghost-trail-residual.rt-pb-ghost-len-short {
+  --rt-pb-ghost-flow-duration: 1.1s;
+  --rt-pb-ghost-wake-duration: 1.5s;
+}
+
+.rt-pb-electron-ghost-trail-residual.rt-pb-ghost-len-medium {
+  --rt-pb-ghost-flow-duration: 1.55s;
+  --rt-pb-ghost-wake-duration: 2.2s;
+}
+
+.rt-pb-electron-ghost-trail-residual.rt-pb-ghost-len-long {
+  --rt-pb-ghost-flow-duration: 2.05s;
+  --rt-pb-ghost-wake-duration: 3.1s;
+}
+
 /* Respect users who ask the OS to reduce motion: the flip/scale affordances
    become instant instead of animated. */
 @media (prefers-reduced-motion: reduce) {

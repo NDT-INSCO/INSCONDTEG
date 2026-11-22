@@ -1450,6 +1450,10 @@ export async function upsertCommunityWorkspace(
     certifications?: string;
     yearsExperience?: number;
     availabilityStatus?: CommunityAvailabilityStatus;
+    photoURL?: string;
+    bannerURL?: string;
+    linkedInUrl?: string;
+    profileVisibility?: 'public' | 'members';
   },
   existing: CommunityWorkspaceProfile | null
 ): Promise<void> {
@@ -1480,6 +1484,13 @@ export async function upsertCommunityWorkspace(
     ...(input.availabilityStatus !== undefined && {
       availabilityStatus: input.availabilityStatus,
     }),
+    // Identity fields for the public page. `profileVisibility` is always written so
+    // the member's choice is explicit, while the others are omitted when empty — an
+    // empty string would be a value the rules then have to police.
+    ...(input.profileVisibility !== undefined && { profileVisibility: input.profileVisibility }),
+    ...(input.photoURL ? { photoURL: input.photoURL } : {}),
+    ...(input.bannerURL ? { bannerURL: input.bannerURL } : {}),
+    ...(input.linkedInUrl ? { linkedInUrl: input.linkedInUrl } : {}),
     updatedAt: serverTimestamp(),
   };
 
@@ -1531,6 +1542,66 @@ export function subscribeMyCommunityWorkspace(
     err => {
       try {
         handleFirestoreError(err, OperationType.GET, path);
+      } catch (wrapped) {
+        onError?.(wrapped instanceof Error ? wrapped : new Error(String(wrapped)));
+      }
+    }
+  );
+}
+
+/**
+ * Read one member's card for the public page.
+ *
+ * A one-shot `getDoc` rather than a listener: a visitor's page does not need live
+ * updates, and a `get` is what `firestore.rules` gates for `profileVisibility`.
+ */
+export async function getCommunityWorkspace(uid: string): Promise<CommunityWorkspaceProfile | null> {
+  if (!db) throw new Error('Firestore not initialized');
+  const path = `community_workspaces/${uid}`;
+  try {
+    const snapshot = await getDoc(doc(db, 'community_workspaces', uid));
+    return snapshot.exists() ? (snapshot.data() as CommunityWorkspaceProfile) : null;
+  } catch (err) {
+    handleFirestoreError(err, OperationType.GET, path);
+  }
+}
+
+/**
+ * A member's own public posts, for their public page.
+ *
+ * The query is constrained to `visibility == 'public'`, which is exactly what the
+ * list rule can prove for a signed-out reader — so the page works without a session
+ * and never leaks a members-only post into it.
+ */
+export function subscribeAuthorPublicPosts(
+  authorUid: string,
+  onData: (posts: CommunityPost[]) => void,
+  onError?: (error: Error) => void
+): Unsubscribe {
+  if (!db) {
+    onData([]);
+    return () => {};
+  }
+  const path = 'community_posts';
+  const q = query(
+    collection(db, 'community_posts'),
+    where('authorUid', '==', authorUid),
+    where('visibility', '==', 'public'),
+    limit(30)
+  );
+  return onSnapshot(
+    q,
+    snap => {
+      const list = snap.docs.map(d => ({
+        id: d.id,
+        ...(d.data() as Omit<CommunityPost, 'id'>),
+      }));
+      list.sort((a, b) => createdAtMs(b.createdAt) - createdAtMs(a.createdAt));
+      onData(list);
+    },
+    err => {
+      try {
+        handleFirestoreError(err, OperationType.LIST, path);
       } catch (wrapped) {
         onError?.(wrapped instanceof Error ? wrapped : new Error(String(wrapped)));
       }

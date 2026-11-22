@@ -11,6 +11,8 @@ interface NetworkDirectorySectionProps {
   onOpenAccount: () => void;
   /** Jumps to the profile form. */
   onOpenProfile: () => void;
+  /** Opens `#network/people/<uid>` — the member's public page. */
+  onOpenMember?: (uid: string) => void;
   /**
    * How long to wait for the first snapshot before offering a retry. A blocked
    * network would otherwise leave the page on "loading" indefinitely, which reads
@@ -36,6 +38,7 @@ export const NetworkDirectorySection: React.FC<NetworkDirectorySectionProps> = (
   language,
   onOpenAccount,
   onOpenProfile,
+  onOpenMember,
   slowAfterMs = 8000,
 }) => {
   const account = useOptionalSiteAccount();
@@ -292,12 +295,34 @@ export const NetworkDirectorySection: React.FC<NetworkDirectorySectionProps> = (
                 className="min-w-0 rounded-xl border border-[#232345] bg-[#0f0f22] p-3"
               >
                 <div className="flex min-w-0 items-start gap-2">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-violet-500/30 bg-violet-500/10 text-xs font-bold text-violet-200">
-                    {(member.displayName ?? '?').trim().charAt(0)}
-                  </div>
+                  {member.photoURL ? (
+                    <img
+                      src={member.photoURL}
+                      alt=""
+                      data-testid="network-member-card-photo"
+                      className="h-9 w-9 shrink-0 rounded-full border border-violet-500/30 object-cover"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-violet-500/30 bg-violet-500/10 text-xs font-bold text-violet-200">
+                      {(member.displayName ?? '?').trim().charAt(0)}
+                    </div>
+                  )}
                   <div className="min-w-0 flex-1">
                     <div className="flex min-w-0 items-center gap-1.5">
-                      <p className="min-w-0 truncate text-xs font-bold text-white">{member.displayName}</p>
+                      {onOpenMember ? (
+                        <button
+                          type="button"
+                          onClick={() => onOpenMember(member.uid)}
+                          data-testid="network-member-open"
+                          title={isAr ? 'افتتح الصفحة العامة' : 'Open the public page'}
+                          className="min-w-0 truncate text-start text-xs font-bold text-white underline-offset-2 transition cursor-pointer hover:text-violet-200 hover:underline"
+                        >
+                          {member.displayName}
+                        </button>
+                      ) : (
+                        <p className="min-w-0 truncate text-xs font-bold text-white">{member.displayName}</p>
+                      )}
                       {isMe ? (
                         <span className="shrink-0 rounded border border-violet-500/40 bg-violet-500/10 px-1 text-[9px] font-bold text-violet-200">
                           {isAr ? 'بطاقتك' : 'You'}

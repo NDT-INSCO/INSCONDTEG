@@ -10,6 +10,7 @@ import {
   UserRound,
 } from 'lucide-react';
 import type { Language } from '../../types';
+import { NetworkIdentityFields } from './NetworkIdentityFields';
 import type { CommunityWorkspaceProfile } from '../../client/types';
 import { useOptionalSiteAccount } from '../../account/SiteAccountContext';
 import {
@@ -62,6 +63,18 @@ export const NetworkProfileSection: React.FC<NetworkProfileSectionProps> = ({
   const [draft, setDraft] = useState<NetworkProfileDraft>(() => draftFromProfile(null));
   const [touched, setTouched] = useState(false);
   const [save, setSave] = useState<SaveState>({ status: 'idle' });
+  const [uploadEnabled, setUploadEnabled] = useState(false);
+
+  /* Storage is optional: ask the media service whether this build has a bucket. */
+  useEffect(() => {
+    let active = true;
+    void import('../../client/profileMediaService').then(api => {
+      if (active) setUploadEnabled(api.isMediaUploadAvailable());
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const uid = account?.user?.uid ?? null;
   const signedIn = Boolean(uid);
@@ -400,6 +413,17 @@ export const NetworkProfileSection: React.FC<NetworkProfileSectionProps> = ({
               maxLength={NETWORK_PROFILE_LIMITS.bioMax}
             />
           </Labelled>
+        </div>
+
+        <div className="mt-2.5">
+          <NetworkIdentityFields
+            language={language}
+            draft={draft}
+            user={account?.user ?? null}
+            uploadEnabled={uploadEnabled}
+            errors={errorsByField}
+            onChange={update}
+          />
         </div>
 
         <label className="mt-2 flex items-center gap-2 text-[11px] text-slate-300">

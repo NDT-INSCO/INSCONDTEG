@@ -69,24 +69,6 @@ export const NETWORK_GROUPS: NetworkGroupTemplate[] = [
   { slug: 'industrial-engineering', ar: 'الهندسة الصناعية', en: 'Industrial Engineering', discipline: 'safety', membersAr: 'تُعرض بعد ربط الخادم', membersEn: 'Shown once the backend is connected', rulesAr: 'اربط النقاش بالتشغيل والصيانة', rulesEn: 'Tie the discussion to operations and maintenance' },
 ];
 
-export interface NetworkJobTemplate {
-  id: string;
-  sample: true;
-  ar: string;
-  en: string;
-  discipline: NetworkDiscipline;
-  requirementAr: string;
-  requirementEn: string;
-  metaAr: string;
-  metaEn: string;
-}
-
-export const NETWORK_JOB_TEMPLATES: NetworkJobTemplate[] = [
-  { id: 'job-rt-2', sample: true, ar: 'قالب وظيفة: مفتش RT — المستوى II', en: 'Job template: RT inspector — Level II', discipline: 'rt_dr', requirementAr: 'شهادة RT II · ترخيص إشعاعي · خبرة موقعية', requirementEn: 'RT II certificate · radiation licence · site experience', metaAr: 'المكان والمدة والجهة تُملأ عند ربط الخادم', metaEn: 'Location, duration and organisation are filled once the backend is connected' },
-  { id: 'job-paut-3', sample: true, ar: 'قالب وظيفة: مفتش PAUT — المستوى II/III', en: 'Job template: PAUT inspector — Level II/III', discipline: 'ut_paut', requirementAr: 'PAUT II · TOFD · ASME V', requirementEn: 'PAUT II · TOFD · ASME V', metaAr: 'المكان والمدة والجهة تُملأ عند ربط الخادم', metaEn: 'Location, duration and organisation are filled once the backend is connected' },
-  { id: 'job-qa-site', sample: true, ar: 'قالب وظيفة: مهندس QA/QC في موقع', en: 'Job template: site QA/QC engineer', discipline: 'qa_qc', requirementAr: 'ISO 9001 · ITP · تقارير فحص', requirementEn: 'ISO 9001 · ITP · inspection reporting', metaAr: 'المكان والمدة والجهة تُملأ عند ربط الخادم', metaEn: 'Location, duration and organisation are filled once the backend is connected' },
-];
-
 export interface NetworkArticleTemplate {
   id: string;
   sample: true;

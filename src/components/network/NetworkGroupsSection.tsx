@@ -17,6 +17,7 @@ import type {
 } from '../../client/types';
 import type { Language } from '../../types';
 import { useOptionalSiteAccount } from '../../account/SiteAccountContext';
+import { NetworkRulesStatus } from './NetworkRulesStatus';
 import {
   EMPTY_GROUP_DRAFT,
   NETWORK_GROUP_JOIN_POLICIES,
@@ -234,6 +235,9 @@ export const NetworkGroupsSection: React.FC<NetworkGroupsSectionProps> = ({
   return (
     <div data-testid="network-groups-live" className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,300px)]">
       <div className="min-w-0 space-y-3">
+        {/* The deployment fact behind every refusal on this page, measured not assumed. */}
+        <NetworkRulesStatus language={language} />
+
         {/* -------------------------------- create -------------------------------- */}
         {canCreate ? (
           <form onSubmit={create} className="min-w-0 rounded-xl border border-[#232345] bg-[#0f0f22] p-3">

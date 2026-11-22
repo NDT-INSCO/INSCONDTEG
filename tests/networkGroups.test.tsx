@@ -49,6 +49,7 @@ let groupDoc: Record<string, unknown> | null = null;
 let directory: Record<string, unknown>[] = [];
 let uploadNeverAnswers = false;
 let joinError: { code: string; message: string } | null = null;
+let rulesState: 'ready' | 'missing' | 'offline' | 'unknown' = 'ready';
 
 const group = (overrides: Record<string, unknown> = {}) => ({
   id: 'g1',
@@ -115,6 +116,13 @@ mock.module('../src/client/communityGroupsService.ts', {
   },
 });
 
+mock.module('../src/client/rulesProbe.ts', {
+  namedExports: {
+    probeId: (now: number) => `rules-probe-${now}`,
+    probeGroupRules: async () => ({ state: rulesState, code: null, checkedAt: 1 }),
+  },
+});
+
 mock.module('../src/client/firestoreClientService.ts', {
   namedExports: {
     observeClientPortalAuth: (callback: (u: typeof me | null) => void) => {
@@ -154,6 +162,7 @@ beforeEach(() => {
   directory = [];
   uploadNeverAnswers = false;
   joinError = null;
+  rulesState = 'ready';
 });
 
 afterEach(() => cleanup());
@@ -337,6 +346,41 @@ test('creating a group sends the two policies the owner picked', async () => {
     assert.equal(input.postPolicy, 'owners');
     assert.equal(input.name, 'مفتشو TOFD');
   });
+});
+
+/* ------------------------------ rules deployment --------------------------- */
+
+test('the probe id is one the published rules accept', async () => {
+  const { probeId } = await import('../src/client/rulesProbe');
+  // `isValidId` in firestore.rules: 1..128 characters of [a-zA-Z0-9_-]
+  assert.match(probeId(1795356306848), /^[a-zA-Z0-9_-]{1,128}$/);
+});
+
+test('when the published rules know the path, the page says so after checking', async () => {
+  const { getByTestId, container } = mountList();
+  await waitFor(() => assert.ok(getByTestId('network-rules-ready')));
+  assert.ok((container.textContent ?? '').includes('تعرف مسار الجروبات'));
+  assert.ok(getByTestId('network-rules-recheck'));
+});
+
+test('when they do not, the page names the fix instead of blaming the member', async () => {
+  rulesState = 'missing';
+  const { getByTestId } = mountList();
+  await waitFor(() => assert.ok(getByTestId('network-rules-missing')));
+  const strip = getByTestId('network-rules-missing');
+  assert.ok((strip.textContent ?? '').includes('firestore.rules'));
+  assert.ok((strip.textContent ?? '').includes('npm run rules:deploy'));
+  const link = strip.querySelector('a');
+  assert.ok(link, 'the console editor is linked');
+  assert.equal(link!.getAttribute('target'), '_blank');
+  assert.ok((link!.getAttribute('href') ?? '').includes('console.firebase.google.com'));
+});
+
+test('a network failure is reported as "no verdict", not as a rules problem', async () => {
+  rulesState = 'offline';
+  const { getByTestId, container } = mountList();
+  await waitFor(() => assert.ok(getByTestId('network-rules-offline')));
+  assert.equal(container.querySelector('[data-testid="network-rules-missing"]'), null);
 });
 
 /* ------------------------------- the group page ---------------------------- */

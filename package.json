@@ -48,6 +48,7 @@
     "build:vercel": "npm run build:hosted",
     "lint:rules": "eslint firestore.rules storage.rules",
     "test:account-rules": "tsx --test --test-timeout=45000 tests/accountPrivacy.emulator.test.ts tests/networkGroups.emulator.test.ts",
+    "rules:deploy": "npx --yes firebase-tools@15.37.0 deploy --only firestore:rules,storage --project ai-studio-applet-webapp-18922",
     "test:account-rules:emulator": "npx --yes firebase-tools@15.37.0 emulators:exec --project demo-insco-account-privacy --only firestore --config firebase.emulator.json \"npm run test:account-rules\""
   },
   "dependencies": {

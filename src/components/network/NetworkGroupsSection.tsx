@@ -22,6 +22,7 @@ import {
   NETWORK_GROUP_JOIN_POLICIES,
   NETWORK_GROUP_LIMITS,
   NETWORK_GROUP_POST_POLICIES,
+  describeGroupFailure,
   groupAccess,
   joinPolicyById,
   membershipFor,
@@ -170,7 +171,7 @@ export const NetworkGroupsSection: React.FC<NetworkGroupsSectionProps> = ({
         setTouched(false);
         setCreated(id);
       } catch (failure) {
-        setActionError(failure instanceof Error ? failure.message : String(failure));
+        setActionError(describeGroupFailure(failure, isAr));
       } finally {
         setCreating(false);
       }
@@ -194,7 +195,7 @@ export const NetworkGroupsSection: React.FC<NetworkGroupsSectionProps> = ({
             ? isAr
               ? 'هذا الجروب بالدعوة فقط — يضيفك المالك.'
               : 'This group is invitation-only — its owner adds members.'
-            : message
+            : describeGroupFailure(failure, isAr)
         );
       } finally {
         setJoining(null);
@@ -375,12 +376,12 @@ export const NetworkGroupsSection: React.FC<NetworkGroupsSectionProps> = ({
 
         {actionError ? (
           <p role="alert" className="rounded border border-rose-500/40 bg-rose-500/10 px-2 py-1 text-[10px] text-rose-200">
-            {isAr ? `تعذّر تنفيذ الإجراء: ${actionError}` : `Action failed: ${actionError}`}
+            {actionError}
           </p>
         ) : null}
         {error ? (
           <p role="alert" className="rounded border border-rose-500/40 bg-rose-500/10 px-2 py-1 text-[10px] text-rose-200">
-            {isAr ? `تعذّر تحميل الجروبات: ${error}` : `Could not load groups: ${error}`}
+            {describeGroupFailure({ message: error }, isAr)}
           </p>
         ) : null}
 

@@ -13,6 +13,7 @@ export const GlobalAppConfigControl: React.FC<GlobalAppConfigControlProps> = ({ 
   const { isLight } = useTheme();
   const { defaultUnitSystem, setDefaultUnitSystem } = useDefaultUnitSystem();
   const [open, setOpen] = useState(false);
+  const trigger = useRef<HTMLButtonElement>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -27,6 +28,7 @@ export const GlobalAppConfigControl: React.FC<GlobalAppConfigControlProps> = ({ 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setOpen(false);
+        if (containerRef.current?.contains(document.activeElement)) trigger.current?.focus();
       }
     };
 
@@ -46,6 +48,7 @@ export const GlobalAppConfigControl: React.FC<GlobalAppConfigControlProps> = ({ 
     <div ref={containerRef} className="relative">
       <button
         type="button"
+        ref={trigger}
         data-testid="global-app-config-toggle"
         data-default-unit={defaultUnitSystem}
         aria-haspopup="dialog"
@@ -78,9 +81,7 @@ export const GlobalAppConfigControl: React.FC<GlobalAppConfigControlProps> = ({ 
           data-testid="global-app-config-panel"
           aria-label={isAr ? 'إعدادات التطبيق' : 'App Configuration'}
           dir={isAr ? 'rtl' : 'ltr'}
-          className={`absolute top-full mt-2 w-72 sm:w-80 rounded-xl border p-4 shadow-2xl z-[80] space-y-3 ${
-            isAr ? 'left-0' : 'right-0'
-          } ${
+          className={`fixed inset-x-4 top-full mt-2 max-h-[65dvh] overflow-y-auto rounded-xl border p-4 shadow-2xl z-[80] space-y-3 sm:absolute sm:inset-s-auto sm:inset-e-0 sm:w-80 ${
             isLight
               ? 'border-slate-200 bg-white text-slate-900'
               : 'border-slate-700 bg-slate-950 text-slate-100'
@@ -95,7 +96,7 @@ export const GlobalAppConfigControl: React.FC<GlobalAppConfigControlProps> = ({ 
             </div>
             <button
               type="button"
-              onClick={() => setOpen(false)}
+              onClick={() => { setOpen(false); trigger.current?.focus(); }}
               aria-label={isAr ? 'إغلاق الإعدادات' : 'Close settings'}
               className="rounded-lg p-1 text-slate-400 hover:text-white cursor-pointer"
             >

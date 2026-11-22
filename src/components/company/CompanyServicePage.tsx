@@ -1,7 +1,7 @@
 import React from 'react';
 import { ArrowLeft, ArrowRight, ShieldCheck, FileText, FlaskConical, PlayCircle } from 'lucide-react';
 import { Language } from '../../types';
-import { INSCO_COMPANY_DATA } from '../../data/inscoCompanyData';
+import { COMMERCIAL_NDT_METHODS, INSCO_COMPANY_DATA } from '../../data/inscoCompanyData';
 import { CtaButton } from '../ui/CtaButton';
 import {
   SERVICE_FAMILIES,
@@ -12,6 +12,7 @@ import {
 interface CompanyServicePageProps {
   language: Language;
   family: ServiceFamily;
+  methodId?: string;
   onBack: () => void;
   onOpenFamily: (id: ServiceFamilyId) => void;
   onRequestQuote: (serviceType: string) => void;
@@ -29,6 +30,7 @@ interface CompanyServicePageProps {
 export const CompanyServicePage: React.FC<CompanyServicePageProps> = ({
   language,
   family,
+  methodId,
   onBack,
   onOpenFamily,
   onRequestQuote,
@@ -38,9 +40,12 @@ export const CompanyServicePage: React.FC<CompanyServicePageProps> = ({
   const isAr = language === 'ar';
   const ArrowIcon = isAr ? ArrowLeft : ArrowRight;
 
-  const methods = INSCO_COMPANY_DATA.ndtMethods.filter((method: { id: string }) =>
+  const methods = COMMERCIAL_NDT_METHODS.filter((method: { id: string }) =>
     family.methodIds.includes(method.id)
   );
+  const serviceType = methodId === 'rt' ? 'rt_gamma'
+    : methodId === 'mt' || methodId === 'pt' || methodId === 'vt' ? 'mt_pt'
+    : family.rfqServiceType;
   const companyServices = (family.companyServiceIds ?? [])
     .map(id => INSCO_COMPANY_DATA.services.find((service: { id: string }) => service.id === id))
     .filter(Boolean) as Array<{
@@ -75,7 +80,7 @@ export const CompanyServicePage: React.FC<CompanyServicePageProps> = ({
             <p className="mt-3 text-sm sm:text-base text-slate-400 leading-relaxed">{family.description[language]}</p>
 
             <div className="mt-5 flex flex-wrap items-center gap-3">
-              <CtaButton variant="primary" onClick={() => onRequestQuote(family.rfqServiceType)}>
+              <CtaButton variant="primary" onClick={() => onRequestQuote(serviceType)}>
                 <FileText className="w-4 h-4" />
                 {isAr ? 'اطلب عرض سعر لهذه الخدمة' : 'Request a quote for this service'}
               </CtaButton>
@@ -151,7 +156,8 @@ export const CompanyServicePage: React.FC<CompanyServicePageProps> = ({
                 description: { ar: string; en: string };
                 equipment: { ar: string; en: string };
               }) => (
-                <article key={method.id} className="rounded-xl border border-slate-800 bg-slate-900/40 p-4 space-y-2">
+                <article key={method.id}
+                  id={`service-method-${method.id}`} className="rounded-xl border border-slate-800 bg-slate-900/40 p-4 space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-[11px] font-mono font-bold text-cyan-300 border border-cyan-500/30 rounded px-1.5 py-0.5">
                       {method.code}
@@ -205,7 +211,7 @@ export const CompanyServicePage: React.FC<CompanyServicePageProps> = ({
               ? 'عرض السعر الرسمي يصدر من قطاع العمليات الفنية بعد مراجعة نطاق العمل؛ متوسط الرد أقل من 4 ساعات عمل.'
               : 'The official quote is issued by technical operations after scope review; average response under 4 working hours.'}
           </p>
-          <CtaButton variant="primary" size="sm" onClick={() => onRequestQuote(family.rfqServiceType)}>
+          <CtaButton variant="primary" size="sm" onClick={() => onRequestQuote(serviceType)}>
             {isAr ? 'اطلب عرض سعر' : 'Request a quote'}
             <ArrowIcon className="w-3.5 h-3.5" />
           </CtaButton>

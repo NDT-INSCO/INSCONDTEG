@@ -34,6 +34,9 @@ test('validation rejects incomplete or malformed requests', () => {
 
   const shortPhone = validateRfqBody({ ...body, phone: '12' });
   assert.equal(shortPhone.ok, false);
+  assert.equal(validateRfqBody({ ...body, phone: 'foo123456789' }).ok, false);
+  assert.equal(validateRfqBody({ ...body, description: 'x'.repeat(4001) }).ok, false);
+  assert.equal(validateRfqBody({ ...body, contactName: 123 }).ok, false);
 
   const honeypot = validateRfqBody({ ...body, website: 'http://spam.example' });
   assert.equal(honeypot.ok, false);
@@ -45,6 +48,7 @@ test('validation accepts a complete request and normalises language', () => {
   if (result.ok) {
     assert.equal(result.value.language, 'en');
     assert.equal(result.value.email, 'procurement@petrobel.com');
+    assert.equal(result.value.phone, '+201000000000');
   }
 });
 
@@ -86,13 +90,17 @@ test('a rejected delivery is a 502 and carries no reference', async () => {
   assert.equal(result.body.ok, false);
   assert.equal(result.body.reference, undefined);
 
+  const reasons: string[] = [];
   const throwing = await handleRfqRequest(body, {
+    reportFailure: reason => reasons.push(reason),
     deliver: async () => {
       throw new Error('socket hang up');
     },
   });
   assert.equal(throwing.status, 502);
-  assert.ok(String(throwing.body.detail).includes('socket hang up'));
+  assert.equal(throwing.body.reference, undefined);
+  assert.doesNotMatch(String(throwing.body.detail), /socket hang up/);
+  assert.deepEqual(reasons, ['provider_unreachable']);
 });
 
 test('reference shape is stable and date-stamped', () => {
@@ -125,4 +133,26 @@ test('webhook delivery reports provider failures instead of swallowing them', as
     receivedAt: '2026-11-17T09:30:00.000Z',
   });
   assert.equal(outcome.ok, false);
+});
+
+
+test('webhooks must acknowledge the saved reference, not just return HTTP 200', async () => {
+  const webhookEnv = { RFQ_WEBHOOK_URL: 'https://hook.example/rfq' };
+  const wrong = deliveryFromEnv(webhookEnv, (async () => Response.json({ ok: true, reference: 'other' })) as typeof fetch);
+  assert.equal((await handleRfqRequest(body, { deliver: wrong })).status, 502);
+  const receiver = deliveryFromEnv(webhookEnv, (async (_url, options) => {
+    const record = JSON.parse(String(options?.body));
+    return Response.json({ ok: true, reference: record.reference });
+  }) as typeof fetch);
+  const result = await handleRfqRequest(body, { deliver: receiver });
+  assert.equal(result.status, 200);
+  assert.match(result.body.reference ?? '', /^INSCO-RFQ-/);
+});
+
+test('email receipt requires an acknowledgement ID from the configured provider', async () => {
+  const env = { RESEND_API_KEY: 'unit-test', RFQ_INBOX: 'test@example.org' };
+  const empty = deliveryFromEnv(env, (async () => Response.json({})) as typeof fetch);
+  assert.equal((await handleRfqRequest(body, { deliver: empty })).status, 502);
+  const accepted = deliveryFromEnv(env, (async () => Response.json({ id: 'provider-test-id' })) as typeof fetch);
+  assert.equal((await handleRfqRequest(body, { deliver: accepted })).status, 200);
 });

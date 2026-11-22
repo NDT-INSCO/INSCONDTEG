@@ -398,7 +398,7 @@ export const CertificationExamSimulation: React.FC<CertificationExamSimulationPr
                   <Layers className="w-3.5 h-3.5 text-sky-500" />
                   {isAr ? 'مصادر بيانات المنهج المتصلة حالياً:' : 'Active Curriculum Data Feed Sources:'}
                 </span>
-                <span>{availableCurriculumModules.length} {isAr ? 'وحدة منهجية معتمدة' : 'Accredited Syllabus Modules'}</span>
+                <span>{availableCurriculumModules.length} {isAr ? 'وحدة تعليمية' : 'Study modules'}</span>
               </div>
 
               <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -482,7 +482,7 @@ export const CertificationExamSimulation: React.FC<CertificationExamSimulationPr
                   <option value={10}>10 {isAr ? 'أسئلة (اختبار سريع)' : 'Questions (Express)'}</option>
                   <option value={20}>20 {isAr ? 'سؤالاً (اختبار معياري)' : 'Questions (Standard)'}</option>
                   <option value={30}>30 {isAr ? 'سؤالاً (اختبار مكثف)' : 'Questions (Intensive)'}</option>
-                  <option value={40}>40 {isAr ? 'سؤالاً (امتحان تأهيلي كامل)' : 'Questions (Full Official Qualifying)'}</option>
+                  <option value={40}>40 {isAr ? 'سؤالاً (تدريب مطوّل)' : 'Questions (extended practice)'}</option>
                 </select>
                 <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
                   {isAr ? `${questionCount} سؤالاً عشوائياً بدون تكرار` : `${questionCount} non-repeating randomized questions`}

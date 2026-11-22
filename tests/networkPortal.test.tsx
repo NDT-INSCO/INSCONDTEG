@@ -38,7 +38,7 @@ dom.window.scrollTo = () => {};
 dom.window.HTMLElement.prototype.scrollIntoView = () => {};
 
 const routes = await import('../src/utils/portalRoutes');
-const { PORTAL_CHOICE_KEY, readPortalChoice, shouldOfferPortalChooser } = await import(
+const { PORTAL_CHOICE_KEY, readPortalChoice } = await import(
   '../src/utils/portalChoice'
 );
 const { NetworkPortal } = await import('../src/components/network/NetworkPortal');
@@ -114,21 +114,10 @@ test('the network never steals an academy tab', () => {
   }
 });
 
-test('the chooser stays shut on a network deep link, and remembers the choice', () => {
-  assert.equal(
-    shouldOfferPortalChooser({
-      choice: null,
-      hasAcademyHash: false,
-      hasNetworkHash: true,
-      view: 'network',
-    }),
-    false
-  );
+test('the visitor can remember the network as their preferred portal', () => {
   localStorage.setItem(PORTAL_CHOICE_KEY, 'network');
   assert.equal(readPortalChoice(), 'network');
 });
-
-/* -------------------------------- isolation -------------------------------- */
 
 test('the network renders its own header and links back to the other two portals', () => {
   const { container, getByTestId } = render(

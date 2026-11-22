@@ -1,14 +1,18 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ArrowLeft, ArrowRight, ArrowUpRight, FlaskConical, Gauge, ScanLine, Thermometer, Layers3 } from 'lucide-react';
 import { Language } from '../../types';
 import { CtaButton } from '../ui/CtaButton';
-import { AdvancedMotionVisualizerSection } from './AdvancedMotionVisualizerSection';
-import { PwhtCycleSimulator } from './PwhtCycleSimulator';
-import { RadiographicFilmViewer } from './RadiographicFilmViewer';
-import { CompanyUltrasonicLabSection } from './CompanyUltrasonicLabSection';
+import type { CompanyDemoAnchor } from '../../utils/companyRoutes';
+
+const CompanyHero = React.lazy(() => import('./CompanyHero').then(module => ({ default: module.CompanyHero })));
+const Hologram = React.lazy(() => import('./AdvancedMotionVisualizerSection').then(module => ({ default: module.AdvancedMotionVisualizerSection })));
+const Pwht = React.lazy(() => import('./PwhtCycleSimulator').then(module => ({ default: module.PwhtCycleSimulator })));
+const Films = React.lazy(() => import('./RadiographicFilmViewer').then(module => ({ default: module.RadiographicFilmViewer })));
+const Ultrasonic = React.lazy(() => import('./CompanyUltrasonicLabSection').then(module => ({ default: module.CompanyUltrasonicLabSection })));
 
 interface CompanyDemoPortalProps {
   language: Language;
+  anchor?: CompanyDemoAnchor;
   onBack: () => void;
   onRequestQuote: () => void;
   onOpenAcademy: (tab?: string) => void;
@@ -16,47 +20,74 @@ interface CompanyDemoPortalProps {
 
 const DEMOS = [
   {
-    key: 'hologram',
+    key: 'inspection-showcase',
     icon: Layers3,
-    ar: { title: 'المشهد الميداني ثلاثي الأبعاد', line: 'كيف نقرأ هندسة الأصل قبل اختيار زاوية الفحص.' },
-    en: { title: '3D field inspection scene', line: 'How we read asset geometry before choosing a scan angle.' },
+    ar: { title: 'المشهد الثلاثي وأدوات التحكم', line: 'استكشف المشهد والأوضاع والكاميرا.' },
+    en: { title: '3D showcase and controls', line: 'Explore the scene, modes and camera controls.' },
   },
   {
-    key: 'pwht',
+    key: 'hologram-lab',
+    icon: Layers3,
+    ar: { title: 'معرض الصور والهولوغرام', line: 'تصفّح المشاهد التوضيحية وجرب نموذج الإشارة.' },
+    en: { title: 'Gallery and hologram', line: 'Browse illustrative scenes and explore a signal model.' },
+  },
+  {
+    key: 'pwht-simulator',
     icon: Thermometer,
     ar: { title: 'محاكي دورة المعالجة الحرارية', line: 'تسخين ومكوث وتبريد مضبوط على 65 kW لكل وحدة.' },
     en: { title: 'PWHT cycle simulator', line: 'Ramp, soak and cooling control on a 65 kW unit.' },
   },
   {
-    key: 'rt',
+    key: 'radiography-viewer',
     icon: ScanLine,
     ar: { title: 'عارض أفلام التصوير الإشعاعي', line: 'كيف نحكم على الكثافة والعيب في الصورة.' },
     en: { title: 'Radiographic film lightbox', line: 'How density and defects are judged on film.' },
   },
   {
-    key: 'ut',
+    key: 'ultrasonic-lab',
     icon: Gauge,
     ar: { title: 'معمل UT / PAUT', line: 'معايرة، بوابات A-Scan و S-Scan، وقراءة الإشارة.' },
     en: { title: 'UT / PAUT lab', line: 'Calibration, A-Scan and S-Scan gates, signal reading.' },
   },
 ] as const;
 
-/**
- * Technical demonstrations, moved off the corporate landing page.
- *
- * Nothing was rewritten: the same four components the homepage used to render
- * between the services and the certifications are mounted here, in the same
- * order, so a buyer who wants proof still gets the full interactive tour — but
- * no longer before they have seen the accreditations and the track record.
- */
+/** The hash remains reachable while closed; the module loads only when opened. */
+function DemoPanel({ id, open, onToggle, label, language, children }: {
+  id: CompanyDemoAnchor; open: boolean; onToggle: () => void; label: string; language: Language; children: React.ReactNode;
+}) {
+  return (
+    <details id={id} open={open} className="border-b border-slate-800 bg-slate-950">
+      <summary className="mx-auto max-w-7xl cursor-pointer px-4 py-5 font-bold text-cyan-300 focus-visible:outline focus-visible:outline-2 sm:px-6"
+        onClick={event => { event.preventDefault(); onToggle(); }}>
+        {label}
+      </summary>
+      {open && <React.Suspense fallback={<p role="status" className="mx-auto max-w-7xl px-4 pb-5 text-sm text-slate-300">{language === 'ar' ? 'جارٍ تحميل العرض…' : 'Loading demonstration…'}</p>}>
+        {children}
+      </React.Suspense>}
+    </details>
+  );
+}
+
 export const CompanyDemoPortal: React.FC<CompanyDemoPortalProps> = ({
   language,
+  anchor,
   onBack,
   onRequestQuote,
   onOpenAcademy,
 }) => {
   const isAr = language === 'ar';
   const ArrowIcon = isAr ? ArrowLeft : ArrowRight;
+  // Only one live lab at a time. The card also opens a manually closed panel
+  // when its deep link already matches the current fragment.
+  const [openDemo, setOpenDemo] = useState(anchor);
+  useEffect(() => setOpenDemo(anchor), [anchor]);
+  const lab: Record<CompanyDemoAnchor, React.ReactNode> = {
+    'inspection-showcase': <CompanyHero language={language} headingLevel="h2" onNavigateToAcademy={() => onOpenAcademy()} onNavigateToSection={onRequestQuote} />,
+    'hologram-lab': <Hologram language={language} />,
+    'pwht-simulator': <Pwht language={language} />,
+    'radiography-viewer': <Films language={language} onOpenFullRtLab={() => onOpenAcademy('rt_lab')} />,
+    'ultrasonic-lab': <Ultrasonic language={language} onNavigateToAcademy={tab => onOpenAcademy(tab)} />,
+  };
 
   return (
     <div className="space-y-0">
@@ -82,8 +113,8 @@ export const CompanyDemoPortal: React.FC<CompanyDemoPortalProps> = ({
             </h1>
             <p className="mt-3 text-sm sm:text-base text-slate-400 leading-relaxed">
               {isAr
-                ? 'هذه هي نفس الأجهزة والمنهجيات المستخدمة في الميدان: محاكاة دورة حرارية، عارض أفلام إشعاعية، ومعمل موجات فوق صوتية ومصفوفات طورية. للتعمّق التدريبي، تنتقل كل أداة إلى معملها الكامل داخل الأكاديمية.'
-                : 'The same instruments and methods used in the field: a thermal cycle simulator, a radiographic film lightbox, and an ultrasonic / phased-array lab. Each tool links to its full training lab inside the academy.'}
+                ? 'اختر عرضًا لتحميله. المحاكاة والصور أمثلة تعليمية، وليست نتائج فحص أو إعدادات تشغيل. المعامل الكاملة موجودة في الأكاديمية.'
+                : 'Choose a demonstration to load it. These simulations and illustrations are not inspection results or operating settings. Full training labs are available in the academy.'}
             </p>
             <div className="mt-5 flex flex-wrap items-center gap-3">
               <CtaButton variant="primary" onClick={onRequestQuote}>
@@ -97,26 +128,36 @@ export const CompanyDemoPortal: React.FC<CompanyDemoPortalProps> = ({
             </div>
           </div>
 
-          <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
             {DEMOS.map(demo => {
               const Icon = demo.icon;
               const copy = isAr ? demo.ar : demo.en;
               return (
-                <div key={demo.key} className="rounded-xl border border-slate-800 bg-slate-900/40 p-4">
+                <a key={demo.key} href={`#demo/${demo.key}`} onClick={event => {
+                  if (event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) setOpenDemo(demo.key);
+                }} className="rounded-xl border border-slate-800 bg-slate-900/40 p-4 hover:border-sky-400">
                   <Icon className="w-4 h-4 text-cyan-400" />
                   <div className="mt-2 text-sm font-bold text-white">{copy.title}</div>
                   <p className="mt-1 text-xs text-slate-400 leading-relaxed">{copy.line}</p>
-                </div>
+                </a>
               );
             })}
           </div>
         </div>
       </section>
 
-      <AdvancedMotionVisualizerSection language={language} />
-      <PwhtCycleSimulator language={language} />
-      <RadiographicFilmViewer language={language} onOpenFullRtLab={() => onOpenAcademy('rt_lab')} />
-      <CompanyUltrasonicLabSection language={language} onNavigateToAcademy={tab => onOpenAcademy(tab)} />
+      {DEMOS.map(demo => (
+        <DemoPanel
+          key={demo.key}
+          id={demo.key}
+          open={openDemo === demo.key}
+          onToggle={() => setOpenDemo(current => current === demo.key ? undefined : demo.key)}
+          label={(isAr ? demo.ar : demo.en).title}
+          language={language}
+        >
+          {lab[demo.key]}
+        </DemoPanel>
+      ))}
 
       <section className="py-12 bg-slate-900/50 border-t border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -126,8 +167,8 @@ export const CompanyDemoPortal: React.FC<CompanyDemoPortalProps> = ({
             </div>
             <p className="text-xs text-slate-400 mt-1">
               {isAr
-                ? 'فريق العمليات يرد على طلبات التسعير في أقل من 4 ساعات عمل.'
-                : 'Technical operations answer quote requests in under 4 working hours.'}
+                ? 'تواصل مع الفريق الفني لمراجعة نطاق العمل والتوافر.'
+                : 'Ask the technical team about scope and availability.'}
             </p>
           </div>
           <div className="flex items-center gap-3">

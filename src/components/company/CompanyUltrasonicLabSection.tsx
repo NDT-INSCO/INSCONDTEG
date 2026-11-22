@@ -28,7 +28,7 @@ export const CompanyUltrasonicLabSection: React.FC<CompanyUltrasonicLabSectionPr
   const [activeDevice, setActiveDevice] = useState<'ut' | 'paut'>('ut');
 
   return (
-    <section id="ultrasonic-lab" className="py-16 border-b border-slate-800 bg-slate-900/60 relative overflow-hidden">
+    <section data-demonstration="ultrasonic-lab" className="py-16 border-b border-slate-800 bg-slate-900/60 relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">

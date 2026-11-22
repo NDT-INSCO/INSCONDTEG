@@ -36,7 +36,7 @@ import {
   courseMinutes,
   getSource,
 } from '../../data/ndeEd';
-import { REVIEW_STAGE_LABEL, reviewFor, reviewSummary } from '../../data/ndeEd/review';
+import { NDE_ED_REVIEW_REGISTER, REVIEW_STAGE_LABEL, reviewFor, reviewedCourseIds } from '../../data/ndeEd/review';
 import {
   NdeEdProgressState,
   getCourseProgress,
@@ -48,7 +48,7 @@ import {
   resetNdeEdProgress,
   toggleLessonComplete,
 } from '../../utils/ndeEdProgress';
-import { textOf } from '../../utils/edbLibrary';
+import { loadEdbIndex, textOf } from '../../utils/edbLibrary';
 import { getNdeEdLessonQuizPack } from '../../data/curriculumLessonQuizzes';
 import { PostLessonQuizPanel } from './PostLessonQuizPanel';
 
@@ -331,7 +331,19 @@ export const NdeEdCourseCatalog: React.FC<NdeEdCourseCatalogProps> = ({
   const course = courseId ? NDE_ED_COURSES.find(item => item.id === courseId) : null;
   const lesson = course && lessonId ? course.lessons.find(item => item.id === lessonId) : null;
   const overall = overallNdeEdProgress(state);
-  const reviewLabel = reviewSummary().label;
+  const [currentReviews, setCurrentReviews] = useState<Set<string>>(() => new Set());
+  useEffect(() => {
+    if (!NDE_ED_REVIEW_REGISTER.some(entry => entry.stage === 'reviewed')) return;
+    let active = true;
+    void loadEdbIndex().then(({ index, source }) => {
+      if (active && source === 'files') setCurrentReviews(reviewedCourseIds(index));
+    });
+    return () => { active = false; };
+  }, []);
+  const reviewLabel = {
+    ar: `${currentReviews.size}/${NDE_ED_COURSES.length} مراجعة فنية موثقة لهذه النسخة`,
+    en: `${currentReviews.size}/${NDE_ED_COURSES.length} verified technical reviews for this edition`,
+  };
 
   const filteredCourses = useMemo(() => {
     const q = normalize(query.trim());
@@ -379,7 +391,7 @@ export const NdeEdCourseCatalog: React.FC<NdeEdCourseCatalogProps> = ({
     const progress = getCourseProgress(course.id, state);
     return (
       <div className="space-y-5">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <button type="button" onClick={() => { setCourseId(null); setAssessment(false); }} className="text-xs text-amber-400 flex items-center gap-1">
             {isAr ? <ArrowRight className="w-4 h-4" /> : <ArrowLeft className="w-4 h-4" />}{isAr ? 'كل المقررات' : 'All courses'}
           </button>
@@ -403,15 +415,17 @@ export const NdeEdCourseCatalog: React.FC<NdeEdCourseCatalogProps> = ({
             {(() => {
               const review = reviewFor(course.id);
               if (!review) return null;
-              const label = REVIEW_STAGE_LABEL[review.stage];
-              const tone = review.stage === 'reviewed'
+              const verified = currentReviews.has(course.id);
+              const stage = verified ? 'reviewed' : review.stage === 'assigned' ? 'assigned' : 'pending';
+              const label = REVIEW_STAGE_LABEL[stage];
+              const tone = verified
                 ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-300'
                 : review.stage === 'assigned'
                   ? 'border-sky-400/40 bg-sky-400/10 text-sky-300'
                   : 'border-amber-400/40 bg-amber-400/10 text-amber-300';
               return (
                 <span className={`rounded-full border px-3 py-1 text-[10px] font-bold ${tone}`} title={review.technicalRole}>
-                  {textOf(label, language)}
+                  {textOf(label, language)}{verified && review.reviewedAt && <> · <time dateTime={review.reviewedAt}>{review.reviewedAt}</time></>}
                 </span>
               );
             })()}
@@ -564,7 +578,7 @@ export const NdeEdCourseCatalog: React.FC<NdeEdCourseCatalogProps> = ({
           <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-300">
             {isAr
               ? `${NDE_ED_COURSES.length} مقررات و${NDE_ED_LESSONS.length} درساً أصلي الصياغة، مبنية على هيكل موضوعات nde-ed.org: أهداف قابلة للقياس، شرح، مثال محلول، تمرين، سؤال فهم، ومصادر قراءة. التقدم محلي ومنفصل عن المناهج وإفادة التعلم الذاتي.`
-              : `${NDE_ED_COURSES.length} courses and ${NDE_ED_LESSONS.length} original lessons structured from nde-ed.org topics: measurable objectives, explanation, worked example, exercise, knowledge check and reading sources. Progress is local and separate from curricula and the self-study statement.`}
+              : `${NDE_ED_COURSES.length} courses and ${NDE_ED_LESSONS.length} original lessons structured from nde-ed.org topics: measurable objectives, explanation, worked example, exercise, knowledge check and reading sources. Progress is separate from curricula and the self-study statement; it is kept in this browser for guests or in the current signed-in session.`}
           </p>
           <div className="mt-5 flex flex-wrap gap-2 text-[11px] text-slate-200">
             <span className="rounded-lg border border-[#303961] px-3 py-1.5">{NDE_ED_COURSES.length} {isAr ? 'مقررات' : 'courses'}</span>
@@ -583,7 +597,7 @@ export const NdeEdCourseCatalog: React.FC<NdeEdCourseCatalogProps> = ({
 
       <div className="rounded-xl border border-amber-500/25 bg-amber-500/5 p-4 text-xs text-amber-100 leading-6 flex gap-2">
         <ShieldAlert className="w-5 h-5 shrink-0 mt-0.5" />
-        <p>{textOf(NDE_ED_ATTRIBUTION.statement, language)} {isAr ? 'تاريخ البحث التحريري: ' : 'Editorial review date: '}{NDE_ED_EDITORIAL_DATE}.</p>
+        <p>{textOf(NDE_ED_ATTRIBUTION.statement, language)} {isAr ? 'تاريخ البحث التحريري: ' : 'Editorial research (not technical sign-off): '}{NDE_ED_EDITORIAL_DATE}.</p>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">

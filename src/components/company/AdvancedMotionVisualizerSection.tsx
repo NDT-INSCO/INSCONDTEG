@@ -1,5 +1,6 @@
-import React, { Suspense, useEffect, useState } from 'react';
+import React, { Suspense, useRef, useState } from 'react';
 import { Language } from '../../types';
+import { useEscapeKey, useModalFocus } from '../../utils/a11y';
 import { COMPANY_MEDIA } from '../../data/companyMedia';
 const InteractiveInspectionHologram = React.lazy(() =>
   import('./InteractiveInspectionHologram').then(module => ({ default: module.InteractiveInspectionHologram }))
@@ -24,14 +25,9 @@ export const AdvancedMotionVisualizerSection: React.FC<AdvancedMotionVisualizerS
   const isAr = language === 'ar';
   const [selectedGalleryImg, setSelectedGalleryImg] = useState<number | null>(null);
 
-  useEffect(() => {
-    if (selectedGalleryImg === null) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setSelectedGalleryImg(null);
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [selectedGalleryImg]);
+  const lightbox = useRef<HTMLDivElement>(null);
+  useEscapeKey(selectedGalleryImg !== null, () => setSelectedGalleryImg(null));
+  useModalFocus(selectedGalleryImg !== null, lightbox);
 
   const galleryItems = [
     {
@@ -44,7 +40,7 @@ export const AdvancedMotionVisualizerSection: React.FC<AdvancedMotionVisualizerS
     },
     {
       title: { ar: 'أسطول المعالجة الحرارية بعد اللحام (PWHT)', en: 'Post-Weld Heat Treatment Fleet (PWHT)' },
-      subtitle: { ar: '16 وحدة أوتوماتيكية مبرمجة 65 kW بالقاهرة', en: '16 Fully-Owned 65 kW Automated Units' },
+      subtitle: { ar: 'نموذج توضيحي لوحدة معالجة حرارية', en: 'Typical programmable PWHT unit' },
       src: COMPANY_MEDIA.pwhtHeatTreatment,
       code: 'AWS D10.10 & ASME B31.3',
       badge: '750°C SOAK',
@@ -52,9 +48,9 @@ export const AdvancedMotionVisualizerSection: React.FC<AdvancedMotionVisualizerS
     },
     {
       title: { ar: 'التصوير الإشعاعي الصناعي بجاما (RT)', en: 'Industrial Radiography Gamma Testing (RT)' },
-      subtitle: { ar: 'ترخيص رسمي من هيئة الرقابة النووية (ENRRA)', en: 'ENRRA Licensed Radiation Practices' },
+      subtitle: { ar: 'مشهد توضيحي لمعدات التصوير', en: 'Illustrative industrial radiography scene' },
       src: COMPANY_MEDIA.radiographyGammaScan,
-      code: 'ENRRA LS.0112 · ISO 17636',
+      code: 'ISO 17636 · DEMO',
       badge: 'Ir-192 / Se-75',
       equipment: 'Sentinel 880 Delta / Spec 150 Projectors'
     },
@@ -69,7 +65,7 @@ export const AdvancedMotionVisualizerSection: React.FC<AdvancedMotionVisualizerS
   ];
 
   return (
-    <section id="hologram-lab" className="py-16 border-b border-slate-800 bg-slate-950 relative overflow-hidden">
+    <section data-demonstration="hologram-lab" className="py-16 border-b border-slate-800 bg-slate-950 relative overflow-hidden">
       {/* Ambient background glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-cyan-500/5 blur-[120px] pointer-events-none rounded-full" />
 
@@ -104,10 +100,10 @@ export const AdvancedMotionVisualizerSection: React.FC<AdvancedMotionVisualizerS
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-bold text-white">
-                {isAr ? 'معرض التوثيق الفوتوغرافي لعمليات الفحص والمعالجة' : 'High-Fidelity Engineering Field Operations Gallery'}
+                {isAr ? 'معرض مشاهد الفحص والمعالجة التوضيحية' : 'Illustrative inspection and heat treatment gallery'}
               </h3>
               <p className="text-xs text-slate-400">
-                {isAr ? 'لقطات واقعية عالية الدقة للمعدات والمهندسين وأعمال التفتيش بالمواقع الحية' : 'Photorealistic visual documentation of fleet assets and certified engineering inspections'}
+                {isAr ? 'صور توضيحية وليست سجلًا فعليًا لمعدة أو موقع عميل' : 'Illustrations, not records of specific equipment or client sites.'}
               </p>
             </div>
             <div className="text-xs font-mono text-cyan-400">
@@ -169,10 +165,12 @@ export const AdvancedMotionVisualizerSection: React.FC<AdvancedMotionVisualizerS
         {/* Modal for full image inspection */}
         {selectedGalleryImg !== null && (
           <div
+            ref={lightbox}
+            tabIndex={-1}
             role="dialog"
             aria-modal="true"
             aria-label={galleryItems[selectedGalleryImg].title[language]}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+            className="fixed inset-0 z-[80] flex items-center justify-center p-4 sm:p-6"
           >
             {/* Backdrop is a real control: click or Escape closes, tabbing skips it. */}
             <button

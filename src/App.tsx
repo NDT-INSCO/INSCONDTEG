@@ -34,13 +34,13 @@ import {
   type Route,
 } from './utils/portalRoutes';
 import { AcademyHeader, AcademyFooter } from './components/academy/AcademyShell';
-import { RFQ_QUICK_ACTION_EVENT } from './components/company/CompanyQuickActionsSection';
+import { COMPANY_DETAILS, isCompanyDemoAnchor } from './utils/companyRoutes';
+import { CompanyAnchor } from './components/company/CompanyAnchor';
 import { useTheme } from './utils/themeStore';
 import { useDefaultUnitSystem } from './utils/unitSystemStore';
 import {
   readPortalChoice,
   savePortalChoice,
-  shouldOfferPortalChooser,
   type PortalChoice,
 } from './utils/portalChoice';
 import {
@@ -52,6 +52,10 @@ import {
   Menu,
   MessageCircle,
 } from 'lucide-react';
+
+const CompanyDestination = React.lazy(() =>
+  import('./components/company/CompanyDestination').then(module => ({ default: module.CompanyDestination }))
+);
 
 // The academy pages carry the whole NDT library (textbooks, encyclopedia,
 // quizzes, the AI index, fourteen simulators). Visitors landing on the company
@@ -101,6 +105,29 @@ function AcademyLoading({ isAr }: { isAr: boolean }) {
   );
 }
 
+function CompanyLoading({ language }: { language: Language }) {
+  return (
+    <p role="status" className="mx-auto max-w-7xl px-4 py-8 text-sm text-slate-300 sm:px-6">
+      {language === 'ar' ? 'جارٍ تحميل صفحة الشركة…' : 'Loading the company page…'}
+    </p>
+  );
+}
+
+function SkipToContent({ language }: { language: Language }) {
+  return (
+    <a
+      href="#insco-main"
+      className="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-3 focus:z-[90] focus:rounded-lg focus:bg-sky-200 focus:px-4 focus:py-2 focus:font-bold focus:text-slate-950"
+      onClick={event => {
+        event.preventDefault();
+        document.getElementById('insco-main')?.focus();
+      }}
+    >
+      {language === 'ar' ? 'تخطَّ إلى المحتوى' : 'Skip to content'}
+    </a>
+  );
+}
+
 function ClientLoading({ isAr }: { isAr: boolean }) {
   return (
     <div
@@ -123,7 +150,7 @@ function ClientLoading({ isAr }: { isAr: boolean }) {
 /** Drop any page-local private state immediately on an account switch. */
 function PublicRouteMain({ children, className }: React.ComponentProps<'main'>) {
   const { user } = useSiteAccount();
-  return <main key={user ? `account:${user.uid}` : 'guest'} className={className}>{children}</main>;
+  return <main id="insco-main" tabIndex={-1} key={user ? `account:${user.uid}` : 'guest'} className={className}>{children}</main>;
 }
 
 const LANGUAGE_KEY = 'insco_language_v1';
@@ -136,37 +163,15 @@ function readLanguage(): Language {
   }
 }
 
-/** The view mapped for chooser rules across all four portals. */
-function chooserViewOf(route: Route): 'company' | 'client' | 'academy' | 'network' | 'demo' | 'service' {
-  if (route.portal === 'academy') return 'academy';
-  if (route.portal === 'client') return 'client';
-  if (route.portal === 'network') return 'network';
-  if (route.page === 'demo') return 'demo';
-  if (route.page === 'service') return 'service';
-  return 'company';
-}
-
 export const App: React.FC = () => {
   const [language, setLanguage] = useState<Language>(readLanguage);
   const { theme, isLight } = useTheme();
   const { defaultUnitSystem } = useDefaultUnitSystem();
 
-  // The hash is the router: one structured route across three portals.
+  // One structured hash route across all public portals.
   const [route, setRoute] = useState<Route>(() => parseRoute(window.location.hash));
-  const [chooserOpen, setChooserOpen] = useState(() => {
-    const initial = parseRoute(window.location.hash);
-    return shouldOfferPortalChooser({
-      choice: readPortalChoice(),
-      hasAcademyHash: initial.portal === 'academy',
-      hasClientHash: initial.portal === 'client',
-      hasNetworkHash: initial.portal === 'network',
-      hasDemoHash: initial.portal === 'company' && initial.page !== 'home',
-      // Any hash on the corporate profile is a shared deep link (a section, the
-      // footer, a service): a modal must never open on top of it.
-      hasAnchorHash: window.location.hash !== '' && initial.portal === 'company',
-      view: chooserViewOf(initial),
-    });
-  });
+  const [chooserOpen, setChooserOpen] = useState(false);
+  const [quoteService, setQuoteService] = useState<string>();
   const [menuOpen, setMenuOpen] = useState(false);
   const [mapsQuotaExceeded, setMapsQuotaExceeded] = useState(false);
   // `#admin` is its own page, not a fourth portal: no nav, no footer, no browsing.
@@ -180,6 +185,19 @@ export const App: React.FC = () => {
 
   const isAr = language === 'ar';
   const portal: PortalId = route.portal;
+
+  useEffect(() => {
+    const chrome = document.getElementById('site-chrome');
+    if (!chrome) return;
+    const sync = () => document.documentElement.style.setProperty('--insco-sticky-offset', `${chrome.getBoundingClientRect().height + 12}px`);
+    sync();
+    const observer = typeof window.ResizeObserver === 'function' ? new window.ResizeObserver(sync) : null;
+    observer?.observe(chrome);
+    return () => {
+      observer?.disconnect();
+      document.documentElement.style.removeProperty('--insco-sticky-offset');
+    };
+  }, [portal, adminOpen]);
 
   useEffect(() => {
     document.documentElement.lang = language;
@@ -196,54 +214,46 @@ export const App: React.FC = () => {
   /** Write the address bar without re-running the whole router. */
   const writeHash = useCallback((next: Route, mode: 'push' | 'replace') => {
     const target = `${window.location.pathname}${window.location.search}${routeToHash(next)}`;
+    if (target === `${window.location.pathname}${window.location.search}${window.location.hash}`) return;
     if (mode === 'push') window.history.pushState(null, '', target);
     else window.history.replaceState(null, '', target);
   }, []);
 
-  const scrollToId = useCallback((id: string, delay = 60) => {
-    window.setTimeout(() => {
-      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
-    }, delay);
-  }, []);
-
-  /** Corporate profile, optionally at one of its sections. */
+  /** Corporate profile or shareable destination. Store no form fields in the URL. */
   const openCompany = useCallback(
-    (sectionId?: string) => {
-      setRoute({ portal: 'company', page: 'home' });
-      // The hash belongs to the academy/service page. Leaving it behind would
-      // make the address bar claim the reader is still somewhere else.
-      if (window.location.hash) {
-        window.history.replaceState(
-          null,
-          '',
-          window.location.pathname + window.location.search
-        );
-      }
-      if (sectionId) scrollToId(sectionId);
-      else window.scrollTo({ top: 0, behavior: 'smooth' });
+    (sectionId?: string, service?: string) => {
+      const next = parseRoute(sectionId && sectionId !== 'top' ? `#${sectionId}` : '');
+      setRoute(next);
+      setQuoteService(service);
+      setChooserOpen(false);
+      writeHash(next, 'push');
+      window.scrollTo({ top: 0, behavior: 'auto' });
       savePortalChoice('company');
     },
-    [scrollToId]
+    [writeHash]
   );
 
   const openDemo = useCallback(
     (anchorId?: string) => {
-      const next: Route = { portal: 'company', page: 'demo' };
+      const next: Route = {
+        portal: 'company',
+        page: 'demo',
+        anchor: anchorId && isCompanyDemoAnchor(anchorId) ? anchorId : undefined,
+      };
       setRoute(next);
-      writeHash(next, 'replace');
-      if (anchorId) scrollToId(anchorId, 120);
-      else window.scrollTo({ top: 0, behavior: 'smooth' });
+      writeHash(next, 'push');
+      window.scrollTo({ top: 0, behavior: 'auto' });
       savePortalChoice('company');
     },
-    [scrollToId, writeHash]
+    [writeHash]
   );
 
   const openService = useCallback(
     (id: ServiceFamilyId) => {
       const next: Route = { portal: 'company', page: 'service', family: id };
       setRoute(next);
-      writeHash(next, 'replace');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      writeHash(next, 'push');
+      window.scrollTo({ top: 0, behavior: 'auto' });
       savePortalChoice('company');
     },
     [writeHash]
@@ -379,7 +389,17 @@ export const App: React.FC = () => {
   // Back/forward between portals, service pages, demos and academy deep links.
   useEffect(() => {
     const onHashChange = () => {
-      setRoute(parseRoute(window.location.hash));
+      const next = parseRoute(window.location.hash);
+      setRoute(next);
+      // Fragment history can fire both popstate and hashchange. Do not scroll
+      // to the top over an anchor the lazy destination has already positioned.
+      if (next.portal === 'company' && (
+        (next.page === 'service' && !next.method) ||
+        (next.page === 'demo' && !next.anchor) ||
+        (next.page === 'detail' && (!next.anchor || next.anchor === COMPANY_DETAILS[next.detail].hash || /^(contact|vendor|capabilities)$/.test(next.anchor)))
+      )) window.scrollTo({ top: 0, behavior: 'auto' });
+      setQuoteService(undefined);
+      setChooserOpen(false);
       setAdminOpen(window.location.hash === ADMIN_HASH);
     };
     window.addEventListener('hashchange', onHashChange);
@@ -410,6 +430,7 @@ export const App: React.FC = () => {
         return academySectionLabel(route.section, isAr ? 'ar' : 'en');
       }
       if (route.page === 'demo') return isAr ? 'العرض الفني التفاعلي' : 'Technical Demonstrations';
+      if (route.page === 'detail') return COMPANY_DETAILS[route.detail][language];
       if (route.page === 'service') {
         const family = serviceFamilyById(route.family);
         if (family) return family.title[language];
@@ -419,22 +440,8 @@ export const App: React.FC = () => {
     document.title = `${routeTitle} | ${companyName}`;
   }, [route, language, isAr]);
 
-  /**
-   * "Request a quote for this service": open the RFQ with the service chosen.
-   * The form listens for this event, so the choice survives the page switch.
-   */
-  const handleRequestQuoteFor = useCallback(
-    (serviceType: string) => {
-      openCompany();
-      window.setTimeout(() => {
-        if (typeof CustomEvent !== 'undefined') {
-          window.dispatchEvent(new CustomEvent(RFQ_QUICK_ACTION_EVENT, { detail: { serviceType } }));
-        }
-        document.getElementById('rfq')?.scrollIntoView({ behavior: 'smooth' });
-      }, 120);
-    },
-    [openCompany]
-  );
+  // The route carries only its destination; prefill lives in state, not in a timed event.
+  const handleRequestQuoteFor = useCallback((serviceType: string) => openCompany('rfq', serviceType), [openCompany]);
 
   const handleChoosePortal = (choice: PortalChoice) => {
     savePortalChoice(choice);
@@ -451,10 +458,10 @@ export const App: React.FC = () => {
   const corporateNav = useMemo(
     () => [
       { ar: 'الرئيسية', en: 'Home', onClick: () => openCompany(), current: route.portal === 'company' && route.page === 'home' },
-      { ar: 'خدماتنا', en: 'Services', onClick: () => openCompany('services') },
-      { ar: 'إمكانياتنا', en: 'Capabilities', onClick: () => openCompany('fleet-inspector') },
-      { ar: 'مشروعاتنا', en: 'Projects', onClick: () => openCompany('projects') },
-      { ar: 'ملف التأهيل', en: 'Vendor dossier', onClick: () => openCompany('vault') },
+      { ar: 'خدماتنا', en: 'Services', onClick: () => openCompany('services'), current: route.portal === 'company' && (route.page === 'service' || (route.page === 'detail' && route.detail === 'services')) },
+      { ar: 'إمكانياتنا', en: 'Capabilities', onClick: () => openCompany('fleet-inspector'), current: route.portal === 'company' && route.page === 'detail' && route.detail === 'equipment' },
+      { ar: 'مشروعاتنا', en: 'Projects', onClick: () => openCompany('projects'), current: route.portal === 'company' && route.page === 'detail' && route.detail === 'projects' },
+      { ar: 'عن إنسكو', en: 'About', onClick: () => openCompany('about'), current: route.portal === 'company' && route.page === 'detail' && route.detail === 'about' },
     ],
     [openCompany, route]
   );
@@ -501,9 +508,12 @@ export const App: React.FC = () => {
       ];
       if (route.page === 'service') {
         const family = serviceFamilyById(route.family);
+        steps.push({ label: isAr ? 'الخدمات' : 'Services', onClick: () => openCompany('services') });
         steps.push({ label: family ? family.title[language] : '' });
       } else if (route.page === 'demo') {
         steps.push({ label: isAr ? 'العرض الفني التفاعلي' : 'Technical demonstrations' });
+      } else if (route.page === 'detail') {
+        steps.push({ label: COMPANY_DETAILS[route.detail][language] });
       } else {
         steps.push({ label: isAr ? 'ملف الشركة والخدمات' : 'Profile & services' });
       }
@@ -567,54 +577,6 @@ export const App: React.FC = () => {
   const academyRoute: AcademyRoute | null = route.portal === 'academy' ? route : null;
   const clientRoute: ClientRoute | null = route.portal === 'client' ? route : null;
 
-  /**
-   * The engineering network renders as its own portal: its header, its footer and
-   * its data, with the portal bar above it so a visitor can always leave. It does
-   * not inherit the corporate navigation or the academy shell — that isolation is
-   * the point of a fourth portal, not a detail of styling.
-   */
-  if (route.portal === 'network') {
-    const networkSection: NetworkSectionId = route.page === 'section' ? route.section : 'feed';
-    const networkEntryId = route.page === 'section' ? route.entryId : undefined;
-    return (
-      <div
-        dir={isAr ? 'rtl' : 'ltr'}
-        data-theme={theme}
-        data-portal="network"
-        className={`min-h-screen flex flex-col font-sans ${isLight ? 'bg-[#f6f6fb] text-slate-900' : 'bg-[#07070f] text-slate-100'}`}
-      >
-        <div className="sticky top-0 z-50">
-          <PortalSwitchBar
-            language={language}
-            portal={portal}
-            trail={trail}
-            onSwitchPortal={openPortal}
-          />
-        </div>
-        {/* The network shares the one INSCO account: same session, same uid, no
-            second registration. Its profile and directory read that account. */}
-        <SiteAccountProvider>
-          <Suspense
-            fallback={
-              <div role="status" aria-live="polite" className="p-8 text-sm text-slate-400">
-                {isAr ? 'جارٍ فتح الشبكة الهندسية…' : 'Opening the Engineering Network…'}
-              </div>
-            }
-          >
-            <NetworkPortal
-              language={language}
-              section={networkSection}
-              {...(networkEntryId ? { entryId: networkEntryId } : {})}
-              onOpenSection={openNetwork}
-              onOpenCompany={() => openCompany()}
-              onOpenAcademy={() => openAcademyHash('#academy')}
-            />
-          </Suspense>
-        </SiteAccountProvider>
-      </div>
-    );
-  }
-
   if (adminOpen) {
     return (
       <div
@@ -642,6 +604,50 @@ export const App: React.FC = () => {
 
   return (
     <SiteAccountProvider>
+    {/* The Network consumes the same provider as all other public routes. */}
+    {route.portal === 'network' ? (
+      <div
+        dir={isAr ? 'rtl' : 'ltr'}
+        data-theme={theme}
+        data-portal="network"
+        className={`min-h-screen flex flex-col font-sans ${isLight ? 'bg-[#f6f6fb] text-slate-900' : 'bg-[#07070f] text-slate-100'}`}
+      >
+        <SkipToContent language={language} />
+        <div id="site-chrome" className="sticky top-0 z-50">
+          <PortalSwitchBar
+            language={language}
+            portal={portal}
+            trail={trail}
+            onSwitchPortal={openPortal}
+          />
+          <header className="border-b border-violet-500/20 bg-slate-950">
+            <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-end gap-2 px-4 pt-2 sm:px-6">
+              <GlobalThemeSwitcher language={language} />
+              <button type="button" onClick={() => setLanguage(isAr ? 'en' : 'ar')} className="rounded-lg border border-slate-700 px-2.5 py-1.5 text-xs font-semibold text-white">
+                {isAr ? 'English' : 'العربية'}
+              </button>
+            </div>
+          </header>
+        </div>
+        <Suspense
+          fallback={
+            <div role="status" aria-live="polite" className="p-8 text-sm text-slate-400">
+              {isAr ? 'جارٍ فتح الشبكة الهندسية…' : 'Opening the Engineering Network…'}
+            </div>
+          }
+        >
+          <NetworkPortal
+            language={language}
+            section={route.page === 'section' ? route.section : 'feed'}
+            entryId={route.page === 'section' ? route.entryId : undefined}
+            onOpenSection={openNetwork}
+            onOpenCompany={() => openCompany()}
+            onOpenAcademy={() => openAcademyHash('#academy')}
+            onOpenPrivateProfile={() => openClient('register')}
+          />
+        </Suspense>
+      </div>
+    ) : (
     <div
       dir={isAr ? 'rtl' : 'ltr'}
       data-theme={theme}
@@ -651,7 +657,8 @@ export const App: React.FC = () => {
         isLight ? 'bg-slate-50 text-slate-900' : 'bg-slate-950 text-slate-100'
       }`}
     >
-      <div className="sticky top-0 z-50">
+      <SkipToContent language={language} />
+      <div id="site-chrome" className="sticky top-0 z-50">
         {mapsQuotaExceeded && (
           <div className="bg-amber-50 border-b border-amber-200 text-amber-900 px-4 py-2.5 text-xs md:text-sm text-center sticky top-0 z-50 shadow-sm">
             <span>
@@ -722,7 +729,7 @@ export const App: React.FC = () => {
                 <div className="truncate text-base sm:text-lg font-black text-white tracking-tight">
                   <span className="sm:hidden">{isAr ? 'إنسكو' : 'INSCO'}</span>
                   <span className="hidden sm:inline">
-                    {isAr ? 'الشركة الدولية للخدمات والمقاولات - إنسكو' : 'INSCO Industrial'}
+                    {portal === 'company' ? 'INSCO NDT' : isAr ? 'إنسكو' : 'INSCO'}
                   </span>
                 </div>
                 <div
@@ -743,9 +750,7 @@ export const App: React.FC = () => {
                         ? isAr
                           ? 'بوابة العملاء والملفات المكوّدة'
                           : 'Client & Coded Dossier Portal'
-                        : isAr
-                          ? 'أكاديمية إنسكو NDT'
-                          : 'INSCO NDT Academy'}
+                        : 'NDT / PWHT'}
                   </span>
                   <span aria-hidden="true" className="hidden lg:inline text-slate-600">·</span>
                   <span className="hidden lg:inline shrink-0">CP/2026-10</span>
@@ -772,14 +777,6 @@ export const App: React.FC = () => {
                     {isAr ? item.ar : item.en}
                   </button>
                 ))}
-                <button
-                  type="button"
-                  onClick={() => openCompany('rfq')}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 px-3 py-1.5 text-slate-950 font-black transition whitespace-nowrap cursor-pointer"
-                >
-                  <FileText className="w-3.5 h-3.5" aria-hidden="true" />
-                  {isAr ? 'اطلب عرض سعر' : 'Request a quote'}
-                </button>
               </nav>
             )}
 
@@ -828,7 +825,7 @@ export const App: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => openCompany('rfq')}
-                    className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black transition whitespace-nowrap cursor-pointer"
+                    className="hidden xl:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-300 hover:bg-sky-200 text-slate-950 text-xs font-black transition whitespace-nowrap cursor-pointer"
                   >
                     <FileText className="w-3.5 h-3.5" aria-hidden="true" />
                     <span>{isAr ? 'اطلب عرض سعر' : 'Request a quote'}</span>
@@ -841,7 +838,8 @@ export const App: React.FC = () => {
                 onClick={() => setMenuOpen(true)}
                 aria-label={isAr ? 'فتح قائمة التنقل' : 'Open navigation menu'}
                 aria-expanded={menuOpen}
-                className="xl:hidden inline-flex items-center justify-center p-2 rounded-lg border border-slate-700 text-slate-200 hover:bg-slate-800 transition cursor-pointer"
+                aria-haspopup="dialog"
+                className={`${portal === 'company' ? '' : 'xl:hidden'} inline-flex items-center justify-center p-2 rounded-lg border border-slate-700 text-slate-200 hover:bg-slate-800 transition cursor-pointer`}
               >
                 <Menu className="w-4 h-4" aria-hidden="true" />
               </button>
@@ -867,36 +865,55 @@ export const App: React.FC = () => {
       {/* ------------------------------ the pages ---------------------------- */}
       <PublicRouteMain className={`flex-1 ${route.portal === 'company' ? 'pb-20 xl:pb-0' : ''}`}>
         {route.portal === 'company' && route.page === 'home' && (
-          <CompanyPortal
-            language={language}
-            onNavigateToAcademy={() => openAcademyHash('#academy')}
-            onNavigateToClient={sec => openClient(sec ?? 'companies')}
-            onOpenCompanyDossier={companyId => openClient('companies', companyId)}
-            onOpenDemo={() => openDemo()}
-            onOpenService={openService}
-          />
+          <CompanyPortal language={language} onNavigateToAcademy={() => openAcademyHash('#academy')} />
+        )}
+
+        {route.portal === 'company' && route.page === 'home' && <CompanyAnchor id={route.anchor} />}
+
+        {route.portal === 'company' && route.page === 'detail' && (
+          <Suspense fallback={<CompanyLoading language={language} />}>
+            <CompanyDestination
+              key={route.detail}
+              language={language}
+              detail={route.detail}
+              anchor={route.anchor}
+              quoteService={quoteService}
+              onOpen={openCompany}
+              onOpenService={openService}
+              onOpenDemo={openDemo}
+              onOpenClient={openClient}
+              onOpenDossier={id => openClient('companies', id)}
+              onOpenAcademy={tab => openAcademy(tab as AcademyTab | undefined)}
+            />
+          </Suspense>
         )}
 
         {route.portal === 'company' && route.page === 'service' && (
+          <>
           <CompanyServicePage
             language={language}
             family={serviceFamilyById(route.family) ?? serviceFamilyById('ndt')!}
+            methodId={route.method}
             onBack={() => openCompany('services')}
             onOpenFamily={openService}
             onRequestQuote={handleRequestQuoteFor}
             onOpenDemo={anchorId => openDemo(anchorId)}
             onOpenAcademy={tab => openAcademy(tab as AcademyTab | undefined)}
           />
+          <CompanyAnchor id={route.method ? `service-method-${route.method}` : undefined} />
+          </>
         )}
 
         {route.portal === 'company' && route.page === 'demo' && (
-          <Suspense fallback={<AcademyLoading isAr={isAr} />}>
+          <Suspense fallback={<CompanyLoading language={language} />}>
             <CompanyDemoPortal
               language={language}
+              anchor={route.anchor}
               onBack={() => openCompany()}
               onRequestQuote={() => openCompany('rfq')}
               onOpenAcademy={tab => openAcademy(tab as AcademyTab | undefined)}
             />
+            <CompanyAnchor id={route.anchor} />
           </Suspense>
         )}
 
@@ -959,7 +976,7 @@ export const App: React.FC = () => {
         onOpenNetwork={section => openNetwork(section)}
       />
 
-      {/* First-visit fork across the four portals (never covers a deep link) */}
+      {/* Optional portal guide; it never blocks the first view. */}
       {chooserOpen && (
         <PortalChooser
           language={language}
@@ -974,7 +991,7 @@ export const App: React.FC = () => {
           <button
             type="button"
             onClick={() => openCompany('rfq')}
-            className="flex-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 px-3 py-2.5 text-sm font-black transition cursor-pointer"
+            className="flex-1 rounded-lg bg-sky-300 hover:bg-sky-200 text-slate-950 px-3 py-2.5 text-sm font-black transition cursor-pointer"
           >
             {isAr ? 'اطلب عرض سعر' : 'Request a quote'}
           </button>
@@ -999,6 +1016,7 @@ export const App: React.FC = () => {
           onOpenAcademy={() => openAcademyHash('#academy')}
           onOpenClient={() => openClient('overview')}
           onOpenAdmin={openAdmin}
+          onOpenChooser={() => setChooserOpen(true)}
         />
       )}
 
@@ -1042,7 +1060,7 @@ export const App: React.FC = () => {
             : route.portal === 'academy' && route.page === 'section'
               ? route.section
               : route.portal === 'company'
-                ? route.page
+                ? route.page === 'detail' ? route.detail : route.page
                 : undefined
         }
         onOpenCompany={sectionId => openCompany(sectionId)}
@@ -1050,6 +1068,7 @@ export const App: React.FC = () => {
         onOpenAcademy={tab => openAcademy(tab)}
       />
     </div>
+    )}
     </SiteAccountProvider>
   );
 };

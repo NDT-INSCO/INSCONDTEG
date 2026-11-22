@@ -80,7 +80,7 @@ export const CurriculumLevelProgressTracker: React.FC<CurriculumLevelProgressTra
           <span className="inline-flex items-center gap-1 text-slate-200">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
             {completedUnitsCount}/{allModules.length}{' '}
-            {isAr ? 'وحدة منهجية مجتازة' : 'accredited units passed'}
+            {isAr ? 'وحدة محددة كمكتملة' : 'modules marked complete'}
           </span>
           <span aria-hidden="true">·</span>
           <span className="text-amber-300 font-semibold">

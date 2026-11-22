@@ -20,27 +20,28 @@ export const CompanyProjectsSection: React.FC<CompanyProjectsSectionProps> = ({
         {/* Section Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
           <SectionHeading
-            eyebrow={isAr ? 'سجل الإنجاز والشركاء الاستراتيجيين' : 'Strategic Partners & Track Record'}
+            eyebrow={isAr ? 'المشروعات ونطاقات العمل' : 'Projects and scopes'}
             title={
               isAr
-                ? 'سابقة أعمال مع كبرى الشركات العالمية والمحلية'
-                : 'Proven Track Record with Global Energy & EPC Leaders'
+                ? 'سابقة الأعمال في ملف إنسكو'
+                : 'Work history from the INSCO dossier'
             }
             description={
               isAr
-                ? 'ثقة معتمدة من شركات الطاقة العالمية، مقاولي الهندسة والإنشاءات (EPC)، ومنشآت البترول والغاز في مصر والشرق الأوسط.'
-                : 'Trusted by multinational power giants, major EPC contractors, and oil & gas facilities across Egypt and the Middle East.'
+                ? 'الأمثلة ونطاقات العمل من ملف الشركة المنشور، وليست دليلًا على تعاقد أو توافر حالي.'
+                : 'Examples and scopes are from the company dossier. They do not establish a current contract or availability.'
             }
           />
 
           {/* Segmented Control */}
-          <div className="flex items-center gap-1 p-1 bg-slate-900 border border-slate-800 rounded-lg shrink-0">
+          <div className="flex max-w-full flex-wrap items-center gap-1 p-1 bg-slate-900 border border-slate-800 rounded-lg shrink-0">
             <button
               type="button"
+              aria-pressed={activeTab === 'clients'}
               onClick={() => setActiveTab('clients')}
               className={`px-4 py-2 text-xs font-medium rounded-md transition cursor-pointer ${
                 activeTab === 'clients'
-                  ? 'bg-cyan-600 text-white shadow-sm'
+                  ? 'bg-sky-300 text-slate-950 shadow-sm'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -48,10 +49,11 @@ export const CompanyProjectsSection: React.FC<CompanyProjectsSectionProps> = ({
             </button>
             <button
               type="button"
+              aria-pressed={activeTab === 'facilities'}
               onClick={() => setActiveTab('facilities')}
               className={`px-4 py-2 text-xs font-medium rounded-md transition cursor-pointer ${
                 activeTab === 'facilities'
-                  ? 'bg-cyan-600 text-white shadow-sm'
+                  ? 'bg-sky-300 text-slate-950 shadow-sm'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -138,24 +140,24 @@ export const CompanyProjectsSection: React.FC<CompanyProjectsSectionProps> = ({
             <div>
               <div className="text-sm font-bold text-white">
                 {isAr
-                  ? 'سجل سابقة أعمال معتمد وجاهز للتقديم للجان المشتريات'
-                  : 'Audited Vendor Track Record Ready for Procurement Committees'}
+                  ? 'راجع الملاحق واطلب مستندات التأهيل'
+                  : 'Review the dossier and request current qualification documents'}
               </div>
               <div className="text-xs text-slate-400 mt-0.5">
                 {isAr
-                  ? 'يتضمن خطابات إشادة معتمدة من سيمنز وأوراسكوم وبترومسيلة وأوامر توريد رسمية'
-                  : 'Includes formal completion certificates and recommendation letters from Siemens, Orascom, Petromasila'}
+                  ? 'سجل الأعمال في الصفحتين 11–12. يسرد فهرس الملاحق مراجع الخطابات وأوامر التوريد.'
+                  : 'The work history is on pages 11–12. The annex index lists historical references and purchase orders.'}
               </div>
             </div>
           </div>
 
           <a
-            href={INSCO_COMPANY_DATA.pdfBrochureUrl}
+            href={`${INSCO_COMPANY_DATA.pdfBrochureUrl}#page=14`}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-4 py-2 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 transition whitespace-nowrap"
+            className="px-4 py-2 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 transition"
           >
-            {isAr ? 'مراجعة الملحق د (سابقة الأعمال بالـ PDF)' : 'Review Track Record in PDF (Annex D)'}
+            {isAr ? 'افتح فهرس الملاحق (PDF)' : 'Open annex index (PDF)'}
           </a>
         </div>
       </div>

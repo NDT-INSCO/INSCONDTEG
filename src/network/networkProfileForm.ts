@@ -16,6 +16,14 @@ import type {
   CommunityAvailabilityStatus,
   CommunityWorkspaceProfile,
 } from '../client/types';
+import {
+  inspectLinkedInUrl,
+  isSafeImageUrl,
+  linkedInProblemMessage,
+  normaliseLinkedInUrl,
+  visibilityById,
+  type NetworkProfileVisibility,
+} from './networkIdentity';
 
 /** Mirrors `isValidCommunityWorkspace` in firestore.rules. */
 export const NETWORK_PROFILE_LIMITS = {
@@ -69,6 +77,10 @@ export interface NetworkProfileDraft {
   yearsExperience: string;
   availabilityStatus: CommunityAvailabilityStatus;
   isPublished: boolean;
+  photoURL: string;
+  bannerURL: string;
+  linkedInUrl: string;
+  profileVisibility: NetworkProfileVisibility;
 }
 
 export const EMPTY_NETWORK_PROFILE: NetworkProfileDraft = {
@@ -83,6 +95,10 @@ export const EMPTY_NETWORK_PROFILE: NetworkProfileDraft = {
   yearsExperience: '',
   availabilityStatus: 'active_field',
   isPublished: true,
+  photoURL: '',
+  bannerURL: '',
+  linkedInUrl: '',
+  profileVisibility: 'public',
 };
 
 export type NetworkProfileField = keyof NetworkProfileDraft;
@@ -110,6 +126,10 @@ export function draftFromProfile(profile: CommunityWorkspaceProfile | null): Net
       typeof profile.yearsExperience === 'number' ? String(profile.yearsExperience) : '',
     availabilityStatus: profile.availabilityStatus ?? 'active_field',
     isPublished: profile.isPublished !== false,
+    photoURL: profile.photoURL ?? '',
+    bannerURL: profile.bannerURL ?? '',
+    linkedInUrl: profile.linkedInUrl ?? '',
+    profileVisibility: visibilityById(profile.profileVisibility),
   };
 }
 
@@ -213,6 +233,30 @@ export function validateNetworkProfileDraft(draft: NetworkProfileDraft): Network
     push('availabilityStatus', 'اختر حالة تفرّغ صحيحة.', 'Choose a valid availability state.');
   }
 
+  if (draft.photoURL.trim() !== '' && !isSafeImageUrl(draft.photoURL)) {
+    push('photoURL', 'رابط الصورة يجب أن يبدأ بـ https://', 'The photo link must start with https://');
+  }
+
+  if (draft.bannerURL.trim() !== '' && !isSafeImageUrl(draft.bannerURL)) {
+    push('bannerURL', 'رابط البانر يجب أن يبدأ بـ https://', 'The banner link must start with https://');
+  }
+
+  // Normalise first: `linkedin.com/in/name` is what people paste, and the write path
+  // turns it into a full URL anyway. Validating the raw text would reject the very
+  // input we accept on save.
+  const linkedInProblem = inspectLinkedInUrl(normaliseLinkedInUrl(draft.linkedInUrl));
+  if (linkedInProblem) {
+    push('linkedInUrl', linkedInProblemMessage(linkedInProblem, true), linkedInProblemMessage(linkedInProblem, false));
+  }
+
+  if (draft.profileVisibility !== 'public' && draft.profileVisibility !== 'members') {
+    push(
+      'profileVisibility',
+      'اختر من يرى صفحتك.',
+      'Choose who can open your page.'
+    );
+  }
+
   return errors;
 }
 
@@ -230,6 +274,10 @@ export interface NetworkWorkspaceWrite {
   certifications?: string;
   yearsExperience?: number;
   availabilityStatus?: CommunityAvailabilityStatus;
+  photoURL?: string;
+  bannerURL?: string;
+  linkedInUrl?: string;
+  profileVisibility?: NetworkProfileVisibility;
 }
 
 const trimmed = (value: string) => value.trim();
@@ -272,6 +320,13 @@ export function toWorkspaceWrite(
     ...(certifications !== undefined ? { certifications } : {}),
     ...(parsedYears !== undefined && Number.isFinite(parsedYears) ? { yearsExperience: parsedYears } : {}),
     availabilityStatus: draft.availabilityStatus,
+    ...(optional(draft.photoURL) !== undefined ? { photoURL: optional(draft.photoURL) } : {}),
+    ...(optional(draft.bannerURL) !== undefined ? { bannerURL: optional(draft.bannerURL) } : {}),
+    ...(normaliseLinkedInUrl(draft.linkedInUrl) !== ''
+      ? { linkedInUrl: normaliseLinkedInUrl(draft.linkedInUrl) }
+      : {}),
+    /* Always explicit: the audience is a decision, not a default we inherit. */
+    profileVisibility: draft.profileVisibility,
   };
 }
 

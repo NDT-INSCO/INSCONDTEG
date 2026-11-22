@@ -184,6 +184,13 @@ export interface CommunityWorkspaceProfile {
   availabilityStatus?: CommunityAvailabilityStatus;
   followersCount?: number;
   endorsementsCount?: number;
+  /** Storage URL or an HTTPS link the member pasted; rules require https. */
+  photoURL?: string;
+  bannerURL?: string;
+  /** Their own LinkedIn profile; the rules accept LinkedIn hosts only. */
+  linkedInUrl?: string;
+  /** Absence means public — see NETWORK_PROFILE_VISIBILITY. */
+  profileVisibility?: 'public' | 'members';
   createdAt?: unknown;
   updatedAt?: unknown;
 }

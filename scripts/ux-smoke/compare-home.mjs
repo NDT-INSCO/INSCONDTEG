@@ -47,7 +47,7 @@ try {
         const page = await context.newPage();
         await page.goto(origin + base, { waitUntil: 'networkidle' });
         if (snapshot === 'before') await page.getByTestId('insco-3d-banner-fallback').waitFor();
-        else await page.getByTestId('corporate-landing-hero').locator('img').evaluate(img => img.decode());
+        else await page.getByTestId('corporate-hero-poster').locator('img').evaluate(img => img.decode());
         await page.screenshot({ path: join(out, `${snapshot}-${view}.jpg`), quality: 85, animations: 'disabled' });
         assert.deepEqual(failures, []);
         const files = [...scripts.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([name, bytes]) => ({ name, rawBytes: bytes.length, gzipBytes: gzipSync(bytes).length }));

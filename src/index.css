@@ -534,58 +534,18 @@ body {
   --co-link: #065b85;
 }
 .corporate-wrap { width: min(100%, 80rem); margin-inline: auto; padding-inline: clamp(1rem, 3.8vw, 2rem); }
-/* One non-sticky scene spans the sticky controls and the opening headline. */
-[data-masthead-shell] { background-color: #020617; }
-#site-chrome[data-masthead-in-view] > :is(.portal-switch-strip, header),
-#site-chrome[data-masthead-in-view] .site-account-strip {
-  background-color: #02061746;
-  border-color: #839ab538;
-}
-#site-chrome[data-masthead-in-view] > header { backdrop-filter: blur(2px); }
-#site-chrome[data-masthead-in-view] .portal-switch-strip .text-slate-400 { color: #bed0e7; }
-.corporate-hero {
-  --co-chrome-height: max(0px, calc(var(--insco-sticky-offset, 12px) - 12px));
-  --co-hero-shade: to right;
-  position: relative;
-  isolation: isolate;
-  background: #0a172c;
-  border-block-end: 1px solid #324a64;
-  color: #f3f8ff;
-}
-[dir="rtl"] .corporate-hero { --co-hero-shade: to left; }
-.corporate-masthead-backdrop {
-  position: absolute;
-  inset: calc(0px - var(--co-chrome-height)) 0 0;
-  z-index: -1;
-  overflow: hidden;
-  pointer-events: none;
-  background: #020617;
-}
-.corporate-masthead-backdrop picture, .corporate-hero-backdrop { position: absolute; inset: 0; }
-.corporate-masthead-backdrop img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 63% 32%; }
-.corporate-hero-backdrop { opacity: 0; }
-.corporate-masthead-backdrop[data-scene-ready] .corporate-hero-backdrop { opacity: 1; }
-.corporate-masthead-backdrop[data-scene-ready] picture { visibility: hidden; }
-.corporate-masthead-backdrop::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to bottom, #020617c2 0%, #0613269c calc(var(--co-chrome-height) * .65),
-    #061326bb var(--co-chrome-height), #0a172ce3 64%, #0a172c 100%);
+/* The pipe and its fallback share the same full-bleed hero, below the nav. */
+.corporate-hero-poster { position: absolute; inset: 0; pointer-events: none; }
+.corporate-hero-poster img { width: 100%; height: 100%; object-fit: cover; object-position: 66% center; }
+.corporate-hero-poster:dir(rtl) img { object-position: 36% center; }
+.corporate-hero-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+.corporate-hero-actions > :is(a, button) { min-width: 0; min-height: 2.5rem; gap: .375rem; padding: .55rem .65rem; font-size: .8rem; line-height: 1.25; white-space: normal; text-align: start; }
+@media (min-width: 880px) {
+  .corporate-hero-actions { display: flex; flex-wrap: wrap; align-items: center; column-gap: .375rem; }
+  .corporate-hero-actions > :is(a, button) { gap: .3125rem; padding-inline: .5rem; font-size: .75rem; }
 }
 .corporate-paired { display: grid; min-width: 0; gap: clamp(1.5rem, 4vw, 3.75rem); }
-.corporate-hero-layout { display: flex; align-items: center; padding-block: clamp(2rem, 5vw, 4rem); }
-.corporate-hero-copy { min-width: 0; }
-.corporate-eyebrow { display: inline-flex; align-items: center; flex-wrap: wrap; gap: .6rem; color: #9fdef7; font: 700 .73rem/1.4 ui-monospace, monospace; letter-spacing: .09em; }
-.corporate-eyebrow > span:first-child, .corporate-hero-tools p > span { width: .45rem; height: .45rem; background: #7dd3fc; border-radius: 50%; flex-shrink: 0; }
-.corporate-eyebrow-rule { width: 1.4rem; height: 1px; background: #5989ab; }
-.corporate-hero h1 { margin-block: .9rem .8rem; max-width: 18ch; font-size: clamp(2.2rem, 5.1vw, 4.5rem); line-height: 1.06; letter-spacing: -.045em; font-weight: 830; text-wrap: balance; }
-[dir="rtl"] .corporate-hero h1 { max-width: 17ch; letter-spacing: normal; line-height: 1.24; font-size: clamp(2.1rem, 4.8vw, 4.15rem); }
-.corporate-hero-description { max-width: 39ch; margin-block: 0 1.5rem; color: #c5d6eb; font-size: clamp(1rem, 1.35vw, 1.15rem); line-height: 1.75; }
 .corporate-actions, .corporate-related { display: flex; flex-wrap: wrap; align-items: center; gap: .65rem; }
-.corporate-hero-tools { display: flex; min-height: 3.9rem; align-items: center; justify-content: space-between; gap: .65rem; padding-block-end: 1.15rem; }
-.corporate-hero-tools p { display: inline-flex; align-items: center; gap: .55rem; color: #c3d6eb; font-size: .76rem; }
-.corporate-hero-motion { flex-shrink: 0; min-block-size: 2.75rem; }
 .corporate-secondary-media { min-width: 0; margin: 0; border: 1px solid var(--co-line); border-radius: 1rem; overflow: hidden; background: var(--co-card); }
 .corporate-secondary-media img { display: block; width: 100%; height: auto; object-fit: cover; }
 .corporate-secondary-media figcaption { display: flex; gap: .55rem; align-items: center; padding: .65rem 1rem; font-size: .76rem; color: var(--co-muted); }
@@ -615,25 +575,12 @@ body {
 .corporate-contact-band { background: #122742; border-color: #2c4565; color: #fff; }
 .corporate-contact-band .corporate-actions { margin-block-start: 1.1rem; }
 .corporate-home a:focus-visible { outline: 2px solid var(--co-link); outline-offset: 3px; }
+.corporate-home .corporate-hero :is(a, button):focus-visible { outline: 2px solid #7dd3fc; outline-offset: 3px; }
 @media (min-width: 900px) {
-  .corporate-hero-layout { min-height: clamp(27rem, 39vw, 32rem); }
-  .corporate-hero-copy { max-inline-size: min(55%, 37.5rem); }
-  [dir="rtl"] .corporate-hero h1 { max-width: none; font-size: clamp(2.45rem, 4.1vw, 3.55rem); }
-  .corporate-masthead-backdrop::after {
-    background: linear-gradient(var(--co-hero-shade), #0a172c 0%, #0a172cf7 31%, #0a172cc2 46%, transparent 65%),
-      linear-gradient(to bottom, #020617bf, #02061792 var(--co-chrome-height),
-        #02061720 calc(var(--co-chrome-height) + 5.5rem), #0a172c 100%);
-  }
   .corporate-paired { grid-template-columns: minmax(0, 1fr) minmax(0, .88fr); }
 }
 @media (max-width: 780px) { .corporate-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 440px) {
-  .corporate-card-grid { grid-template-columns: 1fr; }
-  .corporate-hero-layout { padding-block: 1.65rem 1.2rem; }
-  .corporate-hero h1, [dir="rtl"] .corporate-hero h1 { font-size: clamp(1.7rem, 7.5vw, 2.05rem); max-width: none; margin-block: .65rem; }
-  .corporate-hero-description { font-size: .94rem; line-height: 1.6; margin-block-end: 1.15rem; }
-  .corporate-hero .corporate-actions > * { width: 100%; }
-}
+@media (max-width: 440px) { .corporate-card-grid { grid-template-columns: 1fr; } }
 
 /* Anchors and programmatic focus must not land under the shared sticky header. */
 html { scroll-padding-block-start: var(--insco-sticky-offset, 0px); }

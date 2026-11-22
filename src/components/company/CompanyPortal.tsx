@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  Activity, ArrowLeft, ArrowRight, BookOpen, ClipboardCheck, Factory, Gauge,
+  Activity, ArrowLeft, ArrowRight, ClipboardCheck, Factory, Gauge,
   Layers3, Radio, ScanLine, ShieldCheck, Thermometer,
 } from 'lucide-react';
 import type { Language } from '../../types';
@@ -9,7 +9,7 @@ import { publicUrl } from '../../utils/publicUrl';
 import { CtaButton, ctaClassName } from '../ui/CtaButton';
 import { SectionHeading } from '../ui/SectionHeading';
 import { CompanyAnnouncement } from './CompanyAnnouncement';
-import { CompanyLandingVisual } from './CompanyLandingVisual';
+import { CompanyHero } from './CompanyHero';
 
 const CORE_METHODS = [
   { id: 'ut', code: 'UT', icon: Activity, ar: 'فحص المواد واللحامات بالموجات فوق الصوتية.', en: 'Examine materials and welds with ultrasound.' },
@@ -32,10 +32,11 @@ const CORE_SERVICES = [
   },
 ];
 
-export function CompanyPortal({ language, chromeHeight = 0, onMastheadVisibilityChange, onNavigateToAcademy }: {
+export function CompanyPortal({ language, onNavigateToSection, onOpenDemo, onNavigateToClient, onNavigateToAcademy }: {
   language: Language;
-  chromeHeight?: number;
-  onMastheadVisibilityChange?: (visible: boolean) => void;
+  onNavigateToSection?: (section: string) => void;
+  onOpenDemo?: () => void;
+  onNavigateToClient?: () => void;
   onNavigateToAcademy: () => void;
 }) {
   const isAr = language === 'ar';
@@ -45,34 +46,14 @@ export function CompanyPortal({ language, chromeHeight = 0, onMastheadVisibility
 
   return (
     <div id="top" className="corporate-home">
-      <section data-testid="corporate-landing-hero" className="corporate-hero" data-preserve-dark="true" aria-labelledby="corporate-hero-title">
-        <div className="corporate-wrap corporate-hero-layout">
-          <div className="corporate-hero-copy">
-            <div className="corporate-eyebrow" dir="ltr"><span aria-hidden="true" /> INSCO NDT <span className="corporate-eyebrow-rule" aria-hidden="true" /> NDT / PWHT</div>
-            <h1 id="corporate-hero-title">
-              {isAr ? 'فحص غير إتلافي ومعالجة حرارية للمشروعات الصناعية' : 'Industrial inspection. Documented results.'}
-            </h1>
-            <p className="corporate-hero-description">
-              {isAr
-                ? 'خدمات الفحص غير الإتلافي (NDT) والمعالجة الحرارية بعد اللحام (PWHT). استكشف نطاق الخدمات أو ابدأ تعلّمك في الأكاديمية الهندسية.'
-                : 'Non-destructive testing and post-weld heat treatment for industrial projects. Explore our services or start learning in the Engineering Academy.'}
-            </p>
-            <div className="corporate-actions">
-              <CtaButton href="#services" variant="brand" size="lg">
-                {isAr ? 'استكشف خدماتنا' : 'Explore our services'} <Next className="size-4 shrink-0" aria-hidden="true" />
-              </CtaButton>
-              <CtaButton onClick={onNavigateToAcademy} variant="secondary" size="lg">
-                <BookOpen className="size-4 shrink-0" aria-hidden="true" /> {isAr ? 'الأكاديمية الهندسية' : 'Engineering Academy'}
-              </CtaButton>
-            </div>
-          </div>
-        </div>
-        <CompanyLandingVisual
-          language={language}
-          chromeHeight={chromeHeight}
-          onVisibilityChange={onMastheadVisibilityChange}
-        />
-      </section>
+      <CompanyHero
+        landing
+        language={language}
+        onNavigateToAcademy={onNavigateToAcademy}
+        onNavigateToSection={onNavigateToSection ?? (section => { window.location.hash = section; })}
+        onOpenDemo={onOpenDemo ?? (() => { window.location.hash = 'demo'; })}
+        onNavigateToClient={onNavigateToClient ?? (() => { window.location.hash = 'client/overview'; })}
+      />
 
       <CompanyAnnouncement language={language} />
       <section className="corporate-band corporate-overview" aria-labelledby="corporate-overview-title">

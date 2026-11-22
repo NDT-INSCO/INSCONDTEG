@@ -1,0 +1,1 @@
+function e(e){let t=`/INSCONDTEG/`;return`${t.endsWith(`/`)?t:`${t}/`}${e.replace(/^\/+/,``)}`}export{e as t};

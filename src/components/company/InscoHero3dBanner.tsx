@@ -20,9 +20,11 @@ export interface InscoHero3dBannerProps {
   mode: HeroBanner3dMode;
   cameraPreset: HeroBannerCameraPreset;
   autoOrbit: boolean;
-  /** Decorative homepage scene: no pointer controls and a copy-safe composition. */
-  background?: boolean;
+  /** The full interactive hero needs its own framing on portrait screens. */
+  landing?: boolean;
   paused?: boolean;
+  /** Stop even on-demand draws while the scene is not visible. */
+  suspended?: boolean;
   onReadyChange?: (ready: boolean) => void;
   onInspectedPartChange?: (part: InspectedBannerPart | null) => void;
   className?: string;
@@ -249,8 +251,9 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
   mode,
   cameraPreset,
   autoOrbit,
-  background = false,
+  landing = false,
   paused = false,
+  suspended = false,
   onReadyChange,
   onInspectedPartChange,
   className = '',
@@ -264,6 +267,7 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
   const presetRef = useRef<HeroBannerCameraPreset>(cameraPreset);
   const autoOrbitRef = useRef<boolean>(autoOrbit);
   const pausedRef = useRef(paused);
+  const suspendedRef = useRef(suspended);
   const isArRef = useRef<boolean>(isAr);
   const userDraggedRef = useRef<boolean>(false);
   const presetTransitionRef = useRef<boolean>(false);
@@ -288,10 +292,12 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
   }, [autoOrbit]);
 
   useEffect(() => {
+    const returning = suspendedRef.current && !suspended;
     pausedRef.current = paused;
-    if (paused) cancelScheduledFrame.current?.();
-    else renderOnDemand.current?.();
-  }, [paused]);
+    suspendedRef.current = suspended;
+    if (suspended || paused) cancelScheduledFrame.current?.();
+    if (!suspended && (!paused || returning)) renderOnDemand.current?.();
+  }, [paused, suspended]);
 
   useEffect(() => {
     isArRef.current = isAr;
@@ -316,19 +322,19 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
     try {
       // The homepage can show its photo without asking Three.js to create
       // another context if WebGL is disabled or unavailable.
-      const canvas = background ? document.createElement('canvas') : undefined;
+      const canvas = landing ? document.createElement('canvas') : undefined;
       const context = canvas?.getContext('webgl2', { alpha: true, antialias: false });
-      if (background && !context) return;
+      if (landing && !context) return;
       isSoftwareGl = detectSoftwareWebGL(context ?? undefined);
       renderer = new THREE.WebGLRenderer({
         canvas,
         context: context ?? undefined,
-        antialias: !isSoftwareGl && !background,
+        antialias: !isSoftwareGl && !landing,
         alpha: true,
-        powerPreference: background ? 'default' : 'high-performance',
+        powerPreference: landing ? 'default' : 'high-performance',
       });
     } catch {
-      if (!background) setWebglUnavailable(true);
+      if (!landing) setWebglUnavailable(true);
       return;
     }
 
@@ -338,7 +344,7 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.12;
-    renderer.setPixelRatio(isSoftwareGl ? 1 : Math.min(window.devicePixelRatio || 1, background ? 1.5 : 2));
+    renderer.setPixelRatio(isSoftwareGl ? 1 : Math.min(window.devicePixelRatio || 1, landing ? 1.5 : 2));
     renderer.setSize(initW, initH);
     renderer.shadowMap.enabled = !isSoftwareGl;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -351,7 +357,7 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x020617);
-    scene.fog = new THREE.FogExp2(0x020617, background ? 0.034 : 0.048);
+    scene.fog = new THREE.FogExp2(0x020617, landing ? 0.034 : 0.048);
 
     // Mandatory studio environment reflection (RoomEnvironment)
     const pmremGenerator = new THREE.PMREMGenerator(renderer);
@@ -364,8 +370,13 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
     const camera = new THREE.PerspectiveCamera(40, initW / initH, 0.1, 80);
     camera.position.set(3.4, 2.25, 7.6);
 
-    const controls = new OrbitControls(camera, background ? null : renderer.domElement);
-    controls.enableDamping = !background && !isSoftwareGl && !prefersReducedMotion;
+    const controls = new OrbitControls(camera, renderer.domElement);
+    // A drag can orbit the rig; a vertical swipe must still scroll the home page.
+    if (landing) {
+      renderer.domElement.style.touchAction = 'pan-y';
+      renderer.domElement.style.cursor = 'grab';
+    }
+    controls.enableDamping = !landing && !isSoftwareGl && !prefersReducedMotion;
     controls.dampingFactor = 0.06;
     controls.enableZoom = false; // Preserve smooth vertical page scroll
     controls.enablePan = false;
@@ -758,9 +769,9 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
     const clickables = [weldSeamMesh, chassisMesh, wedgeMesh, arrayCap, leftFlange, rightFlange];
     let lastRaycastMs = 0;
 
-    const handlePointerMove = (e: PointerEvent) => {
+    const inspectPart = (e: PointerEvent) => {
       const now = performance.now();
-      if (now - lastRaycastMs < 55) return;
+      if (suspendedRef.current || (e.type === 'pointermove' && now - lastRaycastMs < 55)) return;
       lastRaycastMs = now;
 
       const rect = renderer.domElement.getBoundingClientRect();
@@ -781,28 +792,8 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
       }
     };
 
-    if (!background) renderer.domElement.addEventListener('pointermove', handlePointerMove);
-
-    // Responsive framing & camera target solver
-    const applyResponsiveFraming = (w: number, h: number) => {
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
-      renderer.setSize(w, h);
-      renderOnDemand.current?.();
-    };
-
-    const handleResize = () => {
-      const w = container.clientWidth;
-      const h = container.clientHeight;
-      if (w && h) applyResponsiveFraming(w, h);
-    };
-
-    let resizeObserver: ResizeObserver | null = null;
-    if (typeof ResizeObserver !== 'undefined') {
-      resizeObserver = new ResizeObserver(handleResize);
-      resizeObserver.observe(container);
-    }
-    window.addEventListener('resize', handleResize);
+    renderer.domElement.addEventListener('pointermove', inspectPart);
+    if (landing) renderer.domElement.addEventListener('pointerdown', inspectPart);
 
     // -------------------------------------------------------------------------
     // Main Render Loop (with Software-WebGL GPU fence pacing)
@@ -819,10 +810,10 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
     let elapsed = 0;
     let framedWidth = 0;
     let framedHeight = 0;
-    let framedX = 0;
-    let framedY = 0;
 
     const cancelQueuedDraw = () => {
+      controls.autoRotate = false;
+      lastFrameTime = 0;
       cancelAnimationFrame(frameId);
       window.clearTimeout(timerId);
       frameId = timerId = 0;
@@ -830,15 +821,19 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
       fence = null;
     };
 
+    const canDraw = () => !disposed && !contextLost && !suspendedRef.current && (!landing || !document.hidden);
     const requestFrame = () => {
-      if (!disposed && !contextLost && !frameId && !timerId) frameId = requestAnimationFrame(tick);
+      if (canDraw() && !frameId && !timerId) frameId = requestAnimationFrame(tick);
     };
 
     const afterDraw = () => {
       fence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
       if (fence) gl.flush();
       const poll = () => {
-        if (disposed || contextLost) return;
+        if (!canDraw()) {
+          cancelQueuedDraw();
+          return;
+        }
         if (fence && gl.getSyncParameter(fence, gl.SYNC_STATUS) === gl.UNSIGNALED) {
           timerId = window.setTimeout(poll, 5);
           return;
@@ -858,47 +853,53 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
       contextLost = true;
       hasDrawn = false;
       cancelQueuedDraw();
-      if (!background) setWebglUnavailable(true);
+      if (!landing) setWebglUnavailable(true);
       onReadyChange?.(false);
     };
     const handleContextRestored = () => {
       contextLost = false;
-      if (!background) setWebglUnavailable(false);
+      if (!landing) setWebglUnavailable(false);
       requestFrame();
     };
     renderer.domElement.addEventListener('webglcontextlost', handleContextLost);
     renderer.domElement.addEventListener('webglcontextrestored', handleContextRestored);
 
     const tick = (now: number) => {
-      if (disposed || contextLost) {
+      if (!canDraw()) {
         frameId = 0;
         return;
       }
-      const animated = !prefersReducedMotion && !pausedRef.current;
+      // Home passes live motion preferences in `paused`; the demo also checks
+      // the entry preference so standalone renderers default to reduced motion.
+      const animated = !pausedRef.current && (landing || !prefersReducedMotion);
       const delta = lastFrameTime ? Math.min((now - lastFrameTime) / 1000, 0.1) : 0;
       lastFrameTime = now;
       if (animated) elapsed += delta;
-      // Snap to the selected preset/materials in reduced motion or the initial backdrop frame.
-      const dt = prefersReducedMotion || (background && !hasDrawn) ? 10 : delta;
-
+      // Snap to a new preset when a paused view only needs one frame.
+      const dt = !animated || (landing && !hasDrawn) ? 10 : delta;
       const w = container.clientWidth || initW;
       const h = container.clientHeight || initH;
-      const isWide = w >= (background ? 900 : 980);
-      // Frame the original rig high across the desktop and phone mastheads:
-      // its movement is visible through the navbar, not in a separate card.
-      const offsetX = background && isWide ? w * (isArRef.current ? 0.235 : -0.235) : 0;
-      const offsetY = background ? h * 0.255 : 0;
-      if (w !== framedWidth || h !== framedHeight || offsetX !== framedX || offsetY !== framedY) {
-        if (background) {
-          camera.setViewOffset(w, h, offsetX, offsetY, w, h);
-          presetTransitionRef.current = true;
-        }
+      const isWide = w >= (landing ? 880 : 980); // Match the hero's split layout.
+      if (w !== framedWidth || h !== framedHeight) {
+        camera.aspect = w / h;
+        if (framedWidth || w !== initW || h !== initH) renderer.setSize(w, h, false);
         framedWidth = w;
         framedHeight = h;
-        framedX = offsetX;
-        framedY = offsetY;
+        if (landing) presetTransitionRef.current = true;
+        camera.updateProjectionMatrix();
       }
-      const desiredRigX = !background && isWide ? (isArRef.current ? -1.45 : 1.45) : 0;
+      if (landing) {
+        // At phone widths the section is tall. Keep the pipe behind the title
+        // and actions, while leaving the canvas continuous down to the dock.
+        camera.zoom = isWide ? Math.min(1.1, w / (1.15 * h)) : Math.min(1, 1.45 * w / h);
+        const offsetX = isWide ? 0 : w * (isArRef.current ? 0.065 : -0.065);
+        const offsetY = isWide ? -h * 0.025 : h / 2 - Math.min(h * 0.37, w < 640 ? 345 : 410);
+        const view = camera.view;
+        if (!view || view.fullWidth !== w || view.fullHeight !== h || view.offsetX !== offsetX || view.offsetY !== offsetY) {
+          camera.setViewOffset(w, h, offsetX, offsetY, w, h);
+        }
+      }
+      const desiredRigX = isWide ? (isArRef.current ? -1.45 : 1.45) : 0;
       heroRigGroup.position.x = THREE.MathUtils.damp(heroRigGroup.position.x, desiredRigX, 5, dt);
       heroRigGroup.position.y = isWide ? -0.08 : 0.15;
 
@@ -912,8 +913,9 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
         _camGoalPos.set(baseX + 2.4, 2.05, 4.65);
         _camGoalTarget.set(baseX + 0.35, 0.55, 0);
       } else {
-        const distance = background ? Math.max(7.5, (h / w) * (isWide ? 22 : 10.75)) : isWide ? 7.1 : 8.2;
-        _camGoalPos.set(baseX + (isArRef.current ? -0.9 : 0.9), 2.15, distance);
+        const yaw = landing ? (isWide ? 5.9 : 4.8) : 0.9;
+        const distance = landing ? (isWide ? 6.15 : 7.0) : (isWide ? 7.1 : 8.2);
+        _camGoalPos.set(baseX + (isArRef.current ? -yaw : yaw), landing ? 1.85 : 2.15, distance);
         _camGoalTarget.set(baseX, -0.05, 0);
       }
 
@@ -933,9 +935,9 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
         controls.target.x = THREE.MathUtils.damp(controls.target.x, _camGoalTarget.x, 4, dt);
       }
 
-      controls.autoRotate = animated && autoOrbitRef.current && (background ? !presetTransitionRef.current : !isSoftwareGl);
+      controls.autoRotate = animated && autoOrbitRef.current && (landing ? !presetTransitionRef.current : !isSoftwareGl);
       controls.autoRotateSpeed = 0.65;
-      controls.update(background ? delta : undefined);
+      controls.update(landing ? delta : undefined);
 
       // Mode-specific Materials, Volumetric Shader & Orbital Scanner Kinematics
       const curMode = modeRef.current;
@@ -986,7 +988,7 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
       }
 
       // Smooth Orbital Motion of Scanner Rig around the 30" Pipe Weld Seam
-      if (!prefersReducedMotion) {
+      if (landing || !prefersReducedMotion) {
         const orbitAngle = Math.sin(elapsed * 0.55) * 0.78;
         scannerPivot.rotation.x = orbitAngle;
         particlePoints.rotation.x = elapsed * 0.18;
@@ -1006,7 +1008,16 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
 
     renderOnDemand.current = requestFrame;
     cancelScheduledFrame.current = cancelQueuedDraw;
-    if (prefersReducedMotion) controls.addEventListener('change', requestFrame);
+    if (landing || prefersReducedMotion) controls.addEventListener('change', requestFrame);
+    const resizeObserver = typeof ResizeObserver === 'function' ? new ResizeObserver(requestFrame) : null;
+    resizeObserver?.observe(container);
+    const handleVisibilityChange = () => {
+      // Restart even if a rapid hide/show was batched into one React update.
+      if (document.hidden) cancelQueuedDraw();
+      else requestFrame();
+    };
+    if (landing) document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('resize', requestFrame);
     requestFrame();
 
     return () => {
@@ -1016,11 +1027,13 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
       disposed = true;
       cancelQueuedDraw();
       resizeObserver?.disconnect();
-      window.removeEventListener('resize', handleResize);
-      renderer.domElement.removeEventListener('pointermove', handlePointerMove);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('resize', requestFrame);
+      renderer.domElement.removeEventListener('pointermove', inspectPart);
+      renderer.domElement.removeEventListener('pointerdown', inspectPart);
       renderer.domElement.removeEventListener('webglcontextlost', handleContextLost);
       renderer.domElement.removeEventListener('webglcontextrestored', handleContextRestored);
-      if (!background) controls.dispose();
+      controls.dispose();
       environment.dispose();
       steelTextures.map.dispose();
       steelTextures.roughnessMap.dispose();
@@ -1030,7 +1043,7 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
       renderer.forceContextLoss();
       renderer.domElement.remove();
     };
-  }, [background, onReadyChange]);
+  }, [landing, onReadyChange]);
 
   if (webglUnavailable) {
     return (
@@ -1067,7 +1080,8 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
     <div
       ref={mountRef}
       data-testid="insco-3d-banner-canvas-host"
-      aria-label={background ? undefined : isAr ? 'مشهد ثلاثي الأبعاد تفاعلي لفحص خطوط الأنابيب' : 'Interactive 3D pipeline NDT & PWHT inspection scene'}
+      role="img"
+      aria-label={isAr ? 'مشهد ثلاثي الأبعاد تفاعلي لفحص خطوط الأنابيب' : 'Interactive 3D pipeline NDT & PWHT inspection scene'}
       className={`relative w-full h-full overflow-hidden select-none ${className}`}
     />
   );

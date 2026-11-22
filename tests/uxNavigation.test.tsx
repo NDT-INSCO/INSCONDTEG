@@ -30,6 +30,7 @@ dom.window.HTMLElement.prototype.scrollIntoView = () => {};
 
 const { App } = await import('../src/App');
 const { CompanyPortal } = await import('../src/components/company/CompanyPortal');
+const { INSCO_COMPANY_DATA } = await import('../src/data/inscoCompanyData');
 const { PORTAL_CHOICE_KEY } = await import('../src/utils/portalChoice');
 const serviceFamiliesModule = await import('../src/utils/serviceFamilies');
 const { render, fireEvent, cleanup, within, waitFor } = await import('@testing-library/react');
@@ -78,7 +79,7 @@ test('a remembered visitor is not asked again', () => {
 
 /* ------------------------------ corporate order --------------------------- */
 
-test('the compact landing tells the buyer story without mounting detail tools', () => {
+test('the interactive landing preserves the buyer story without mounting detail tools', () => {
   const ui = render(<CompanyPortal language="ar" onNavigateToAcademy={() => {}} />);
   const sections = [...ui.container.querySelectorAll('section[aria-labelledby]')];
   assert.deepEqual(sections.map(section => section.getAttribute('aria-labelledby')), [
@@ -92,17 +93,36 @@ test('the compact landing tells the buyer story without mounting detail tools', 
   assert.equal(ui.queryByTestId('company-hero-banner'), null);
 });
 
-test('without motion support the first screen keeps both portal journeys and the fallback photo', () => {
-  const ui = render(<CompanyPortal language="ar" onNavigateToAcademy={() => {}} />);
-  const hero = within(ui.getByTestId('corporate-landing-hero'));
+test('without WebGL the homepage banner keeps the corporate actions and the full-width still', () => {
+  const ui = render(<App />);
+  const section = ui.getByTestId('corporate-landing-hero');
+  const hero = within(section);
+  const chrome = document.getElementById('site-chrome')!;
+  assert.ok(document.getElementById('insco-main')?.contains(section));
+  assert.equal(chrome.contains(section), false);
+  assert.equal(chrome.hasAttribute('data-masthead-in-view'), false);
+  assert.ok(hero.getByRole('heading', { level: 1, name: INSCO_COMPANY_DATA.name.ar }));
   assert.equal(hero.getByRole('link', { name: 'استكشف خدماتنا' }).getAttribute('href'), '#services');
-  assert.ok(hero.getByRole('button', { name: 'الأكاديمية الهندسية' }));
-  assert.equal(hero.getAllByRole('link').length + hero.getAllByRole('button').length, 2);
-  const backdrop = hero.getByTestId('corporate-masthead-backdrop');
-  assert.equal(backdrop.getAttribute('aria-hidden'), 'true');
-  assert.equal(backdrop.querySelector('img')?.getAttribute('alt'), '');
+  assert.ok(hero.getByRole('button', { name: 'أكاديمية إنسكو' }));
+  assert.ok(hero.getByRole('button', { name: 'اطلب عرض سعر' }));
+  assert.ok(hero.getByRole('button', { name: 'بوابة العملاء والملفات' }));
+  assert.ok(hero.getByRole('button', { name: 'شاهد العرض الفني' }));
+  assert.equal(hero.getByRole('link', { name: 'ملف الشركة (PDF)' }).getAttribute('href'), INSCO_COMPANY_DATA.pdfBrochureUrl);
+  assert.deepEqual([...hero.getByTestId('corporate-hero-metrics').querySelectorAll('bdi')].map(el => el.textContent),
+    INSCO_COMPANY_DATA.metrics.map(metric => metric.value));
+  const backdrop = hero.getByTestId('corporate-hero-backdrop');
+  const poster = hero.getByTestId('corporate-hero-poster');
+  assert.equal(poster.getAttribute('aria-hidden'), 'true');
+  assert.equal(poster.querySelector('img')?.getAttribute('alt'), '');
+  assert.equal(backdrop.querySelector('canvas'), null);
   assert.equal(hero.queryByRole('figure'), null, 'the photograph is a background, not a separate frame');
-  assert.equal(hero.queryByTestId('corporate-hero-backdrop'), null);
+  assert.ok(hero.getByRole<HTMLButtonElement>('button', { name: 'موجات PAUT' }).disabled);
+
+  const field = hero.getByRole('button', { name: 'المشهد الميداني' });
+  fireEvent.click(field);
+  assert.equal(field.getAttribute('aria-pressed'), 'true');
+  assert.equal(hero.queryByTestId('hero-3d-control-dock'), null);
+  assert.ok(hero.getByTestId('corporate-hero-poster'));
 });
 
 /* --------------------------------- demo page ------------------------------ */

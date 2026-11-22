@@ -5,9 +5,11 @@ import { Play, Pause, RotateCcw, Eye, ShieldAlert, Sparkles, Activity, Layers } 
 
 interface InteractiveInspectionHologramProps {
   language: Language;
+  compact?: boolean;
+  suspendMotion?: boolean;
 }
 
-export const InteractiveInspectionHologram: React.FC<InteractiveInspectionHologramProps> = ({ language }) => {
+export const InteractiveInspectionHologram: React.FC<InteractiveInspectionHologramProps> = ({ language, compact = false, suspendMotion = false }) => {
   const isAr = language === 'ar';
   const containerRef = useRef<HTMLDivElement>(null);
   const canvas2dRef = useRef<HTMLCanvasElement>(null);
@@ -26,12 +28,20 @@ export const InteractiveInspectionHologram: React.FC<InteractiveInspectionHologr
   // References to Three.js objects
   const sceneRef = useRef<THREE.Scene | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
-  const animFrameRef = useRef<number | null>(null);
+  const suspendedRef = useRef(suspendMotion);
+  const syncSceneMotion = useRef<(() => void) | null>(null);
+  const syncScopeMotion = useRef<(() => void) | null>(null);
   const pipeMeshRef = useRef<THREE.Mesh | null>(null);
   const weldMeshRef = useRef<THREE.Mesh | null>(null);
   const probeGroupRef = useRef<THREE.Group | null>(null);
   const beamLineRef = useRef<THREE.Line | null>(null);
   const particlesRef = useRef<THREE.Points | null>(null);
+
+  useEffect(() => {
+    suspendedRef.current = suspendMotion;
+    syncSceneMotion.current?.();
+    syncScopeMotion.current?.();
+  }, [suspendMotion]);
 
   // Initialize Three.js scene
   useEffect(() => {
@@ -175,8 +185,16 @@ export const InteractiveInspectionHologram: React.FC<InteractiveInspectionHologr
     particlesRef.current = particles;
 
     // Animation Loop
-    let clock = new THREE.Clock();
+    const clock = new THREE.Clock();
+    let frame = 0;
+    const syncMotion = () => {
+      if (suspendedRef.current || !isScanning) {
+        cancelAnimationFrame(frame);
+        frame = 0;
+      } else if (!frame) frame = requestAnimationFrame(animate);
+    };
     const animate = () => {
+      frame = 0;
       const elapsed = clock.getElapsedTime();
 
       // Subtle slow rotation of the pipeline
@@ -185,7 +203,7 @@ export const InteractiveInspectionHologram: React.FC<InteractiveInspectionHologr
       }
 
       // Moving probe scanning back and forth across weld seam
-      if (probeGroup && isScanning) {
+      if (probeGroup && isScanning && !suspendedRef.current) {
         const scanOffset = Math.sin(elapsed * 2.2) * 0.9;
         probeGroup.position.x = scanOffset;
         probeGroup.position.y = pipeRadius + 0.18 + Math.cos(scanOffset * 0.5) * 0.02;
@@ -197,26 +215,19 @@ export const InteractiveInspectionHologram: React.FC<InteractiveInspectionHologr
 
         // Defect detection trigger when probe is directly over weld center
         if (Math.abs(scanOffset) < 0.18) {
-          setDetectedDefect({
-            type: isAr ? 'نقص انصهار في جذر اللحام (Lack of Root Fusion)' : 'Weld Root Lack of Fusion',
-            depthMm: 14.8,
-            amplitudeDb: 84.5,
-            status: 'REJECT',
-          });
+          const type = isAr ? 'نقص انصهار في جذر اللحام (Lack of Root Fusion)' : 'Weld Root Lack of Fusion';
+          setDetectedDefect(prev => prev?.type === type ? prev : { type, depthMm: 14.8, amplitudeDb: 84.5, status: 'REJECT' });
         } else {
-          setDetectedDefect({
-            type: isAr ? 'هيكل معدني سليم ومطابق للكود' : 'Base Material Sound & Verified',
-            depthMm: 22.0,
-            amplitudeDb: 18.2,
-            status: 'ACCEPT',
-          });
+          const type = isAr ? 'هيكل معدني سليم ومطابق للكود' : 'Base Material Sound & Verified';
+          setDetectedDefect(prev => prev?.type === type ? prev : { type, depthMm: 22.0, amplitudeDb: 18.2, status: 'ACCEPT' });
         }
       }
 
       renderer.render(scene, camera);
-      animFrameRef.current = requestAnimationFrame(animate);
+      syncMotion();
     };
 
+    syncSceneMotion.current = syncMotion;
     animate();
 
     const handleResize = () => {
@@ -226,14 +237,23 @@ export const InteractiveInspectionHologram: React.FC<InteractiveInspectionHologr
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
+      if (!frame) animate();
     };
 
     window.addEventListener('resize', handleResize);
 
     return () => {
       window.removeEventListener('resize', handleResize);
-      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+      syncSceneMotion.current = null;
+      cancelAnimationFrame(frame);
+      scene.traverse(object => {
+        if (!(object instanceof THREE.Mesh || object instanceof THREE.Line || object instanceof THREE.Points)) return;
+        object.geometry.dispose();
+        for (const material of [object.material].flat()) material.dispose();
+      });
       renderer.dispose();
+      renderer.forceContextLoss();
+      renderer.domElement.remove();
     };
   }, [isScanning, isAr]);
 
@@ -263,10 +283,17 @@ export const InteractiveInspectionHologram: React.FC<InteractiveInspectionHologr
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    let animId: number;
+    let frame = 0;
     let t = 0;
+    const syncMotion = () => {
+      if (suspendedRef.current || !isScanning) {
+        cancelAnimationFrame(frame);
+        frame = 0;
+      } else if (!frame) frame = requestAnimationFrame(drawOscilloscope);
+    };
 
     const drawOscilloscope = () => {
+      frame = 0;
       t += 0.05;
       const w = canvas.width;
       const h = canvas.height;
@@ -341,20 +368,22 @@ export const InteractiveInspectionHologram: React.FC<InteractiveInspectionHologr
       }
       ctx.stroke();
 
-      animId = requestAnimationFrame(drawOscilloscope);
+      syncMotion();
     };
 
+    syncScopeMotion.current = syncMotion;
     drawOscilloscope();
 
     return () => {
-      cancelAnimationFrame(animId);
+      syncScopeMotion.current = null;
+      cancelAnimationFrame(frame);
     };
-  }, [inspectionMode, detectedDefect]);
+  }, [inspectionMode, detectedDefect, isScanning]);
 
   return (
-    <div className="rounded-2xl border border-cyan-500/30 bg-slate-950 p-6 sm:p-8 overflow-hidden relative shadow-2xl">
+    <div className={`rounded-2xl border border-cyan-500/30 bg-slate-950 overflow-hidden relative shadow-2xl ${compact ? 'p-3 sm:p-4' : 'p-6 sm:p-8'}`}>
       {/* Top Controls Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-800">
+      <div className={`flex flex-col gap-4 pb-6 border-b border-slate-800 ${compact ? '' : 'md:flex-row md:items-center justify-between'}`}>
         <div>
           <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-cyan-400 mb-1">
             <Sparkles className="w-4 h-4 text-cyan-400 animate-spin-slow" />
@@ -368,7 +397,7 @@ export const InteractiveInspectionHologram: React.FC<InteractiveInspectionHologr
         </div>
 
         {/* Mode Selector Tabs */}
-        <div className="flex items-center gap-1 p-1 bg-slate-900 border border-slate-800 rounded-lg shrink-0">
+        <div className="flex flex-wrap self-start items-center gap-1 p-1 bg-slate-900 border border-slate-800 rounded-lg shrink-0">
           <button
             type="button"
             onClick={() => setInspectionMode('ut')}
@@ -403,14 +432,14 @@ export const InteractiveInspectionHologram: React.FC<InteractiveInspectionHologr
       </div>
 
       {/* Main Simulation Viewport Grid */}
-      <div className="mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+      <div className={`mt-6 grid grid-cols-1 gap-6 items-stretch ${compact ? '' : 'lg:grid-cols-12'}`}>
         {/* Left: 3D Holographic Viewport */}
-        <div className="lg:col-span-8 rounded-xl border border-slate-800 bg-linear-to-b from-slate-900/60 to-slate-950 p-4 relative flex flex-col justify-between min-h-[320px]">
+        <div className={`min-w-0 rounded-xl border border-slate-800 bg-linear-to-b from-slate-900/60 to-slate-950 p-4 relative flex flex-col justify-between min-h-[320px] ${compact ? '' : 'lg:col-span-8'}`}>
           {/* Three.js Canvas Container */}
           <div ref={containerRef} className="w-full h-72 sm:h-80" />
 
           {/* Interactive HUD Overlay */}
-          <div className="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-none">
+          <div className="absolute top-4 left-4 right-4 flex flex-wrap gap-1 items-center justify-between pointer-events-none">
             <div className="px-2.5 py-1 rounded bg-slate-900/80 border border-slate-700/60 backdrop-blur-md text-[11px] font-mono text-cyan-300">
               {isAr ? 'خط أنابيب 30" ASTM A106 Gr. B' : '30" Pipe ASTM A106 Gr. B'}
             </div>

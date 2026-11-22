@@ -174,8 +174,6 @@ export const App: React.FC = () => {
   const [quoteService, setQuoteService] = useState<string>();
   const [menuOpen, setMenuOpen] = useState(false);
   const [mapsQuotaExceeded, setMapsQuotaExceeded] = useState(false);
-  const [chromeHeight, setChromeHeight] = useState(0);
-  const [mastheadInView, setMastheadInView] = useState(false);
   // `#admin` is its own page, not a fourth portal: no nav, no footer, no browsing.
   const [adminOpen, setAdminOpen] = useState(() => window.location.hash === ADMIN_HASH);
 
@@ -188,16 +186,11 @@ export const App: React.FC = () => {
   const isAr = language === 'ar';
   const portal: PortalId = route.portal;
   const companyHome = route.portal === 'company' && route.page === 'home';
-  const chromeOverMasthead = companyHome && mastheadInView;
 
   useEffect(() => {
     const chrome = document.getElementById('site-chrome');
     if (!chrome) return;
-    const sync = () => {
-      const height = chrome.getBoundingClientRect().height;
-      document.documentElement.style.setProperty('--insco-sticky-offset', `${height + 12}px`);
-      setChromeHeight(height);
-    };
+    const sync = () => document.documentElement.style.setProperty('--insco-sticky-offset', `${chrome.getBoundingClientRect().height + 12}px`);
     sync();
     const observer = typeof window.ResizeObserver === 'function' ? new window.ResizeObserver(sync) : null;
     observer?.observe(chrome);
@@ -661,18 +654,12 @@ export const App: React.FC = () => {
       data-theme={theme}
       data-unit-system={defaultUnitSystem}
       data-portal={portal}
-      data-masthead-shell={chromeOverMasthead || undefined}
       className={`min-h-screen flex flex-col font-sans transition-colors ${
         isLight ? 'bg-slate-50 text-slate-900' : 'bg-slate-950 text-slate-100'
       }`}
     >
       <SkipToContent language={language} />
-      <div
-        id="site-chrome"
-        className="sticky top-0 z-50"
-        data-masthead-in-view={chromeOverMasthead || undefined}
-        data-preserve-dark={chromeOverMasthead || undefined}
-      >
+      <div id="site-chrome" className="sticky top-0 z-50">
         {mapsQuotaExceeded && (
           <div className="bg-amber-50 border-b border-amber-200 text-amber-900 px-4 py-2.5 text-xs md:text-sm text-center sticky top-0 z-50 shadow-sm">
             <span>
@@ -881,8 +868,9 @@ export const App: React.FC = () => {
         {companyHome && (
           <CompanyPortal
             language={language}
-            chromeHeight={chromeHeight}
-            onMastheadVisibilityChange={setMastheadInView}
+            onNavigateToSection={openCompany}
+            onOpenDemo={() => openDemo()}
+            onNavigateToClient={() => openClient('overview')}
             onNavigateToAcademy={() => openAcademyHash('#academy')}
           />
         )}

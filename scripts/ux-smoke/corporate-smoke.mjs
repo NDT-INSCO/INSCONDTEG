@@ -26,7 +26,7 @@ for (const [name, width, height, lang, theme] of [
     await page.goto(root,{waitUntil:'networkidle'});
     const hero = page.getByTestId('corporate-landing-hero');
     await hero.waitFor();
-    await hero.locator('img').evaluate(img=>img.decode());
+    await hero.getByTestId('corporate-hero-poster').locator('img').evaluate(img=>img.decode());
     const skr = await page.evaluate(()=>[...new Set(performance.getEntriesByType('resource').map(e=>e.name).filter(name=>/\.js$/.test(name)))].map(u=>u.split('/').at(-1)));
     assert.equal(skr.some(n=>/^(InscoHero3dBanner|three|OrbitControls|CompanyDemoPortal)/i.test(n)), false);
     const rawJSBytes = skr.reduce((sum,n)=>sum + fs.statSync(join(docs, `assets/${n}`)).size,0);

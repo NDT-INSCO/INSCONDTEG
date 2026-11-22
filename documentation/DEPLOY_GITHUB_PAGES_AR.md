@@ -20,6 +20,7 @@ src/ + public/  ──[npm run build]──►  docs/  ──[رفع]──►  
 | الملف | الوظيفة |
 | --- | --- |
 | `.github/workflows/deploy.yml` | يبني الموقع ثم ينشره على Pages عند كل دفع إلى `main` |
+| `.github/workflows/firebase-rules.yml` | ينشر `firestore.rules` و`storage.rules` إلى مشروع Firebase — النشر على Pages لا ينشر القواعد ([الخطوات](FIREBASE_RULES_DEPLOY_AR.md)) |
 | `package-lock.json` | يجعل `npm ci` في سير العمل ممكناً (كان غائباً فتفشل كل عمليات CI) |
 | `SITE_BASE` (متغيّر بيئة) | مسار النشر؛ افتراضيه `/-Project-/`، وسير العمل يضبطه على `/اسم-المستودع/` |
 | `npm run site:check` | يفحص مجلد `docs/` قبل النشر: أصول ناقصة، **سلسلة استيرادات الـchunks**، قاعدة خطأ، EDB، EPUB |

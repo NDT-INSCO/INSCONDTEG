@@ -1,0 +1,99 @@
+name: firebase-rules
+
+# Publishes `firestore.rules` and `storage.rules` to the Firebase project.
+#
+# Why this file exists: the site is deployed by `.github/workflows/deploy.yml`,
+# but the *rules* were never deployed by anything — so a feature could be live
+# and still be refused by the server, which is the one failure mode this repo
+# must never hide. The rules now ship with the code that depends on them.
+#
+# One-time setup (once, by the project owner):
+#   Settings → Secrets and variables → Actions → New repository secret:
+#     FIREBASE_SERVICE_ACCOUNT = the full JSON of a service account with
+#                                "Firebase Admin" on the project
+#                                (Project settings → Service accounts → Generate new key)
+#   …or, instead, FIREBASE_TOKEN = the output of `npx firebase-tools login:ci`.
+#
+# Without either secret the job fails on purpose, with a message that says so:
+# a green run that deployed nothing would be worse than a red one.
+#
+# Manual run: Actions → firebase-rules → Run workflow.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'firestore.rules'
+      - 'storage.rules'
+      - 'firebase.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: firebase-rules
+  cancel-in-progress: false
+
+env:
+  FIREBASE_PROJECT: ai-studio-applet-webapp-18922
+  FIREBASE_TOOLS: firebase-tools@15.37.0
+
+jobs:
+  deploy-rules:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Read the credentials
+        id: credentials
+        env:
+          SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          if [ -n "$SERVICE_ACCOUNT" ]; then
+            printf '%s' "$SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase-service-account.json"
+            echo "mode=service-account" >> "$GITHUB_OUTPUT"
+            echo "Credentials: service account."
+          elif [ -n "$TOKEN" ]; then
+            echo "mode=token" >> "$GITHUB_OUTPUT"
+            echo "Credentials: CLI token."
+          else
+            echo "mode=none" >> "$GITHUB_OUTPUT"
+            echo "::error title=Firebase credentials are missing::Nothing was deployed. Add repository secret FIREBASE_SERVICE_ACCOUNT (service account JSON with Firebase Admin on $FIREBASE_PROJECT) or FIREBASE_TOKEN, then run this workflow again. Steps: https://github.com/${{ github.repository }}/settings/secrets/actions — one-time setup is also described in documentation/FIREBASE_RULES_DEPLOY_AR.md"
+            exit 1
+          fi
+
+      - name: Lint the rules
+        run: |
+          npm ci --no-audit --no-fund
+          npm run lint:rules
+
+      - name: Publish Firestore and Storage rules
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          # `firebase-tools` reads GOOGLE_APPLICATION_CREDENTIALS when it exists,
+          # and FIREBASE_TOKEN otherwise; only one of the two is set by the step above.
+          if [ "${{ steps.credentials.outputs.mode }}" = "token" ]; then
+            unset GOOGLE_APPLICATION_CREDENTIALS
+          fi
+          npx --yes "$FIREBASE_TOOLS" deploy \
+            --only firestore:rules,storage \
+            --project "$FIREBASE_PROJECT" \
+            --non-interactive
+
+      - name: Say what is live now
+        run: |
+          echo "### Rules published" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Project \`$FIREBASE_PROJECT\` now runs the rules in this commit:" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \`firestore.rules\` — engineering network groups (\`community_groups\`, \`community_group_members\`, group posts) and profile visibility." >> "$GITHUB_STEP_SUMMARY"
+          echo "- \`storage.rules\` — member photo and banner uploads under \`community_profiles/{uid}\`." >> "$GITHUB_STEP_SUMMARY"

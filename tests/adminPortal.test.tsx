@@ -5,8 +5,10 @@ import { JSDOM } from 'jsdom';
 import type { DashboardData } from '../src/admin/contract';
 import { externalAdminLink } from '../src/admin/public';
 
+const HOSTED = 'https://admin.insco.test/';
+const PAGES = 'https://ndt-insco.github.io/INSCONDTEG/';
 const dom = new JSDOM('<!doctype html><html lang="ar"><body></body></html>', {
-  url: 'https://ndt-insco.github.io/INSCONDTEG/', pretendToBeVisual: true,
+  url: HOSTED, pretendToBeVisual: true,
 });
 Object.assign(globalThis, {
   window: dom.window, document: dom.window.document, localStorage: dom.window.localStorage,
@@ -16,15 +18,31 @@ Object.assign(globalThis, {
 dom.window.scrollTo = () => {};
 dom.window.HTMLElement.prototype.scrollIntoView = () => {};
 const { App } = await import('../src/App');
-const { cleanup, fireEvent, render, waitFor, within } = await import('@testing-library/react');
+const AdminPortal = (await import('../src/components/admin/AdminPortal')).default;
+const { act, cleanup, fireEvent, render, waitFor, within } = await import('@testing-library/react');
 const realFetch = globalThis.fetch;
+const testPassword = 'Ops_Example42!';
 function adminJson(data: unknown, status = 200) { return Response.json(data, { status }); }
 const signedOut = () => adminJson({ error: 'signed_out' }, 401);
+const noContent = () => new Response(null, { status: 204 });
+const dashboard = (serverTime = Date.now()): DashboardData => ({
+  sessionExpiresAt: serverTime + 60_000, updatedAt: new Date(serverTime).toISOString(),
+  totals: { total: 0, new: 0, in_progress: 0, closed: 0, overdue: 0 }, activity: [], recent: [],
+  services: { tutorConfigured: false, rfqNotificationsConfigured: false },
+  announcement: { message: { ar: '', en: '' }, enabled: false, updatedAt: null },
+});
+const renderPortal = () => render(<AdminPortal language="en" onBack={() => {}} onToggleLanguage={() => {}} />);
+async function submitPassword(ui: ReturnType<typeof render>) {
+  const field = await ui.findByLabelText('Admin password', { exact: true }) as HTMLInputElement;
+  fireEvent.change(field, { target: { value: testPassword } });
+  fireEvent.click(ui.getByRole('button', { name: 'Sign in', exact: true }));
+  return field;
+}
 
 beforeEach(() => {
+  dom.reconfigure({ url: HOSTED });
   localStorage.clear();
   localStorage.setItem('insco_portal_choice_v1', 'company');
-  dom.window.history.replaceState(null, '', '/INSCONDTEG/');
   globalThis.fetch = async () => signedOut();
 });
 afterEach(() => { cleanup(); globalThis.fetch = realFetch; });
@@ -50,7 +68,7 @@ test('the footer key opens a stand-alone password page, and Back returns to the 
 test('a direct footer link shows the only admin key beside the prominent English company name', () => {
   localStorage.setItem('insco_language_v1', 'en');
   localStorage.removeItem('insco_portal_choice_v1');
-  dom.window.history.replaceState(null, '', '/INSCONDTEG/#company-footer');
+  dom.window.history.replaceState(null, '', '/#company-footer');
   const ui = render(<App />);
   const footer = within(ui.container.querySelector('#company-footer')!);
   const companyName = footer.getByText('International for Services & Constructions Company - INSCO');
@@ -59,29 +77,30 @@ test('a direct footer link shows the only admin key beside the prominent English
   assert.equal(ui.queryByRole('dialog'), null, 'the first-visit chooser must not cover the footer');
 });
 
-test('a static deep link does not present a fake password gate or dashboard', async () => {
-  dom.window.history.replaceState(null, '', '/INSCONDTEG/#admin');
+test('a Pages deep link shows why sign-in is unavailable without trying the admin API', async () => {
+  dom.reconfigure({ url: `${PAGES}#admin` });
   localStorage.removeItem('insco_portal_choice_v1');
-  globalThis.fetch = async () => new Response('<h1>404</h1>', { status: 404, headers: { 'Content-Type': 'text/html' } });
+  let adminCalls = 0;
+  globalThis.fetch = async input => {
+    if (String(input).startsWith('/api/admin/')) adminCalls++;
+    return signedOut();
+  };
   const ui = render(<App />);
   await ui.findByText('بوابة الإدارة غير مهيّأة');
+  assert.ok(ui.getByText(/الموقع العام لا يستقبل كلمات المرور/));
+  assert.equal(ui.queryByRole('button', { name: 'إعادة التحقق' }), null);
   assert.equal(ui.queryByLabelText('كلمة المرور', { exact: true }), null);
   assert.equal(ui.queryByRole('heading', { name: 'لوحة الإدارة' }), null);
   assert.equal(ui.queryByRole('dialog'), null);
+  assert.equal(adminCalls, 0);
 });
 
 test('login verifies against the API, loads the real summary and can publish and sign out', async () => {
   localStorage.setItem('insco_language_v1', 'en');
-  dom.window.history.replaceState(null, '', '/INSCONDTEG/#admin');
+  dom.window.history.replaceState(null, '', '/#admin');
   let session = false;
   let loginCalls = 0;
-  const testPassword = 'Ops_Example42!';
-  const data: DashboardData = {
-    sessionExpiresAt: Date.now() + 60_000, updatedAt: new Date().toISOString(),
-    totals: { total: 0, new: 0, in_progress: 0, closed: 0, overdue: 0 }, activity: [], recent: [],
-    services: { tutorConfigured: false, rfqNotificationsConfigured: false },
-    announcement: { message: { ar: '', en: '' }, enabled: false, updatedAt: null },
-  };
+  const data = dashboard();
   globalThis.fetch = async (input, init) => {
     assert.equal(init?.credentials, 'same-origin');
     switch (input) {
@@ -140,7 +159,7 @@ test('a compatible device can choose the Arabic passkey button and still use the
   Object.defineProperty(dom.window, 'isSecureContext', { value: true, configurable: true });
   Object.defineProperty(globalThis, 'PublicKeyCredential', { value: class {}, configurable: true });
   try {
-    dom.window.history.replaceState(null, '', '/INSCONDTEG/#admin');
+    dom.window.history.replaceState(null, '', '/#admin');
     globalThis.fetch = async (input, init) => {
       switch (input) {
         case '/api/admin/dashboard': return signedOut();
@@ -168,8 +187,87 @@ test('a compatible device can choose the Arabic passkey button and still use the
   }
 });
 
-test('a Pages footer only accepts an HTTPS admin host and gives it the correct hash', () => {
-  assert.equal(externalAdminLink('https://admin.example/site/'), 'https://admin.example/site/#admin');
+test('a Pages footer only accepts an external HTTPS admin URL and gives it the correct hash', () => {
+  assert.equal(externalAdminLink('https://admin.example/site/#old'), 'https://admin.example/site/#admin');
   assert.equal(externalAdminLink('https://user:password@admin.example/'), null);
   assert.equal(externalAdminLink('http://admin.example/'), null);
+  assert.equal(externalAdminLink('https://admin.example/?password=demo'), null);
+  assert.equal(externalAdminLink('https://other.github.io./site/'), null);
+  assert.equal(externalAdminLink(`${HOSTED}other/path`), null);
+});
+
+test('a transient protected read failure after authentication is retryable without resending credentials', async () => {
+  let loginCalls = 0;
+  let unavailable = 2;
+  globalThis.fetch = async (input, init) => {
+    if (input === '/api/admin/login') {
+      assert.equal(init?.redirect, 'error');
+      assert.deepEqual(JSON.parse(String(init?.body)), { password: testPassword });
+      loginCalls++;
+      return noContent();
+    }
+    assert.equal(input, '/api/admin/dashboard');
+    if (!loginCalls) return signedOut();
+    return unavailable-- > 0 ? adminJson({ error: 'storage_error' }, 503) : adminJson(dashboard());
+  };
+  const ui = renderPortal();
+  await submitPassword(ui);
+  await ui.findByText('The admin database is unavailable. Try again shortly.');
+  assert.equal(ui.queryByLabelText('Admin password', { exact: true }), null);
+  assert.equal(ui.queryByRole('heading', { name: 'Website dashboard' }), null);
+  for (let count = 0; count < 2; count++) {
+    fireEvent.click(await ui.findByRole('button', { name: 'Check session again' }));
+  }
+  await ui.findByRole('heading', { name: 'Website dashboard' });
+  assert.equal(loginCalls, 1);
+});
+
+test('a successful login response without a recognised session never opens the dashboard', async () => {
+  globalThis.fetch = async input => input === '/api/admin/login' ? noContent() : signedOut();
+  const ui = renderPortal();
+  const field = await submitPassword(ui);
+  await ui.findByText(/The server did not recognise your session/);
+  assert.equal(field.value, '');
+  assert.equal(ui.queryByRole('heading', { name: 'Website dashboard' }), null);
+});
+
+test('a fallback page or malformed admin payload cannot be mistaken for an authenticated dashboard', async () => {
+  for (const reply of [new Response('<html>SPA fallback</html>'), noContent(), adminJson({ healthy: true }), adminJson({ error: 'signed_out' }, 503)]) {
+    globalThis.fetch = async () => reply;
+    const ui = renderPortal();
+    await ui.findByText(/did not return a valid admin response/);
+    assert.equal(ui.queryByRole('heading', { name: 'Website dashboard' }), null);
+    assert.equal(ui.queryByLabelText('Admin password', { exact: true }), null);
+    ui.unmount();
+  }
+});
+
+test('a fast device clock does not expire a valid session on the client', async () => {
+  const data = dashboard(Date.now() - 6 * 60 * 60_000);
+  globalThis.fetch = async () => adminJson(data);
+  const ui = renderPortal();
+  await ui.findByRole('heading', { name: 'Website dashboard' });
+  // Let any incorrectly scheduled zero-delay expiry run.
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
+  assert.equal(ui.queryByText('Your session ended. Sign in again.'), null);
+  assert.ok(ui.getByRole('heading', { name: 'Website dashboard' }));
+});
+
+test('an in-flight sign-in is sent only once and cancelled when leaving the portal', async () => {
+  let pending: AbortSignal | null | undefined;
+  let loginCalls = 0;
+  globalThis.fetch = async (input, init) => {
+    if (input === '/api/admin/dashboard') return signedOut();
+    assert.equal(input, '/api/admin/login');
+    loginCalls++;
+    pending = init?.signal;
+    return new Promise((_, reject) => pending?.addEventListener('abort', () => reject(pending?.reason), { once: true }));
+  };
+  const ui = renderPortal();
+  const field = await submitPassword(ui);
+  fireEvent.submit(field.form!);
+  assert.equal(loginCalls, 1);
+  assert.equal(field.value, '');
+  ui.unmount();
+  assert.equal(pending?.aborted, true);
 });

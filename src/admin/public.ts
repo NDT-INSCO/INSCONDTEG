@@ -2,12 +2,16 @@ import { ADMIN_HASH, ANNOUNCEMENT_API } from './contract';
 import type { LocalizedText } from '../types';
 import { isStaticPages } from '../utils/staticPages';
 
-/** A Pages build may send staff to a trusted Node host instead of crossing origins with a PIN. */
-export function externalAdminLink(raw = import.meta.env?.VITE_ADMIN_PORTAL_URL): string | null {
+/** Send staff to the configured HTTPS admin host, never to another static Pages site or back here. */
+export function externalAdminLink(
+  raw = import.meta.env?.VITE_ADMIN_PORTAL_URL,
+  siteOrigin = typeof window === 'undefined' ? undefined : window.location.origin,
+): string | null {
   if (!raw?.trim()) return null;
   try {
     const url = new URL(raw.trim());
-    if (url.protocol !== 'https:' || url.username || url.password || url.search) return null;
+    if (url.protocol !== 'https:' || url.username || url.password || url.search
+      || url.origin === siteOrigin || /(^|\.)github\.io\.?$/.test(url.hostname)) return null;
     url.hash = ADMIN_HASH;
     return url.href;
   } catch {

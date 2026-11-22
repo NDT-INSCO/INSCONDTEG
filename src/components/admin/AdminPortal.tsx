@@ -5,6 +5,7 @@ import type { DashboardData, QuoteStatus } from '../../admin/contract';
 import { signInWithPasskey } from '../../admin/passkeyClient';
 import { externalAdminLink } from '../../admin/public';
 import type { Language } from '../../types';
+import { isStaticPages } from '../../utils/staticPages';
 import { AdminAnnouncement } from './AdminAnnouncement';
 import { AdminLogin, type LoginPhase } from './AdminLogin';
 import { AdminOverview } from './AdminOverview';
@@ -12,50 +13,69 @@ import { AdminPasskeys } from './AdminPasskeys';
 import { AdminQuotes } from './AdminQuotes';
 import { AdminBrand, AdminMessage, BackIcon, adminError, shortDate } from './AdminUi';
 
-type GateState = { kind: LoginPhase; notice?: 'expired' | 'logout' } | { kind: 'ready'; initial: DashboardData };
+type GateState = {
+  kind: Exclude<LoginPhase, 'static'>;
+  notice?: 'expired' | 'logout';
+  problem?: unknown;
+  recheckSession?: boolean;
+} | { kind: 'ready'; initial: DashboardData };
 interface PortalProps { language: Language; onBack: () => void; onToggleLanguage: () => void }
+
+const hasErrorCode = (error: unknown, code: string) => error instanceof AdminApiError && error.code === code;
+const checkFailure = (problem: unknown, recheckSession = false): GateState => ({
+  kind: hasErrorCode(problem, 'not_configured') ? 'disabled' : 'offline',
+  problem,
+  recheckSession,
+});
 
 export default function AdminPortal(props: PortalProps) {
   const [gate, setGate] = useState<GateState>({ kind: 'checking' });
-  const [check, setCheck] = useState(0);
-  const destination = externalAdminLink();
-  const linkedPortal = destination && new URL(destination).origin !== window.location.origin ? destination : null;
+  const linkedPortal = externalAdminLink();
+  const staticSite = isStaticPages();
+  const checking = gate.kind === 'checking';
+  const rechecking = checking && gate.recheckSession === true;
 
   useEffect(() => {
-    if (linkedPortal) return; // Old #admin bookmarks on Pages never receive a password form.
+    if (!checking || staticSite || linkedPortal) return; // A static site cannot verify a session.
     const controller = new AbortController();
-    void adminClient.dashboard(controller.signal).then(initial => {
-      if (!controller.signal.aborted) setGate({ kind: 'ready', initial });
+    const { signal } = controller;
+    void adminClient.dashboard(signal).then(initial => {
+      if (!signal.aborted) setGate({ kind: 'ready', initial });
     }).catch(error => {
-      if (controller.signal.aborted) return;
-      const code = error instanceof AdminApiError ? error.code : '';
-      setGate({ kind: code === 'signed_out' ? 'login' : code === 'not_configured' ? 'disabled' : 'offline' });
+      if (!signal.aborted) setGate(hasErrorCode(error, 'signed_out') ? { kind: 'login' } : checkFailure(error, rechecking));
     });
     return () => controller.abort();
-  }, [check, linkedPortal]);
+  }, [checking, rechecking, linkedPortal, staticSite]);
 
   const onSessionError = useCallback((error: unknown) => {
-    if (!(error instanceof AdminApiError)) return false;
-    if (error.code === 'signed_out') {
+    if (hasErrorCode(error, 'signed_out')) {
       setGate({ kind: 'login', notice: 'expired' });
       return true;
     }
-    if (error.code === 'not_configured') {
-      setGate({ kind: 'disabled' });
+    if (hasErrorCode(error, 'not_configured')) {
+      setGate(checkFailure(error));
       return true;
     }
     return false;
   }, []);
 
-  async function login(authenticate: () => Promise<void>, signal?: AbortSignal) {
+  async function login(authenticate: () => Promise<void>, signal: AbortSignal) {
     try {
       await authenticate();
-      const initial = await adminClient.dashboard(signal);
-      if (!signal?.aborted) setGate({ kind: 'ready', initial });
     } catch (error) {
-      if (signal?.aborted) return;
-      if (error instanceof AdminApiError && error.code === 'signed_out') throw new AdminApiError('cookies_blocked');
+      if (signal.aborted) return;
       if (!onSessionError(error)) throw error;
+      return;
+    }
+    if (signal.aborted) return;
+    try {
+      const initial = await adminClient.dashboard(signal);
+      if (!signal.aborted) setGate({ kind: 'ready', initial });
+    } catch (error) {
+      if (signal.aborted) return;
+      if (hasErrorCode(error, 'signed_out')) throw new AdminApiError('cookies_blocked');
+      // The credential request completed. Retry the protected read, not the password or passkey.
+      setGate(checkFailure(error, true));
     }
   }
 
@@ -64,12 +84,16 @@ export default function AdminPortal(props: PortalProps) {
     setGate({ kind: 'login', notice: 'logout' });
   }
 
-  return gate.kind === 'ready'
-    ? <AdminWorkspace {...props} initial={gate.initial} onSessionError={onSessionError} onLogout={logout} />
-    : <AdminLogin {...props} phase={gate.kind} notice={gate.notice} linkedPortal={linkedPortal}
-      onLogin={password => login(() => adminClient.login(password))}
-      onPasskeyLogin={signal => login(() => signInWithPasskey(signal), signal)}
-      onRetry={() => { setGate({ kind: 'checking' }); setCheck(value => value + 1); }} />;
+  if (gate.kind === 'ready' && !staticSite && !linkedPortal) {
+    return <AdminWorkspace {...props} initial={gate.initial} onSessionError={onSessionError} onLogout={logout} />;
+  }
+  const screen = gate.kind === 'ready' ? null : gate;
+  return <AdminLogin {...props}
+    phase={staticSite ? 'static' : screen?.kind ?? 'checking'} notice={screen?.notice}
+    linkedPortal={linkedPortal} problem={screen?.problem} recheckSession={screen?.recheckSession}
+    onLogin={(password, signal) => login(() => adminClient.login(password, signal), signal)}
+    onPasskeyLogin={signal => login(() => signInWithPasskey(signal), signal)}
+    onRetry={() => setGate({ kind: 'checking', recheckSession: screen?.recheckSession })} />;
 }
 
 const VIEWS = [
@@ -96,9 +120,12 @@ function AdminWorkspace({ language, initial, onBack, onToggleLanguage, onSession
   const heading = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => onSessionError(new AdminApiError('signed_out')), Math.max(0, data.sessionExpiresAt - Date.now()));
+    // The expiry and snapshot are from the same server clock. A fast phone clock
+    // must not immediately sign out a valid session; the API still enforces expiry.
+    const remaining = Math.max(0, data.sessionExpiresAt - Date.parse(data.updatedAt));
+    const timer = window.setTimeout(() => onSessionError(new AdminApiError('signed_out')), remaining);
     return () => window.clearTimeout(timer);
-  }, [data.sessionExpiresAt, onSessionError]);
+  }, [data.sessionExpiresAt, data.updatedAt, onSessionError]);
 
   useEffect(() => {
     heading.current?.focus({ preventScroll: true });

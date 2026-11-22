@@ -42,9 +42,13 @@ export function adminError(error: unknown, language: Language): string {
       return ar ? `محاولات كثيرة. حاول مجددًا بعد ${numberText(minutes, language)} دقيقة.` : `Too many attempts. Try again in ${minutes} min.`;
     }
     case 'cookies_blocked': return ar
-      ? 'تعذّر حفظ جلسة الدخول. افتح البوابة في تبويب مستقل وتأكد من السماح بملفات تعريف الارتباط.'
-      : 'Your session could not be saved. Open the portal in its own tab and allow cookies.';
+      ? 'لم يتعرّف الخادم على جلسة الدخول. افتح البوابة في تبويب مستقل وتأكد من السماح بملفات تعريف الارتباط.'
+      : 'The server did not recognise your session. Open the portal in its own tab and allow cookies.';
+    case 'not_configured': return ar ? 'خادم الإدارة غير مهيّأ لتسجيل الدخول. تواصل مع مسؤول تشغيل الموقع.' : 'The admin server is not configured for sign-in. Contact the site operator.';
     case 'origin_not_allowed': return ar ? 'افتح البوابة من عنوانها المعتمد ثم حاول مجددًا.' : 'Open the portal at its configured address and try again.';
+    case 'storage_error': return ar ? 'تعذّر الوصول إلى قاعدة بيانات الإدارة. حاول مجددًا بعد قليل.' : 'The admin database is unavailable. Try again shortly.';
+    case 'invalid_response': return ar ? 'هذا العنوان لم يُرجع ردًا صالحًا من خادم الإدارة. تأكد من أنك تستخدم الرابط المعتمد.' : 'This address did not return a valid admin response. Check that you are using the configured address.';
+    case 'timeout': return ar ? 'استغرق رد خادم الإدارة وقتًا طويلًا. حاول مرة أخرى.' : 'The admin server took too long to respond. Try again.';
     case 'passkey_browser': return ar ? 'مفاتيح المرور غير متاحة في هذا المتصفح. استخدم كلمة المرور.' : 'Passkeys are unavailable in this browser. Use your password.';
     case 'passkey_prompt_failed': return ar ? 'لم يكتمل التحقق على جهازك. حاول مجددًا أو استخدم كلمة المرور.' : 'Device verification did not complete. Try again or use your password.';
     case 'passkey_challenge_expired': return ar ? 'انتهت مهلة التحقق. ابدأ المحاولة مرة أخرى في تبويب مستقل.' : 'The verification attempt expired. Start again in the portal’s own tab.';

@@ -6,7 +6,8 @@ import { passkeyBrowser } from '../../admin/passkeyClient';
 import type { Language } from '../../types';
 import { AdminBrand, AdminLoading, AdminMessage, BackIcon, PasskeyNewTab, adminError } from './AdminUi';
 
-export type LoginPhase = 'checking' | 'login' | 'disabled' | 'offline';
+export type LoginPhase = 'checking' | 'login' | 'static' | 'disabled' | 'offline';
+type LoginMethod = 'password' | 'passkey';
 
 function SecurityGraphic() {
   return (
@@ -43,30 +44,32 @@ interface LoginProps {
   phase: LoginPhase;
   linkedPortal?: string | null;
   notice?: 'expired' | 'logout';
+  problem?: unknown;
+  recheckSession?: boolean;
   onBack: () => void;
   onToggleLanguage: () => void;
   onRetry: () => void;
-  onLogin: (password: string) => Promise<void>;
+  onLogin: (password: string, signal: AbortSignal) => Promise<void>;
   onPasskeyLogin: (signal: AbortSignal) => Promise<void>;
 }
 
-export function AdminLogin({ language, phase, linkedPortal, notice, onBack, onToggleLanguage, onRetry, onLogin, onPasskeyLogin }: LoginProps) {
+export function AdminLogin({ language, phase, linkedPortal, notice, problem, recheckSession, onBack, onToggleLanguage, onRetry, onLogin, onPasskeyLogin }: LoginProps) {
   const ar = language === 'ar';
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [pending, setPending] = useState<'password' | 'passkey' | null>(null);
+  const [pending, setPending] = useState<LoginMethod | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [passkeyError, setPasskeyError] = useState<unknown>(null);
   const [passkeyAvailable, setPasskeyAvailable] = useState(false);
   const [badFormat, setBadFormat] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const ceremony = useRef<AbortController | null>(null);
+  const attempt = useRef<AbortController | null>(null);
   const device = passkeyBrowser();
 
   useEffect(() => {
     headingRef.current?.focus({ preventScroll: true });
-    return () => ceremony.current?.abort();
+    return () => attempt.current?.abort();
   }, []);
 
   useEffect(() => {
@@ -78,48 +81,43 @@ export function AdminLogin({ language, phase, linkedPortal, notice, onBack, onTo
     return () => controller.abort();
   }, [phase, device, linkedPortal]);
 
-  async function submit(event: React.FormEvent) {
-    event.preventDefault();
-    if (pending) return;
-    setError(null);
-    setPasskeyError(null);
-    if (!isAdminPassword(password)) {
-      setBadFormat(true);
-      inputRef.current?.focus();
-      return;
-    }
-    setBadFormat(false);
-    setPending('password');
-    setShowPassword(false);
-    try {
-      await onLogin(password);
-    } catch (cause) {
-      setError(cause);
-      inputRef.current?.focus();
-    } finally {
-      setPassword('');
-      setPending(null);
-    }
-  }
-
-  async function usePasskey() {
-    if (pending || ceremony.current) return;
+  async function authenticate(method: LoginMethod, run: (signal: AbortSignal) => Promise<void>) {
+    if (attempt.current) return;
     const controller = new AbortController();
-    ceremony.current = controller;
-    setPending('passkey');
-    setPasskeyError(null);
+    attempt.current = controller;
+    setPending(method);
     setError(null);
+    setPasskeyError(null);
     setBadFormat(false);
     setShowPassword(false);
     setPassword('');
     try {
-      await onPasskeyLogin(controller.signal);
+      await run(controller.signal);
     } catch (cause) {
-      if (!controller.signal.aborted) setPasskeyError(cause);
+      if (!controller.signal.aborted) {
+        if (method === 'passkey') setPasskeyError(cause);
+        else {
+          setError(cause);
+          inputRef.current?.focus();
+        }
+      }
     } finally {
-      ceremony.current = null;
+      attempt.current = null;
       if (!controller.signal.aborted) setPending(null);
     }
+  }
+
+  function submit(event: React.FormEvent) {
+    event.preventDefault();
+    if (attempt.current) return;
+    if (!isAdminPassword(password)) {
+      setError(null);
+      setPasskeyError(null);
+      setBadFormat(true);
+      inputRef.current?.focus();
+      return;
+    }
+    void authenticate('password', signal => onLogin(password, signal));
   }
 
   return (
@@ -152,13 +150,24 @@ export function AdminLogin({ language, phase, linkedPortal, notice, onBack, onTo
                 ? (ar ? 'استخدم كلمة المرور أو مفتاح المرور المسجّل.' : 'Use the admin password or a registered passkey.')
                 : (ar ? 'أدخل كلمة مرور الإدارة للمتابعة.' : 'Enter the admin password to continue.')}</p>}
               {phase === 'checking' && <AdminLoading language={language} />}
-              {(phase === 'disabled' || phase === 'offline') && (
+              {(phase === 'static' || phase === 'disabled' || phase === 'offline') && (
                 <div className="ad-login-feedback">
                   <AdminMessage>
-                    <strong>{phase === 'disabled' ? (ar ? 'بوابة الإدارة غير مهيّأة' : 'Admin portal not configured') : (ar ? 'تعذّر الاتصال بالبوابة' : 'Portal unreachable')}</strong>
-                    <p>{phase === 'disabled' ? (ar ? 'هذا العنوان غير متصل بخادم الإدارة. افتح رابط الإدارة المعتمد لتسجيل الدخول.' : 'This address is not connected to the admin server. Use the configured admin address to sign in.') : (ar ? 'تحقق من عنوان الإدارة والاتصال ثم أعد المحاولة.' : 'Check the admin address and your connection, then try again.')}</p>
+                    <strong>{phase === 'offline'
+                      ? (ar ? 'تعذّر التحقق من جلسة الإدارة' : 'Unable to check the admin session')
+                      : (ar ? 'بوابة الإدارة غير مهيّأة' : 'Admin portal not configured')}</strong>
+                    <p>{phase === 'static'
+                      ? (ar ? 'الموقع العام لا يستقبل كلمات المرور. يلزم ربطه بعنوان بوابة الإدارة الآمن قبل تسجيل الدخول.' : 'The public site does not accept passwords. It needs a link to the secure admin portal before staff can sign in.')
+                      : adminError(problem, language)}</p>
+                    {recheckSession && <p>{ar
+                      ? 'أعد التحقق من الجلسة دون إدخال بيانات الدخول مرة أخرى.'
+                      : 'Check the session without entering your sign-in details again.'}</p>}
                   </AdminMessage>
-                  <button type="button" className="ad-button ad-button-muted" onClick={onRetry}><RotateCw size={16} aria-hidden="true" />{ar ? 'إعادة التحقق' : 'Check again'}</button>
+                  {phase !== 'static' && <button type="button" className="ad-button ad-button-muted" onClick={onRetry}>
+                    <RotateCw size={16} aria-hidden="true" />{recheckSession
+                      ? (ar ? 'إعادة التحقق من الجلسة' : 'Check session again')
+                      : (ar ? 'إعادة التحقق' : 'Check again')}
+                  </button>}
                 </div>
               )}
             </>}
@@ -166,7 +175,7 @@ export function AdminLogin({ language, phase, linkedPortal, notice, onBack, onTo
               <div className="ad-passkey-entry">
                 {device === 'embedded' && <PasskeyNewTab language={language} />}
                 {device === 'ready' && <>
-                  <button type="button" className="ad-button ad-button-muted ad-passkey-cta" disabled={pending !== null} onClick={() => void usePasskey()} aria-describedby="ad-passkey-hint">
+                  <button type="button" className="ad-button ad-button-muted ad-passkey-cta" disabled={pending !== null} onClick={() => void authenticate('passkey', onPasskeyLogin)} aria-describedby="ad-passkey-hint">
                     {pending === 'passkey' ? <LoaderCircle size={20} className="ad-spin" aria-hidden="true" /> : <Fingerprint size={20} aria-hidden="true" />}
                     {pending === 'passkey' ? (ar ? 'أكمل التحقق على جهازك…' : 'Verify on your device…') : (ar ? 'الدخول بالبصمة أو Face ID' : 'Sign in with fingerprint or Face ID')}
                   </button>

@@ -70,8 +70,8 @@ export const ESTIMATOR_SERVICES: readonly EstimatorServiceSpec[] = [
       en: 'Post-Weld Heat Treatment (PWHT)',
     },
     description: {
-      ar: 'وحدات 65 كيلوواط إلكترونية ذات 6 قنوات ومسجلات حرارة معايرة.',
-      en: '65 kW 6-channel computerized consoles with calibrated chart recorders.',
+      ar: 'مثال تقديري لوحدة معالجة حرارية وأدوات تسجيل درجة الحرارة.',
+      en: 'Planning example: a PWHT console and temperature recording instruments.',
     },
     governingCode: 'ASME B31.3 / Sec VIII',
     baseRateUsdPerJoint: 185,
@@ -112,8 +112,8 @@ export const ESTIMATOR_SERVICES: readonly EstimatorServiceSpec[] = [
       en: 'Industrial Radiography (Gamma / X-Ray)',
     },
     description: {
-      ar: 'كاميرات Sentinel Ir-192 / Se-75 ومعمل تحميض متنقل بترخيص ENRRA.',
-      en: 'Sentinel Ir-192 / Se-75 projectors & mobile darkroom (ENRRA licensed).',
+      ar: 'بند تقديري للتصوير الإشعاعي؛ التنفيذ مشروط بمراجعة الترخيص ونطاق العمل.',
+      en: 'Budget allowance for radiography, subject to a review of applicable licensing and scope.',
     },
     governingCode: 'ASME Sec V Art. 2',
     baseRateUsdPerJoint: 82,
@@ -134,14 +134,14 @@ export const ESTIMATOR_SERVICES: readonly EstimatorServiceSpec[] = [
     },
     description: {
       ar: 'كشف الشروخ السطحية بالجسيمات المغناطيسية والسوائل النافذة.',
-      en: 'Magnetic particle yoke, penetrant, and certified weld visual inspection.',
+      en: 'Planning example for magnetic particle, penetrant and visual inspection.',
     },
     governingCode: 'ASME Sec V Art. 6 & 7',
     baseRateUsdPerJoint: 28,
     dailyCapacityPerCrew: 32,
     personnelPerCrew: 2,
     equipmentUnitName: {
-      ar: 'طقم فحص سطحي ومغناطيسي معاير',
+      ar: 'طقم فحص سطحي ومغناطيسي',
       en: 'MT Yoke & PT Inspection Kit',
     },
   },
@@ -175,8 +175,8 @@ export const ESTIMATOR_SERVICES: readonly EstimatorServiceSpec[] = [
       en: 'Hydrostatic Pressure Testing',
     },
     description: {
-      ar: 'طلمبات ضغط عالٍ وعدادات ومسجلات ضغط وحرارة معتمدة لخطوط الأنابيب.',
-      en: 'High-pressure test pumps, manifolds, and calibrated pressure recorders.',
+      ar: 'مثال تقديري لمنظومة اختبار الضغط وتسجيل القياسات.',
+      en: 'Planning example: a pressure test pump and recording instruments.',
     },
     governingCode: 'ASME B31.3 / B31.4',
     baseRateUsdPerJoint: 54,
@@ -347,7 +347,7 @@ export function calculateProjectEstimate(input: ProjectEstimateInput): ProjectEs
 
   const includesRsoOfficer = input.selectedServices.includes('rt');
   if (includesRsoOfficer) {
-    totalCrew += 1; // Dedicated ENRRA Radiation Safety Officer (RSO)
+    totalCrew += 1; // Planning allowance, not proof of a named or licensed person.
   }
 
   const rtHazmatLogisticsUsd = includesRsoOfficer ? 420 : 0;
@@ -414,8 +414,8 @@ export function buildEstimateRfqSummary(
   )}`;
 
   if (isAr) {
-    return `تقدير مشروع أولي: الخدمات (${codes}) | عدد الوصلات: ${input.jointCount} وصلة (${tier.label.ar}) | المدة المقدرة: ${result.estimatedSiteDays} أيام عمل | الطاقم: ${result.totalCertifiedPersonnel} فرد معتمد | الميزانية التقديرية: ${rangeStr}.`;
+    return `تقدير مشروع أولي: الخدمات (${codes}) | عدد الوصلات: ${input.jointCount} وصلة (${tier.label.ar}) | المدة المقدرة: ${result.estimatedSiteDays} أيام عمل | الطاقم المقدّر: ${result.totalCertifiedPersonnel} أفراد | الميزانية التقديرية: ${rangeStr}.`;
   }
 
-  return `Project Estimate Scope: Services (${codes}) | Volume: ${input.jointCount} weld joints (${tier.label.en}) | Est. Duration: ${result.estimatedSiteDays} site days | Crew: ${result.totalCertifiedPersonnel} certified personnel | Budgetary Range: ${rangeStr}.`;
+  return `Project Estimate Scope: Services (${codes}) | Volume: ${input.jointCount} weld joints (${tier.label.en}) | Est. Duration: ${result.estimatedSiteDays} site days | Est. crew: ${result.totalCertifiedPersonnel} personnel | Budgetary Range: ${rangeStr}.`;
 }

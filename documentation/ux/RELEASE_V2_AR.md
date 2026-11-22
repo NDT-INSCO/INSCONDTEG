@@ -11,7 +11,11 @@
 ## قبول النشر
 
 1. تطابق [عملية بناء Pages الأخيرة](https://github.com/NDT-INSCO/INSCONDTEG/actions?query=workflow%3Apages-build-deployment) مع commit الدمج، مع نجاح اختبارات البناء والخصوصية. افحص الرابط العام نفسه؛ نجاح البناء وحده ليس دليلًا أن زائرًا يرى النسخة الجديدة.
-2. افتح الرئيسية ثم [خدمة RT](https://ndt-insco.github.io/INSCONDTEG/#services/ndt/rt)، [الأكاديمية](https://ndt-insco.github.io/INSCONDTEG/#academy)، [الشبكة](https://ndt-insco.github.io/INSCONDTEG/#network/profile)، وصفحة [طلب السعر](https://ndt-insco.github.io/INSCONDTEG/#rfq). لا ترسل بيانات عميل في اختبار النشر. تحقق أن PDF العام 50 صفحة، وبصمته `ccbfdffbc2b8c5dfdf9e8ca9146c77b118e9afea58597f2a3a07d3e4b4ab926e` بعد تحديث الخادم والمخبأ.
+2. افتح الرئيسية ثم [خدمة RT](https://ndt-insco.github.io/INSCONDTEG/#services/ndt/rt)، [الأكاديمية](https://ndt-insco.github.io/INSCONDTEG/#academy)، [الشبكة](https://ndt-insco.github.io/INSCONDTEG/#network/profile)، وصفحة [طلب السعر](https://ndt-insco.github.io/INSCONDTEG/#rfq). لا ترسل بيانات عميل في اختبار النشر. تحقق أن PDF العام 50 صفحة، وبصمته `ccbfdffbc2b8c5dfdf9e8ca9146c77b118e9afea58597f2a3a07d3e4b4ab926e` بعد تحديث الخادم والمخبأ. روابط الإصدار الجديد تضيف `?v=ccbfdffb`، مع إبقاء عنوان الملف القديم صالحًا؛ لا يعني ذلك حذف نسخ المخابئ السابقة.
+
+## فحص الموقع بعد أول نشر
+
+نجح بناء Pages عند `4e10d9f` ([PR #29](https://github.com/NDT-INSCO/INSCONDTEG/pull/29) · [عملية النشر](https://github.com/NDT-INSCO/INSCONDTEG/actions/runs/44965646548)). ظهرت الرئيسية الجديدة وصفحات التسجيل وملف التأهيل وطلب عرض السعر والمستشار على الرابط العام. أظهر طلب السعر بديل المسودة، وأظهر المستشار بديل المكتبة. لم يُرسل طلب أو يُنشأ حساب إنتاج في الفحص. متابعة النشر توضّح أن الحاسبة للتقدير فقط، وأن ملف الشركة يُطلب بعد توثيق الحساب وحفظ الملف، لا بمجرد التسجيل.
 
 ## ما يحتاج مشغّل الخدمات (لا يُستكمل بمجرد النشر)
 

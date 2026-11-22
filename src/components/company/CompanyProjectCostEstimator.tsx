@@ -9,7 +9,7 @@ import {
   Film,
   Send,
   RotateCcw,
-  ShieldCheck,
+  Info,
   ArrowRight,
   ArrowLeft,
 } from 'lucide-react';
@@ -165,13 +165,18 @@ export const CompanyProjectCostEstimator: React.FC<CompanyProjectCostEstimatorPr
               className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight"
             >
               {isAr
-                ? 'قدّر ميزانية مشروعك والأسطول والطاقم المطلوب فورياً'
+                ? 'قدّر ميزانية مشروعك والموارد اللازمة للتخطيط'
                 : 'Interactive Project Cost & Mobilization Requirements Estimator'}
             </h2>
             <p className="mt-3 text-sm sm:text-base text-slate-400 leading-relaxed">
               {isAr
                 ? 'اختر نوعاً واحداً أو حزمة متكاملة من خدمات الفحص والمعالجة الحرارية (PWHT، UT/PAUT، RT الجاما والإكس راي، MT/PT، PMI) لحساب الميزانية التقديرية وعدد المعدات وأيام العمل الميدانية.'
                 : 'Select one or multiple inspection and heat treatment disciplines (PWHT, UT/PAUT, RT, MT/PT, PMI, Hydrotest) to estimate budgetary cost ranges, crew size, fleet units, and site duration.'}
+            </p>
+            <p className="mt-2 text-xs text-slate-300">
+              {isAr
+                ? 'قيم افتراضية للتخطيط، وليست أسعارًا ملزمة أو إثباتًا للترخيص والمعايرة وتوافر المعدات.'
+                : 'Illustrative planning assumptions, not binding prices or proof of licences, calibration or equipment availability.'}
             </p>
           </div>
 
@@ -482,7 +487,7 @@ export const CompanyProjectCostEstimator: React.FC<CompanyProjectCostEstimatorPr
                 <div className="p-3 rounded-xl border border-slate-800 bg-slate-900/70">
                   <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
                     <Users className="w-3.5 h-3.5 text-amber-400" aria-hidden="true" />
-                    <span>{isAr ? 'الطاقم الهندسي المعتمد' : 'Certified Crew'}</span>
+                    <span>{isAr ? 'عدد الأفراد المقدّر' : 'Estimated Crew'}</span>
                   </div>
                   <div
                     data-testid="estimator-crew-count"
@@ -520,11 +525,11 @@ export const CompanyProjectCostEstimator: React.FC<CompanyProjectCostEstimatorPr
 
               {estimate.includesRsoOfficer && (
                 <div className="p-2.5 rounded-lg border border-slate-800 bg-slate-900/50 flex items-center gap-2 text-[11px] font-mono text-cyan-300">
-                  <ShieldCheck className="w-4 h-4 text-cyan-400 shrink-0" aria-hidden="true" />
+                  <Info className="w-4 h-4 text-cyan-400 shrink-0" aria-hidden="true" />
                   <span>
                     {isAr
-                      ? 'يتضمن مسؤول وقاية إشعاعية مرخص (ENRRA RSO) وعربة تحميض متنقلة.'
-                      : 'Includes dedicated ENRRA Radiation Safety Officer (RSO) & mobile darkroom.'}
+                      ? 'يحتسب بدلًا تقديريًا للوقاية الإشعاعية. الطاقم والترخيص الفعليان يتأكد منهما الفريق المختص.'
+                      : 'Includes a planning allowance for radiation safety. Qualified staff and licences must be confirmed for the project.'}
                   </span>
                 </div>
               )}
@@ -535,7 +540,7 @@ export const CompanyProjectCostEstimator: React.FC<CompanyProjectCostEstimatorPr
               <div className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
                 <Wrench className="w-3.5 h-3.5 text-cyan-400" aria-hidden="true" />
                 <span>
-                  {isAr ? 'تفصيل البنود والمعدات المخصصة' : 'Itemized Service & Fleet Allocation'}
+                  {isAr ? 'تفصيل البنود والمعدات المقدرة' : 'Itemized Service & Equipment Estimates'}
                 </span>
               </div>
 
@@ -575,7 +580,7 @@ export const CompanyProjectCostEstimator: React.FC<CompanyProjectCostEstimatorPr
               </div>
             </div>
 
-            {/* One-Click Transfer Estimate to Formal RFQ */}
+            {/* Transfer estimate to the draft only */}
             <div className="space-y-2.5 pt-2">
               <button
                 type="button"
@@ -586,8 +591,8 @@ export const CompanyProjectCostEstimator: React.FC<CompanyProjectCostEstimatorPr
                 <Send className="w-4 h-4 shrink-0" aria-hidden="true" />
                 <span>
                   {isAr
-                    ? 'تحويل التقدير والمواصفات إلى طلب عرض سعر رسمي (#RFQ)'
-                    : 'Lock Scope & Request Official Quote (#RFQ)'}
+                    ? 'أضف التقدير إلى مسودة طلب عرض السعر'
+                    : 'Add estimate to quote request draft'}
                 </span>
                 <ArrowIcon className="w-4 h-4 shrink-0" aria-hidden="true" />
               </button>
@@ -595,15 +600,15 @@ export const CompanyProjectCostEstimator: React.FC<CompanyProjectCostEstimatorPr
               {transferredNotice && (
                 <div role="status" className="text-xs font-mono text-emerald-400 text-center">
                   {isAr
-                    ? 'تم نسخ تفاصيل التقدير والموقع تلقائياً إلى نموذج #RFQ بالأسفل.'
-                    : 'Estimate scope and location populated into the #RFQ form below.'}
+                    ? 'أُضيف التقدير والموقع إلى المسودة. لم يُرسل طلب.'
+                    : 'Estimate and location added to the draft. Nothing was submitted.'}
                 </div>
               )}
 
               <p className="text-[11px] text-slate-500 leading-relaxed">
                 {isAr
-                  ? 'الأرقام أعلاه استرشادية لتخطيط ميزانيات المشروعات؛ يصدر العرض المالي الملزم بعد مراجعة جدول الأقطار (Weld Map) من الإدارة الفنية.'
-                  : 'Figures represent planning estimates; binding commercial rates are issued upon weld-map review by Technical Operations.'}
+                  ? 'الأرقام للتخطيط فقط. ليست عرض سعر أو تخصيص معدات أو إثبات معايرة أو ترخيص. اطلب مراجعة نطاق العمل من الفريق الفني.'
+                  : 'For planning only, not a quotation, equipment assignment, proof of calibration or licence. Ask the technical team to review the scope.'}
               </p>
             </div>
           </div>

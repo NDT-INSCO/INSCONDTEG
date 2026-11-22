@@ -353,13 +353,13 @@ export const ClientRegistrationFormFields: React.FC<ClientRegistrationFormFields
             <span>
               <strong className="block text-white">
                 {isAr
-                  ? 'تكويد وتفعيل ملف الشركة داخل حسابي تلقائياً فور التسجيل'
-                  : 'Automatically code & create my Company Workspace upon sign-up'}
+                  ? 'اطلب إنشاء ملف شركة بكود بعد توثيق الحساب'
+                  : 'Request a coded company dossier after account verification'}
               </strong>
               <span className="text-[11px] text-emerald-200/80">
                 {isAr
-                  ? 'ينشئ لك ملف شركة خاصاً برقم كودي فريد لإدارة الفنيين وتتبع الخرائط والتقارير فوراً.'
-                  : 'Generates a coded Company Dossier workspace so you can manage technicians, GPS maps, and reports immediately.'}
+                  ? 'بعد التوثيق والحفظ، يحاول النظام إنشاء ملف شركة خاص. إنشاء الحساب وحده لا يؤكد إنشاء الملف أو اعتماده.'
+                  : 'After verification and profile save, the site attempts to create a private company dossier. Signing up alone does not create or approve the dossier.'}
               </span>
             </span>
           </label>

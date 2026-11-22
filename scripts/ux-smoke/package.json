@@ -5,6 +5,7 @@
   "scripts": {
     "compare": "node compare-home.mjs",
     "home": "node corporate-smoke.mjs",
+    "banner": "node banner.mjs",
     "journeys": "node journeys.mjs"
   },
   "dependencies": {

@@ -92,13 +92,14 @@ test('the compact landing tells the buyer story without mounting detail tools', 
   assert.equal(ui.queryByTestId('company-hero-banner'), null);
 });
 
-test('the first screen has just the two portal journeys and one illustrative image', () => {
+test('without motion support the first screen keeps both portal journeys and the fallback photo', () => {
   const ui = render(<CompanyPortal language="ar" onNavigateToAcademy={() => {}} />);
   const hero = within(ui.getByTestId('corporate-landing-hero'));
   assert.equal(hero.getByRole('link', { name: 'استكشف خدماتنا' }).getAttribute('href'), '#services');
   assert.ok(hero.getByRole('button', { name: 'الأكاديمية الهندسية' }));
   assert.equal(hero.getAllByRole('link').length + hero.getAllByRole('button').length, 2);
   assert.equal(hero.getAllByRole('img').length, 1);
+  assert.equal(hero.queryByTestId('corporate-hero-backdrop'), null);
 });
 
 /* --------------------------------- demo page ------------------------------ */

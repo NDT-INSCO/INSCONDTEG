@@ -5,11 +5,11 @@ import {
 } from 'lucide-react';
 import type { Language } from '../../types';
 import { INSCO_COMPANY_DATA } from '../../data/inscoCompanyData';
-import { COMPANY_MEDIA } from '../../data/companyMedia';
 import { publicUrl } from '../../utils/publicUrl';
 import { CtaButton, ctaClassName } from '../ui/CtaButton';
 import { SectionHeading } from '../ui/SectionHeading';
 import { CompanyAnnouncement } from './CompanyAnnouncement';
+import { CompanyLandingVisual } from './CompanyLandingVisual';
 
 const CORE_METHODS = [
   { id: 'ut', code: 'UT', icon: Activity, ar: 'فحص المواد واللحامات بالموجات فوق الصوتية.', en: 'Examine materials and welds with ultrasound.' },
@@ -38,8 +38,6 @@ export function CompanyPortal({ language, onNavigateToAcademy }: {
 }) {
   const isAr = language === 'ar';
   const Next = isAr ? ArrowLeft : ArrowRight;
-  const fieldSmall = publicUrl('images/insco-field-inspection-720.webp');
-  const fieldLarge = publicUrl('images/insco-field-inspection-1200.webp');
   // Do not put representative/demo facilities or client files on the landing page.
   const publishedProjects = INSCO_COMPANY_DATA.facilities.filter(item => item.status === 'verified_public').slice(0, 3);
 
@@ -66,14 +64,7 @@ export function CompanyPortal({ language, onNavigateToAcademy }: {
               </CtaButton>
             </div>
           </div>
-          <figure className="corporate-hero-media">
-            <picture>
-              <source type="image/webp" srcSet={`${fieldSmall} 720w, ${fieldLarge} 1200w`} sizes="(min-width: 1120px) 590px, (min-width: 900px) 48vw, 94vw" />
-              <img src={COMPANY_MEDIA.heroInspection} width={1376} height={768} fetchPriority="high" decoding="async"
-                alt={isAr ? 'صورة توضيحية لفحص وصلة ملحومة في منشأة صناعية' : 'Illustration of a welded joint being inspected inside an industrial plant'} />
-            </picture>
-            <figcaption><span aria-hidden="true" />{isAr ? 'مشهد توضيحي · الفحص الصناعي' : 'Illustrative scene · industrial inspection'}</figcaption>
-          </figure>
+          <CompanyLandingVisual language={language} />
         </div>
       </section>
 

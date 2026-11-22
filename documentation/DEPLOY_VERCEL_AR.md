@@ -1,27 +1,45 @@
-# النشر على Vercel — الوضع الحقيقي والخطوة الواحدة الناقصة
+# النشر على Vercel — الوضع الحقيقي
 
-> سؤال هذا الملف: **`vercel.json` موجود في المستودع من زمن… فهل الموقع منشور على
-> Vercel؟** الجواب الصادق: **لا.** لم يُنشأ مشروع Vercel لهذا المستودع قطّ.
+> سؤال هذا الملف: **`vercel.json` كان موجوداً في المستودع من زمن… فهل الموقع منشور
+> على Vercel؟** كان الجواب: **لا** — والآن: **نعم**، على <https://inscondteg.vercel.app>.
 
-## ما جُرِّب فعلاً (ولماذا توقّف)
+## ما حدث بالترتيب
 
-محاولة إنشاء المشروع وربطه بالمستودع (`NDT-INSCO/INSCONDTEG`) رجعت من Vercel برسالة:
+1. محاولة إنشاء المشروع رجعت أولاً برسالة Vercel:
 
-```text
-To link a GitHub repository, you need to install the GitHub integration first.
-```
+   ```text
+   To link a GitHub repository, you need to install the GitHub integration first.
+   ```
 
-أي أن **تطبيق Vercel على GitHub غير مركَّب على حساب/مستودع `NDT-INSCO`**. وهذه الخطوة
-لا يمكن أن يقوم بها إلا مالك حساب GitHub (تفويض تطبيق خارجي على المستودع) — ولا تُنفَّذ
-من طرف ثالث.
+   أي أن تطبيق Vercel على GitHub لم يكن مركَّباً على حساب `NDT-INSCO` — وخطوة التفويض
+   هذه يملكها مالك الحساب وحده: <https://github.com/apps/vercel/installations/new>.
+2. بعد تركيب التطبيق أُنشئ المشروع ورُبط بالمستودع، ونُشر أول نشر إنتاجي.
 
-## الخطوة الواحدة المطلوبة
+| العنصر | القيمة |
+| --- | --- |
+| المشروع | `inscondteg` · `prj_EZ8Wuf2ypYHt4KKe2XetVo6pwW7w` |
+| الفريق | `ndt-insco's projects` (`team_JooGvQDMhwDLLTIvOHsJMilR`) |
+| المستودع | `NDT-INSCO/INSCONDTEG` · فرع الإنتاج `main` |
+| آخر نشر إنتاجي | `dpl_7fTNWnwiEvXVzsucgEW8rQcB6gQe` — الحالة **READY** ومُرقَّى (`PROMOTED`) |
+| الرابط العام | <https://inscondteg.vercel.app> |
 
-1. افتح: <https://github.com/apps/vercel/installations/new>
-2. اختر الحساب `NDT-INSCO` ← **Only select repositories** ← `INSCONDTEG` ← **Install**.
+**مُتحقَّق منه فعلياً:** الصفحة الرئيسية تُقرأ من Vercel بلا تسجيل دخول، ودالة
+`api/insco.ts` تعمل: `GET /api/site/announcement` يرجّع `{"message":null}` — وهذا هو
+الشيء الذي لا تستطيعه GitHub Pages أصلاً.
 
-بعد هذه الخطوة يصبح إنشاء المشروع والنشر ممكناً من أي جلسة عمل، بدون أي إعداد آخر،
-لأن `vercel.json` في المستودع يضبط كل شيء مسبقاً:
+## أمران يجب أن يُقالا بوضوح
+
+1. **رابط كل نشر محمي، والنطاق الثابت عام.** إعداد الفريق الافتراضي هو
+   «Vercel Authentication: كل النشرات عدا النطاقات المخصصة»، فرابط مثل
+   `inscondteg-q34xqlu7p-ndt-insco.vercel.app` يطلب تسجيل دخول Vercel.
+   النطاق الإنتاجي `inscondteg.vercel.app` **عام ويعمل** (تحقّقنا منه). إن أردت أن تكون
+   نشرات المعاينة عامة أيضاً: Project → Settings → Deployment Protection.
+2. **الدفع إلى `main` لا ينشئ نشراً تلقائياً الآن.** المشروع أُنشئ بحالة
+   `gitProviderOptions.createDeployments: "disabled"`، أي أن Vercel لا يبني عند كل دفع.
+   لتفعيله: <https://vercel.com/ndt-insco/inscondteg/settings/git> ← **Deployments**.
+   حتى يُفعّل، النشر يُطلب صراحةً (أو يُعاد النشر من آخر التزام في لوحة Vercel).
+
+## إعدادات `vercel.json` التي بُني عليها فعلاً:
 
 | الإعداد في `vercel.json` | القيمة | لماذا |
 | --- | --- | --- |
@@ -47,13 +65,16 @@ To link a GitHub repository, you need to install the GitHub integration first.
 هذه تخصّ مشروع Firebase نفسه — راجع [FIREBASE_RULES_DEPLOY_AR.md](FIREBASE_RULES_DEPLOY_AR.md).
 موقع يعمل على Vercel ويرفض الخادم كل كتابة = نفس المشكلة ووجه جديد.
 
-## بعد تركيب التطبيق
+## النشر بعد تعديل الكود
 
 ```bash
-# من أي جهاز فيه Vercel CLI وصلاحية على الحساب
-npx vercel link      # يربط المجلد بمشروع inscondteg
-npx vercel --prod    # أول نشر إنتاجي
+npx vercel --prod        # من جهاز مربوط بالمشروع
 ```
 
-أو من لوحة Vercel: **Add New… → Project → Import** المستودع `NDT-INSCO/INSCONDTEG`؛
-سيقرأ `vercel.json` وحده ويبني تلقائياً.
+أو من لوحة Vercel: **Deployments → Redeploy** على آخر التزام، أو تفعيل البناء التلقائي
+من إعدادات Git كما في النقطة 2 أعلاه.
+
+## ما زال مطلوباً خارج Vercel
+
+**قواعد Firebase** (`firestore.rules` و`storage.rules`) لا ينشرها أي استضافة —
+[FIREBASE_RULES_DEPLOY_AR.md](FIREBASE_RULES_DEPLOY_AR.md).

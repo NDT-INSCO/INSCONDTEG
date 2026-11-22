@@ -27,7 +27,6 @@ import {
   NETWORK_DISCIPLINES,
   NETWORK_EVENT_TEMPLATES,
   NETWORK_GROUPS,
-  NETWORK_JOB_TEMPLATES,
   NETWORK_ORG_TEMPLATES,
   NETWORK_VERIFICATION_LEVELS,
   disciplineLabel,
@@ -267,74 +266,6 @@ export const NetworkPeople: React.FC<{ language: Language }> = ({ language }) =>
             </div>
           </Panel>
         ))}
-      </div>
-    </div>
-  );
-};
-
-/* ---------------------------------- jobs ----------------------------------- */
-
-export const NetworkJobs: React.FC<{ language: Language; onOpenCompany: () => void }> = ({ language, onOpenCompany }) => {
-  const isAr = language === 'ar';
-  return (
-    <div data-testid="network-section-jobs">
-      <SectionIntro language={language} id="jobs" />
-      <div className="mb-2.5 rounded-lg border border-sky-500/30 bg-sky-500/10 px-2.5 py-1.5 text-[10px] leading-relaxed text-sky-200">
-        {isAr
-          ? 'الوظائف هنا للعرض المهني فقط. طلبات عروض الأسعار (RFQ) تبقى في بوابة العملاء ولا تُخلط مع رسائل الشبكة.'
-          : 'Jobs here are professional listings only. Quote requests (RFQ) stay in the client portal and are never mixed with network messages.'}
-      </div>
-      <div className="grid min-w-0 gap-2.5 lg:grid-cols-3">
-        <Panel className="lg:col-span-2" label={isAr ? 'قوالب الفرص' : 'Job templates'}>
-          <ul className="space-y-2">
-            {NETWORK_JOB_TEMPLATES.map(job => (
-              <li key={job.id} className="min-w-0 rounded-lg border border-[#232345] bg-[#0b0b18] p-2.5">
-                <div className="flex min-w-0 items-start justify-between gap-1.5">
-                  <div className="flex min-w-0 items-center gap-1.5">
-                    <Briefcase className="h-4 w-4 shrink-0 text-violet-300" aria-hidden="true" />
-                    <h3 className="min-w-0 truncate text-xs font-bold text-white">{job[isAr ? 'ar' : 'en']}</h3>
-                  </div>
-                  <SampleBadge language={language} />
-                </div>
-                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                  <Chip>{disciplineLabel(job.discipline, isAr ? 'ar' : 'en')}</Chip>
-                  <Chip>{job[isAr ? 'requirementAr' : 'requirementEn']}</Chip>
-                </div>
-                <p className="mt-1.5 text-[10px] text-slate-500">{job[isAr ? 'metaAr' : 'metaEn']}</p>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  <DisabledAction language={language} labelAr="تقديم" labelEn="Apply" />
-                  <DisabledAction language={language} labelAr="حفظ" labelEn="Save" />
-                </div>
-              </li>
-            ))}
-          </ul>
-        </Panel>
-        <div className="min-w-0 space-y-3">
-          <Panel label={isAr ? 'فلاتر البحث' : 'Search filters'}>
-            <div aria-hidden="true" className="space-y-1.5 opacity-60">
-              <div className="rounded border border-dashed border-[#2a2a4d] px-2 py-1 text-[10px] text-slate-500">{isAr ? 'التخصص' : 'Discipline'}</div>
-              <div className="rounded border border-dashed border-[#2a2a4d] px-2 py-1 text-[10px] text-slate-500">{isAr ? 'الدولة/المدينة' : 'Country/city'}</div>
-              <div className="rounded border border-dashed border-[#2a2a4d] px-2 py-1 text-[10px] text-slate-500">{isAr ? 'نوع العمل: دوام كامل' : 'Employment: full-time'}</div>
-              <div className="rounded border border-dashed border-[#2a2a4d] px-2 py-1 text-[10px] text-slate-500">{isAr ? 'المستوى المطلوب II' : 'Required level: II'}</div>
-            </div>
-            <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
-              {isAr ? 'تفعّل الفلاتر مع أول بيانات حقيقية — لا تُعرض نتائج وهمية.' : 'Filters come alive with the first real data — no fabricated results.'}
-            </p>
-          </Panel>
-          <Panel label={isAr ? 'للجهات' : 'For organisations'}>
-            <p className="text-[10px] leading-relaxed text-slate-400">
-              {isAr ? 'نشر الوظائف سيكون من صفحة المؤسسة بعد توثيقها.' : 'Jobs will be published from a verified organisation page.'}
-            </p>
-            <button
-              type="button"
-              onClick={onOpenCompany}
-              className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-cyan-500/40 bg-cyan-500/10 px-2 py-1 text-[10px] font-bold text-cyan-300 transition cursor-pointer hover:border-cyan-400"
-            >
-              <Building2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-              {isAr ? 'صفحة إنسكو' : 'INSCO page'}
-            </button>
-          </Panel>
-        </div>
       </div>
     </div>
   );

@@ -7,7 +7,6 @@ import {
   NetworkCompanies,
   NetworkEvents,
   NetworkGroups,
-  NetworkJobs,
   NetworkMessages,
   NetworkNotifications,
   NetworkSearch,
@@ -25,6 +24,9 @@ const NetworkProfileSection = lazy(() =>
 );
 const NetworkFeedSection = lazy(() =>
   import('./NetworkFeedSection').then(module => ({ default: module.NetworkFeedSection }))
+);
+const NetworkJobsSection = lazy(() =>
+  import('./NetworkJobsSection').then(module => ({ default: module.NetworkJobsSection }))
 );
 const NetworkDirectorySection = lazy(() =>
   import('./NetworkDirectorySection').then(module => ({ default: module.NetworkDirectorySection }))
@@ -119,7 +121,17 @@ export const NetworkPortal: React.FC<NetworkPortalProps> = ({
       case 'groups':
         return <NetworkGroups language={language} />;
       case 'jobs':
-        return <NetworkJobs language={language} onOpenCompany={onOpenCompany} />;
+        return (
+          <div data-testid="network-section-jobs">
+            <Suspense fallback={<LoadingSection language={language} />}>
+              <NetworkJobsSection
+                language={language}
+                onOpenAccount={openAccountPanel}
+                onOpenProfile={() => openSection('profile')}
+              />
+            </Suspense>
+          </div>
+        );
       case 'articles':
         return <NetworkArticles language={language} onOpenAcademy={onOpenAcademy} />;
       case 'events':
@@ -154,7 +166,9 @@ export const NetworkPortal: React.FC<NetworkPortalProps> = ({
       data-portal="network"
       data-section={section}
       data-prototype={
-        section === 'feed' || section === 'profile' || section === 'people' ? 'partial' : 'true'
+        section === 'feed' || section === 'profile' || section === 'people' || section === 'jobs'
+          ? 'partial'
+          : 'true'
       }
       {...(entryId ? { 'data-entry-id': entryId } : {})}
       className="min-h-screen bg-[#07070f] text-slate-200"

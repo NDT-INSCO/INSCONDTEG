@@ -60,8 +60,8 @@ export const NetworkPrototypeBanner: React.FC<{ language: Language; compact?: bo
       <FastForward className="mt-0.5 h-4 w-4 shrink-0 text-violet-300" aria-hidden="true" />
       <span className="min-w-0">
         {isAr
-          ? 'حسابك وملفك المهني والمنشورات والتعليقات والإعجاب ودليل الأعضاء تعمل الآن على حساب إنسكو الحقيقي. الوظائف والمجموعات والرسائل والتحقق المهني ما زالت تصوراً تصميمياً، وكل إجراء كتابة فيها معطّل بوضوح.'
-          : 'Your account, professional card, posts, comments, likes and the member directory now run on the real INSCO account. Jobs, groups, messages and verification are still a design prototype, and their write actions stay visibly disabled.'}
+          ? 'حسابك وملفك المهني والمنشورات والتعليقات والإعجاب ودليل الأعضاء والفرص المهنية تعمل الآن على حساب إنسكو الحقيقي. المجموعات والرسائل والإشعارات والتحقق المهني ما زالت تصوراً تصميمياً، وكل إجراء كتابة فيها معطّل بوضوح.'
+          : 'Your account, professional card, posts, comments, likes, the member directory and the jobs board now run on the real INSCO account. Groups, messages, notifications and verification are still a design prototype, and their write actions stay visibly disabled.'}
       </span>
     </div>
   );

@@ -184,7 +184,7 @@ test('the banner tells the truth about what is live and what is still a prototyp
   const { container, getAllByTestId } = render(
     <NetworkPortal
       language="ar"
-      section="jobs"
+      section="articles"
       onOpenSection={() => {}}
       onOpenCompany={() => {}}
       onOpenAcademy={() => {}}
@@ -193,22 +193,23 @@ test('the banner tells the truth about what is live and what is still a prototyp
 
   const banner = getAllByTestId('network-prototype-banner')[0];
   const bannerText = banner.textContent ?? '';
-  // What is live now: the account, the professional card, the directory.
+  // What is live now: the account, the card, the directory, the feed, the jobs board.
   assert.ok(bannerText.includes('ملفك المهني'));
   assert.ok(bannerText.includes('دليل الأعضاء'));
-  // What is still a prototype: posts, jobs, messages, verification.
+  assert.ok(bannerText.includes('الفرص المهنية'));
+  // What is still a prototype: groups, messages, notifications, verification.
   assert.ok(bannerText.includes('تصوراً تصميمياً'));
   assert.ok(bannerText.includes('معطّل'));
 
   assert.ok(container.querySelector('[data-prototype="true"]'));
   const badges = getAllByTestId('network-sample-badge');
-  assert.ok(badges.length >= 3, 'a job page must badge each template, not the page once');
+  assert.ok(badges.length >= 3, 'an articles page must badge each template, not the page once');
 });
 
 test('write actions are genuinely disabled, not merely styled to look disabled', () => {
   // The feed is live now, so it is checked in its own suite; these sections are
   // still prototypes and must keep every write visibly disabled.
-  for (const section of ['jobs', 'groups', 'messages', 'verify'] as const) {
+  for (const section of ['groups', 'messages', 'verify'] as const) {
     const { getAllByTestId, unmount } = render(
       <NetworkPortal
         language="ar"

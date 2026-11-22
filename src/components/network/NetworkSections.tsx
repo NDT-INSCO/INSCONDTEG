@@ -5,7 +5,6 @@ import {
   Briefcase,
   Building2,
   CalendarDays,
-  CircleDashed,
   Filter,
   GraduationCap,
   Info,
@@ -13,7 +12,6 @@ import {
   MessageSquare,
   Search as SearchIcon,
   ShieldCheck,
-  Sparkles,
   UserPlus,
   Users,
 } from 'lucide-react';
@@ -31,11 +29,8 @@ import {
   NETWORK_GROUPS,
   NETWORK_JOB_TEMPLATES,
   NETWORK_ORG_TEMPLATES,
-  NETWORK_POST_TEMPLATES,
-  NETWORK_POST_TYPES,
   NETWORK_VERIFICATION_LEVELS,
   disciplineLabel,
-  type NetworkPostTemplate,
 } from './networkContent';
 
 /* ------------------------------- primitives -------------------------------- */
@@ -120,193 +115,6 @@ const SectionIntro: React.FC<{
         </p>
       </div>
       {extra ? <div className="flex shrink-0 flex-wrap items-center gap-2">{extra}</div> : null}
-    </div>
-  );
-};
-
-/* ---------------------------------- feed ----------------------------------- */
-
-const PostTemplateCard: React.FC<{ post: NetworkPostTemplate; language: Language }> = ({ post, language }) => {
-  const isAr = language === 'ar';
-  const type = NETWORK_POST_TYPES.find(t => t.id === post.type);
-  return (
-    <article className="min-w-0 rounded-xl border border-[#232345] bg-[#0f0f22] p-3">
-      <div className="flex min-w-0 items-start gap-2">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#2a2a4d] bg-[#14142a] text-[10px] font-bold text-slate-500">
-          ?
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-            <span className="min-w-0 truncate text-xs font-bold text-slate-300">
-              {isAr ? 'مكان اسم العضو ومسمّاه' : 'Member name and headline go here'}
-            </span>
-            <SampleBadge language={language} />
-          </div>
-          <div className="mt-1 flex flex-wrap items-center gap-1.5">
-            {type ? <span className={`rounded border px-1.5 py-0.5 text-[10px] font-bold ${type.accent}`}>{type[isAr ? 'ar' : 'en']}</span> : null}
-            <Chip>{disciplineLabel(post.discipline, isAr ? 'ar' : 'en')}</Chip>
-          </div>
-        </div>
-      </div>
-
-      <h3 className="mt-2 text-sm font-bold leading-snug text-white">{post[isAr ? 'titleAr' : 'titleEn']}</h3>
-      <p className="mt-1 text-[11px] leading-relaxed text-slate-400">{post[isAr ? 'bodyAr' : 'bodyEn']}</p>
-      <div className="mt-2 flex items-center gap-1.5 rounded-lg border border-dashed border-[#2a2a4d] bg-[#0b0b18] px-2 py-1.5 text-[10px] text-slate-500">
-        <CircleDashed className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-        <span className="min-w-0 truncate">{post[isAr ? 'mediaAr' : 'mediaEn']}</span>
-      </div>
-
-      <div className="mt-2.5 flex flex-wrap items-center gap-1.5 border-t border-[#1d1d38] pt-2">
-        <DisabledAction language={language} labelAr="إعجاب" labelEn="Like" icon={<Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />} />
-        <DisabledAction language={language} labelAr="تعليق" labelEn="Comment" icon={<MessageSquare className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />} />
-        <DisabledAction language={language} labelAr="مشاركة" labelEn="Share" />
-      </div>
-    </article>
-  );
-};
-
-export const NetworkFeed: React.FC<{ language: Language; onOpenSection: (s: NetworkSectionId) => void }> = ({
-  language,
-  onOpenSection,
-}) => {
-  const isAr = language === 'ar';
-  return (
-    <div data-testid="network-section-feed">
-      <SectionIntro language={language} id="feed" />
-      <div className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,200px)_minmax(0,1fr)_minmax(0,220px)]">
-        {/* left rail */}
-        <div className="min-w-0 space-y-3">
-          <Panel label={isAr ? 'بطاقتك المهنية' : 'Your professional card'}>
-            <div className="flex items-center gap-2">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#2a2a4d] bg-[#14142a] text-xs font-bold text-slate-500">
-                ?
-              </div>
-              <div className="min-w-0">
-                <p className="truncate text-xs font-bold text-slate-200">{isAr ? 'ملفك المهني' : 'Your profile'}</p>
-                <p className="truncate text-[10px] text-slate-500">{isAr ? 'لم يُنشأ حساب بعد' : 'No account yet'}</p>
-              </div>
-            </div>
-            <div className="mt-2 grid grid-cols-2 gap-1.5 text-center">
-              <div className="rounded border border-[#232345] px-1 py-1">
-                <p className="text-[10px] text-slate-500">{isAr ? 'اتصالات' : 'Connections'}</p>
-                <p className="text-xs font-bold text-slate-400">—</p>
-              </div>
-              <div className="rounded border border-[#232345] px-1 py-1">
-                <p className="text-[10px] text-slate-500">{isAr ? 'متابِعون' : 'Followers'}</p>
-                <p className="text-xs font-bold text-slate-400">—</p>
-              </div>
-            </div>
-          </Panel>
-
-          <Panel label={isAr ? 'اختصارات' : 'Shortcuts'}>
-            <div className="grid grid-cols-2 gap-1.5">
-              {(['groups', 'jobs', 'articles', 'events', 'people', 'verify'] as NetworkSectionId[]).map(id => {
-                const Icon = NETWORK_ICON[id];
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => onOpenSection(id)}
-                    className="flex min-w-0 items-center gap-1.5 rounded-md border border-[#232345] bg-[#101028] px-1.5 py-1.5 text-start text-[10px] font-bold text-slate-300 transition cursor-pointer hover:border-violet-400/50 hover:text-white"
-                  >
-                    <Icon className="h-3.5 w-3.5 shrink-0 text-violet-300" aria-hidden="true" />
-                    <span className="min-w-0 truncate">{networkSectionLabel(id, isAr ? 'ar' : 'en')}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </Panel>
-        </div>
-
-        {/* centre column */}
-        <div className="min-w-0 space-y-3">
-          <Panel label={isAr ? 'محرر المنشور' : 'Post composer'}>
-            <div className="flex min-w-0 items-start gap-2">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#2a2a4d] bg-[#14142a] text-[10px] text-slate-500">
-                ?
-              </div>
-              <div className="min-w-0 flex-1">
-                <textarea
-                  disabled
-                  rows={2}
-                  aria-label={isAr ? 'محرر المنشور (معطّل)' : 'Post composer (disabled)'}
-                  placeholder={isAr ? 'شارك سؤالاً فنياً أو دراسة حالة… (يتفعّل بعد إنشاء الحسابات)' : 'Share a technical question or case study… (enabled once accounts exist)'}
-                  data-testid="network-composer-disabled"
-                  className="w-full resize-none rounded-lg border border-[#2a2a4d] bg-[#0b0b18] px-2 py-1.5 text-[11px] text-slate-400 placeholder:text-slate-600 cursor-not-allowed"
-                />
-                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                  <DisabledAction language={language} labelAr="نشر" labelEn="Publish" />
-                  <DisabledAction language={language} labelAr="إرفاق" labelEn="Attach" />
-                  <span className="text-[10px] text-slate-500">
-                    {isAr ? 'أنواع المنشورات: نقاش فني · دراسة حالة · أخبار · وظائف…' : 'Post types: technical · case study · news · jobs…'}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </Panel>
-
-          {NETWORK_POST_TEMPLATES.map(post => (
-            <PostTemplateCard key={post.id} post={post} language={language} />
-          ))}
-        </div>
-
-        {/* right rail */}
-        <div className="min-w-0 space-y-3">
-          <Panel label={isAr ? 'فرص مقترحة' : 'Suggested jobs'}>
-            <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-200">
-              <Briefcase className="h-3.5 w-3.5 shrink-0 text-violet-300" aria-hidden="true" />
-              <span className="min-w-0 truncate">{isAr ? 'أحدث الفرص' : 'Latest jobs'}</span>
-            </div>
-            <ul className="mt-1.5 space-y-1.5">
-              {NETWORK_JOB_TEMPLATES.slice(0, 2).map(job => (
-                <li key={job.id} className="min-w-0 rounded-md border border-[#232345] px-2 py-1.5">
-                  <div className="flex items-center justify-between gap-1.5">
-                    <span className="min-w-0 truncate text-[10px] font-bold text-slate-300">{job[isAr ? 'ar' : 'en']}</span>
-                    <SampleBadge language={language} />
-                  </div>
-                  <p className="mt-0.5 truncate text-[10px] text-slate-500">{job[isAr ? 'requirementAr' : 'requirementEn']}</p>
-                </li>
-              ))}
-            </ul>
-            <button
-              type="button"
-              onClick={() => onOpenSection('jobs')}
-              className="mt-1.5 w-full rounded-md border border-[#2a2a4d] px-2 py-1 text-[10px] font-bold text-violet-300 transition cursor-pointer hover:border-violet-400"
-            >
-              {isAr ? 'كل الفرص' : 'All jobs'}
-            </button>
-          </Panel>
-
-          <Panel label={isAr ? 'فعاليات' : 'Events'}>
-            <ul className="space-y-1.5">
-              {NETWORK_EVENT_TEMPLATES.slice(0, 2).map(event => (
-                <li key={event.id} className="flex min-w-0 items-center gap-1.5">
-                  <CalendarDays className="h-3.5 w-3.5 shrink-0 text-violet-300" aria-hidden="true" />
-                  <span className="min-w-0 truncate text-[10px] text-slate-300">{event[isAr ? 'ar' : 'en']}</span>
-                </li>
-              ))}
-            </ul>
-          </Panel>
-
-          <Panel label={isAr ? 'أكاديمية' : 'Academy'}>
-            <p className="text-[10px] leading-relaxed text-slate-400">
-              {isAr
-                ? 'نتائج التقييمات لا تُنشر تلقائياً على الشبكة، ولا تُعرض شارات قبل التحقق.'
-                : 'Assessment results are never posted to the network automatically, and no badge is shown before it is verified.'}
-            </p>
-            <div className="mt-1.5">
-              <button
-                type="button"
-                onClick={() => onOpenSection('verify')}
-                className="inline-flex items-center gap-1.5 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2 py-1 text-[10px] font-bold text-emerald-300 transition cursor-pointer hover:border-emerald-400"
-              >
-                <ShieldCheck className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                {isAr ? 'التحقق المهني' : 'Verification'}
-              </button>
-            </div>
-          </Panel>
-        </div>
-      </div>
     </div>
   );
 };

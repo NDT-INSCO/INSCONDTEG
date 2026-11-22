@@ -650,6 +650,35 @@ test('the global form creates a shared account from the academy without leaving 
   assert.equal(ui.queryByText('Academy Tester'), null);
 });
 
+test('the network profile opens the one account dialog and private profile stays separate', async () => {
+  localStorage.setItem('insco_language_v1', 'en');
+  dom.window.history.replaceState(null, '', '/INSCONDTEG/#network/profile');
+  const ui = render(<App />);
+  const opener = await ui.findByRole('button', { name: 'Sign in / create account' });
+  assert.equal(ui.getAllByTestId('site-account-actions').length, 1);
+  opener.focus();
+  fireEvent.click(opener);
+  const dialog = await ui.findByRole('dialog', { name: 'Your INSCO account' });
+  fireEvent(dialog, new dom.window.Event('cancel', { cancelable: true }));
+  assert.equal(ui.queryByRole('dialog'), null);
+  assert.equal(document.activeElement, opener);
+
+  fireEvent.click(opener);
+  const account = within(await ui.findByRole('dialog', { name: 'Your INSCO account' }));
+  verifiedInFirebase = true;
+  fireEvent.change(await account.findByLabelText('Account Email *'), { target: { value: email } });
+  fireEvent.change(account.getByLabelText('Password *'), { target: { value: shortPassword } });
+  fireEvent.click(account.getByRole('button', { name: 'Sign In with Email' }));
+  await account.findByText('Signed in across all sections');
+  assert.equal(dom.window.location.hash, '#network/profile');
+  fireEvent.click(account.getByRole('button', { name: 'My private profile' }));
+  assert.equal(dom.window.location.hash, '#client/register');
+  assert.equal(auth.currentUser?.uid, 'client-a');
+  assert.equal(ui.getAllByTestId('site-account-actions').length, 1);
+  assert.equal(events.filter(event => event === 'login').length, 1);
+  assert.equal(events.includes('create'), false);
+});
+
 test('existing email sign-in is reusable on a corporate page; #admin has no public account controls', async () => {
   localStorage.setItem('insco_language_v1', 'en');
   dom.window.history.replaceState(null, '', '/INSCONDTEG/#about');

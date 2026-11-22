@@ -604,6 +604,7 @@ export const App: React.FC = () => {
 
   return (
     <SiteAccountProvider>
+    {/* The Network consumes the same provider as all other public routes. */}
     {route.portal === 'network' ? (
       <div
         dir={isAr ? 'rtl' : 'ltr'}
@@ -626,7 +627,6 @@ export const App: React.FC = () => {
                 {isAr ? 'English' : 'العربية'}
               </button>
             </div>
-            <SiteAccountActions language={language} onOpenProfile={() => openClient('register')} />
           </header>
         </div>
         <Suspense
@@ -643,6 +643,7 @@ export const App: React.FC = () => {
             onOpenSection={openNetwork}
             onOpenCompany={() => openCompany()}
             onOpenAcademy={() => openAcademyHash('#academy')}
+            onOpenPrivateProfile={() => openClient('register')}
           />
         </Suspense>
       </div>

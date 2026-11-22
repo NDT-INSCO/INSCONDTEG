@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense, lazy, useCallback, useState } from 'react';
 import type { Language } from '../../types';
 import type { NetworkSectionId } from '../../utils/portalRoutes';
 import { NetworkFooter, NetworkHeader } from './NetworkShell';
@@ -6,16 +6,29 @@ import {
   NetworkArticles,
   NetworkCompanies,
   NetworkEvents,
-  NetworkFeed,
   NetworkGroups,
   NetworkJobs,
   NetworkMessages,
   NetworkNotifications,
-  NetworkPeople,
-  NetworkProfile,
   NetworkSearch,
   NetworkVerify,
 } from './NetworkSections';
+import { SiteAccountActions, type AccountPanelRequest } from '../account/SiteAccountActions';
+import { useOptionalSiteAccount } from '../../account/SiteAccountContext';
+
+/**
+ * Live sections stay in distinct chunks. Prototype sections do not import
+ * the account data service or write records.
+ */
+const NetworkProfileSection = lazy(() =>
+  import('./NetworkProfileSection').then(module => ({ default: module.NetworkProfileSection }))
+);
+const NetworkFeedSection = lazy(() =>
+  import('./NetworkFeedSection').then(module => ({ default: module.NetworkFeedSection }))
+);
+const NetworkDirectorySection = lazy(() =>
+  import('./NetworkDirectorySection').then(module => ({ default: module.NetworkDirectorySection }))
+);
 
 export interface NetworkPortalProps {
   language: Language;
@@ -25,13 +38,23 @@ export interface NetworkPortalProps {
   onOpenSection: (section: NetworkSectionId, entryId?: string) => void;
   onOpenCompany: () => void;
   onOpenAcademy: () => void;
+  /** Account settings are private, separate from the public professional card. */
+  onOpenPrivateProfile?: () => void;
 }
+
+const LoadingSection: React.FC<{ language: Language }> = ({ language }) => (
+  <p role="status" className="p-4 text-[11px] text-slate-400">
+    {language === 'ar' ? 'جارٍ تحميل بيانات حسابك…' : 'Loading your account data…'}
+  </p>
+);
 
 /**
  * The fourth portal, as a shell around one section.
  *
  * The network owns its header, its footer and its background so a visitor can
  * never mistake a member's feed for the INSCO brochure, or an academy lesson.
+ * The feed, professional card and member directory use the unified account.
+ * The remaining sections are labelled prototypes.
  */
 export const NetworkPortal: React.FC<NetworkPortalProps> = ({
   language,
@@ -40,19 +63,61 @@ export const NetworkPortal: React.FC<NetworkPortalProps> = ({
   onOpenSection,
   onOpenCompany,
   onOpenAcademy,
+  onOpenPrivateProfile,
 }) => {
-  const openSection = (next: NetworkSectionId) => onOpenSection(next);
+  const account = useOptionalSiteAccount();
+  const openSection = useCallback(
+    (next: NetworkSectionId) => onOpenSection(next),
+    [onOpenSection]
+  );
+
+  const [panelRequest, setPanelRequest] = useState<AccountPanelRequest | null>(null);
+  const requestPanel = useCallback((panel: AccountPanelRequest['panel']) => {
+    setPanelRequest(current => ({ panel, nonce: (current?.nonce ?? 0) + 1 }));
+  }, []);
+  const openAccount = useCallback(() => requestPanel('signin'), [requestPanel]);
+  /** The card form asks for `signin` or, for an unconfirmed email, `account`. */
+  const openAccountPanel = useCallback(
+    (panel: AccountPanelRequest['panel']) => requestPanel(panel),
+    [requestPanel]
+  );
 
   const body = (() => {
     switch (section) {
       case 'feed':
-        return <NetworkFeed language={language} onOpenSection={openSection} />;
+        return (
+          <div data-testid="network-section-feed">
+            <Suspense fallback={<LoadingSection language={language} />}>
+              <NetworkFeedSection
+                language={language}
+                onOpenAccount={openAccountPanel}
+                onOpenProfile={() => openSection('profile')}
+              />
+            </Suspense>
+          </div>
+        );
       case 'profile':
-        return <NetworkProfile language={language} onOpenSection={openSection} />;
+        return (
+          <div data-testid="network-section-profile">
+            <Suspense fallback={<LoadingSection language={language} />}>
+              <NetworkProfileSection language={language} onOpenAccount={openAccountPanel} />
+            </Suspense>
+          </div>
+        );
+      case 'people':
+        return (
+          <div data-testid="network-section-people">
+            <Suspense fallback={<LoadingSection language={language} />}>
+              <NetworkDirectorySection
+                language={language}
+                onOpenAccount={openAccount}
+                onOpenProfile={() => openSection('profile')}
+              />
+            </Suspense>
+          </div>
+        );
       case 'groups':
         return <NetworkGroups language={language} />;
-      case 'people':
-        return <NetworkPeople language={language} />;
       case 'jobs':
         return <NetworkJobs language={language} onOpenCompany={onOpenCompany} />;
       case 'articles':
@@ -70,7 +135,17 @@ export const NetworkPortal: React.FC<NetworkPortalProps> = ({
       case 'verify':
         return <NetworkVerify language={language} onOpenSection={openSection} />;
       default:
-        return <NetworkFeed language={language} onOpenSection={openSection} />;
+        return (
+          <div data-testid="network-section-feed">
+            <Suspense fallback={<LoadingSection language={language} />}>
+              <NetworkFeedSection
+                language={language}
+                onOpenAccount={openAccountPanel}
+                onOpenProfile={() => openSection('profile')}
+              />
+            </Suspense>
+          </div>
+        );
     }
   })();
 
@@ -78,13 +153,31 @@ export const NetworkPortal: React.FC<NetworkPortalProps> = ({
     <div
       data-portal="network"
       data-section={section}
-      data-prototype="true"
+      data-prototype={
+        section === 'feed' || section === 'profile' || section === 'people' ? 'partial' : 'true'
+      }
       {...(entryId ? { 'data-entry-id': entryId } : {})}
       className="min-h-screen bg-[#07070f] text-slate-200"
       dir={language === 'ar' ? 'rtl' : 'ltr'}
     >
       <NetworkHeader language={language} section={section} onOpenSection={openSection} />
-      <main id="insco-main" tabIndex={-1} className="mx-auto max-w-7xl px-4 py-4 sm:px-6">{body}</main>
+      {account && onOpenPrivateProfile && (
+        <div id="network-account-bar" className="mx-auto max-w-7xl">
+          <SiteAccountActions
+            language={language}
+            onOpenProfile={onOpenPrivateProfile}
+            requestPanel={panelRequest}
+          />
+        </div>
+      )}
+      <main
+        key={account?.user ? `account:${account.user.uid}` : 'guest'}
+        id="insco-main"
+        tabIndex={-1}
+        className="mx-auto max-w-7xl px-4 py-4 sm:px-6"
+      >
+        {body}
+      </main>
       <NetworkFooter language={language} onOpenCompany={onOpenCompany} onOpenAcademy={onOpenAcademy} />
     </div>
   );

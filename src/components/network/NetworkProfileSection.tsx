@@ -24,6 +24,13 @@ import {
   type NetworkProfileDraft,
   type NetworkProfileField,
 } from '../../network/networkProfileForm';
+import {
+  NETWORK_SKILLS,
+  NETWORK_SKILL_GROUPS,
+  NETWORK_SKILL_LIMITS,
+  parseSkills,
+  toggleSkill,
+} from '../../network/networkSkills';
 
 type SaveState =
   | { status: 'idle' }
@@ -62,6 +69,8 @@ export const NetworkProfileSection: React.FC<NetworkProfileSectionProps> = ({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [draft, setDraft] = useState<NetworkProfileDraft>(() => draftFromProfile(null));
   const [touched, setTouched] = useState(false);
+  const [skillLimitHit, setSkillLimitHit] = useState(false);
+  const selectedSkills = parseSkills(draft.skills);
   const [save, setSave] = useState<SaveState>({ status: 'idle' });
   const [uploadEnabled, setUploadEnabled] = useState(false);
 
@@ -413,6 +422,68 @@ export const NetworkProfileSection: React.FC<NetworkProfileSectionProps> = ({
               maxLength={NETWORK_PROFILE_LIMITS.bioMax}
             />
           </Labelled>
+
+          {/* ------------------------------ skills ------------------------------ */}
+          <div className="min-w-0 sm:col-span-2">
+            <div className="mb-1 flex flex-wrap items-center justify-between gap-1">
+              <span className="text-[11px] font-bold text-slate-200">
+                {isAr ? 'المهارات' : 'Skills'}
+              </span>
+              <span className="text-[10px] text-slate-500">
+                {isAr
+                  ? `${selectedSkills.length}/${NETWORK_SKILL_LIMITS.maxSkills} — تزكيات الزملاء لا تُعدّ شهادات`
+                  : `${selectedSkills.length}/${NETWORK_SKILL_LIMITS.maxSkills} — peer endorsements, not certificates`}
+              </span>
+            </div>
+            <p className="mb-1.5 text-[10px] leading-relaxed text-slate-500">
+              {isAr
+                ? 'اختر من القائمة المغلقة حتى يجدك بقية الأعضاء بنفس المفردات. المهارة إقرار منك، والتزكية رأي زميل — ولا واحدة منهما شهادة موثّقة.'
+                : 'Pick from the closed list so members can find you with the same vocabulary. A skill is your claim, an endorsement is a colleague’s word — neither is a verified certificate.'}
+            </p>
+            <div className="min-w-0 space-y-1.5">
+              {NETWORK_SKILL_GROUPS.map(group => {
+                const groupSkills = NETWORK_SKILLS.filter(skill => skill.group === group.id);
+                if (groupSkills.length === 0) return null;
+                return (
+                  <div key={group.id} className="min-w-0">
+                    <p className="mb-1 text-[10px] font-bold text-slate-400">{isAr ? group.ar : group.en}</p>
+                    <div className="flex min-w-0 flex-wrap gap-1">
+                      {groupSkills.map(skill => {
+                        const active = selectedSkills.includes(skill.id);
+                        return (
+                          <button
+                            key={skill.id}
+                            type="button"
+                            data-testid={`np-skill-${skill.id}`}
+                            aria-pressed={active}
+                            onClick={() => {
+                              const next = toggleSkill(draft.skills, skill.id);
+                              update('skills', next.value);
+                              setSkillLimitHit(next.rejected === 'limit');
+                            }}
+                            className={`min-w-0 rounded-full border px-2 py-0.5 text-[10px] transition ${
+                              active
+                                ? 'border-violet-400/60 bg-violet-500/20 text-violet-100'
+                                : 'border-[#2b2b52] bg-[#0f0f22] text-slate-300 hover:border-violet-400/40 hover:text-violet-100'
+                            }`}
+                          >
+                            {isAr ? skill.ar : skill.en}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {skillLimitHit ? (
+              <p role="status" className="mt-1 text-[10px] text-amber-300">
+                {isAr
+                  ? `الحد ${NETWORK_SKILL_LIMITS.maxSkills} مهارة — أزل واحدة قبل الإضافة.`
+                  : `The limit is ${NETWORK_SKILL_LIMITS.maxSkills} skills — remove one first.`}
+              </p>
+            ) : null}
+          </div>
         </div>
 
         <div className="mt-2.5">

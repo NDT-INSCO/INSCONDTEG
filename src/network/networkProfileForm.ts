@@ -24,6 +24,7 @@ import {
   visibilityById,
   type NetworkProfileVisibility,
 } from './networkIdentity';
+import { parseSkills } from './networkSkills';
 
 /** Mirrors `isValidCommunityWorkspace` in firestore.rules. */
 export const NETWORK_PROFILE_LIMITS = {
@@ -81,6 +82,8 @@ export interface NetworkProfileDraft {
   bannerURL: string;
   linkedInUrl: string;
   profileVisibility: NetworkProfileVisibility;
+  /** Comma-separated catalogue ids — the same string the rules validate. */
+  skills: string;
 }
 
 export const EMPTY_NETWORK_PROFILE: NetworkProfileDraft = {
@@ -99,6 +102,7 @@ export const EMPTY_NETWORK_PROFILE: NetworkProfileDraft = {
   bannerURL: '',
   linkedInUrl: '',
   profileVisibility: 'public',
+  skills: '',
 };
 
 export type NetworkProfileField = keyof NetworkProfileDraft;
@@ -129,6 +133,7 @@ export function draftFromProfile(profile: CommunityWorkspaceProfile | null): Net
     photoURL: profile.photoURL ?? '',
     bannerURL: profile.bannerURL ?? '',
     linkedInUrl: profile.linkedInUrl ?? '',
+    skills: parseSkills(profile.skills ?? '').join(','),
     profileVisibility: visibilityById(profile.profileVisibility),
   };
 }
@@ -278,6 +283,7 @@ export interface NetworkWorkspaceWrite {
   bannerURL?: string;
   linkedInUrl?: string;
   profileVisibility?: NetworkProfileVisibility;
+  skills?: string;
 }
 
 const trimmed = (value: string) => value.trim();
@@ -327,6 +333,8 @@ export function toWorkspaceWrite(
       : {}),
     /* Always explicit: the audience is a decision, not a default we inherit. */
     profileVisibility: draft.profileVisibility,
+    /* Always written, even when empty: omitting it on update would keep the old list. */
+    skills: parseSkills(draft.skills).join(','),
   };
 }
 

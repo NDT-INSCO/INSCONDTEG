@@ -299,7 +299,7 @@ service cloud.firestore {
           'companyCode', 'specialtyTrades', 'bio', 'companiesManaged',
           'isPublished', 'headline', 'certifications', 'yearsExperience',
           'availabilityStatus', 'followersCount', 'endorsementsCount',
-          'photoURL', 'bannerURL', 'linkedInUrl', 'profileVisibility',
+          'photoURL', 'bannerURL', 'linkedInUrl', 'profileVisibility', 'skills',
           'createdAt', 'updatedAt'
         ])
         && isValidId(data.uid) && data.uid == userId
@@ -313,6 +313,16 @@ service cloud.firestore {
         && (!('headline' in data) || (data.headline is string && data.headline.size() <= 160))
         && (!('certifications' in data) || (data.certifications is string && data.certifications.size() <= 240))
         && (!('yearsExperience' in data) || (data.yearsExperience is number && data.yearsExperience >= 0 && data.yearsExperience <= 70))
+        // Declared skills: a comma-separated list of catalogue ids, at most 20 — the
+        // same cap the picker enforces in `networkSkills.ts`. Declaring a skill is a
+        // claim, not a proof; endorsements live in their own collection below.
+        && (!('skills' in data) || (
+          data.skills is string
+          && data.skills.size() <= 700
+          // An empty string is the deliberate "I cleared my list" write; leaving the
+          // field out on an update would silently keep the old list instead.
+          && (data.skills == '' || data.skills.matches('^[a-z0-9_]{1,40}(,[a-z0-9_]{1,40}){0,19}$'))
+        ))
         && (!('availabilityStatus' in data) || data.availabilityStatus in ['active_field', 'open_to_work', 'hiring', 'offering_services'])
         && (!('followersCount' in data) || (data.followersCount is number && data.followersCount >= 0 && data.followersCount <= 1000000))
         && (!('endorsementsCount' in data) || (data.endorsementsCount is number && data.endorsementsCount >= 0 && data.endorsementsCount <= 1000000))
@@ -688,6 +698,96 @@ service cloud.firestore {
         );
 
       allow delete: if isValidId(userId) && (isOwner(userId) || isAdmin());
+    }
+
+    // -------------------------------------------------------------------------
+    // Peer Endorsements — one document per (endorsee × skill × endorser)
+    // -------------------------------------------------------------------------
+    // The document id is `toUid_skillId_fromUid`, so a member cannot endorse the
+    // same skill twice: the second write lands on the same document. Nobody may
+    // endorse themselves, and the name is echoed only so the list can render
+    // without an extra read. An endorsement is a peer signal, not a certificate —
+    // nothing here touches the certificate verification path.
+    match /community_endorsements/{endorsementId} {
+      allow get, list: if isVerifiedUser();
+
+      allow create: if isVerifiedUser()
+        && isValidId(endorsementId)
+        && request.resource.data.keys().hasAll(['toUid', 'fromUid', 'skillId', 'fromName', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['toUid', 'fromUid', 'skillId', 'fromName', 'createdAt'])
+        && request.resource.data.fromUid == request.auth.uid
+        && isValidId(request.resource.data.toUid)
+        && request.resource.data.toUid != request.auth.uid
+        && request.resource.data.skillId is string
+        && request.resource.data.skillId.size() >= 1
+        && request.resource.data.skillId.size() <= 40
+        && request.resource.data.skillId.matches('^[a-z0-9_]+$')
+        && request.resource.data.fromName is string
+        && request.resource.data.fromName.size() <= 120
+        && endorsementId == request.resource.data.toUid + '_' + request.resource.data.skillId + '_' + request.auth.uid
+        && request.resource.data.createdAt == request.time;
+
+      // Withdrawing is the endorser's call alone: nobody can strip someone else's
+      // endorsement, and the endorsee cannot accumulate or delete them either.
+      allow delete: if isVerifiedUser() && existing().fromUid == request.auth.uid;
+
+      allow update: if false;
+    }
+
+    // -------------------------------------------------------------------------
+    // Written Recommendations — one document per (author × subject)
+    // -------------------------------------------------------------------------
+    // The id is `fromUid_toUid`, so a member writes at most one recommendation
+    // about another member and edits that one. The subject may delete it (their
+    // own page shows it) but cannot rewrite the words. Dates are split on purpose:
+    // `createdAt` must survive an edit, otherwise a rewrite would be laundered as
+    // a fresh testimonial.
+    match /community_recommendations/{recommendationId} {
+      allow get, list: if isVerifiedUser();
+
+      allow create: if isVerifiedUser()
+        && isValidId(recommendationId)
+        && request.resource.data.keys().hasAll([
+          'fromUid', 'fromName', 'toUid', 'toName', 'relation', 'body', 'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'fromUid', 'fromName', 'toUid', 'toName', 'relation', 'body', 'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.fromUid == request.auth.uid
+        && isValidId(request.resource.data.toUid)
+        && request.resource.data.toUid != request.auth.uid
+        && request.resource.data.fromName is string
+        && request.resource.data.fromName.size() <= 120
+        && request.resource.data.toName is string
+        && request.resource.data.toName.size() <= 120
+        && request.resource.data.relation in ['colleague', 'client', 'instructor']
+        && request.resource.data.body is string
+        && request.resource.data.body.size() >= 40
+        && request.resource.data.body.size() <= 1200
+        && recommendationId == request.auth.uid + '_' + request.resource.data.toUid
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if isVerifiedUser()
+        && existing().fromUid == request.auth.uid
+        && request.resource.data.keys().hasAll([
+          'fromUid', 'fromName', 'toUid', 'toName', 'relation', 'body', 'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'fromUid', 'fromName', 'toUid', 'toName', 'relation', 'body', 'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.fromUid == existing().fromUid
+        && request.resource.data.toUid == existing().toUid
+        && request.resource.data.createdAt == existing().createdAt
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.relation in ['colleague', 'client', 'instructor']
+        && request.resource.data.body is string
+        && request.resource.data.body.size() >= 40
+        && request.resource.data.body.size() <= 1200;
+
+      // Author or subject. The subject cannot edit, only take it down.
+      allow delete: if isVerifiedUser()
+        && (existing().fromUid == request.auth.uid || existing().toUid == request.auth.uid);
     }
 
     // -------------------------------------------------------------------------

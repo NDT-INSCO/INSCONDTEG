@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import type { CommunityPost, CommunityWorkspaceProfile } from '../../client/types';
 import type { Language } from '../../types';
+import { NetworkRecommendationsPanel, NetworkSkillsPanel } from './NetworkReputation';
 import { useOptionalSiteAccount } from '../../account/SiteAccountContext';
 import { NETWORK_AVAILABILITY } from '../../network/networkProfileForm';
 import {
@@ -89,6 +90,7 @@ export const NetworkMemberProfile: React.FC<NetworkMemberProfileProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [postsLoading, setPostsLoading] = useState(true);
+  const [tab, setTab] = useState<'posts' | 'skills' | 'recommendations'>('posts');
 
   const serviceReady = account?.available ?? false;
   const signedIn = Boolean(account?.user?.uid);
@@ -467,7 +469,43 @@ export const NetworkMemberProfile: React.FC<NetworkMemberProfileProps> = ({
         </div>
       </div>
 
+      {/* --------------------------------- tabs --------------------------------- */}
+      <div data-testid="network-member-tabs" role="tablist" className="flex min-w-0 flex-wrap gap-1 rounded-xl border border-[#232345] bg-[#0f0f22] p-1">
+        {(
+          [
+            { id: 'posts', ar: 'المنشورات', en: 'Posts' },
+            { id: 'skills', ar: 'المهارات والتزكيات', en: 'Skills & endorsements' },
+            { id: 'recommendations', ar: 'التوصيات', en: 'Recommendations' },
+          ] as const
+        ).map(entry => (
+          <button
+            key={entry.id}
+            type="button"
+            role="tab"
+            aria-selected={tab === entry.id}
+            data-testid={`network-member-tab-${entry.id}`}
+            onClick={() => setTab(entry.id)}
+            className={`min-w-0 rounded-lg px-2 py-1 text-[10px] font-bold transition ${
+              tab === entry.id
+                ? 'bg-violet-500/20 text-violet-100'
+                : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
+            }`}
+          >
+            {isAr ? entry.ar : entry.en}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'skills' ? (
+        <NetworkSkillsPanel profile={profile} language={language} self={isMine} onOpenProfile={onOpenProfile} />
+      ) : null}
+
+      {tab === 'recommendations' ? (
+        <NetworkRecommendationsPanel profile={profile} language={language} self={isMine} />
+      ) : null}
+
       {/* --------------------------------- posts -------------------------------- */}
+      {tab === 'posts' ? (
       <div className="rounded-xl border border-[#232345] bg-[#0f0f22] p-3">
         <h3 className="text-[11px] font-bold text-slate-200">{isAr ? 'منشورات علنية' : 'Public posts'}</h3>
         {postsLoading ? (
@@ -496,6 +534,7 @@ export const NetworkMemberProfile: React.FC<NetworkMemberProfileProps> = ({
           </ul>
         )}
       </div>
+      ) : null}
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         {backButton}

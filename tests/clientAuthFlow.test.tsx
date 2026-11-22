@@ -630,22 +630,53 @@ test('the global form creates a shared account from the academy without leaving 
   assert.equal(documents.get(profilePath)?.organizationName, '', 'private personal profile does not require a company');
   assert.equal(events.filter(event => event === 'create').length, 1);
 
-  for (const hash of ['#services', '#demo', '#academy/disciplines', '#client/community']) {
+  for (const hash of ['#services', '#demo', '#academy/disciplines', '#network/jobs', '#client/community']) {
     await act(async () => {
       dom.window.history.pushState(null, '', `/INSCONDTEG/${hash}`);
       dom.window.dispatchEvent(new dom.window.Event('hashchange'));
     });
-    assert.ok(header.getByRole('button', { name: 'My account' }), hash);
-    assert.equal(header.queryByRole('button', { name: 'Create account' }), null);
+    const current = within(ui.getByTestId('site-account-actions'));
+    assert.ok(current.getByRole('button', { name: 'My account' }), hash);
+    assert.equal(current.queryByRole('button', { name: 'Create account' }), null);
   }
 
-  fireEvent.click(header.getByRole('button', { name: 'My account' }));
+  const finalHeader = within(ui.getByTestId('site-account-actions'));
+  fireEvent.click(finalHeader.getByRole('button', { name: 'My account' }));
   const signedIn = within(ui.getByRole('dialog', { name: 'Your INSCO account' }));
   fireEvent.click(signedIn.getByRole('button', { name: 'Sign out' }));
-  await header.findByRole('button', { name: 'Sign in' });
+  await finalHeader.findByRole('button', { name: 'Sign in' });
   assert.equal(auth.currentUser, null);
   assert.equal(dom.window.location.hash, '#client/community');
   assert.equal(ui.queryByText('Academy Tester'), null);
+});
+
+test('the network profile opens the one account dialog and private profile stays separate', async () => {
+  localStorage.setItem('insco_language_v1', 'en');
+  dom.window.history.replaceState(null, '', '/INSCONDTEG/#network/profile');
+  const ui = render(<App />);
+  const opener = await ui.findByRole('button', { name: 'Sign in / create account' });
+  assert.equal(ui.getAllByTestId('site-account-actions').length, 1);
+  opener.focus();
+  fireEvent.click(opener);
+  const dialog = await ui.findByRole('dialog', { name: 'Your INSCO account' });
+  fireEvent(dialog, new dom.window.Event('cancel', { cancelable: true }));
+  assert.equal(ui.queryByRole('dialog'), null);
+  assert.equal(document.activeElement, opener);
+
+  fireEvent.click(opener);
+  const account = within(await ui.findByRole('dialog', { name: 'Your INSCO account' }));
+  verifiedInFirebase = true;
+  fireEvent.change(await account.findByLabelText('Account Email *'), { target: { value: email } });
+  fireEvent.change(account.getByLabelText('Password *'), { target: { value: shortPassword } });
+  fireEvent.click(account.getByRole('button', { name: 'Sign In with Email' }));
+  await account.findByText('Signed in across all sections');
+  assert.equal(dom.window.location.hash, '#network/profile');
+  fireEvent.click(account.getByRole('button', { name: 'My private profile' }));
+  assert.equal(dom.window.location.hash, '#client/register');
+  assert.equal(auth.currentUser?.uid, 'client-a');
+  assert.equal(ui.getAllByTestId('site-account-actions').length, 1);
+  assert.equal(events.filter(event => event === 'login').length, 1);
+  assert.equal(events.includes('create'), false);
 });
 
 test('existing email sign-in is reusable on a corporate page; #admin has no public account controls', async () => {
@@ -653,7 +684,15 @@ test('existing email sign-in is reusable on a corporate page; #admin has no publ
   dom.window.history.replaceState(null, '', '/INSCONDTEG/#about');
   const ui = render(<App />);
   const header = within(ui.getByTestId('site-account-actions'));
-  fireEvent.click(header.getByRole('button', { name: 'Sign in' }));
+  const opener = header.getByRole('button', { name: 'Sign in' });
+  opener.focus();
+  fireEvent.click(opener);
+  const dialog = ui.getByRole('dialog', { name: 'Your INSCO account' });
+  assert.equal(document.activeElement, within(dialog).getByRole('button', { name: 'Close account window' }));
+  fireEvent(dialog, new dom.window.Event('cancel', { cancelable: true }));
+  assert.equal(ui.queryByRole('dialog'), null);
+  assert.equal(document.activeElement, opener);
+  fireEvent.click(opener);
   const panel = within(ui.getByRole('dialog', { name: 'Your INSCO account' }));
   fireEvent.change(await panel.findByLabelText('Account Email *'), { target: { value: email } });
   fireEvent.change(panel.getByLabelText('Password *'), { target: { value: shortPassword } });

@@ -97,7 +97,7 @@ export const UserCourseProgressDashboard: React.FC<UserCourseProgressDashboardPr
             </span>
             <span aria-hidden="true">·</span>
             <span>
-              {allModules.length} {isAr ? 'وحدة تدريبية معتمدة' : 'NDT course modules'}
+              {allModules.length} {isAr ? 'وحدة دراسة ذاتية' : 'NDT course modules'}
             </span>
             <span aria-hidden="true">·</span>
             <span className="text-slate-300">

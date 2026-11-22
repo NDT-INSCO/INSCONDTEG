@@ -10,6 +10,7 @@
  */
 
 import { randomBytes } from 'node:crypto';
+import { RFQ_FIELD_LIMITS, validRfqEmail, normalizeRfqPhone } from './validation.js';
 
 export interface RfqRecord {
   companyName: string;
@@ -34,6 +35,7 @@ export interface RfqHandlerOptions {
   now?: () => Date;
   /** Sequential-ish suffix source; overridable in tests for stability. */
   randomSuffix?: () => string;
+  reportFailure?: (reason: 'provider_rejected' | 'provider_unreachable') => void;
 }
 
 export interface RfqHttpResult {
@@ -41,17 +43,7 @@ export interface RfqHttpResult {
   body: Record<string, unknown>;
 }
 
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const REQUIRED_FIELDS = ['companyName', 'phone', 'email'] as const;
-const MAX_LENGTHS: Record<string, number> = {
-  companyName: 160,
-  contactName: 160,
-  phone: 40,
-  email: 160,
-  serviceType: 60,
-  projectLocation: 160,
-  description: 4000,
-};
 
 export function makeReference(now: Date, suffix: string): string {
   const y = now.getUTCFullYear();
@@ -66,12 +58,12 @@ export type RfqValidation =
 
 /** Structural validation. Bots are rejected through the honeypot field. */
 export function validateRfqBody(body: unknown): RfqValidation {
-  if (!body || typeof body !== 'object') return { ok: false, problems: ['body must be a JSON object'] };
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return { ok: false, problems: ['body must be a JSON object'] };
   const input = body as Record<string, unknown>;
   const problems: string[] = [];
 
   // Honeypot: a real visitor never fills a field that is hidden from them.
-  if (typeof input.website === 'string' && input.website.trim() !== '') {
+  if (input.website !== undefined && input.website !== '') {
     return { ok: false, problems: ['honeypot'] };
   }
 
@@ -80,9 +72,11 @@ export function validateRfqBody(body: unknown): RfqValidation {
   for (const field of REQUIRED_FIELDS) {
     if (!text(field)) problems.push(`${field} is required`);
   }
-  if (text('email') && !EMAIL.test(text('email'))) problems.push('email is not a valid address');
-  if (text('phone') && text('phone').replace(/\D/g, '').length < 8) problems.push('phone is too short');
-  for (const [field, max] of Object.entries(MAX_LENGTHS)) {
+  if (text('email') && !validRfqEmail(text('email'))) problems.push('email is not a valid address');
+  const phone = normalizeRfqPhone(text('phone'));
+  if (text('phone') && !phone) problems.push('phone is not a valid number');
+  for (const [field, max] of Object.entries(RFQ_FIELD_LIMITS)) {
+    if (input[field] !== undefined && typeof input[field] !== 'string') problems.push(`${field} must be text`);
     if (text(field).length > max) problems.push(`${field} exceeds ${max} characters`);
   }
 
@@ -94,7 +88,7 @@ export function validateRfqBody(body: unknown): RfqValidation {
     value: {
       companyName: text('companyName'),
       contactName: text('contactName'),
-      phone: text('phone'),
+      phone: phone!,
       email: text('email'),
       serviceType: text('serviceType') || 'general',
       projectLocation: text('projectLocation'),
@@ -124,7 +118,7 @@ export async function handleRfqRequest(
       body: {
         ok: false,
         error: 'rfq_delivery_not_configured',
-        detail: 'Server has no RFQ delivery channel configured (RFQ_WEBHOOK_URL or RESEND_API_KEY/RFQ_INBOX).',
+        detail: 'Online intake is not configured.',
       },
     };
   }
@@ -142,18 +136,20 @@ export async function handleRfqRequest(
   try {
     const delivered = await options.deliver(record);
     if (!delivered.ok) {
+      options.reportFailure?.('provider_rejected');
       return {
         status: 502,
-        body: { ok: false, error: 'rfq_delivery_failed', detail: delivered.detail ?? 'delivery rejected' },
+        body: { ok: false, error: 'rfq_delivery_failed', detail: 'The receiving service did not acknowledge the request.' },
       };
     }
-  } catch (error) {
+  } catch {
+    options.reportFailure?.('provider_unreachable');
     return {
       status: 502,
       body: {
         ok: false,
         error: 'rfq_delivery_failed',
-        detail: error instanceof Error ? error.message : String(error),
+        detail: 'The receiving service did not acknowledge the request.',
       },
     };
   }
@@ -186,22 +182,26 @@ export interface DeliveryEnv {
 
 /**
  * Delivery channels, in priority order:
- *   1. RFQ_WEBHOOK_URL — Google Apps Script / Sheets / Slack / any JSON sink.
- *      This is the zero-cost option for a small company: the sheet *is* the
- *      CRM record and the script sends the notification mail.
- *   2. RESEND_API_KEY + RFQ_INBOX — plain email delivery.
+ *   1. RFQ_WEBHOOK_URL — a private HTTPS receiver that echoes the saved reference.
+ * *   2. RESEND_API_KEY + RFQ_INBOX — plain email delivery.
  * Returns null when neither is configured, which the handler reports as 503.
  */
 export function deliveryFromEnv(env: DeliveryEnv, fetchImpl: typeof fetch = fetch): Delivery | null {
   const webhook = (env.RFQ_WEBHOOK_URL ?? '').trim();
-  if (webhook) {
+  if (webhook && /^https:\/\//i.test(webhook)) {
     return async record => {
       const response = await fetchImpl(webhook, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(record),
+        signal: AbortSignal.timeout(10_000),
       });
       if (!response.ok) return { ok: false, detail: `webhook HTTP ${response.status}` };
+      const ack: unknown = await response.json().catch(() => null);
+      if (!ack || typeof ack !== 'object' || !('ok' in ack) || ack.ok !== true ||
+          !('reference' in ack) || ack.reference !== record.reference) {
+        return { ok: false, detail: 'webhook did not acknowledge this reference' };
+      }
       return { ok: true };
     };
   }
@@ -228,9 +228,13 @@ export function deliveryFromEnv(env: DeliveryEnv, fetchImpl: typeof fetch = fetc
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
         body: JSON.stringify({ from, to: [inbox], subject, text }),
+        signal: AbortSignal.timeout(10_000),
       });
       if (!response.ok) return { ok: false, detail: `mail provider HTTP ${response.status}` };
-      return { ok: true };
+      const ack: unknown = await response.json().catch(() => null);
+      return ack && typeof ack === 'object' && 'id' in ack && typeof ack.id === 'string' && ack.id.trim()
+        ? { ok: true }
+        : { ok: false, detail: 'mail provider did not acknowledge the message' };
     };
   }
 

@@ -63,6 +63,7 @@ export const GlobalHeaderSearch: React.FC<GlobalHeaderSearchProps> = ({
   // Optional '/' or Ctrl/Cmd+K shortcut to focus global header search when not typing in another field
   useEffect(() => {
     const handleGlobalKeyDown = (event: KeyboardEvent) => {
+      if (!inputRef.current?.getClientRects().length || document.querySelector('[aria-modal="true"]')) return;
       const target = event.target as HTMLElement | null;
       const isEditable =
         target &&
@@ -103,8 +104,9 @@ export const GlobalHeaderSearch: React.FC<GlobalHeaderSearchProps> = ({
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Escape') {
+      event.preventDefault(); // The native search-field clear event would reopen suggestions.
       setIsOpen(false);
-      inputRef.current?.blur();
+      event.stopPropagation();
       return;
     }
 
@@ -156,7 +158,10 @@ export const GlobalHeaderSearch: React.FC<GlobalHeaderSearchProps> = ({
   const JumpIcon = isAr ? ArrowUpLeft : ArrowUpRight;
 
   return (
-    <div ref={containerRef} role="search" className="relative w-full max-w-64">
+    <div ref={containerRef} role="search" className="relative w-full max-w-64"
+      onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setIsOpen(false); }}
+      onKeyDown={event => { if (event.key === 'Escape' && isOpen) { setIsOpen(false); inputRef.current?.focus(); } }}
+    >
       <div className="relative flex items-center">
         <Search
           aria-hidden="true"
@@ -179,8 +184,7 @@ export const GlobalHeaderSearch: React.FC<GlobalHeaderSearchProps> = ({
               ? 'بحث شامل في الخدمات والوحدات التعليمية ومعلومات الشركة'
               : 'Global search for services, educational modules, and company info'
           }
-          aria-expanded={isOpen}
-          aria-controls="global-header-search-results"
+          aria-controls={isOpen ? 'global-header-search-results' : undefined}
           placeholder={
             isAr
               ? 'ابحث: خدمات، محاكيات، ISO...'
@@ -219,23 +223,22 @@ export const GlobalHeaderSearch: React.FC<GlobalHeaderSearchProps> = ({
       {isOpen && (
         <div
           id="global-header-search-results"
-          className={`absolute top-full mt-2 w-full sm:w-[400px] ${
-            isAr ? 'left-0 sm:right-0 sm:left-auto' : 'left-0 sm:right-0 sm:left-auto'
-          } rounded-xl border border-slate-800 bg-slate-950 shadow-2xl shadow-black/70 z-50 overflow-hidden`}
+          className="absolute end-0 top-full z-50 mt-2 w-[min(400px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-800 bg-slate-950 shadow-2xl shadow-black/70"
         >
           {/* Category Filter Strip */}
-          <div className="flex items-center justify-between gap-1 px-3 py-2 border-b border-slate-800/90 bg-slate-900/60">
-            <div className="flex items-center gap-1">
+          <div className="flex flex-wrap items-center justify-between gap-1 px-3 py-2 border-b border-slate-800/90 bg-slate-900/60">
+            <div className="flex flex-wrap items-center gap-1">
               {filterTabs.map((tab) => {
                 const active = categoryFilter === tab.id;
                 return (
                   <button
                     key={tab.id}
                     type="button"
+                    aria-pressed={active}
                     onClick={() => setCategoryFilter(tab.id)}
                     className={`px-2 py-1 rounded-md text-[11px] font-semibold transition cursor-pointer whitespace-nowrap ${
                       active
-                        ? 'bg-cyan-600 text-white'
+                        ? 'bg-sky-300 text-slate-950'
                         : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
                     }`}
                   >
@@ -244,7 +247,7 @@ export const GlobalHeaderSearch: React.FC<GlobalHeaderSearchProps> = ({
                 );
               })}
             </div>
-            <span className="text-[10px] font-mono text-slate-500 whitespace-nowrap">
+            <span className="text-[10px] font-mono text-slate-400 whitespace-nowrap">
               {query.trim()
                 ? isAr
                   ? `${results.length} نتيجة`
@@ -255,7 +258,10 @@ export const GlobalHeaderSearch: React.FC<GlobalHeaderSearchProps> = ({
             </span>
           </div>
 
-          {/* Filtered Results List */}
+          <span className="sr-only" aria-live="polite">
+            {results[activeIndex]?.title[language] || (isAr ? 'لا نتائج' : 'No results')}
+          </span>
+          {/* Search results are ordinary links/actions in a list, not nested listbox widgets. */}
           {results.length === 0 ? (
             <div className="px-4 py-6 text-center text-xs text-slate-400">
               {isAr
@@ -263,13 +269,14 @@ export const GlobalHeaderSearch: React.FC<GlobalHeaderSearchProps> = ({
                 : `No matches found for "${query}". Try searching PAUT, PWHT, DAC, or ISO.`}
             </div>
           ) : (
-            <ul role="listbox" className="max-h-80 overflow-y-auto divide-y divide-slate-800/70">
+            <ul className="max-h-80 overflow-y-auto divide-y divide-slate-800/70">
               {results.map((item, idx) => {
                 const isSelected = idx === activeIndex;
                 return (
-                  <li key={item.id} role="option" aria-selected={isSelected}>
+                  <li key={item.id}>
                     <button
                       type="button"
+                      onFocus={() => setActiveIndex(idx)}
                       onMouseEnter={() => setActiveIndex(idx)}
                       onClick={() => handleSelectResult(item)}
                       className={`w-full px-3.5 py-2.5 text-start flex items-start gap-2.5 transition cursor-pointer ${

@@ -1,8 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { X, Building2, BriefcaseBusiness, GraduationCap, Phone, Network } from 'lucide-react';
 import { Language } from '../types';
 import { INSCO_COMPANY_DATA } from '../data/inscoCompanyData';
-import { useEscapeKey } from '../utils/a11y';
+import { useEscapeKey, useModalFocus } from '../utils/a11y';
 import type { AcademyTab } from '../academyTabs';
 import type { ClientSectionId, NetworkSectionId, PortalId } from '../utils/portalRoutes';
 import { useDefaultUnitSystem } from '../utils/unitSystemStore';
@@ -27,7 +27,7 @@ interface DrawerLink {
 }
 
 /**
- * One mobile menu instead of the old 14-chip sticky strip.
+ * One navigation drawer instead of the old 14-chip strip.
  *
  * Two labelled groups (company / academy) keep the two audiences apart without
  * hiding anything: every destination the strip offered is still one tap away.
@@ -46,7 +46,9 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
   const isAr = language === 'ar';
   const { defaultUnitSystem, setDefaultUnitSystem } = useDefaultUnitSystem();
 
+  const panel = useRef<HTMLDivElement>(null);
   useEscapeKey(open, onClose);
+  useModalFocus(open, panel);
 
   // The drawer is a page-level overlay: the content behind it must not scroll.
   useEffect(() => {
@@ -77,6 +79,7 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
 
   const companyLinks: DrawerLink[] = [
     { labelAr: 'الرئيسية وملف الشركة', labelEn: 'Home & profile', action: section('top') },
+    { labelAr: 'عن إنسكو والقطاعات', labelEn: 'About INSCO & industries', action: section('about') },
     { labelAr: 'الخدمات وأسطول PWHT', labelEn: 'Services & PWHT fleet', action: section('services') },
     { labelAr: 'الإمكانيات والمعدات', labelEn: 'Capabilities & equipment', action: section('fleet-inspector') },
     { labelAr: 'الاعتمادات والأكواد', labelEn: 'Accreditations & codes', action: section('certifications') },
@@ -91,6 +94,8 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
       },
     },
     { labelAr: 'طلب عرض سعر', labelEn: 'Request a quote', action: section('rfq') },
+    { labelAr: 'التواصل', labelEn: 'Contact', action: section('contact') },
+    { labelAr: 'أدوات المفتش والحضور', labelEn: 'Inspector tools & attendance', action: section('inspector-qr-access') },
   ];
 
   const academyLinks: DrawerLink[] = [
@@ -148,7 +153,7 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
   );
 
   return (
-    <div className="fixed inset-0 z-[70] xl:hidden" role="presentation">
+    <div className="fixed inset-0 z-[70]" role="presentation">
       <button
         type="button"
         tabIndex={-1}
@@ -158,6 +163,8 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
       />
 
       <div
+        ref={panel}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-label={isAr ? 'قائمة التنقل' : 'Navigation menu'}
@@ -171,7 +178,7 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
           </div>
           <button
             type="button"
-            autoFocus
+            data-modal-initial-focus
             onClick={onClose}
             aria-label={isAr ? 'إغلاق القائمة' : 'Close menu'}
             className="p-2 rounded-lg border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 transition cursor-pointer"

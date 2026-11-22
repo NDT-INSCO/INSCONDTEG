@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Language } from '../../types';
-import { INSCO_COMPANY_DATA } from '../../data/inscoCompanyData';
+import { COMMERCIAL_NDT_METHODS, INSCO_COMPANY_DATA } from '../../data/inscoCompanyData';
 import { COMPANY_MEDIA } from '../../data/companyMedia';
 import { CompanyRegionalFleetMap } from './CompanyRegionalFleetMap';
 import { SERVICE_FAMILIES, type ServiceFamilyId } from '../../utils/serviceFamilies';
@@ -41,23 +41,23 @@ export const CompanyServicesSection: React.FC<CompanyServicesSectionProps> = ({
   const pautImagePath = COMPANY_MEDIA.pautFlawDetector;
 
   const categories = [
-    { id: 'all', label: { ar: 'كافة الخدمات والفحوصات (12)', en: 'All Services (12)' } },
+    { id: 'all', label: { ar: 'كافة الطرق المعروضة', en: 'All listed methods' } },
     { id: 'volumetric', label: { ar: 'الفحوصات الحجمية (Volumetric)', en: 'Volumetric NDT' } },
     { id: 'surface', label: { ar: 'الفحوصات السطحية (Surface)', en: 'Surface NDT' } },
     { id: 'analysis', label: { ar: 'التحليل والصلادة (Field Metallurgy)', en: 'Field Analysis' } },
     { id: 'pressure', label: { ar: 'الضغط والمعالجة (Pressure & PWHT)', en: 'Heat & Pressure' } },
   ];
 
-  const filteredMethods = INSCO_COMPANY_DATA.ndtMethods.filter(method => {
+  const filteredMethods = COMMERCIAL_NDT_METHODS.filter(method => {
     if (activeCategory === 'all') return true;
     if (activeCategory === 'volumetric') return ['UT', 'RT', 'PAUT'].includes(method.code);
     if (activeCategory === 'surface') return ['VT', 'MT', 'PT', 'PC'].includes(method.code);
-    if (activeCategory === 'analysis') return ['PMI', 'HT', 'MFL_EC'].includes(method.code);
+    if (activeCategory === 'analysis') return ['PMI', 'HT'].includes(method.code);
     if (activeCategory === 'pressure') return ['HYDRO', 'SR'].includes(method.code);
     return true;
   });
 
-  const selectedMethod = INSCO_COMPANY_DATA.ndtMethods.find(m => m.code === selectedMethodId) || INSCO_COMPANY_DATA.ndtMethods[0];
+  const selectedMethod = COMMERCIAL_NDT_METHODS.find(m => m.code === selectedMethodId) || COMMERCIAL_NDT_METHODS[0];
 
   const handleSelectMethodFromMap = (methodCode: string) => {
     setActiveCategory('all');
@@ -74,16 +74,16 @@ export const CompanyServicesSection: React.FC<CompanyServicesSectionProps> = ({
         {/* Section Header */}
         <SectionHeading
           className="mb-12"
-          eyebrow={isAr ? 'مجالات العمل والمعدات المعتمدة' : 'Operational Scope & Calibrated Fleet'}
+          eyebrow={isAr ? 'مجالات العمل والمعدات' : 'Inspection and heat treatment'}
           title={
             isAr
-              ? '12 طريقة فحص غير إتلافي وأسطول معالجة حرارية متكامل'
-              : '12 NDT Inspection Families & Automated PWHT Fleet'
+              ? 'طرق الفحص غير الإتلافي والمعالجة الحرارية'
+              : 'NDT methods and heat treatment'
           }
           description={
             isAr
-              ? 'تغطي إنسكو كافة متطلبات الجودة الصناعية ومعايير ASME وAWS وAPI وISO عبر طاقم مهندسين معتمدين ASNT Level II/III ومعدات معتمدة ومعايرة دورياً.'
-              : 'INSCO covers exhaustive industrial quality mandates under ASME, AWS, API, and ISO codes with certified ASNT Level II/III inspectors and traceable calibrated equipment.'
+              ? 'تعرّف على الاستخدامات والمراجع الشائعة لكل طريقة. يراجع الفريق الفني الإجراء المطلوب والمعدات المتاحة لكل مشروع.'
+              : 'Compare typical applications and references. The technical team confirms the applicable procedure and equipment for your project.'
           }
         />
 
@@ -124,7 +124,7 @@ export const CompanyServicesSection: React.FC<CompanyServicesSectionProps> = ({
                     {INSCO_COMPANY_DATA.pwhtFleet.title[language]}
                   </h3>
                   <div className="text-xs text-cyan-400 font-mono">
-                    {isAr ? '16 وحدة إلكترونية مملوكة بالكامل في مصر' : '16 Fully-Owned Computerized Units in Egypt'}
+                    {isAr ? 'المصدر: ملف الشركة المنشور' : 'Source: published company profile'}
                   </div>
                 </div>
               </div>
@@ -165,7 +165,7 @@ export const CompanyServicesSection: React.FC<CompanyServicesSectionProps> = ({
                   </button>
                 )}
                 <span className="text-xs text-slate-400 font-mono">
-                  {isAr ? 'استجابة سريعة 24/7 للمواقع البترولية' : '24/7 Immediate Site Dispatch'}
+                  {isAr ? 'أكّد توافر المعدات ونطاق العمل مع الفريق الفني.' : 'Confirm equipment availability and scope with the technical team.'}
                 </span>
               </div>
             </div>
@@ -179,6 +179,7 @@ export const CompanyServicesSection: React.FC<CompanyServicesSectionProps> = ({
                 src={pwhtImagePath}
                 alt={isAr ? 'عملية المعالجة الحرارية بعد اللحام PWHT' : 'PWHT post weld heat treatment operation'}
                 referrerPolicy="no-referrer"
+                loading="lazy"
                 className="w-full h-64 sm:h-72 object-cover transition duration-700 group-hover:scale-105"
               />
 
@@ -226,10 +227,10 @@ export const CompanyServicesSection: React.FC<CompanyServicesSectionProps> = ({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h3 className="text-lg font-bold text-white">
-                {isAr ? 'فهرس طرق الفحص غير الإتلافي (12 طريقة معتمدة)' : '12 Non-Destructive Testing Methods Catalog'}
+                {isAr ? 'فهرس طرق الفحص غير الإتلافي' : 'Non-Destructive Testing Methods Catalog'}
               </h3>
               <p className="text-xs text-slate-400">
-                {isAr ? 'اختر الطريقة للاطلاع على المعدات والرمز والكود الهندسي المرجعي' : 'Select a method to review calibrated equipment and governing specifications'}
+                {isAr ? 'اختر الطريقة للاطلاع على المعدات والرمز والكود الهندسي المرجعي' : 'Select a method to review typical equipment and reference specifications'}
               </p>
             </div>
 
@@ -318,11 +319,12 @@ export const CompanyServicesSection: React.FC<CompanyServicesSectionProps> = ({
                     src={rtImagePath}
                     alt={isAr ? 'جهاز التصوير الإشعاعي الصناعي جاما' : 'Industrial gamma radiographic testing device'}
                     referrerPolicy="no-referrer"
+                loading="lazy"
                     className="w-full h-48 object-cover transition duration-500 group-hover:scale-102"
                   />
                   <div className="absolute inset-0 bg-linear-to-t from-slate-950 via-slate-950/20 to-transparent" />
                   <div className="absolute bottom-2 left-3 right-3 text-[11px] font-mono text-slate-200 flex justify-between items-center">
-                    <span className="text-purple-300">{isAr ? 'ترخيص رسمي من هيئة الرقابة النووية (ENRRA)' : 'ENRRA Practice Licensed (Ir-192/Se-75)'}</span>
+                    <span className="text-purple-300">{isAr ? 'مثال لجهاز تصوير إشعاعي صناعي' : 'Illustrative radiography equipment'}</span>
                     <span className="px-2 py-0.5 rounded bg-purple-950/80 border border-purple-700/60 text-purple-200">Spec 150 / Sentinel</span>
                   </div>
                 </div>
@@ -332,6 +334,7 @@ export const CompanyServicesSection: React.FC<CompanyServicesSectionProps> = ({
                     src={pautImagePath}
                     alt={isAr ? 'جهاز فحص الموجات فوق الصوتية والمصفوفات الطورية' : 'Phased array ultrasonic flaw detector S-scan'}
                     referrerPolicy="no-referrer"
+                loading="lazy"
                     className="w-full h-48 object-cover transition duration-500 group-hover:scale-102"
                   />
                   <div className="absolute inset-0 bg-linear-to-t from-slate-950 via-slate-950/20 to-transparent" />
@@ -354,7 +357,7 @@ export const CompanyServicesSection: React.FC<CompanyServicesSectionProps> = ({
               <div className="rounded-lg bg-slate-950/70 border border-slate-800 p-4 space-y-2">
                 <div className="text-xs font-mono uppercase tracking-wider text-cyan-400 flex items-center gap-2">
                   <SlidersHorizontal className="w-3.5 h-3.5" />
-                  <span>{isAr ? 'المعدات وأجهزة الفحص المعتمدة:' : 'Approved & Calibrated Equipment Fleet:'}</span>
+                  <span>{isAr ? 'أمثلة لمعدات الفحص:' : 'Approved & Calibrated Equipment Fleet:'}</span>
                 </div>
                 <div className="text-xs text-slate-300 leading-relaxed font-mono">
                   {selectedMethod.equipment[language]}

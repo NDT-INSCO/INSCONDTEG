@@ -1,18 +1,19 @@
 import React from 'react';
 
 /**
- * The three button ranks of the site, in one place.
+ * The shared action styles of the site, in one place.
  *
  * Rule from the design system: one amber (primary) action per screen; the
  * secondary rank is an outline; the ghost rank is a quiet text action. Every
  * variant carries a visible focus ring, so keyboard users never lose the cursor.
  */
-export type CtaVariant = 'primary' | 'secondary' | 'ghost';
+export type CtaVariant = 'primary' | 'brand' | 'secondary' | 'ghost';
 export type CtaSize = 'sm' | 'md' | 'lg';
 
 const VARIANT_CLASS: Record<CtaVariant, string> = {
   primary:
     'bg-amber-500 hover:bg-amber-400 text-slate-950 font-black border border-amber-500 hover:border-amber-400',
+  brand: 'border border-sky-300 bg-sky-300 hover:bg-sky-200 text-slate-950 font-bold',
   secondary:
     'border border-slate-700 bg-slate-900/60 text-slate-200 hover:text-white hover:border-cyan-500/60 font-semibold',
   ghost: 'text-cyan-300 hover:text-cyan-200 hover:bg-slate-900 font-semibold border border-transparent',
@@ -25,7 +26,7 @@ const SIZE_CLASS: Record<CtaSize, string> = {
 };
 
 const BASE_CLASS =
-  'inline-flex items-center justify-center gap-2 transition whitespace-nowrap cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950';
+  'inline-flex items-center justify-center gap-2 transition text-center min-w-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950';
 
 export interface CtaButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: CtaVariant;

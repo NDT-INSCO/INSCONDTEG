@@ -26,8 +26,11 @@ import { isAcademyTab, type AcademyTab } from '../academyTabs';
 import {
   readServiceFamilyHash,
   serviceFamilyHash,
+  serviceFamilyById,
   type ServiceFamilyId,
 } from './serviceFamilies';
+
+import { companyDetailForHash, isCompanyDemoAnchor, type CompanyDemoAnchor, type CompanyDetailId } from './companyRoutes';
 
 export type PortalId = 'company' | 'client' | 'academy' | 'network';
 
@@ -294,8 +297,9 @@ export function isNetworkSectionId(value: string): value is NetworkSectionId {
 
 export type CompanyRoute =
   | { portal: 'company'; page: 'home'; anchor?: string }
-  | { portal: 'company'; page: 'service'; family: ServiceFamilyId }
-  | { portal: 'company'; page: 'demo' };
+  | { portal: 'company'; page: 'service'; family: ServiceFamilyId; method?: string }
+  | { portal: 'company'; page: 'detail'; detail: CompanyDetailId; anchor: string }
+  | { portal: 'company'; page: 'demo'; anchor?: CompanyDemoAnchor; legacyAnchor?: true };
 
 export type AcademyRoute =
   | { portal: 'academy'; page: 'hub' }
@@ -333,7 +337,21 @@ export function parseRoute(hash: string): Route {
 
   const family = readServiceFamilyHash(hash);
   if (family) return { portal: 'company', page: 'service', family };
+  const methodLink = /^services\/([a-z]+)\/([a-z0-9_]+)$/.exec(lower);
+  if (methodLink) {
+    const selected = serviceFamilyById(methodLink[1]);
+    if (selected?.methodIds.includes(methodLink[2])) {
+      return { portal: 'company', page: 'service', family: selected.id, method: methodLink[2] };
+    }
+  }
   if (lower === 'demo') return { portal: 'company', page: 'demo' };
+  if (lower.startsWith('demo/')) {
+    const anchor = lower.slice('demo/'.length);
+    if (isCompanyDemoAnchor(anchor)) return { portal: 'company', page: 'demo', anchor };
+  }
+  if (isCompanyDemoAnchor(lower)) return { portal: 'company', page: 'demo', anchor: lower, legacyAnchor: true };
+  const detail = companyDetailForHash(lower);
+  if (detail) return { portal: 'company', page: 'detail', detail, anchor: lower };
 
   const parts = lower.split('/').filter(Boolean);
   const rawParts = raw.split('/').filter(Boolean);
@@ -400,8 +418,11 @@ export function parseRoute(hash: string): Route {
  */
 export function routeToHash(route: Route): string {
   if (route.portal === 'company') {
-    if (route.page === 'demo') return '#demo';
-    if (route.page === 'service') return serviceFamilyHash(route.family);
+    if (route.page === 'demo') {
+      if (!route.anchor) return '#demo';
+      return route.legacyAnchor ? `#${route.anchor}` : `#demo/${route.anchor}`;
+    }
+    if (route.page === 'service') return serviceFamilyHash(route.family) + (route.method ? `/${route.method}` : '');
     return route.anchor ? `#${route.anchor}` : '';
   }
   if (route.portal === 'client') {

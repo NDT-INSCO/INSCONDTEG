@@ -19,33 +19,33 @@ export const CompanyCertificationsSection: React.FC<CompanyCertificationsSection
         {/* Section Header */}
         <SectionHeading
           className="mb-12"
-          eyebrow={isAr ? 'الامتثال القياسي والتأهيل المؤسسي' : 'Accreditations, Compliance & Lead Audit'}
+          eyebrow={isAr ? 'الجودة والتأهيل المؤسسي' : 'Quality and vendor qualification'}
           title={
             isAr
-              ? 'شهادات الجودة الثلاثية والاعتمادات الرسمية السارية حتى 2028'
-              : 'Triple ISO Certifications & Formal Accreditations Valid to 2028'
+              ? 'الشهادات والتراخيص الواردة في ملف الشركة'
+              : 'Certificates and licences in the company dossier'
           }
           description={
             isAr
-              ? 'نظام إدارة جودة متكامل وموثق تحت إشراف مدقق رئيسي معتمد دولياً من CQI-IRCA، وترخيص ممارسة الفحوصات الإشعاعية من هيئة الرقابة النووية والإشعاعية (ENRRA).'
-              : 'An integrated QHSE management system governed by an in-house CQI-IRCA certified Lead Auditor, combined with ENRRA licensing for industrial radiography.'
+              ? 'بيانات الشهادات من النسخة المنشورة من ملف إنسكو. تحقّق من سريانها ونطاقها مع الجهة المصدرة قبل التأهيل أو التعاقد.'
+              : 'These records are from the published INSCO dossier. Confirm current status and scope with the issuing body before qualification or contracting.'
           }
         />
 
         {/* Triple ISO Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          {INSCO_COMPANY_DATA.certifications.map(cert => (
+          {INSCO_COMPANY_DATA.certifications.map((cert, index) => (
             <div
               key={cert.id}
               className="rounded-xl border border-slate-800 bg-slate-950/70 p-6 flex flex-col justify-between space-y-4 hover:border-cyan-500/50 transition"
             >
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="text-xs font-mono font-bold text-cyan-400 px-2 py-0.5 rounded bg-slate-900 border border-slate-800">
                     {cert.code}
                   </span>
                   <span className="text-[11px] font-mono text-slate-400">
-                    {isAr ? 'حتى سبتمبر 2028' : 'Valid to Sept 2028'}
+                    {isAr ? 'انتهاء مدوّن:' : 'Listed expiry:'} <bdi>{cert.expiryDate}</bdi>
                   </span>
                 </div>
 
@@ -67,6 +67,11 @@ export const CompanyCertificationsSection: React.FC<CompanyCertificationsSection
                   <span>{isAr ? 'جهة الاعتماد:' : 'Accreditation:'}</span>
                   <span className="text-cyan-300 font-semibold">{cert.accreditationBody}</span>
                 </div>
+                <a className="inline-flex min-h-9 items-center gap-1 font-semibold text-cyan-300 underline underline-offset-4"
+                  href={`${INSCO_COMPANY_DATA.pdfBrochureUrl}#page=${15 + index}`} target="_blank" rel="noopener noreferrer">
+                  {isAr ? `وثيقة ${cert.code} في الملف (PDF)` : `${cert.code} in the dossier (PDF)`}
+                  <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                </a>
               </div>
             </div>
           ))}
@@ -94,20 +99,9 @@ export const CompanyCertificationsSection: React.FC<CompanyCertificationsSection
               {INSCO_COMPANY_DATA.leadAuditor.scope[language]}
             </p>
 
-            <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-800/80 text-center font-mono text-xs">
-              <div className="p-2 rounded bg-slate-900 border border-slate-800">
-                <div className="text-[10px] text-slate-400">{isAr ? 'الكود' : 'Course'}</div>
-                <div className="font-bold text-slate-200">{INSCO_COMPANY_DATA.leadAuditor.courseNo}</div>
-              </div>
-              <div className="p-2 rounded bg-slate-900 border border-slate-800">
-                <div className="text-[10px] text-slate-400">{isAr ? 'رقم الشهادة' : 'Cert #'}</div>
-                <div className="font-bold text-slate-200">{INSCO_COMPANY_DATA.leadAuditor.certNo}</div>
-              </div>
-              <div className="p-2 rounded bg-slate-900 border border-slate-800">
-                <div className="text-[10px] text-slate-400">{isAr ? 'رقم UDN' : 'UDN'}</div>
-                <div className="font-bold text-cyan-400">{INSCO_COMPANY_DATA.leadAuditor.udn}</div>
-              </div>
-            </div>
+            <a href="#contact" className="inline-flex min-h-9 items-center text-xs font-semibold text-cyan-300 underline underline-offset-4">
+              {isAr ? 'اطلب وثائق التأهيل الحالية' : 'Request current personnel qualifications'}
+            </a>
           </div>
 
           {/* Radiation Safety & Nuclear Regulatory Licensing (ENRRA) */}
@@ -123,16 +117,21 @@ export const CompanyCertificationsSection: React.FC<CompanyCertificationsSection
                     : 'Egyptian Nuclear & Radiological Regulatory Authority (ENRRA)'}
                 </h4>
                 <div className="text-xs text-cyan-400 font-mono">
-                  {isAr ? 'رخصة ممارسة رسمية للمصادر المشعة الصناعية' : 'Formal Practice License for Industrial Isotopes'}
+                  {isAr ? 'المصدر: الملحق C في ملف الشركة' : 'Source: company dossier, Annex C'}
                 </div>
               </div>
             </div>
 
             <p className="text-xs text-slate-300 leading-relaxed">
               {isAr
-                ? 'تمتلك الشركة تراخيص معتمدة لتشغيل واستخدام مصادر جاما المشعة (Iridium-192 وSelenium-75) وأنابيب الأشعة السينية الصناعية (X-Ray Tubes)، مع وجود ضباط وقاية إشعاعية RSO معتمدين ومستودعات تخزين آمنة محصنة.'
-                : 'Licensed for active industrial gamma radiation sources (Ir-192, Se-75) and high-kV X-ray directional tubes, with dedicated certified Radiation Safety Officers (RSO) and bunker storage.'}
+                ? 'الملحق يفهرس وثائق التصوير الإشعاعي الصناعي؛ النسخ غير متاحة للعامة. اطلب الترخيص الحالي وتحقق من نطاقه قبل العمل.'
+                : 'The annex indexes industrial radiography records. Request the current licence and confirm its scope; the scans are not distributed publicly.'}
             </p>
+
+            <a className="inline-flex min-h-9 items-center gap-1 text-xs font-semibold text-cyan-300 underline underline-offset-4"
+              href="#contact">
+              {isAr ? 'اطلب مستند الترخيص الحالي' : 'Request current licensing evidence'}
+            </a>
 
             <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400 font-mono">
               <span>{isAr ? 'سجل NDT العالمي:' : 'ndt.org Global Registry:'}</span>
@@ -153,10 +152,10 @@ export const CompanyCertificationsSection: React.FC<CompanyCertificationsSection
         <div className="rounded-xl border border-slate-800 bg-slate-950 p-6 sm:p-8 space-y-6">
           <div className="max-w-2xl">
             <div className="text-xs font-mono uppercase tracking-wider text-cyan-400 mb-1">
-              {isAr ? 'لماذا تختارنا لجان المشتريات والتأهيل؟' : 'Why Vendor Committees Approve INSCO'}
+              {isAr ? 'ملخص ملف الشركة' : 'Company profile summary'}
             </div>
             <h3 className="text-xl font-bold text-white">
-              {isAr ? 'خمس ركائز حاسمة في اتخاذ قرار التعاقد' : 'Five Reasons Vendor Committees Say "YES"'}
+              {isAr ? 'موضوعات للمراجعة عند التأهيل' : 'Items to review during qualification'}
             </h3>
           </div>
 

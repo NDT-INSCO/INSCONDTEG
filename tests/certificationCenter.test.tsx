@@ -4,118 +4,95 @@ import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
 import { CertificationCenter } from '../src/components/academy/CertificationCenter';
 import {
-  getOfficialExams,
-  getExamRegistrations,
-  registerForExam,
-  cancelExamRegistration,
-  checkCandidateEligibility,
-  getMockExamQuestions
+  getPracticeExamExamples, getExamPracticePlans, saveExamPracticePlan, removeExamPracticePlan,
+  checkCandidateEligibility, getMockExamQuestions,
 } from '../src/utils/certificationExamService';
 
 const dom = new JSDOM('<!doctype html><html><body></body></html>', { url: 'https://example.org/-Project-/#academy' });
-Object.assign(globalThis, { 
-  window: dom.window, 
-  document: dom.window.document, 
-  localStorage: dom.window.localStorage, 
-  HTMLElement: dom.window.HTMLElement,
-  CustomEvent: dom.window.CustomEvent,
-  Event: dom.window.Event
+Object.assign(globalThis, {
+  window: dom.window, document: dom.window.document, localStorage: dom.window.localStorage,
+  HTMLElement: dom.window.HTMLElement, CustomEvent: dom.window.CustomEvent, Event: dom.window.Event,
+  getComputedStyle: dom.window.getComputedStyle.bind(dom.window),
 });
 
-const { render, fireEvent, cleanup } = await import('@testing-library/react');
+const { render, fireEvent, cleanup, within } = await import('@testing-library/react');
+afterEach(() => { cleanup(); dom.window.localStorage.clear(); });
 
-afterEach(() => { 
-  cleanup(); 
-  dom.window.localStorage.clear(); 
-});
-
-test('CertificationCenter renders exam catalog with schemes and methods in English', () => {
+test('the guide keeps the catalog, schemes and mock tests, without promising certification', () => {
   const ui = render(<CertificationCenter language="en" />);
-  
-  // Header and tabs presence
-  assert.ok(ui.getByText(/Official NDT Certification & Exam Registration Center/i));
-  assert.ok(ui.getByText(/Exam Catalog & Prerequisites/i));
-  assert.ok(ui.getByText(/Pre-Exam Mock Simulator/i));
-  assert.ok(ui.getByText(/Eligibility Calculator/i));
-
-  // Exam cards presence
-  assert.ok(ui.getByText(/ASNT-UT-L1/i));
-  assert.ok(ui.getByText(/API-570-ICP/i));
-  assert.ok(ui.getByText(/CSWIP-WELD-3.1/i));
+  assert.ok(ui.getByText(/Qualification Guide & Exam Practice/i));
+  assert.ok(ui.getByText(/does not book exams or issue professional certification/i));
+  assert.ok(ui.getByRole('button', { name: 'Exam Catalog & Prerequisites' }));
+  assert.ok(ui.getByRole('button', { name: 'Pre-Exam Mock Simulator' }));
+  assert.ok(ui.getByRole('button', { name: 'Eligibility Calculator' }));
+  for (const code of ['ASNT-UT-L1', 'API-570-ICP', 'CSWIP-WELD-3.1']) assert.ok(ui.getByText(code));
+  assert.equal(ui.queryByText(/authorized testing centers|official fee/i), null);
 });
 
-test('CertificationCenter renders Arabic layout and Arabic labels correctly', () => {
+test('the guide and practice labels are available in Arabic', () => {
   const ui = render(<CertificationCenter language="ar" />);
-  
-  assert.ok(ui.getByText(/مركز تسجيل شهادات واختبارات NDT المعتمدة/i));
+  assert.ok(ui.getByText(/دليل التأهيل والتدريب على الاختبارات/i));
+  assert.ok(ui.getByText(/لا يوجد حجز رسمي/i));
   assert.ok(ui.getByText(/دليل الاختبارات وشروط الأهلية/i));
   assert.ok(ui.getByText(/محاكي الاختبارات التجريبية/i));
   assert.ok(ui.getByText(/حاسبة الأهلية السريعة/i));
 });
 
-test('checkCandidateEligibility accurately validates prerequisites and logged training', () => {
-  const exams = getOfficialExams();
-  const utL1 = exams.find(e => e.id === 'asnt_ut_lvl1')!;
-  
-  const report = checkCandidateEligibility(utL1);
+test('example eligibility still computes requirements without awarding qualification', () => {
+  const example = getPracticeExamExamples().find(exam => exam.id === 'asnt_ut_lvl1')!;
+  const report = checkCandidateEligibility(example);
   assert.equal(report.examId, 'asnt_ut_lvl1');
   assert.equal(report.trainingHoursRequired, 40);
   assert.equal(report.experienceMonthsRequired, 3);
 });
 
-test('candidate can register for an exam and generate an admission ticket', () => {
-  const newReg = registerForExam({
-    examId: 'asnt_ut_lvl1',
-    candidateName: 'Eng. Tarek Test Candidate',
-    candidateEmail: 'tarek@example.com',
-    nationalIdOrPassport: 'PASSPORT-A9876543',
-    phone: '+20 100 000 0000',
-    companyOrUniversity: 'Inspection Co.',
-    examDate: '2026-12-05',
-    examCenter: 'cairo_tc',
-    examFormatMode: 'in_person_center',
-    visionAttestationConfirmed: true,
-    codeOfEthicsAgreed: true
-  });
-
-  assert.ok(newReg.registrationId.startsWith('reg_'));
-  assert.ok(newReg.admissionNumber.startsWith('INSCO-ADM-'));
-  assert.equal(newReg.status, 'Confirmed');
-
-  // Verify retrieval
-  const list = getExamRegistrations();
-  assert.equal(list.length, 1);
-  assert.equal(list[0].candidateName, 'Eng. Tarek Test Candidate');
-
-  // Verify cancellation
-  const cancelled = cancelExamRegistration(newReg.registrationId);
-  assert.equal(cancelled, true);
-  assert.equal(getExamRegistrations().length, 0);
+test('study plans save locally, can be removed, and cannot encode an admission ticket', () => {
+  assert.equal(saveExamPracticePlan('asnt_ut_lvl1', '2027-02-30', 'remote'), null);
+  const plan = saveExamPracticePlan('asnt_ut_lvl1', '2027-02-20', 'remote');
+  assert.ok(plan?.id.startsWith('practice_'));
+  assert.deepEqual(getExamPracticePlans(), [plan]);
+  assert.deepEqual(Object.keys(plan!), ['id', 'examId', 'studyOn', 'format']);
+  assert.ok(removeExamPracticePlan(plan!.id));
+  assert.deepEqual(getExamPracticePlans(), []);
 });
 
-test('Pre-Exam Mock Test Simulator loads questions and handles submission', () => {
-  const questions = getMockExamQuestions();
-  assert.ok(questions.length >= 5);
-  
-  // Render mock test tab directly
+test('legacy local records lose identity, attestation and simulated admission references', () => {
+  localStorage.setItem('insco_exam_registrations_v1', JSON.stringify([{
+    registrationId: 'reg_17', examId: 'asnt_ut_lvl1', examDate: '2027-01-01', examFormatMode: 'in_person_center',
+    candidateEmail: 'fixture@example.org', nationalIdOrPassport: 'PRIVATE-ID', admissionNumber: 'INSCO-ADM-17', status: 'Confirmed',
+  }]));
+  assert.deepEqual(getExamPracticePlans(), [{ id: 'reg_17', examId: 'asnt_ut_lvl1', studyOn: '2027-01-01', format: 'in_person' }]);
+  assert.equal(localStorage.getItem('insco_exam_registrations_v1'), null);
+  assert.doesNotMatch(localStorage.getItem('insco_exam_practice_plans_v1')!, /PRIVATE-ID|fixture@|Confirmed|INSCO-ADM/);
+});
+
+test('practice plan dialog uses only study options and can be dismissed with Escape', () => {
+  const ui = render(<CertificationCenter language="en" />);
+  const open = ui.getAllByRole('button', { name: 'Plan study session' })[0];
+  open.focus();
+  fireEvent.click(open);
+  const dialog = within(ui.getByRole('dialog', { name: 'Plan a study session' }));
+  assert.ok(dialog.getByLabelText('Study date'));
+  assert.ok(dialog.getByRole('combobox', { name: 'Study format' }));
+  assert.equal(dialog.queryByLabelText(/passport|email|phone/i), null);
+  fireEvent.keyDown(document, { key: 'Escape' });
+  assert.equal(ui.queryByRole('dialog'), null);
+  assert.equal(document.activeElement, open);
+});
+
+test('mock simulator keeps its questions and timed practice', () => {
+  assert.ok(getMockExamQuestions().length >= 5);
   const ui = render(<CertificationCenter language="en" initialTab="mock_test" />);
-  
-  // Verify simulator launch view
-  assert.ok(ui.getByText(/Official NDT Pre-Exam Mock Test Simulator/i));
+  assert.ok(ui.getByText(/NDT Mock Test Simulator/i));
   assert.ok(ui.getByText(/Select Target Exam Specialty/i));
-  
-  // Click Start Mock Practice Test
-  const startBtn = ui.getByRole('button', { name: /Start Mock Practice Test Now/i });
-  fireEvent.click(startBtn);
-  
-  // Verify question statements are rendered with timer and navigation grid
+  fireEvent.click(ui.getByRole('button', { name: /Start Mock Practice Test Now/i }));
   assert.ok(ui.getByText(/Question 1 of/i));
   assert.ok(ui.getByText(/Submit Exam/i));
 });
 
-test('Eligibility Calculator dynamically suggests qualification levels based on input', () => {
+test('calculator gives a clearly labeled illustrative study match', () => {
   const ui = render(<CertificationCenter language="en" initialTab="calculator" />);
-  
   assert.ok(ui.getByText(/Interactive NDT Certification Eligibility Calculator/i));
-  assert.ok(ui.getByText(/CALCULATED ELIGIBILITY STATUS/i));
+  assert.ok(ui.getByText(/ILLUSTRATIVE STUDY MATCH/i));
+  assert.ok(ui.getByText(/not an authorization/i));
 });

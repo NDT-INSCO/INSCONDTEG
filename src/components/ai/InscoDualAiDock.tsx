@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   AlertTriangle,
   Bot,
@@ -12,7 +12,7 @@ import {
   X,
 } from 'lucide-react';
 import type { Language } from '../../types';
-import { useEscapeKey } from '../../utils/a11y';
+import { useEscapeKey, useModalFocus } from '../../utils/a11y';
 import type { ClientSectionId, PortalId } from '../../utils/portalRoutes';
 import type { AcademyTab } from '../../academyTabs';
 import {
@@ -83,7 +83,9 @@ export const InscoDualAiDock: React.FC<InscoDualAiDockProps> = ({
   const [managerResult, setManagerResult] = useState<SiteManagerResponse | null>(null);
   const [copiedNotice, setCopiedNotice] = useState(false);
 
+  const drawer = useRef<HTMLDivElement>(null);
   useEscapeKey(open, () => setOpen(false));
+  useModalFocus(open, drawer);
 
   useEffect(() => {
     const unsub = subscribeSiteTelemetry(setTelemetry);
@@ -264,14 +266,16 @@ export const InscoDualAiDock: React.FC<InscoDualAiDockProps> = ({
       <button
         type="button"
         data-testid="insco-dual-ai-launcher"
+        aria-label={isAr ? 'وكلاء INSCO الذكية (AI)' : 'INSCO AI Agents'}
+        aria-haspopup="dialog"
         onClick={() => {
           setTelemetry(getSiteTelemetrySnapshot());
           setOpen(true);
         }}
-        className="fixed bottom-16 xl:bottom-5 end-4 sm:end-6 z-40 inline-flex items-center gap-2 rounded-xl border border-cyan-400/50 bg-slate-900/95 hover:bg-slate-800 px-3.5 py-2.5 text-xs font-black text-white shadow-xl backdrop-blur cursor-pointer"
+        className="fixed bottom-16 xl:bottom-5 end-4 sm:end-6 z-40 inline-flex min-h-10 min-w-10 items-center justify-center gap-2 rounded-xl border border-cyan-400/50 bg-slate-900/95 hover:bg-slate-800 px-2.5 py-2 sm:px-3.5 text-xs font-black text-white shadow-xl backdrop-blur cursor-pointer"
       >
         <Sparkles className="w-4 h-4 text-cyan-400" aria-hidden="true" />
-        <span>{isAr ? 'وكلاء INSCO الذكية (AI)' : 'INSCO AI Agents'}</span>
+        <span className="hidden sm:inline">{isAr ? 'وكلاء INSCO الذكية (AI)' : 'INSCO AI Agents'}</span>
       </button>
 
       {open && (
@@ -285,6 +289,7 @@ export const InscoDualAiDock: React.FC<InscoDualAiDockProps> = ({
           />
 
           <div
+            ref={drawer}
             role="dialog"
             aria-modal="true"
             aria-label={isAr ? 'وكلاء الذكاء الاصطناعي لإدارة الموقع ومساعدة المستخدمين' : 'INSCO Dual Professional AI Agents'}

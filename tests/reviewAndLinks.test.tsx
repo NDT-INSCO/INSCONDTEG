@@ -8,6 +8,7 @@ import {
   checksumForCourse,
   reviewFor,
   reviewSummary,
+  reviewedCourseIds,
   validateReviewEntry,
 } from '../src/data/ndeEd/review';
 import { auditLinks, summariseReachability } from '../src/utils/linkAudit';
@@ -115,4 +116,17 @@ test('reachability summary separates failures without hiding them', () => {
   assert.equal(summary.reachable, 1);
   assert.deepEqual(summary.failed.map(item => item.id), ['b', 'c']);
   assert.equal(summary.ok, false);
+});
+
+
+test('review approval follows the signed version and valid date, not the existence of a lesson', () => {
+  const asOf = new Date('2026-11-18T00:00:00Z');
+  const checksum = 'a'.repeat(64);
+  const index = { books: [{ id: 'edb-course-nde-vt', checksum }] };
+  const entry = { ...reviewFor('nde-vt')!, stage: 'reviewed' as const, reviewer: 'test reviewer', reviewedAt: '2026-11-01', checksum };
+  assert.deepEqual([...reviewedCourseIds(index, [entry], asOf)], ['nde-vt']);
+  assert.equal(reviewedCourseIds(index, [{ ...entry, checksum: 'b'.repeat(64) }], asOf).size, 0);
+  assert.equal(reviewedCourseIds(index, [{ ...entry, reviewedAt: '2026-11-19' }], asOf).size, 0);
+  assert.equal(reviewedCourseIds(null, [entry], asOf).size, 0);
+  assert.equal(reviewedCourseIds(index, [{ ...entry, reviewedAt: '2026-02-31' }], asOf).size, 0);
 });

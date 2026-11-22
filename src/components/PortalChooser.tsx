@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { BriefcaseBusiness, Building2, GraduationCap, ArrowLeft, ArrowRight, ShieldCheck, Network } from 'lucide-react';
 import { Language } from '../types';
 import { INSCO_COMPANY_DATA } from '../data/inscoCompanyData';
-import { useEscapeKey } from '../utils/a11y';
+import { useEscapeKey, useModalFocus } from '../utils/a11y';
 import type { PortalChoice } from '../utils/portalChoice';
 
 interface PortalChooserProps {
@@ -12,7 +12,7 @@ interface PortalChooserProps {
 }
 
 /**
- * First-visit fork across the corporate profile, the client portal, the academy,
+ * On-demand guide across the corporate profile, client portal, academy,
  * and the engineering network.
  */
 export const PortalChooser: React.FC<PortalChooserProps> = ({ language, onChoose, onDismiss }) => {
@@ -21,7 +21,9 @@ export const PortalChooser: React.FC<PortalChooserProps> = ({ language, onChoose
   const titleId = 'portal-chooser-title';
   const descId = 'portal-chooser-desc';
 
+  const panel = useRef<HTMLDivElement>(null);
   useEscapeKey(true, onDismiss);
+  useModalFocus(true, panel);
 
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center p-3 sm:p-6">
@@ -34,12 +36,14 @@ export const PortalChooser: React.FC<PortalChooserProps> = ({ language, onChoose
       />
 
       <div
+        ref={panel}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descId}
         dir={isAr ? 'rtl' : 'ltr'}
-        className="relative z-10 w-full max-w-5xl rounded-2xl border border-slate-700 bg-slate-950 shadow-2xl overflow-hidden"
+        className="relative z-10 w-full max-w-5xl rounded-2xl border border-slate-700 bg-slate-950 shadow-2xl max-h-[92dvh] overflow-y-auto"
       >
         <div className="px-5 sm:px-8 pt-6 pb-4 border-b border-slate-800 text-center space-y-2">
           <div className="text-[11px] font-mono uppercase tracking-wider text-cyan-400">
@@ -58,7 +62,7 @@ export const PortalChooser: React.FC<PortalChooserProps> = ({ language, onChoose
         <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 sm:p-6 xl:grid-cols-4">
           <button
             type="button"
-            autoFocus
+            data-modal-initial-focus
             onClick={() => onChoose('company')}
             className="group text-start rounded-xl border border-slate-700 bg-slate-900/60 hover:border-amber-400/70 focus-visible:border-amber-400 p-5 transition cursor-pointer"
           >

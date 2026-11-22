@@ -1,3 +1,5 @@
+import { overallNdeEdProgress } from '../utils/ndeEdProgress';
+import { readAccountAcademyProgress } from '../account/academyAccountProgress';
 import React, { useState } from 'react';
 import {
   Activity,
@@ -49,7 +51,6 @@ import { CurriculumLevelProgressTracker } from './academy/CurriculumLevelProgres
 import { UserCourseProgressDashboard } from './academy/UserCourseProgressDashboard';
 import { SemanticSearchBar, SearchTarget } from './academy/SemanticSearchBar';
 import { fetchTutorStatus, streamTutor } from '../ai/client';
-import { getCorpusStats } from '../ai/corpus';
 import {
   failureMessage,
   TUTOR_LIMITS,
@@ -140,7 +141,6 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({
   onOpenTab,
 }) => {
   const isAr = language === 'ar';
-  const corpusStats = React.useMemo(() => getCorpusStats(), []);
   const sectionTabs = section ? ACADEMY_SECTION_TABS[section] : undefined;
   const defaultTab = section ? ACADEMY_SECTION_DEFAULT_TAB[section] : 'encyclopedia';
   const clampToSection = (tab: SubTab): SubTab =>
@@ -423,8 +423,8 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({
   };
 
   const openCitation = (citation: TutorCitation) => {
-    if (citation.kind === 'textbook' && citation.pageNumber) {
-      setEdbTarget(`edb-${citation.bookId}`);
+    if (citation.pageNumber && (citation.kind === 'textbook' || citation.bookId.startsWith('edb-course-'))) {
+      setEdbTarget(citation.bookId.startsWith('edb-') ? citation.bookId : `edb-${citation.bookId}`);
       setEdbTargetPage(citation.pageNumber);
       setActiveSubTab('edb');
     } else if (citation.courseId) {
@@ -433,7 +433,9 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({
     }
   };
 
-  const aiUnavailable = aiStatus !== null && !aiStatus.configured;
+  const needsTutorReview = Boolean(aiStatus?.configured && aiStatus.retrieval?.ready === false);
+  const aiUnavailable = aiStatus !== null && (!aiStatus.configured || needsTutorReview);
+  const ndeEdProgress = section === 'progress' ? overallNdeEdProgress() : null;
 
   return (
     <section
@@ -502,6 +504,17 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({
             setActiveSubTab(tab);
           }}
         />
+
+        {ndeEdProgress && <section className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-700 bg-slate-900 p-4" aria-labelledby="nde-study-progress">
+          <div>
+            <h3 className="font-bold text-white" id="nde-study-progress">{isAr ? 'تقدُّم التعلّم الذاتي NDE-Ed' : 'NDE-Ed self-study progress'}</h3>
+            <p className="mt-1 text-sm text-slate-200">{isAr ? `${ndeEdProgress.completed} من ${ndeEdProgress.total} درسًا مكتملاً` : `${ndeEdProgress.completed} of ${ndeEdProgress.total} lessons completed`}</p>
+            <p className="mt-1 text-xs text-slate-300">{readAccountAcademyProgress()
+              ? (isAr ? 'في الجلسة الحالية فقط، منفصل عن تقدّم وحدات الحساب.' : 'Current session only, separate from saved account module progress.')
+              : (isAr ? 'تقدّم زائر على هذا المتصفح، وليس سجل تأهيل.' : 'Guest progress in this browser, not a qualification record.')}</p>
+          </div>
+          <button type="button" onClick={() => setActiveSubTab('courses')} className="rounded-lg border border-slate-600 px-3 py-2 text-sm font-semibold text-sky-200">{isAr ? 'افتح المقررات' : 'Open courses'}</button>
+        </section>}
 
         {/* Persistent Curriculum Level & Per-User Course Progress Dashboard */}
         {(!section || section === 'progress' || section === 'learn') && (
@@ -1348,17 +1361,22 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({
             <div className="max-w-2xl">
               <div className="inline-flex items-center gap-1.5 text-xs font-mono-code font-bold text-amber-400 mb-1">
                 <BrainCircuit className="w-4 h-4" />
-                <span>AI NDT LEVEL III CONSULTANT{aiStatus?.configured ? ` · ${aiStatus.model}` : ''}</span>
+                <span>INSCO · LEARNING TUTOR{aiStatus?.configured ? ` · ${aiStatus.model}` : ''}</span>
               </div>
               <h3 className="text-2xl font-black text-white">
-                {isAr ? 'اسأل أستاذ NDT والمعالجة الحرارية الذكي' : 'Ask the Senior NDT & Metallurgy Tutor'}
+                {isAr ? 'اسأل أستاذ NDT والمعالجة الحرارية الذكي' : 'Ask the NDT & Metallurgy Learning Tutor'}
               </h3>
               <p className="text-xs sm:text-sm text-slate-400 mt-1">
                 {isAr
-                  ? `الإجابات تُبنى من مكتبة إنسكو نفسها (${corpusStats.pages} صفحة و${corpusStats.lessons} درساً)، وكل فكرة تُسند إلى الصفحة التي جاءت منها.`
-                  : `Answers are built from the INSCO library itself (${corpusStats.pages} pages, ${corpusStats.lessons} lessons), and every claim cites the page it came from.`}
+                  ? 'يبحث المستشار في المقاطع التي اجتازت المراجعة. إذا لم يجد مصدرًا كافيًا فلن يخمّن الإجابة.'
+                  : 'The tutor searches reviewed passages. If they do not support an answer, it will say so.'}
               </p>
             </div>
+
+            <p className="rounded-xl border border-slate-700 p-3 text-sm text-slate-200">
+              {isAr ? 'للتعلّم فقط. لا ترسل بيانات سرية أو تفاصيل عملاء. قرارات التشغيل والقبول تعتمد على الإجراء المعتمد ومراجعة المختص.'
+                : 'For learning only. Do not enter confidential or customer data. Operating and acceptance decisions require an approved procedure and a qualified reviewer.'}
+            </p>
 
             {aiStatus === null && (
               <div className="flex items-center gap-3 text-xs text-slate-400">
@@ -1371,30 +1389,12 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({
               <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-5 space-y-3">
                 <p className="flex items-center gap-2 text-sm font-bold text-amber-200">
                   <Info className="w-4 h-4" />
-                  {isAr ? 'المستشار الذكي غير مُهيّأ على هذه النسخة' : 'The tutor is not configured on this deployment'}
+                  {needsTutorReview
+                    ? (isAr ? 'لا توجد مصادر مُراجَعة متاحة للمستشار بعد' : 'Reviewed sources are not yet available for the tutor')
+                    : (isAr ? 'المستشار الذكي غير مُهيّأ على هذه النسخة' : 'The tutor is not configured on this deployment')}
                 </p>
                 <p className="text-xs leading-6 text-slate-300">
-                  {isAr
-                    ? 'هذا الموقع يُنشر كملفات ثابتة، والمفتاح لا يجوز أن يوضع في المتصفح. المكتبة والمناهج والبحث تعمل بالكامل بدون المستشار. لتفعيل الأسئلة الحرة، شغّل بوابة الخادم مع مفتاح Gemini، وحدّد عنوانها في VITE_AI_BASE_URL.'
-                    : 'This site ships as static files, and an API key must never live in the browser. The library, courses and search work fully without the tutor. To enable free-form answers, run the gateway with a Gemini key and point VITE_AI_BASE_URL at it.'}
-                </p>
-                <p className="text-[11px] text-slate-500">
-                  {isAr
-                    ? 'سبب الحالة: '
-                    : 'Reported reason: '}
-                  <code className="text-slate-300">
-                    {aiStatus?.reason === 'unreachable'
-                      ? isAr
-                        ? 'لا يوجد خادم مستشار على هذا النطاق'
-                        : 'no tutor gateway on this domain'
-                      : aiStatus?.reason === 'no_key'
-                        ? isAr
-                          ? 'الخادم يعمل بدون GEMINI_API_KEY'
-                          : 'server running without GEMINI_API_KEY'
-                        : isAr
-                          ? 'تعذّرت تهيئة عميل النموذج'
-                          : 'model client failed to initialise'}
-                  </code>
+                  {isAr ? 'يمكنك القراءة والبحث في المكتبة بدون المستشار.' : 'The library, courses and search are available without the tutor.'}
                 </p>
                 <button
                   type="button"
@@ -1447,7 +1447,8 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({
                     }}
                     maxLength={TUTOR_LIMITS.messageChars}
                     placeholder={isAr ? 'اكتب موضوع الاستفسار التعليمي...' : 'Enter your question for the tutor...'}
-                    className="flex-1 bg-[#0b0c1c] border border-[#272e63] rounded-xl px-4 py-3 text-white text-xs sm:text-sm focus:outline-none focus:border-amber-400"
+                    aria-label={isAr ? 'سؤال للمستشار التعليمي' : 'Question for the tutor'}
+                    className="min-w-0 flex-1 bg-[#0b0c1c] border border-[#272e63] rounded-xl px-4 py-3 text-white text-xs sm:text-sm focus:outline-none focus:border-amber-400"
                   />
                   {isAiLoading ? (
                     <button
@@ -1493,7 +1494,7 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({
             {aiCitations.length > 0 && (
               <div className="space-y-2">
                 <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                  {isAr ? 'المصادر التي استند إليها' : 'Sources behind the answer'}
+                  {isAr ? 'المقاطع المسترجعة من المصادر المراجَعة' : 'Retrieved reviewed passages'}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {aiCitations.map(citation => (

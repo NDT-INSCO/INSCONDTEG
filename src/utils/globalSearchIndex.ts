@@ -1,5 +1,5 @@
 import type { SubTab } from '../components/EducationalAcademy';
-import { INSCO_COMPANY_DATA } from '../data/inscoCompanyData';
+import { COMMERCIAL_NDT_METHODS, INSCO_COMPANY_DATA } from '../data/inscoCompanyData';
 import { ENGINEERING_DISCIPLINES } from '../data/academyCurriculum';
 import { NDT_TEXTBOOKS } from '../data/ndeTextbooksData';
 
@@ -60,7 +60,7 @@ function buildGlobalSearchIndex(): GlobalSearchItem[] {
     });
   }
 
-  for (const method of INSCO_COMPANY_DATA.ndtMethods) {
+  for (const method of COMMERCIAL_NDT_METHODS) {
     items.push({
       id: `ndt-method-${method.id}`,
       category: 'services',
@@ -346,7 +346,7 @@ function buildGlobalSearchIndex(): GlobalSearchItem[] {
       category: 'academy',
       code: 'ASNT / ISO',
       title: {
-        ar: 'المناهج التدريبية المعتمدة (8 تخصصات هندسية - Level I, II, III)',
+        ar: 'مناهج التعلّم الذاتي (8 تخصصات هندسية - Level I, II, III)',
         en: 'Standardized Engineering Curricula (8 Disciplines - Level I, II, III)',
       },
       subtitle: {
@@ -421,8 +421,8 @@ function buildGlobalSearchIndex(): GlobalSearchItem[] {
       category: 'academy',
       code: 'EXAMS',
       title: {
-        ar: 'مركز الامتحانات الرسمية والمحاكي التجريبي (ASNT / ISO)',
-        en: 'Certification Exam Center & ASNT Mock Tests',
+        ar: 'دليل التأهيل والتقييم الذاتي (ASNT / ISO)',
+        en: 'Qualification Guide & Practice Exams',
       },
       subtitle: {
         ar: 'اختبارات General و Specific و Practical محاكية لامتحانات التأهيل',
@@ -639,8 +639,8 @@ function buildGlobalSearchIndex(): GlobalSearchItem[] {
         en: 'ENRRA Radiation License & In-House CQI-IRCA Lead Auditor',
       },
       subtitle: {
-        ar: 'ترخيص ممارسة إشعاعية LS.0112 · كبير مدققي جودة معتمد UDN 27956',
-        en: 'Official ENRRA license LS.0112 · Certificated Lead Auditor UDN 27956',
+        ar: 'وثائق التصوير الإشعاعي والتدقيق في ملف الشركة',
+        en: 'Radiography and lead auditor records in the dossier',
       },
       keywords: [
         'enrra',
@@ -767,14 +767,14 @@ function buildGlobalSearchIndex(): GlobalSearchItem[] {
     {
       id: 'company-contact-rfq',
       category: 'company',
-      code: 'RFQ 24/7',
+      code: 'RFQ',
       title: {
-        ar: 'التواصل المباشر وطلب عرض سعر فوري (RFQ & 24/7 Dispatch)',
+        ar: 'التواصل وطلب عرض سعر',
         en: 'Contact Operations, Cairo/Giza Offices & Submit RFQ',
       },
       subtitle: {
-        ar: `${INSCO_COMPANY_DATA.contacts.phones[0]} · ${INSCO_COMPANY_DATA.contacts.email} · استنفار ميداني 24/7`,
-        en: `${INSCO_COMPANY_DATA.contacts.phones[0]} · ${INSCO_COMPANY_DATA.contacts.email} · 24/7 site mobilization`,
+        ar: `${INSCO_COMPANY_DATA.contacts.phones[0]} · ${INSCO_COMPANY_DATA.contacts.email}`,
+        en: `${INSCO_COMPANY_DATA.contacts.phones[0]} · ${INSCO_COMPANY_DATA.contacts.email}`,
       },
       keywords: [
         'contact',

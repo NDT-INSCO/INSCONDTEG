@@ -15,6 +15,9 @@
  *   · Network/timeout/server errors are distinct and retryable.
  */
 
+import { isStaticPages } from '../utils/staticPages';
+import { normalizeRfqPhone } from './validation';
+
 export interface RfqFormData {
   companyName: string;
   contactName: string;
@@ -33,7 +36,7 @@ export interface RfqPayload extends RfqFormData {
   website?: string;
 }
 
-export type RfqFailureReason = 'not_configured' | 'validation' | 'network' | 'server';
+export type RfqFailureReason = 'not_configured' | 'validation' | 'network' | 'rate_limited' | 'server';
 
 export type RfqOutcome =
   | { status: 'sent'; reference: string }
@@ -41,24 +44,30 @@ export type RfqOutcome =
 
 const DEFAULT_TIMEOUT_MS = 15000;
 
-function envValue(key: string): string {
-  const env = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env;
-  return (env?.[key] ?? '').trim();
-}
-
 /**
  * Where to POST.
  *
  * `VITE_RFQ_ENDPOINT` may be either the full endpoint (a Google Apps Script
- * `/exec` URL, Formspree form URL…) or the base of the INSCO gateway, in which
+ * `/exec` URL) or the base of the INSCO gateway, in which
  * case `/api/rfq` is appended — the same convention `VITE_AI_BASE_URL` uses for
  * `/api/ai/*`.
  */
-export function resolveRfqEndpoint(override?: string | null): string | null {
-  const configured = (override ?? envValue('VITE_RFQ_ENDPOINT')).trim();
-  if (!configured) return '/api/rfq';
-  if (/\/exec$|\/formResponse$|\/api\/rfq\/?$/i.test(configured)) return configured;
-  return `${configured.replace(/\/+$/, '')}/api/rfq`;
+export function resolveRfqEndpoint(override?: string | null, staticOnly = isStaticPages()): string | null {
+  if (override === null) return null;
+  const configured = (override ?? import.meta.env?.VITE_RFQ_ENDPOINT ?? '').trim();
+  if (!configured) return staticOnly ? null : '/api/rfq';
+  if (configured === '/api/rfq') return staticOnly ? null : configured;
+  // Customer data must not be posted to an insecure or credential-bearing URL.
+  try {
+    const target = new URL(configured);
+    if (target.protocol !== 'https:' || target.username || target.password || target.hash) return null;
+    if (!/\/exec$|\/formResponse$|\/api\/rfq\/?$/i.test(target.pathname)) {
+      target.pathname = `${target.pathname.replace(/\/+$/, '')}/api/rfq`;
+    }
+    return target.href;
+  } catch {
+    return null;
+  }
 }
 
 export function buildRfqPayload(
@@ -68,6 +77,12 @@ export function buildRfqPayload(
 ): RfqPayload {
   return {
     ...form,
+    companyName: form.companyName.trim(),
+    contactName: form.contactName.trim(),
+    email: form.email.trim(),
+    phone: normalizeRfqPhone(form.phone) ?? form.phone.trim(),
+    projectLocation: form.projectLocation.trim(),
+    description: form.description.trim(),
     language,
     pageUrl: extra.pageUrl,
     submittedAt: (extra.now ?? new Date()).toISOString(),
@@ -104,60 +119,34 @@ export async function submitRfq(payload: RfqPayload, options: SubmitOptions = {}
   const contentType = isAppsScript ? 'text/plain;charset=utf-8' : 'application/json';
 
   let response: Response;
+  let body: unknown = null;
   try {
     response = await doFetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': contentType, Accept: 'application/json' },
+      credentials: 'omit',
+      referrerPolicy: 'no-referrer',
+      cache: 'no-store',
       body: JSON.stringify(payload),
       signal: controller?.signal,
     });
-  } catch (error) {
-    return {
-      status: 'failed',
-      reason: 'network',
-      detail: error instanceof Error ? error.message : String(error),
-    };
+    // A static host may still return 404 for a configured but missing endpoint.
+    if ([404, 405, 501].includes(response.status)) return { status: 'failed', reason: 'not_configured' };
+    body = await response.json().catch(() => null);
+  } catch {
+    return { status: 'failed', reason: 'network' };
   } finally {
     if (timer) clearTimeout(timer);
   }
 
-  // Nothing is listening: a static host answers 404/405 for /api/rfq, and an
-  // un-configured web app answers 501. That is not a customer error.
-  if ([404, 405, 501].includes(response.status)) {
-    return { status: 'failed', reason: 'not_configured', detail: `HTTP ${response.status}` };
-  }
-
-  let body: unknown = null;
-  try {
-    body = await response.json();
-  } catch {
-    body = null;
-  }
-  const record = (body ?? {}) as { reference?: unknown; detail?: unknown; error?: unknown };
-
-  if (response.status === 400 || response.status === 422) {
-    return {
-      status: 'failed',
-      reason: 'validation',
-      detail: typeof record.detail === 'string' ? record.detail : `HTTP ${response.status}`,
-    };
-  }
-
-  if (!response.ok) {
-    const detail =
-      typeof record.detail === 'string'
-        ? record.detail
-        : typeof record.error === 'string'
-          ? record.error
-          : `HTTP ${response.status}`;
-    return { status: 'failed', reason: 'server', detail };
-  }
+  const record = (body ?? {}) as { ok?: unknown; reference?: unknown; error?: unknown };
+  if (response.status === 429) return { status: 'failed', reason: 'rate_limited' };
+  if (record.error === 'rfq_delivery_not_configured') return { status: 'failed', reason: 'not_configured' };
+  if (response.status === 400 || response.status === 422) return { status: 'failed', reason: 'validation' };
 
   const reference = typeof record.reference === 'string' ? record.reference.trim() : '';
-  // A 2xx without a reference means the request was not registered anywhere we
-  // can point the customer to; claim nothing.
-  if (!reference) {
-    return { status: 'failed', reason: 'server', detail: 'missing reference in response' };
+  if (!response.ok || record.ok !== true || !/^[a-z0-9][a-z0-9._-]{2,79}$/i.test(reference)) {
+    return { status: 'failed', reason: 'server' };
   }
 
   return { status: 'sent', reference };
@@ -203,14 +192,4 @@ export function buildRfqMessage(form: RfqFormData, language: 'ar' | 'en'): strin
           `Scope: ${form.description || '—'}`,
         ];
   return lines.join('\n');
-}
-
-export function buildRfqMailto(form: RfqFormData, inbox: string, language: 'ar' | 'en'): string {
-  const subject = language === 'ar' ? `طلب عرض سعر — ${form.companyName}` : `RFQ — ${form.companyName}`;
-  return `mailto:${inbox}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(buildRfqMessage(form, language))}`;
-}
-
-export function buildRfqWhatsApp(form: RfqFormData, whatsapp: string, language: 'ar' | 'en'): string {
-  const digits = whatsapp.replace(/\D/g, '');
-  return `https://wa.me/${digits}?text=${encodeURIComponent(buildRfqMessage(form, language))}`;
 }

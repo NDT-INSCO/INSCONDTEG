@@ -1,163 +1,18 @@
-# نموذج طلب عرض السعر (RFQ) — كيف يُرسل فعليًا
+# طلب عرض سعر (RFQ): التشغيل والتحقق
 
-> **القاعدة الواحدة:** لا تظهر رسالة «تم استلام طلبكم» إلا بعد أن يردّ خادم
-> برقم مرجعي بعد تسليم الطلب إلى قناة حقيقية (صندوق الإدارة أو بريد أو جدول أو webhook).
-> إن لم تكن القناة مهيّأة، يقول النموذج ذلك صراحة ويعطي العميل بريدًا وواتساب بنفس بياناته.
+- **Pages بدون بوابة:** الإرسال المباشر غير متاح، ولا يبدأ الموقع طلب POST ولا يعرض رقمًا. يمكن تجهيز المسودة في الذاكرة، ونسخها **باختيار المستخدم**، ثم إرسالها يدويًا إلى قنوات التواصل المدرجة في ملف إنسكو. عناوين البريد وواتساب لا تحمل بيانات المسودة. لا يوجد تخزين تلقائي للمسودة أو تأكيد لوصول الرسالة اليدوية.
+- **استضافة بخادم:** `npm run build:hosted` ثم شغّل الـ API على نفس الأصل، أو اربط `VITE_RFQ_ENDPOINT` ببوابة HTTPS تابعة للشركة واضبط `PUBLIC_SITE_ORIGIN` على أصل الموقع العام. البناء الافتراضي `npm run build` موجّه لـ Pages. لا تضع أي أسرار في `VITE_*`. يجب اعتماد الجهة التي تستقبل البيانات وسياسة الاحتفاظ بها قبل تفعيلها.
+- **الاستلام:** المتصفح لا يعرض النجاح إلا بعد رد `2xx { "ok": true, "reference": "…" }` من الجهة المهيّأة. فشل الشبكة قد يقع بعد الحفظ؛ غياب التأكيد ليس دليلًا على عدم الوصول. تحقّق قبل إعادة الإرسال.
 
----
+## القنوات المدعومة
 
-## 1. لماذا كان معطّلًا
+1. **صندوق الإدارة الخاص** ([الإعداد](ADMIN_AR.md)): التخزين الدائم الناجح يكفي لإصدار المرجع دون ادعاء تسليم البريد. استخدم تخزينًا خاصًا ودائمًا واعزل صلاحيات الإدارة.
+2. **`RFQ_WEBHOOK_URL` (خادم فقط)**: عنوان HTTPS لجهة موثوقة. يجب على المستقبل حفظ الطلب فعليًا في مخزن خاص، ثم إعادة JSON بالشكل `{"ok":true,"reference":"<نفس مرجع الطلب الوارد>"}`. صفحة HTML أو `200` عام لا يعني استلامًا. إذا كانت جهة قديمة تستقبل الطلبات دون إرجاع المرجع، حدّثها واختبرها قبل تفعيلها. لا تستخدم جدولًا عامًا أو مجرد webhook لا يعيد تأكيد السجل.
+3. **`RESEND_API_KEY` + `RFQ_INBOX` (+ `RFQ_FROM`)**: يجب أن يعيد مزوّد البريد معرّف رسالة. هذا يثبت قبول المزوّد، **لا** ظهور الرسالة في صندوق المستلم. لو مطلوب إثبات استلام دائم حتى مع تعذّر وصول البريد، استخدم صندوق الإدارة الخاص. أرسل طلبًا تجريبيًا مصرحًا به وتحقق من وصوله مع فريق التسعير.
 
-النسخة السابقة كانت تولّد الرقم المرجعي داخل المتصفح:
+`POST /api/rfq` يطبّق حدود طول للمدخلات وتنسيق الهاتف والبريد، ومصيدة بسيطة للبوتات وحدّ محاولات للعميل. في الاستضافة الموزّعة بقاعدة مهيّأة يُشارك الحدّ بين المثيلات؛ وإلا فهو داخل العملية. الردود `400/422` للتحقق، `429` للإبطاء، `503` للقناة غير المهيّأة، و`502` لفشل تأكيد جهة الاستلام. السجل يذكر فئة الخطأ فقط، وليس المدخلات أو رد المزوّد أو أسراره.
 
-```ts
-const refCode = `INSCO-RFQ-${Date.now().toString().slice(-6)}`; // ❌
-setSubmittedRef(refCode);
-```
+## بوابة الاختبار قبل النشر
 
-لم يكن هناك `fetch` ولا تخزين ولا بريد: العميل يرى «تم الاستلام» ولا يصل شيء.
-الآن `src/rfq/submit.ts` لا يعتبر الطلب ناجحًا إلا بـ `2xx` يحمل `reference` من
-الخادم، وأي شيء آخر يُعرض كفشل صريح مع إعادة المحاولة.
-
----
-
-## 2. الخيار الأسرع: Google Apps Script + Google Sheet (بلا خادم وبلا تكلفة)
-
-الجدول نفسه هو السجل، والسكربت يرسل إشعار بريد لكل طلب.
-
-1. أنشئ جدول Google Sheets بأعمدة:
-   `receivedAt | reference | companyName | contactName | phone | email | serviceType | projectLocation | description | pageUrl`
-2. `Extensions → Apps Script` والصق:
-
-```javascript
-const INBOX = 'insco50@yahoo.com';      // بريد قسم التسعير
-const SHEET_ID = 'PUT_SHEET_ID_HERE';   // من رابط الجدول
-const SHEET_NAME = 'RFQ';
-
-function doPost(e) {
-  try {
-    const raw = (e && e.postData && e.postData.contents) || '{}';
-    const data = JSON.parse(raw);
-
-    // حقل مصيدة للبوتات — لا يملؤه إنسان
-    if (data.website) {
-      return json({ ok: false, error: 'rejected' });
-    }
-    const required = ['companyName', 'phone', 'email'];
-    for (const field of required) {
-      if (!data[field] || String(data[field]).trim() === '') {
-        return json({ ok: false, error: 'missing ' + field });
-      }
-    }
-
-    const reference = 'INSCO-RFQ-' + Utilities.formatDate(new Date(), 'Africa/Cairo', 'yyyyMMdd')
-      + '-' + Math.random().toString(36).slice(2, 8).toUpperCase();
-    const receivedAt = new Date().toISOString();
-
-    SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_NAME).appendRow([
-      receivedAt, reference, data.companyName || '', data.contactName || '',
-      data.phone || '', data.email || '', data.serviceType || '',
-      data.projectLocation || '', data.description || '', data.pageUrl || ''
-    ]);
-
-    MailApp.sendEmail({
-      to: INBOX,
-      subject: 'RFQ ' + reference + ' — ' + data.companyName,
-      replyTo: data.email,
-      body: [
-        'Reference: ' + reference,
-        'Received: ' + receivedAt,
-        'Company: ' + data.companyName,
-        'Contact: ' + (data.contactName || '-'),
-        'Phone: ' + data.phone,
-        'Email: ' + data.email,
-        'Service: ' + (data.serviceType || '-'),
-        'Location: ' + (data.projectLocation || '-'),
-        '', data.description || '(no scope)'
-      ].join('\n')
-    });
-
-    return json({ ok: true, reference: reference });
-  } catch (err) {
-    return json({ ok: false, error: String(err) });
-  }
-}
-
-function json(obj) {
-  return ContentService.createTextOutput(JSON.stringify(obj))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-```
-
-3. `Deploy → New deployment → Web app`، ثم:
-   - **Execute as:** Me
-   - **Who has access:** Anyone
-   - انسخ رابط `/exec`.
-
-4. اضبط متغيّر المستودع:
-   `Settings → Secrets and variables → Actions → Variables → New`
-   - الاسم: `VITE_RFQ_ENDPOINT`
-   - القيمة: رابط `/exec` المنسوخ.
-
-5. أعد تشغيل `deploy` (أو نفّذ `npm run build` وادفع `docs/`).
-
-> **ملاحظة تقنية:** Apps Script لا يدعم طلب preflight، لذلك يرسل المتصفح
-> الطلب بـ `Content-Type: text/plain` تلقائيًا عند كشف رابط `script.google.com`
-> (انظر `src/rfq/submit.ts`). الرسالة نفسها JSON كما هي.
-
----
-
-## 3. الخيار الاحترافي: بوابة `server.ts`
-
-البوابة نفسها التي تخدم المستشار الذكي:
-
-```bash
-GEMINI_API_KEY=...                 # للمستشار
-RFQ_WEBHOOK_URL=https://…          # قناة التسليم (Apps Script/Slack/Make)
-# أو
-RESEND_API_KEY=re_…                # بريد معاملاتي
-RFQ_INBOX=tenders@insco-eg.com
-RFQ_FROM=INSCO Website <rfq@insco-eg.com>
-```
-
-ثم في المتصفح: `VITE_RFQ_ENDPOINT=https://gateway.example.com` (يُضاف
-`/api/rfq` تلقائيًا)، أو اتركه فارغًا إن كانت البوابة على نفس أصل الصفحة. اضبط
-`PUBLIC_SITE_ORIGIN` على أصل الموقع العام عند اختلاف النطاق.
-
-إذا كانت [بوابة الإدارة](ADMIN_AR.md) مفعّلة، تُنسخ الطلبات الناجحة الواردة عبر
-`server.ts` إلى صندوقها. يمكن أيضًا الاعتماد على الصندوق وحده: يردّ الخادم بنجاح
-بعد حفظ الطلب فيه فعليًا، دون الادّعاء بإرسال بريد.
-
-سلوك المسار `POST /api/rfq`:
-
-| الحالة | الرد |
-| --- | --- |
-| بيانات ناقصة/غير صحيحة أو مصيدة بوت | `400` |
-| أكثر من 6 محاولات/ساعة من نفس العنوان | `429` |
-| لا توجد قناة تسليم مهيّأة | `503` (`rfq_delivery_not_configured`) |
-| فشل التسليم عند المزوّد | `502` بلا رقم مرجعي |
-| نجاح التسليم | `200 { ok: true, reference: "INSCO-RFQ-YYYYMMDD-XXXXXXXXXX" }` |
-
----
-
-## 4. الاختبارات التي تحمي هذا السلوك
-
-```bash
-npm run test:rfq     # 16 اختبارًا: العميل + الخادم
-npm run test:company # واجهة النموذج: لا نجاح بلا خادم، ولا رقم مُختلق
-```
-
-الحالات المغطّاة: `2xx` بلا `reference` = فشل · `404` (استضافة ثابتة) =
-«غير مهيّأ» · مهلة الشبكة = فشل قابل لإعادة المحاولة · نجاح = رقم من الخادم
-فقط · رسالة البريد/واتساب تحتوي كل الحقول.
-
----
-
-## 5. ما يجب أن يعرفه من يعدّل الملفات
-
-- `src/rfq/submit.ts` — جانب المتصفح (لا أسرار، لا أرقام محلية).
-- `src/rfq/gateway.ts` — جانب الخادم (تحقق، حدّ معدّل، تسليم، مرجع).
-- `src/components/company/CompanyContactSection.tsx` — الحالات:
-  `sending` / `sent` / `failed` مع بدائل بريد وواتساب.
-- **لا تُعد أبدًا** إلى `Date.now()` كرقم مرجعي، ولا إلى رسالة نجاح قبل
-  استجابة الخادم.
+- `npm run test:rfq` للتحقق من العقد، و`npm run test:company` للواجهة، و`npm run test:admin` للتحقق من الحفظ في صندوق الإدارة. هذه لا تثبت وصول رسالة في الإنتاج.
+- في معاينة ثابتة اختبر بديل النسخ والبريد/واتساب وعدم إرسال البيانات تلقائيًا. في استضافة الاختبار، جرّب بيانات اصطناعية عبر القناة المعتمدة، وطابق المرجع الصادر مع السجل الخاص، ثم احذف طلب الاختبار وفق سياسة الفريق.

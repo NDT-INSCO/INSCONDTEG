@@ -16,9 +16,8 @@ import { SiteAccountActions, type AccountPanelRequest } from '../account/SiteAcc
 import { useOptionalSiteAccount } from '../../account/SiteAccountContext';
 
 /**
- * The two sections that read and write real account data stay in their own
- * chunks: a visitor who only opens the feed should not download the Firebase
- * client, and the prototype sections must never pull it in by accident.
+ * Live sections stay in distinct chunks. Prototype sections do not import
+ * the account data service or write records.
  */
 const NetworkProfileSection = lazy(() =>
   import('./NetworkProfileSection').then(module => ({ default: module.NetworkProfileSection }))
@@ -41,28 +40,9 @@ export interface NetworkPortalProps {
   onOpenSection: (section: NetworkSectionId, entryId?: string) => void;
   onOpenCompany: () => void;
   onOpenAcademy: () => void;
+  /** Account settings are private, separate from the public professional card. */
+  onOpenPrivateProfile?: () => void;
 }
-
-/**
- * The account bar needs the site-wide session. Rendered where no provider exists
- * (a bare portal render in a test, a future embedded card) it simply disappears
- * instead of throwing — a missing session is not an error worth a white screen.
- */
-const NetworkAccountBar: React.FC<{
-  language: Language;
-  onOpenProfile: () => void;
-  requestPanel: AccountPanelRequest | null;
-}> = ({ language, onOpenProfile, requestPanel }) => {
-  const account = useOptionalSiteAccount();
-  if (!account) return null;
-  return (
-    <SiteAccountActions
-      language={language}
-      onOpenProfile={onOpenProfile}
-      requestPanel={requestPanel}
-    />
-  );
-};
 
 const LoadingSection: React.FC<{ language: Language }> = ({ language }) => (
   <p role="status" className="p-4 text-[11px] text-slate-400">
@@ -75,8 +55,8 @@ const LoadingSection: React.FC<{ language: Language }> = ({ language }) => (
  *
  * The network owns its header, its footer and its background so a visitor can
  * never mistake a member's feed for the INSCO brochure, or an academy lesson.
- * The professional card and the member directory are live on the unified
- * account; everything else is still a labelled prototype.
+ * The feed, professional card and member directory use the unified account.
+ * The remaining sections are labelled prototypes.
  */
 export const NetworkPortal: React.FC<NetworkPortalProps> = ({
   language,
@@ -85,7 +65,9 @@ export const NetworkPortal: React.FC<NetworkPortalProps> = ({
   onOpenSection,
   onOpenCompany,
   onOpenAcademy,
+  onOpenPrivateProfile,
 }) => {
+  const account = useOptionalSiteAccount();
   const openSection = useCallback(
     (next: NetworkSectionId) => onOpenSection(next),
     [onOpenSection]
@@ -93,7 +75,7 @@ export const NetworkPortal: React.FC<NetworkPortalProps> = ({
 
   const [panelRequest, setPanelRequest] = useState<AccountPanelRequest | null>(null);
   const requestPanel = useCallback((panel: AccountPanelRequest['panel']) => {
-    setPanelRequest({ panel, nonce: Date.now() });
+    setPanelRequest(current => ({ panel, nonce: (current?.nonce ?? 0) + 1 }));
   }, []);
   const openAccount = useCallback(() => requestPanel('signin'), [requestPanel]);
   /** The card form asks for `signin` or, for an unconfirmed email, `account`. */
@@ -193,14 +175,23 @@ export const NetworkPortal: React.FC<NetworkPortalProps> = ({
       dir={language === 'ar' ? 'rtl' : 'ltr'}
     >
       <NetworkHeader language={language} section={section} onOpenSection={openSection} />
-      <div id="network-account-bar" className="mx-auto max-w-7xl">
-        <NetworkAccountBar
-          language={language}
-          onOpenProfile={() => openSection('profile')}
-          requestPanel={panelRequest}
-        />
-      </div>
-      <main className="mx-auto max-w-7xl px-4 py-4 sm:px-6">{body}</main>
+      {account && onOpenPrivateProfile && (
+        <div id="network-account-bar" className="mx-auto max-w-7xl">
+          <SiteAccountActions
+            language={language}
+            onOpenProfile={onOpenPrivateProfile}
+            requestPanel={panelRequest}
+          />
+        </div>
+      )}
+      <main
+        key={account?.user ? `account:${account.user.uid}` : 'guest'}
+        id="insco-main"
+        tabIndex={-1}
+        className="mx-auto max-w-7xl px-4 py-4 sm:px-6"
+      >
+        {body}
+      </main>
       <NetworkFooter language={language} onOpenCompany={onOpenCompany} onOpenAcademy={onOpenAcademy} />
     </div>
   );

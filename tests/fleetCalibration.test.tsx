@@ -14,6 +14,8 @@ import {
   validityEnd,
 } from '../src/utils/calibration';
 
+import { fleetRecordStatus } from '../src/utils/fleetRecordStatus';
+
 const dom = new JSDOM('<!doctype html><html><body></body></html>', { url: 'https://ndt-insco.github.io/INSCONDTEG/' });
 Object.assign(globalThis, {
   window: dom.window,
@@ -35,6 +37,7 @@ test('month precision means "valid through the last day of that month"', () => {
   assert.equal(exact!.toISOString(), '2026-10-31T23:59:59.000Z');
   assert.equal(validityEnd(null), null);
   assert.equal(validityEnd('nonsense'), null);
+  assert.equal(validityEnd('2026-02-30'), null);
 });
 
 test('state is derived from the date: expired / expiring / valid / unknown', () => {
@@ -61,12 +64,12 @@ test('the fleet card for the expired Krautkramer unit is red, not green', () => 
   // The register still lists the unit…
   assert.ok(ui.getAllByText(/Krautkramer USM 35X/i).length > 0);
   // …says it is expired, with the date it expired…
-  assert.ok(ui.getAllByText(/المعايرة منتهية/i).length > 0);
-  assert.ok(ui.getAllByText(/حتى أكتوبر 2026/i).length > 0);
-  // …and its own card never claims validity (other, in-date units still may).
+  assert.ok(ui.getAllByText(/تاريخ السجل منتهٍ · غير محقَّق/i).length > 0);
+  assert.ok(ui.getAllByText(/أكتوبر 2026/i).length > 0);
+  // …and its own card never claims validity (a future date alone cannot verify another unit).
   const card = ui.getByRole('button', { name: /Krautkramer USM 35X/i });
   assert.equal(within(card).queryByText(/^معايرة سارية$/), null);
-  assert.ok(within(card).getByText(/^المعايرة منتهية$/));
+  assert.ok(within(card).getByText(/^تاريخ السجل منتهٍ · غير محقَّق$/));
 });
 
 test('selecting a unit works from the keyboard because cards are buttons', () => {
@@ -81,5 +84,29 @@ test('selecting a unit works from the keyboard because cards are buttons', () =>
 
 test('the expired record is surfaced in the section summary', () => {
   const ui = render(<CompanyFleetInspector language="ar" now={TODAY} />);
-  assert.ok(ui.getByText(/سجل معايرة منتهٍ/i));
+  assert.ok(ui.getByText(/تاريخ منتهٍ حسب السجل/i));
+});
+
+
+test('future estimates stay unverified and the next calibration is not inferred from expiry', () => {
+  const future = fleetRecordStatus({ validUntil: '2027-10' }, TODAY);
+  assert.equal(future.verified, false);
+  assert.equal(future.nextCalibration, null);
+  assert.equal(future.maintenance, 'not_reported');
+  const ui = render(<CompanyFleetInspector language="en" now={TODAY} />);
+  assert.ok(ui.getAllByText(/calibration not verified/i).length > 0);
+  assert.equal(ui.queryByText(/^Calibration valid$/), null);
+  assert.ok(ui.getByText('Next calibration'));
+});
+
+test('an exact reviewed expiry supersedes the old register date but never clears maintenance', () => {
+  const signed = fleetRecordStatus({
+    validUntil: '2026-10',
+    reviewedCalibration: { certificateReference: 'test-fixture', reviewedOn: '2026-11-01', expiresOn: '2027-11-01' },
+    nextCalibrationOn: '2027-10-01', maintenance: 'on_hold',
+  }, TODAY);
+  assert.equal(signed.verified, true);
+  assert.equal(signed.expiry, '2027-11-01');
+  assert.equal(signed.nextCalibration, '2027-10-01');
+  assert.equal(signed.maintenance, 'on_hold');
 });

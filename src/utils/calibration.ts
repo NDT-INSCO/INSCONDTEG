@@ -37,7 +37,7 @@ export function validityEnd(validUntil: string | null | undefined): Date | null 
   const day = DAY.exec(validUntil);
   if (day) {
     const date = new Date(Date.UTC(Number(day[1]), Number(day[2]) - 1, Number(day[3]), 23, 59, 59));
-    return Number.isNaN(date.getTime()) ? null : date;
+    return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === validUntil ? date : null;
   }
   return null;
 }
@@ -69,7 +69,7 @@ export function formatValidity(
   validUntil: string | null | undefined,
   language: 'ar' | 'en',
 ): string {
-  if (!validUntil) return language === 'ar' ? 'غير محددة' : 'Not stated';
+  if (!validUntil || !validityEnd(validUntil)) return language === 'ar' ? 'غير محددة' : 'Not stated';
   const month = MONTH.exec(validUntil);
   if (month) {
     const name = (language === 'ar' ? MONTHS_AR : MONTHS_EN)[Number(month[2]) - 1] ?? month[2];
@@ -96,7 +96,7 @@ export function calibrationLabel(state: CalibrationState, language: 'ar' | 'en')
   }
 }
 
-/** Tailwind classes per state — green only ever means "provably in date". */
+/** Tailwind classes per state — call with a verified state before using the green valid tone. */
 export function calibrationTone(state: CalibrationState): {
   badge: string;
   card: string;

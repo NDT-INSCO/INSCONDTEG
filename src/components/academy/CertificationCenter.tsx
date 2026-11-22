@@ -1,13 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useId, type ReactNode } from 'react';
 import {
-  Award,
   CheckCircle2,
-  Circle,
   Clock,
   Calendar,
-  User,
-  ShieldCheck,
-  Printer,
   Search,
   Filter,
   ArrowRight,
@@ -15,38 +10,32 @@ import {
   AlertCircle,
   FileText,
   Sparkles,
-  HelpCircle,
-  Building2,
   Check,
   X,
   RotateCcw,
   Flag,
-  ChevronRight,
   Eye,
   BookOpen,
-  Layers,
   GraduationCap,
-  ExternalLink,
-  Download,
   AlertTriangle,
   Play,
-  Calculator
+  Calculator,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Language } from '../../types';
 import {
-  OfficialExam,
-  ExamRegistration,
+  PracticeExamExample,
+  ExamPracticePlan,
   MockExamQuestion,
   MOCK_EXAM_QUESTIONS,
-  getOfficialExams,
-  getExamRegistrations,
-  registerForExam,
-  cancelExamRegistration,
+  getPracticeExamExamples,
+  getExamPracticePlans,
+  saveExamPracticePlan,
+  removeExamPracticePlan,
   checkCandidateEligibility,
-  getMockExamQuestions,
-  EXAM_CENTERS
+  getMockExamQuestions
 } from '../../utils/certificationExamService';
+import { useEscapeKey, useModalFocus } from '../../utils/a11y';
 import { CertificationExamSimulation } from './CertificationExamSimulation';
 
 interface CertificationCenterProps {
@@ -54,6 +43,27 @@ interface CertificationCenterProps {
   onNavigateToModule?: (disciplineId: string, levelIdx: number, moduleId?: string) => void;
   onOpenRoadmap?: () => void;
   initialTab?: 'catalog' | 'registrations' | 'mock_test' | 'calculator' | 'exam_simulation';
+}
+
+function PracticeDialog({ title, closeLabel, onClose, children }: {
+  title: string; closeLabel: string; onClose: () => void; children: ReactNode;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  useEscapeKey(true, onClose);
+  useModalFocus(true, ref);
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/85 p-3 print:static print:block print:bg-white">
+      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}
+        className="max-h-[90dvh] w-full max-w-2xl space-y-4 overflow-y-auto rounded-2xl border border-slate-700 bg-slate-950 p-5 text-slate-100 print:max-h-none print:border-0 print:bg-white print:text-black sm:p-7">
+        <div className="flex items-start justify-between gap-3 border-b border-slate-700 pb-3">
+          <h3 id={titleId} className="text-lg font-bold">{title}</h3>
+          <button type="button" aria-label={closeLabel} onClick={onClose} className="rounded-lg border border-slate-600 p-2 print:hidden"><X className="size-4" aria-hidden="true" /></button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
 }
 
 export const CertificationCenter: React.FC<CertificationCenterProps> = ({
@@ -65,8 +75,8 @@ export const CertificationCenter: React.FC<CertificationCenterProps> = ({
   const isAr = language === 'ar';
 
   const [activeTab, setActiveTab] = useState<'catalog' | 'registrations' | 'mock_test' | 'calculator' | 'exam_simulation'>(initialTab);
-  const [exams, setExams] = useState<OfficialExam[]>([]);
-  const [registrations, setRegistrations] = useState<ExamRegistration[]>([]);
+  const exams = getPracticeExamExamples();
+  const [plans, setPlans] = useState<ExamPracticePlan[]>([]);
   
   // Search & Filter state for catalog
   const [searchQuery, setSearchQuery] = useState('');
@@ -74,24 +84,25 @@ export const CertificationCenter: React.FC<CertificationCenterProps> = ({
   const [selectedLevelFilter, setSelectedLevelFilter] = useState<string>('all');
   
   // Detailed Eligibility Modal / Drawer
-  const [viewingEligibilityExam, setViewingEligibilityExam] = useState<OfficialExam | null>(null);
+  const [viewingEligibilityExam, setViewingEligibilityExam] = useState<PracticeExamExample | null>(null);
 
-  // Registration Modal State
-  const [registeringExam, setRegisteringExam] = useState<OfficialExam | null>(null);
-  const [candidateName, setCandidateName] = useState('Eng. NDT Candidate');
-  const [candidateEmail, setCandidateEmail] = useState('candidate@insco-ndt.com');
-  const [nationalId, setNationalId] = useState('EGY-2940815-12345');
-  const [phone, setPhone] = useState('+20 100 123 4567');
-  const [company, setCompany] = useState('Petrochem Inspection Services');
-  const [selectedDate, setSelectedDate] = useState<string>('');
-  const [selectedCenter, setSelectedCenter] = useState<string>(EXAM_CENTERS[0].id);
-  const [formatMode, setFormatMode] = useState<'in_person_center' | 'remote_proctored'>('in_person_center');
-  const [visionConfirmed, setVisionConfirmed] = useState(true);
-  const [ethicsAgreed, setEthicsAgreed] = useState(true);
-  const [registrationSuccessTicket, setRegistrationSuccessTicket] = useState<ExamRegistration | null>(null);
+  const [planningExam, setPlanningExam] = useState<PracticeExamExample | null>(null);
+  const [studyOn, setStudyOn] = useState('');
+  const [format, setFormat] = useState<ExamPracticePlan['format']>('in_person');
+  const [viewingPlan, setViewingPlan] = useState<ExamPracticePlan | null>(null);
+  const [saveFailed, setSaveFailed] = useState(false);
 
-  // Viewing Admission Slip Modal
-  const [viewingTicket, setViewingTicket] = useState<ExamRegistration | null>(null);
+  const openPlanner = (exam: PracticeExamExample) => {
+    setPlanningExam(exam);
+    setStudyOn('');
+    setFormat('in_person');
+    setSaveFailed(false);
+  };
+
+  const closeLabel = isAr ? 'إغلاق النافذة' : 'Close dialog';
+  const practiceNotice = isAr
+    ? 'للتعلّم الذاتي فقط. لا يوجد حجز رسمي أو اعتماد صادر من هذه الصفحة.'
+    : 'Self-study only. This page does not book exams or issue professional certification.';
 
   // ---------------------------------------------------------------------------
   // Mock Practice Test Simulator State
@@ -113,22 +124,7 @@ export const CertificationCenter: React.FC<CertificationCenterProps> = ({
   const [calcExperienceMonths, setCalcExperienceMonths] = useState<number>(12);
   const [calcEducation, setCalcEducation] = useState<'high_school' | 'associate_diploma' | 'bsc_engineering'>('bsc_engineering');
 
-  // Load Exams and Registrations
-  const refreshData = () => {
-    setExams(getOfficialExams());
-    setRegistrations(getExamRegistrations());
-  };
-
-  useEffect(() => {
-    refreshData();
-    const handleUpdated = () => refreshData();
-    window.addEventListener('insco_exam_registered', handleUpdated);
-    window.addEventListener('insco_exam_registration_cancelled', handleUpdated);
-    return () => {
-      window.removeEventListener('insco_exam_registered', handleUpdated);
-      window.removeEventListener('insco_exam_registration_cancelled', handleUpdated);
-    };
-  }, []);
+  useEffect(() => { setPlans(getExamPracticePlans()); }, []);
 
   // Filtered Exams
   const filteredExams = useMemo(() => {
@@ -147,49 +143,14 @@ export const CertificationCenter: React.FC<CertificationCenterProps> = ({
     });
   }, [exams, selectedSchemeFilter, selectedLevelFilter, searchQuery]);
 
-  // Handle Register Form Submit
-  const handleConfirmRegistration = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!registeringExam) return;
-    if (!visionConfirmed || !ethicsAgreed) {
-      alert(isAr ? 'يرجى تأكيد إقرار فحص النظر وميثاق النزاهة المهنية' : 'Please confirm vision acuity and code of ethics');
-      return;
-    }
-
-    const regDate = selectedDate || registeringExam.upcomingDates[0]?.date || '2026-11-25';
-    const reg = registerForExam({
-      examId: registeringExam.id,
-      candidateName,
-      candidateEmail,
-      nationalIdOrPassport: nationalId,
-      phone,
-      companyOrUniversity: company,
-      examDate: regDate,
-      examCenter: selectedCenter,
-      examFormatMode: formatMode,
-      visionAttestationConfirmed: visionConfirmed,
-      codeOfEthicsAgreed: ethicsAgreed
-    });
-
-    setRegisteringExam(null);
-    setRegistrationSuccessTicket(reg);
-    refreshData();
-    try {
-      confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
-    } catch {
-      // ignore
-    }
-  };
-
-  // Handle Cancel Registration
-  const handleCancelRegistration = (regId: string) => {
-    if (confirm(isAr ? 'هل أنت متأكد من إلغاء حجز هذا الاختبار؟' : 'Are you sure you want to cancel this exam registration?')) {
-      cancelExamRegistration(regId);
-      refreshData();
-      if (viewingTicket?.registrationId === regId) {
-        setViewingTicket(null);
-      }
-    }
+  const handleSavePlan = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!planningExam) return;
+    const plan = saveExamPracticePlan(planningExam.id, studyOn, format);
+    if (!plan) { setSaveFailed(true); return; }
+    setPlans(getExamPracticePlans());
+    setPlanningExam(null);
+    setViewingPlan(plan);
   };
 
   // Start Mock Practice Test
@@ -260,96 +221,25 @@ export const CertificationCenter: React.FC<CertificationCenterProps> = ({
     return { total, correct, percent, passed };
   }, [isTestSubmitted, testQuestions, answers]);
 
-  // Print Admission Ticket
-  const handlePrintTicket = () => {
-    window.print();
-  };
-
   return (
     <div dir={isAr ? 'rtl' : 'ltr'} className="w-full space-y-8 animate-fadeIn text-slate-100">
       
-      {/* 1. HERO BANNER: OFFICIAL NDT CERTIFICATION & TESTING CENTER */}
-      <div className="relative overflow-hidden rounded-3xl border border-amber-500/30 bg-gradient-to-br from-[#12163b] via-[#0d102b] to-[#080a1c] p-6 sm:p-8 shadow-2xl">
-        <div className="absolute top-0 end-0 -mt-10 -me-10 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 start-0 -mb-10 -ms-10 w-72 h-72 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="relative z-10 space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-full text-xs font-mono font-bold bg-amber-500/15 text-amber-300 border border-amber-400/30">
-              <Award className="w-4 h-4 text-amber-400" />
-              <span>INSCO • OFFICIAL NDT CERTIFICATION & ASSESSMENT CENTER</span>
-            </div>
-
-            <div className="flex items-center gap-2 text-xs">
-              <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
-                ✓ {isAr ? 'أنظمة معتمدة: ASNT / ISO 9712 / API / CSWIP' : 'Accredited Schemes: ASNT / ISO 9712 / API / CSWIP'}
-              </span>
-            </div>
-          </div>
-
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight">
-            {isAr ? 'مركز تسجيل شهادات واختبارات NDT المعتمدة' : 'Official NDT Certification & Exam Registration Center'}
-          </h2>
-
-          <p className="text-slate-300 text-sm sm:text-base leading-relaxed max-w-4xl">
-            {isAr
-              ? 'بوابتك الرسمية للتحقق من شروط الأهلية والخبرة الميدانية، والتسجيل في دورات الاختبارات المهنية المعتمدة لـ ASNT و ISO 9712 و API و CSWIP، مع إمكانية خوض الاختبارات التجريبية المحاكية (Mock Exams) قبل الدخول الفعلي.'
-              : 'Your centralized portal to audit prerequisites, register for proctored NDT qualification exams (ASNT SNT-TC-1A, ISO 9712, API ICP, CSWIP), download official admission slips, and master pre-exam mock practice tests.'}
-          </p>
-
-          {/* Top Quick Status Counters */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-            <div className="rounded-2xl border border-slate-800 bg-[#0c0f24]/80 p-3.5 backdrop-blur-sm">
-              <span className="text-slate-400 text-xs flex items-center gap-1.5 mb-1">
-                <FileText className="w-3.5 h-3.5 text-amber-400" />
-                {isAr ? 'الاختبارات الرسمية المتاحة' : 'Official Exams Catalog'}
-              </span>
-              <div className="text-2xl font-black text-white">{exams.length} {isAr ? 'شهادة' : 'Certs'}</div>
-              <span className="text-[11px] text-amber-400/80 mt-1 block">
-                Level I, Level II, Level III & API
-              </span>
-            </div>
-
-            <div className="rounded-2xl border border-slate-800 bg-[#0c0f24]/80 p-3.5 backdrop-blur-sm">
-              <span className="text-slate-400 text-xs flex items-center gap-1.5 mb-1">
-                <Calendar className="w-3.5 h-3.5 text-sky-400" />
-                {isAr ? 'حجوزاتك المؤكدة' : 'Active Registrations'}
-              </span>
-              <div className="text-2xl font-black text-sky-300">{registrations.length}</div>
-              <span className="text-[11px] text-sky-400/80 mt-1 block">
-                {registrations.length > 0 ? (isAr ? 'بطاقة الدخول جاهزة' : 'Admission slips ready') : (isAr ? 'لا توجد حجوزات نشطة' : 'No active bookings')}
-              </span>
-            </div>
-
-            <div className="rounded-2xl border border-slate-800 bg-[#0c0f24]/80 p-3.5 backdrop-blur-sm">
-              <span className="text-slate-400 text-xs flex items-center gap-1.5 mb-1">
-                <Building2 className="w-3.5 h-3.5 text-purple-400" />
-                {isAr ? 'المراكز المعتمدة دولياً' : 'Authorized Testing Centers'}
-              </span>
-              <div className="text-2xl font-black text-purple-300">{EXAM_CENTERS.length}</div>
-              <span className="text-[11px] text-purple-400/80 mt-1 block">
-                {isAr ? 'الشرق الأوسط وأوروبا وأمريكا' : 'Middle East, UK & USA'}
-              </span>
-            </div>
-
-            <div className="rounded-2xl border border-slate-800 bg-[#0c0f24]/80 p-3.5 backdrop-blur-sm">
-              <span className="text-slate-400 text-xs flex items-center gap-1.5 mb-1">
-                <HelpCircle className="w-3.5 h-3.5 text-emerald-400" />
-                {isAr ? 'بنك الاختبارات التجريبية' : 'Mock Practice Bank'}
-              </span>
-              <div className="text-2xl font-black text-emerald-300">{MOCK_EXAM_QUESTIONS.length}+</div>
-              <span className="text-[11px] text-emerald-400/80 mt-1 block">
-                {isAr ? 'أسئلة عامة وخاصة وعملية' : 'General, Specific & Practical'}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <header className="space-y-3 rounded-2xl border border-sky-500/30 bg-slate-900 p-5 sm:p-7">
+        <div className="flex items-center gap-2 text-sm font-bold text-sky-300"><GraduationCap className="size-5" aria-hidden="true" />{isAr ? 'أكاديمية إنسكو · تقييم ذاتي' : 'INSCO Academy · self-assessment'}</div>
+        <h2 className="text-2xl font-black text-white sm:text-3xl">{isAr ? 'دليل التأهيل والتدريب على الاختبارات' : 'Qualification Guide & Exam Practice'}</h2>
+        <p className="max-w-prose text-sm leading-relaxed text-slate-200">{practiceNotice}</p>
+        <p className="max-w-prose text-sm leading-relaxed text-slate-300">{isAr
+          ? 'راجع أمثلة مناهج ASNT وISO 9712 وAPI وCSWIP، وجرّب المحاكاة. تحقّق من المتطلبات والإصدار الحالي لدى الجهة المانحة أو جهة العمل قبل التقدم.'
+          : 'Explore examples for ASNT, ISO 9712, API and CSWIP, and try a simulator. Confirm the current requirements with the awarding body or your employer before applying.'}</p>
+        <p className="text-xs text-slate-300">{exams.length} {isAr ? 'أمثلة تدريبية' : 'practice examples'} · {MOCK_EXAM_QUESTIONS.length} {isAr ? 'سؤال للتقييم الذاتي' : 'self-check questions'}</p>
+      </header>
 
       {/* 2. NAVIGATION SEGMENT TABS */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
         <div className="flex flex-wrap items-center gap-2">
           <button
+            type="button"
+            aria-pressed={activeTab === 'catalog'}
             onClick={() => setActiveTab('catalog')}
             className={`px-4 py-2.5 rounded-xl font-black text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer ${
               activeTab === 'catalog'
@@ -362,6 +252,8 @@ export const CertificationCenter: React.FC<CertificationCenterProps> = ({
           </button>
 
           <button
+            type="button"
+            aria-pressed={activeTab === 'registrations'}
             onClick={() => setActiveTab('registrations')}
             className={`px-4 py-2.5 rounded-xl font-black text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer relative ${
               activeTab === 'registrations'
@@ -370,15 +262,17 @@ export const CertificationCenter: React.FC<CertificationCenterProps> = ({
             }`}
           >
             <FileText className="w-4 h-4" />
-            <span>{isAr ? 'حجوزاتي وبطاقات الدخول' : 'My Registrations & Slips'}</span>
-            {registrations.length > 0 && (
+            <span>{isAr ? 'خطط المذاكرة' : 'My study plans'}</span>
+            {plans.length > 0 && (
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500 text-slate-950">
-                {registrations.length}
+                {plans.length}
               </span>
             )}
           </button>
 
           <button
+            type="button"
+            aria-pressed={activeTab === 'mock_test'}
             onClick={() => setActiveTab('mock_test')}
             className={`px-4 py-2.5 rounded-xl font-black text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer ${
               activeTab === 'mock_test'
@@ -392,6 +286,8 @@ export const CertificationCenter: React.FC<CertificationCenterProps> = ({
 
           <button
             data-testid="tab-exam-simulation"
+            type="button"
+            aria-pressed={activeTab === 'exam_simulation'}
             onClick={() => setActiveTab('exam_simulation')}
             className={`px-4 py-2.5 rounded-xl font-black text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer ${
               activeTab === 'exam_simulation'
@@ -404,6 +300,8 @@ export const CertificationCenter: React.FC<CertificationCenterProps> = ({
           </button>
 
           <button
+            type="button"
+            aria-pressed={activeTab === 'calculator'}
             onClick={() => setActiveTab('calculator')}
             className={`px-4 py-2.5 rounded-xl font-black text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer ${
               activeTab === 'calculator'
@@ -438,7 +336,7 @@ export const CertificationCenter: React.FC<CertificationCenterProps> = ({
               <Search className="w-4 h-4 text-slate-400 absolute top-3.5 start-3.5 pointer-events-none" />
               <input
                 type="text"
-                value={searchQuery}
+                aria-label={isAr ? 'بحث في أمثلة الاختبارات' : 'Search example exams'} value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder={
                   isAr
@@ -453,7 +351,7 @@ export const CertificationCenter: React.FC<CertificationCenterProps> = ({
             <div className="flex items-center gap-2">
               <span className="text-xs text-slate-400 font-bold shrink-0">{isAr ? 'نظام الاعتماد:' : 'Scheme:'}</span>
               <select
-                value={selectedSchemeFilter}
+                aria-label={isAr ? 'نظام التأهيل' : 'Qualification scheme'} value={selectedSchemeFilter}
                 onChange={e => setSelectedSchemeFilter(e.target.value)}
                 className="bg-[#070918] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 cursor-pointer"
               >
@@ -469,7 +367,7 @@ export const CertificationCenter: React.FC<CertificationCenterProps> = ({
             <div className="flex items-center gap-2">
               <span className="text-xs text-slate-400 font-bold shrink-0">{isAr ? 'المستوى:' : 'Level:'}</span>
               <select
-                value={selectedLevelFilter}
+                aria-label={isAr ? 'المستوى' : 'Level'} value={selectedLevelFilter}
                 onChange={e => setSelectedLevelFilter(e.target.value)}
                 className="bg-[#070918] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 cursor-pointer"
               >
@@ -495,7 +393,7 @@ export const CertificationCenter: React.FC<CertificationCenterProps> = ({
                   <div className="space-y-4">
                     {/* Header Row */}
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span className="px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-[#141a40] text-amber-300 border border-amber-500/30">
                           {exam.code}
                         </span>
@@ -508,7 +406,7 @@ export const CertificationCenter: React.FC<CertificationCenterProps> = ({
                       {eligReport.isEligible ? (
                         <span className="text-xs font-bold text-emerald-400 flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 rounded-full">
                           <CheckCircle2 className="w-3.5 h-3.5" />
-                          {isAr ? 'مستوفٍ للشروط المبدئية' : 'Eligible to Register'}
+                          {isAr ? 'مستوفٍ في المثال التدريبي' : 'Met in this example'}
                         </span>
                       ) : (
                         <span className="text-xs font-bold text-amber-400 flex items-center gap-1 bg-amber-500/10 border border-amber-500/30 px-2.5 py-0.5 rounded-full">
@@ -531,7 +429,7 @@ export const CertificationCenter: React.FC<CertificationCenterProps> = ({
                     {/* Key Metrics Grid */}
                     <div className="grid grid-cols-3 gap-2 bg-[#060818] p-3 rounded-2xl border border-slate-800/80 text-xs text-slate-300">
                       <div>
-                        <span className="text-slate-400 block text-[11px] mb-0.5">{isAr ? 'مدة الامتحان' : 'Duration'}</span>
+                        <span className="text-slate-400 block text-[11px] mb-0.5">{isAr ? 'مدة المثال' : 'Example duration'}</span>
                         <span className="font-bold text-white flex items-center gap-1">
                           <Clock className="w-3.5 h-3.5 text-sky-400" />
                           {exam.examFormat.durationMinutes} {isAr ? 'دقيقة' : 'min'}
@@ -539,17 +437,15 @@ export const CertificationCenter: React.FC<CertificationCenterProps> = ({
                       </div>
 
                       <div>
-                        <span className="text-slate-400 block text-[11px] mb-0.5">{isAr ? 'نسبة النجاح' : 'Pass Score'}</span>
+                        <span className="text-slate-400 block text-[11px] mb-0.5">{isAr ? 'هدف التدريب' : 'Practice target'}</span>
                         <span className="font-bold text-emerald-400 font-mono">
                           {exam.examFormat.passingScorePercent}%
                         </span>
                       </div>
 
                       <div>
-                        <span className="text-slate-400 block text-[11px] mb-0.5">{isAr ? 'رسوم الدخول' : 'Official Fee'}</span>
-                        <span className="font-bold text-amber-300 font-mono">
-                          ${exam.feeUSD}
-                        </span>
+                        <span className="text-slate-300 block text-[11px]">{isAr ? 'الاستخدام' : 'Use'}</span>
+                        <span className="font-bold">{isAr ? 'تدريبي' : 'Practice'}</span>
                       </div>
                     </div>
 
@@ -580,7 +476,7 @@ export const CertificationCenter: React.FC<CertificationCenterProps> = ({
                       <span>{isAr ? 'شروط الأهلية بالتفصيل' : 'View Eligibility'}</span>
                     </button>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <button
                         onClick={() => startMockTest(exam.id)}
                         className="px-3 py-2 rounded-xl text-xs font-bold bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 transition flex items-center gap-1.5 cursor-pointer"
@@ -591,14 +487,12 @@ export const CertificationCenter: React.FC<CertificationCenterProps> = ({
                       </button>
 
                       <button
-                        onClick={() => {
-                          setRegisteringExam(exam);
-                          setSelectedDate(exam.upcomingDates[0]?.date || '');
-                        }}
+                        type="button" aria-haspopup="dialog"
+                        onClick={() => openPlanner(exam)}
                         className="px-4 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-amber-400 to-amber-500 hover:brightness-110 text-slate-950 transition flex items-center gap-1.5 shadow-md shadow-amber-500/20 cursor-pointer"
                       >
                         <Calendar className="w-3.5 h-3.5" />
-                        <span>{isAr ? 'حجز موعد الاختبار' : 'Register for Exam'}</span>
+                        <span>{isAr ? 'خطّط للمذاكرة' : 'Plan study session'}</span>
                       </button>
                     </div>
                   </div>
@@ -609,124 +503,29 @@ export const CertificationCenter: React.FC<CertificationCenterProps> = ({
         </section>
       )}
 
-      {/* =========================================================================
-          TAB 2: ACTIVE REGISTRATIONS & OFFICIAL ADMISSION SLIPS
-         ========================================================================= */}
       {activeTab === 'registrations' && (
-        <section aria-label={isAr ? 'حجوزات الاختبارات' : 'Active Registrations'} className="space-y-6">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-            <div>
-              <h3 className="text-xl font-black text-white flex items-center gap-2">
-                <FileText className="w-5 h-5 text-amber-400" />
-                <span>{isAr ? 'حجوزاتك المؤكدة وبطاقات دخول الاختبارات' : 'Your Scheduled Exams & Admission Tickets'}</span>
-              </h3>
-              <p className="text-slate-400 text-xs sm:text-sm mt-0.5">
-                {isAr
-                  ? 'يرجى طباعة بطاقة الدخول (Admission Ticket) وإحضار إثبات الشخصية الأصلي يوم الاختبار إلى المركز المعتمد.'
-                  : 'Please print your admission ticket and bring valid government photo ID to the test center on your scheduled date.'}
-              </p>
-            </div>
-
-            <button
-              onClick={() => setActiveTab('catalog')}
-              className="px-3.5 py-1.5 rounded-xl bg-amber-500 text-slate-950 font-bold text-xs hover:bg-amber-400 transition cursor-pointer"
-            >
-              + {isAr ? 'حجز اختبار جديد' : 'Register New Exam'}
-            </button>
+        <section aria-label={isAr ? 'خطط المذاكرة' : 'Study plans'} className="space-y-4">
+          <h3 className="text-xl font-bold text-white">{isAr ? 'خطط المذاكرة' : 'My study plans'}</h3>
+          <p className="text-sm text-slate-300">{isAr ? 'الخطط شخصية ولا تُرسل لأي جهة. قد لا تنتقل معك إلى جهاز أو جلسة أخرى.' : 'Plans are personal and are not sent anywhere. They may not follow you to another device or session.'}</p>
+          {plans.length === 0 && <p className="text-sm text-slate-300">{isAr ? 'لا توجد خطط مذاكرة محفوظة.' : 'No study plans saved.'}</p>}
+          <div className="grid gap-3 md:grid-cols-2">
+            {plans.map(plan => (
+              <article key={plan.id} className="space-y-3 rounded-xl border border-slate-700 bg-slate-900 p-4">
+                <h4 className="font-bold">{exams.find(exam => exam.id === plan.examId)?.title[language]}</h4>
+                <p className="text-sm text-slate-300"><bdi>{plan.studyOn}</bdi></p>
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" aria-haspopup="dialog" onClick={() => setViewingPlan(plan)} className="rounded-lg border border-slate-600 px-3 py-2 text-sm">{isAr ? 'عرض وطباعة الخطة' : 'View or print plan'}</button>
+                  <button type="button" onClick={() => {
+                    const removed = removeExamPracticePlan(plan.id);
+                    setSaveFailed(!removed);
+                    if (removed) setPlans(getExamPracticePlans());
+                  }} className="rounded-lg border border-slate-600 px-3 py-2 text-sm">{isAr ? 'حذف الخطة' : 'Remove plan'}</button>
+                </div>
+              </article>
+            ))}
           </div>
-
-          {registrations.length === 0 ? (
-            <div className="rounded-3xl border border-dashed border-slate-800 p-12 text-center space-y-4 bg-[#0a0d24]">
-              <div className="w-14 h-14 rounded-full bg-slate-800/80 flex items-center justify-center mx-auto text-slate-400">
-                <Calendar className="w-7 h-7" />
-              </div>
-              <h4 className="text-lg font-black text-white">{isAr ? 'لا توجد اختبارات مسجلة حالياً' : 'No Active Exam Registrations Found'}</h4>
-              <p className="text-slate-400 text-xs sm:text-sm max-w-md mx-auto">
-                {isAr
-                  ? 'استعرض دليل الاختبارات الرسمية لاختيار الشهادة الأنسب لمسارك، واطلع على شروط الخبرة وساعات التدريب ثم أكد حجزك.'
-                  : 'Explore the official exam catalog to choose the right qualification for your career path and schedule your examination session.'}
-              </p>
-              <button
-                onClick={() => setActiveTab('catalog')}
-                className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition cursor-pointer"
-              >
-                {isAr ? 'استعراض دليل الاختبارات الآن' : 'Browse Exam Catalog Now'}
-              </button>
-            </div>
-          ) : (
-            <div className="grid md:grid-cols-2 gap-5">
-              {registrations.map((reg) => {
-                const exam = exams.find(e => e.id === reg.examId) || exams[0];
-                const centerObj = EXAM_CENTERS.find(c => c.id === reg.examCenter);
-
-                return (
-                  <div
-                    key={reg.registrationId}
-                    className="rounded-3xl border border-slate-800 bg-[#0d102c] p-6 space-y-4 shadow-xl hover:border-amber-500/40 transition"
-                  >
-                    <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                      <span className="text-xs font-mono font-bold text-amber-300 bg-amber-500/10 border border-amber-500/30 px-2.5 py-1 rounded-lg">
-                        {reg.admissionNumber}
-                      </span>
-                      <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        {reg.status}
-                      </span>
-                    </div>
-
-                    <div>
-                      <h4 className="text-base sm:text-lg font-black text-white">{exam.title[language]}</h4>
-                      <p className="text-xs text-slate-400 mt-1">{isAr ? 'المرشح:' : 'Candidate:'} <strong className="text-white">{reg.candidateName}</strong></p>
-                    </div>
-
-                    <div className="bg-[#070918] p-3.5 rounded-2xl border border-slate-800/80 text-xs space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-slate-400 flex items-center gap-1.5">
-                          <Calendar className="w-3.5 h-3.5 text-sky-400" />
-                          {isAr ? 'تاريخ الجلسة:' : 'Exam Date:'}
-                        </span>
-                        <span className="font-bold text-white">{reg.examDate}</span>
-                      </div>
-
-                      <div className="flex justify-between">
-                        <span className="text-slate-400 flex items-center gap-1.5">
-                          <Building2 className="w-3.5 h-3.5 text-purple-400" />
-                          {isAr ? 'المركز المعتمد:' : 'Testing Center:'}
-                        </span>
-                        <span className="font-medium text-slate-200 text-end truncate max-w-[200px]">
-                          {centerObj ? (isAr ? centerObj.nameAr : centerObj.nameEn) : reg.examCenter}
-                        </span>
-                      </div>
-
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">{isAr ? 'نظام الامتحان:' : 'Delivery Mode:'}</span>
-                        <span className="font-bold text-emerald-400">
-                          {reg.examFormatMode === 'in_person_center' ? (isAr ? 'حضوري بالمركز' : 'In-Person Center') : (isAr ? 'عن بُعد مع مراقب' : 'Remote Proctored')}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="pt-2 flex flex-wrap items-center justify-between gap-2">
-                      <button
-                        onClick={() => setViewingTicket(reg)}
-                        className="px-4 py-2 rounded-xl text-xs font-bold bg-amber-500 text-slate-950 hover:bg-amber-400 transition flex items-center gap-1.5 cursor-pointer shadow"
-                      >
-                        <Printer className="w-3.5 h-3.5" />
-                        <span>{isAr ? 'عرض وطباعة بطاقة الدخول' : 'View Admission Ticket'}</span>
-                      </button>
-
-                      <button
-                        onClick={() => handleCancelRegistration(reg.registrationId)}
-                        className="px-3 py-2 rounded-xl text-xs font-bold text-red-400 hover:bg-red-500/10 border border-red-500/25 transition cursor-pointer"
-                      >
-                        {isAr ? 'إلغاء الحجز' : 'Cancel'}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          {saveFailed && <p role="alert" className="text-sm text-rose-300">{isAr ? 'تعذّر تحديث الخطط.' : 'Could not update study plans.'}</p>}
+          <button type="button" onClick={() => setActiveTab('catalog')} className="rounded-lg bg-sky-300 px-3 py-2 text-sm font-bold text-slate-950">{isAr ? 'استعرض أمثلة الاختبارات' : 'Browse example exams'}</button>
         </section>
       )}
 
@@ -743,7 +542,7 @@ export const CertificationCenter: React.FC<CertificationCenterProps> = ({
                   <Sparkles className="w-7 h-7" />
                 </div>
                 <h3 className="text-2xl font-black text-white">
-                  {isAr ? 'محاكي الاختبارات التأهيلية الرسمية لـ NDT' : 'Official NDT Pre-Exam Mock Test Simulator'}
+                  {isAr ? 'محاكي اختبارات الفحص غير الإتلافي' : 'NDT Mock Test Simulator'}
                 </h3>
                 <p className="text-slate-300 text-xs sm:text-sm max-w-xl mx-auto leading-relaxed">
                   {isAr
@@ -757,7 +556,7 @@ export const CertificationCenter: React.FC<CertificationCenterProps> = ({
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-300">{isAr ? 'اختر تخصص الاختبار التجريبي:' : 'Select Target Exam Specialty:'}</label>
                   <select
-                    value={mockExamId}
+                    aria-label={isAr ? 'موضوع الاختبار التجريبي' : 'Practice exam specialty'} value={mockExamId}
                     onChange={e => setMockExamId(e.target.value)}
                     className="w-full bg-[#0d102c] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 cursor-pointer"
                   >
@@ -772,7 +571,7 @@ export const CertificationCenter: React.FC<CertificationCenterProps> = ({
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-300">{isAr ? 'قسم الامتحان المستهدف:' : 'Examination Section Target:'}</label>
                   <select
-                    value={mockSection}
+                    aria-label={isAr ? 'قسم الاختبار التجريبي' : 'Practice exam section'} value={mockSection}
                     onChange={e => setMockSection(e.target.value as any)}
                     className="w-full bg-[#0d102c] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 cursor-pointer"
                   >
@@ -792,7 +591,7 @@ export const CertificationCenter: React.FC<CertificationCenterProps> = ({
                 </strong>
                 <ul className="space-y-1 list-disc list-inside text-slate-300">
                   <li>{isAr ? 'زمن الاختبار: 45 دقيقة مؤقتة مع تنبيهات عند اقتراب النهاية.' : 'Timer duration: 45 minutes countdown with alerts.'}</li>
-                  <li>{isAr ? 'نسبة النجاح المقررة: 70% كحد أدنى لكل قسم، أو 80% في ASNT المركب.' : 'Passing threshold: 70% minimum per part (80% composite for ASNT).' }</li>
+                  <li>{isAr ? 'هدف التدريب المقررة: 70% كحد أدنى لكل قسم، أو 80% في ASNT المركب.' : 'Passing threshold: 70% minimum per part (80% composite for ASNT).' }</li>
                   <li>{isAr ? 'يمكنك وضع علامة (Flag) على أي سؤال لمراجعته لاحقاً قبل التسليم النهائي.' : 'You can Flag questions to review later before final submission.'}</li>
                 </ul>
               </div>
@@ -1023,7 +822,7 @@ export const CertificationCenter: React.FC<CertificationCenterProps> = ({
                     className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition flex items-center gap-2 cursor-pointer"
                   >
                     <Calendar className="w-4 h-4" />
-                    <span>{isAr ? 'التسجيل في الاختبار الرسمي الحقيقي' : 'Register for Real Exam Session'}</span>
+                    <span>{isAr ? 'راجع أمثلة الاختبارات' : 'Review exam examples'}</span>
                   </button>
                 </div>
 
@@ -1127,7 +926,7 @@ export const CertificationCenter: React.FC<CertificationCenterProps> = ({
             <div className="space-y-4 bg-[#070918] p-5 rounded-2xl border border-slate-800">
               <div className="space-y-1.5">
                 <div className="flex justify-between text-xs font-bold text-slate-300">
-                  <span>{isAr ? 'ساعات التدريب الصفي/المعملي المعتمدة:' : 'Classroom & Simulator Training Hours:'}</span>
+                  <span>{isAr ? 'ساعات الدراسة / التدريب المدخلة:' : 'Reported study / training hours:'}</span>
                   <span className="text-amber-400 font-mono">{calcHours} {isAr ? 'ساعة' : 'hours'}</span>
                 </div>
                 <input
@@ -1135,7 +934,7 @@ export const CertificationCenter: React.FC<CertificationCenterProps> = ({
                   min="0"
                   max="240"
                   step="10"
-                  value={calcHours}
+                  aria-label={isAr ? 'ساعات التدريب' : 'Training hours'} value={calcHours}
                   onChange={e => setCalcHours(Number(e.target.value))}
                   className="w-full accent-amber-500 cursor-pointer"
                 />
@@ -1151,7 +950,7 @@ export const CertificationCenter: React.FC<CertificationCenterProps> = ({
                   min="0"
                   max="48"
                   step="1"
-                  value={calcExperienceMonths}
+                  aria-label={isAr ? 'شهور الخبرة' : 'Experience in months'} value={calcExperienceMonths}
                   onChange={e => setCalcExperienceMonths(Number(e.target.value))}
                   className="w-full accent-sky-500 cursor-pointer"
                 />
@@ -1160,7 +959,7 @@ export const CertificationCenter: React.FC<CertificationCenterProps> = ({
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-300 block">{isAr ? 'المؤهل الأكاديمي الأساسي:' : 'Educational Qualification Level:'}</label>
                 <select
-                  value={calcEducation}
+                  aria-label={isAr ? 'المؤهل التعليمي' : 'Education level'} value={calcEducation}
                   onChange={e => setCalcEducation(e.target.value as any)}
                   className="w-full bg-[#0d102c] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 cursor-pointer"
                 >
@@ -1176,33 +975,33 @@ export const CertificationCenter: React.FC<CertificationCenterProps> = ({
               let eligibleLevel = 'Pre-Level I Foundation';
               let eligibleTitleAr = 'المستوى التمهيدي للأساس العلمي (Pre-Level I)';
               let eligibleTitleEn = 'Pre-Level I Scientific Foundation';
-              let descriptionAr = 'يوصى بإتمام المزيد من الساعات التدريبية للوصول لرتبة مشغل معتمد.';
-              let descriptionEn = 'Recommended to accumulate more accredited training hours to qualify for Level I operator.';
+              let descriptionAr = 'راجع المثال للمستوى الأول. شروط التأهيل الفعلية تحددها جهة العمل أو الجهة المانحة.';
+              let descriptionEn = 'Review the entry-level example. Actual requirements depend on the employer or certifying body.';
 
               if (calcHours >= 160 && calcExperienceMonths >= 24) {
                 eligibleLevel = 'Level III / API 570 Inspector';
-                eligibleTitleAr = 'مستوى ثالث أو مفتش أنظمة API 570/510 معتمد';
-                eligibleTitleEn = 'Level III Consultant / API 570 Authorized Inspector';
-                descriptionAr = 'مؤهل للتقدم لامتحانات المستويات القيادية واعتماد إجراءات التفتيش.';
-                descriptionEn = 'Qualified for senior authority exams, procedure approvals, and in-service plant inspection.';
+                eligibleTitleAr = 'مثال متقدم للمستوى الثالث أو API 570/510';
+                eligibleTitleEn = 'Advanced Level III / API 570 example';
+                descriptionAr = 'مدخلاتك تطابق هذا المثال المتقدم. لا تمنحك إذنًا للتفتيش أو لاعتماد الإجراءات.';
+                descriptionEn = 'Your input matches this advanced study example, not an authorization to inspect or approve procedures.';
               } else if (calcHours >= 80 && calcExperienceMonths >= 9) {
                 eligibleLevel = 'Level II Senior Inspector';
-                eligibleTitleAr = 'مفتش NDT المستوى الثاني (Level II Sizing & Acceptance)';
-                eligibleTitleEn = 'Level II Senior NDT Inspector (Sizing & Acceptance)';
-                descriptionAr = 'مؤهل لإجراء اختبارات المستوى الثاني الكودية وتقييم العيوب وتوقيع التقارير.';
-                descriptionEn = 'Qualified for Level II exams, DAC curve calibrations, flaw sizing, and signing reports.';
+                eligibleTitleAr = 'مثال دراسة للمستوى الثاني (Level II)';
+                eligibleTitleEn = 'Level II study example';
+                descriptionAr = 'مدخلاتك تطابق هذا المثال، وليس ذلك إذنًا لتقييم العيوب أو توقيع التقارير.';
+                descriptionEn = 'Your input matches this example, not an authorization to evaluate flaws or sign reports.';
               } else if (calcHours >= 40 && calcExperienceMonths >= 3) {
                 eligibleLevel = 'Level I Operator';
-                eligibleTitleAr = 'مشغل فحص غير إتلافي المستوى الأول (Level I Operator)';
-                eligibleTitleEn = 'Level I Certified NDT Operator';
-                descriptionAr = 'مؤهل لامتحانات المستوى الأول لمعايرة الأجهزة وتطبيق الفحص الميداني.';
-                descriptionEn = 'Qualified for Level I calibration and field testing operator exams.';
+                eligibleTitleAr = 'مثال دراسة للمستوى الأول (Level I)';
+                eligibleTitleEn = 'Level I study example';
+                descriptionAr = 'مدخلاتك تطابق هذا المثال، لا متطلبات تشغيل المعدات ميدانيًا.';
+                descriptionEn = 'Your input matches this example, not the requirements for operating equipment in the field.';
               }
 
               return (
                 <div className="rounded-2xl border-2 border-emerald-500/40 bg-gradient-to-br from-[#0c1a2e] to-[#070e1c] p-5 space-y-3">
                   <span className="text-[11px] font-mono font-bold text-emerald-400 uppercase tracking-wider block">
-                    {isAr ? 'نتيجة تقييم الأهلية المبدئية' : 'CALCULATED ELIGIBILITY STATUS'}
+                    {isAr ? 'نتيجة المقارنة التدريبية' : 'ILLUSTRATIVE STUDY MATCH'}
                   </span>
                   <h4 className="text-xl font-black text-white">
                     {isAr ? eligibleTitleAr : eligibleTitleEn}
@@ -1215,7 +1014,7 @@ export const CertificationCenter: React.FC<CertificationCenterProps> = ({
                       onClick={() => setActiveTab('catalog')}
                       className="px-4 py-2 rounded-xl bg-amber-500 text-slate-950 font-black text-xs hover:bg-amber-400 transition cursor-pointer"
                     >
-                      {isAr ? 'الانتقال لدليل الامتحانات والتسجيل ←' : 'Go to Exam Catalog & Register →'}
+                      {isAr ? 'استعرض أمثلة الاختبارات' : 'Browse exam examples'}
                     </button>
                   </div>
                 </div>
@@ -1241,26 +1040,13 @@ export const CertificationCenter: React.FC<CertificationCenterProps> = ({
           MODAL 1: VIEW DETAILED ELIGIBILITY REQUIREMENTS
          ========================================================================= */}
       {viewingEligibilityExam && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#0e1233] border border-slate-700 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8 space-y-6 shadow-2xl animate-scaleUp">
-            <div className="flex items-start justify-between border-b border-slate-800 pb-4">
-              <div>
-                <span className="text-xs font-mono font-bold text-amber-400">{viewingEligibilityExam.code}</span>
-                <h3 className="text-xl font-black text-white mt-1">{viewingEligibilityExam.title[language]}</h3>
-              </div>
-              <button
-                onClick={() => setViewingEligibilityExam(null)}
-                className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
+        <PracticeDialog title={viewingEligibilityExam.title[language]} closeLabel={closeLabel} onClose={() => setViewingEligibilityExam(null)}>
+            <p className="text-sm text-sky-200">{practiceNotice}</p>
             <div className="space-y-4 text-xs sm:text-sm text-slate-300">
               <div className="grid sm:grid-cols-2 gap-3">
                 <div className="bg-[#070918] p-4 rounded-xl border border-slate-800 space-y-1">
                   <span className="text-slate-400 block font-semibold">{isAr ? 'ساعات التدريب المطلوبة:' : 'Training Hours Required:'}</span>
-                  <p className="text-white font-bold text-base">{viewingEligibilityExam.prerequisites.trainingHours} {isAr ? 'ساعة تدريبية معتمدة' : 'Accredited Hours'}</p>
+                  <p className="text-white font-bold text-base">{viewingEligibilityExam.prerequisites.trainingHours} {isAr ? 'ساعة تدريب في المثال' : 'Example training hours'}</p>
                 </div>
 
                 <div className="bg-[#070918] p-4 rounded-xl border border-slate-800 space-y-1">
@@ -1286,7 +1072,7 @@ export const CertificationCenter: React.FC<CertificationCenterProps> = ({
               </div>
 
               <div className="bg-[#070918] p-4 rounded-xl border border-slate-800 space-y-1">
-                <span className="text-slate-400 block font-semibold">{isAr ? 'الأكواد المرجعية المقررة في الاختبار:' : 'Required Governing Codes:'}</span>
+                <span className="text-slate-400 block font-semibold">{isAr ? 'المراجع لهذا المثال:' : 'References for this example:'}</span>
                 <div className="flex flex-wrap gap-1.5 mt-1.5">
                   {viewingEligibilityExam.prerequisites.applicableCodes.map((c, i) => (
                     <span key={i} className="px-2.5 py-1 rounded bg-[#13173d] text-cyan-300 font-mono text-xs border border-cyan-500/30">
@@ -1308,345 +1094,45 @@ export const CertificationCenter: React.FC<CertificationCenterProps> = ({
                 onClick={() => {
                   const target = viewingEligibilityExam;
                   setViewingEligibilityExam(null);
-                  setRegisteringExam(target);
+                  openPlanner(target);
                 }}
                 className="px-5 py-2 rounded-xl bg-amber-500 text-slate-950 text-xs font-black hover:bg-amber-400 transition cursor-pointer"
               >
-                {isAr ? 'متابعة الحجز والتسجيل' : 'Proceed to Registration'}
+                {isAr ? 'خطّط للمذاكرة' : 'Plan a study session'}
               </button>
             </div>
-          </div>
-        </div>
+        </PracticeDialog>
       )}
 
-      {/* =========================================================================
-          MODAL 2: EXAM REGISTRATION WORKFLOW FORM
-         ========================================================================= */}
-      {registeringExam && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
-          <form
-            onSubmit={handleConfirmRegistration}
-            className="bg-[#0e1233] border border-amber-500/40 rounded-3xl max-w-2xl w-full max-h-[92vh] overflow-y-auto p-6 sm:p-8 space-y-5 shadow-2xl animate-scaleUp"
-          >
-            <div className="flex items-start justify-between border-b border-slate-800 pb-4">
-              <div>
-                <span className="text-xs font-mono font-bold text-amber-400 uppercase tracking-wider block">
-                  {registeringExam.accreditationBody} • REGISTRATION FORM
-                </span>
-                <h3 className="text-xl font-black text-white mt-1">
-                  {registeringExam.title[language]}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setRegisteringExam(null)}
-                className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Form Fields */}
-            <div className="space-y-4 text-xs sm:text-sm">
-              <div className="grid sm:grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-slate-300 font-bold block">{isAr ? 'الاسم الكامل (كما في جواز السفر):' : 'Full Name (as in Passport):'}</label>
-                  <input
-                    type="text"
-                    required
-                    value={candidateName}
-                    onChange={e => setCandidateName(e.target.value)}
-                    className="w-full bg-[#070918] border border-slate-700 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-amber-400"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-slate-300 font-bold block">{isAr ? 'البريد الإلكتروني المهني:' : 'Email Address:'}</label>
-                  <input
-                    type="email"
-                    required
-                    value={candidateEmail}
-                    onChange={e => setCandidateEmail(e.target.value)}
-                    className="w-full bg-[#070918] border border-slate-700 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-amber-400"
-                  />
-                </div>
-              </div>
-
-              <div className="grid sm:grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-slate-300 font-bold block">{isAr ? 'رقم الهوية الوطنية / جواز السفر:' : 'National ID / Passport Number:'}</label>
-                  <input
-                    type="text"
-                    required
-                    value={nationalId}
-                    onChange={e => setNationalId(e.target.value)}
-                    className="w-full bg-[#070918] border border-slate-700 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-amber-400"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-slate-300 font-bold block">{isAr ? 'جهة العمل / الشركة / الجامعة:' : 'Company / Sponsor / University:'}</label>
-                  <input
-                    type="text"
-                    value={company}
-                    onChange={e => setCompany(e.target.value)}
-                    className="w-full bg-[#070918] border border-slate-700 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-amber-400"
-                  />
-                </div>
-              </div>
-
-              {/* Date Selection */}
-              <div className="space-y-1">
-                <label className="text-slate-300 font-bold block">{isAr ? 'موعد جلسة الاختبار المفضلة:' : 'Select Examination Session Date:'}</label>
-                <div className="grid sm:grid-cols-3 gap-2">
-                  {registeringExam.upcomingDates.map((d) => (
-                    <label
-                      key={d.id}
-                      className={`p-3 rounded-xl border text-xs cursor-pointer transition flex flex-col justify-between ${
-                        selectedDate === d.date
-                          ? 'bg-amber-500/20 border-amber-400 text-white'
-                          : 'bg-[#070918] border-slate-800 text-slate-300 hover:border-slate-700'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="examDate"
-                        checked={selectedDate === d.date}
-                        onChange={() => setSelectedDate(d.date)}
-                        className="sr-only"
-                      />
-                      <span className="font-bold text-white block">{d.date}</span>
-                      <span className="text-[11px] text-slate-400 mt-1">{d.session}</span>
-                      <span className="text-[10px] text-emerald-400 mt-1">{d.seatsLeft} {isAr ? 'مقاعد شاغرة' : 'seats left'}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Center Selection */}
-              <div className="space-y-1">
-                <label className="text-slate-300 font-bold block">{isAr ? 'المركز المعتمد للاختبار:' : 'Authorized Examination Center:'}</label>
-                <select
-                  value={selectedCenter}
-                  onChange={e => setSelectedCenter(e.target.value)}
-                  className="w-full bg-[#070918] border border-slate-700 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-amber-400 cursor-pointer text-xs sm:text-sm"
-                >
-                  {EXAM_CENTERS.map(c => (
-                    <option key={c.id} value={c.id}>
-                      {isAr ? c.nameAr : c.nameEn} ({c.country})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Format Mode */}
-              <div className="space-y-1">
-                <label className="text-slate-300 font-bold block">{isAr ? 'نظام أداء الاختبار:' : 'Test Delivery Option:'}</label>
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <label className={`p-3 rounded-xl border cursor-pointer ${formatMode === 'in_person_center' ? 'bg-sky-500/20 border-sky-400 text-white' : 'bg-[#070918] border-slate-800 text-slate-300'}`}>
-                    <input
-                      type="radio"
-                      name="formatMode"
-                      checked={formatMode === 'in_person_center'}
-                      onChange={() => setFormatMode('in_person_center')}
-                      className="sr-only"
-                    />
-                    <strong className="block mb-1">{isAr ? 'حضوري بالمركز المعتمد' : 'In-Person Testing Center'}</strong>
-                    <span className="text-[11px] text-slate-400">{isAr ? 'يشمل فحص العينات الحقيقية' : 'Includes physical specimens'}</span>
-                  </label>
-
-                  <label className={`p-3 rounded-xl border cursor-pointer ${formatMode === 'remote_proctored' ? 'bg-sky-500/20 border-sky-400 text-white' : 'bg-[#070918] border-slate-800 text-slate-300'}`}>
-                    <input
-                      type="radio"
-                      name="formatMode"
-                      checked={formatMode === 'remote_proctored'}
-                      onChange={() => setFormatMode('remote_proctored')}
-                      className="sr-only"
-                    />
-                    <strong className="block mb-1">{isAr ? 'اختبار رقمي عن بُعد (Proctored)' : 'Remote Online Proctored'}</strong>
-                    <span className="text-[11px] text-slate-400">{isAr ? 'للأقسام النظرية والكودية' : 'Theory & Specific sections only'}</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Attestations */}
-              <div className="space-y-2 pt-2 border-t border-slate-800">
-                <label className="flex items-start gap-2.5 cursor-pointer text-xs text-slate-300">
-                  <input
-                    type="checkbox"
-                    checked={visionConfirmed}
-                    onChange={e => setVisionConfirmed(e.target.checked)}
-                    className="mt-0.5 accent-amber-500"
-                  />
-                  <span>
-                    {isAr
-                      ? 'أقر بأنني أجريت فحص حدة الإبصار Jaeger 1 وتمييز الألوان بنجاح ومستعد لتقديم الشهادة الطبية الأصلية يوم الاختبار.'
-                      : 'I certify that I have passed the required Jaeger J-1 near-vision acuity and color contrast tests and will present medical attestation.'}
-                  </span>
-                </label>
-
-                <label className="flex items-start gap-2.5 cursor-pointer text-xs text-slate-300">
-                  <input
-                    type="checkbox"
-                    checked={ethicsAgreed}
-                    onChange={e => setEthicsAgreed(e.target.checked)}
-                    className="mt-0.5 accent-amber-500"
-                  />
-                  <span>
-                    {isAr
-                      ? 'أوافق على ميثاق الشرف والنزاهة المهنية لـ ASNT و ISO 9712 والتزم بكافة معايير السلامة المهنية ومكافحة الغش.'
-                      : 'I agree to the ASNT / ISO 9712 Code of Ethics and professional conduct rules for certification testing.'}
-                  </span>
-                </label>
-              </div>
-            </div>
-
-            {/* Modal Actions */}
-            <div className="pt-4 flex items-center justify-between border-t border-slate-800">
-              <span className="text-xs text-slate-400">
-                {isAr ? 'الرسوم المقررة: ' : 'Official Exam Fee: '}
-                <strong className="text-amber-300 font-mono text-base">${registeringExam.feeUSD}</strong>
-              </span>
-
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setRegisteringExam(null)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold hover:bg-slate-700 cursor-pointer"
-                >
-                  {isAr ? 'إلغاء' : 'Cancel'}
-                </button>
-                <button
-                  type="submit"
-                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:brightness-110 text-slate-950 text-xs font-black transition cursor-pointer shadow-lg shadow-amber-500/20"
-                >
-                  {isAr ? 'تأكيد الحجز وإصدار بطاقة الدخول' : 'Confirm Registration & Issue Slip'}
-                </button>
-              </div>
-            </div>
+      {planningExam && (
+        <PracticeDialog title={isAr ? 'خطة مذاكرة' : 'Plan a study session'} closeLabel={closeLabel} onClose={() => setPlanningExam(null)}>
+          <p className="text-sm text-sky-200">{practiceNotice}</p>
+          <p className="font-bold">{planningExam.title[language]}</p>
+          <form onSubmit={handleSavePlan} className="space-y-4">
+            <label className="block space-y-1 text-sm">
+              <span className="block">{isAr ? 'تاريخ المذاكرة' : 'Study date'}</span>
+              <input type="date" required value={studyOn} onChange={e => setStudyOn(e.target.value)} className="w-full min-w-0 rounded-lg border border-slate-600 bg-slate-900 p-2" />
+            </label>
+            <label className="block space-y-1 text-sm">
+              <span className="block">{isAr ? 'طريقة المذاكرة' : 'Study format'}</span>
+              <select value={format} onChange={e => setFormat(e.target.value as ExamPracticePlan['format'])} className="w-full min-w-0 rounded-lg border border-slate-600 bg-slate-900 p-2">
+                <option value="in_person">{isAr ? 'مذاكرة حضورية' : 'In-person study'}</option>
+                <option value="remote">{isAr ? 'مذاكرة عن بُعد' : 'Remote study'}</option>
+              </select>
+            </label>
+            {saveFailed && <p role="alert" className="text-sm text-rose-300">{isAr ? 'تعذّر حفظ الخطة. تحقّق من التاريخ وحاول مرة أخرى.' : 'Could not save this plan. Check the date and try again.'}</p>}
+            <button type="submit" className="rounded-lg bg-sky-300 px-4 py-2 text-sm font-bold text-slate-950">{isAr ? 'احفظ خطة المذاكرة' : 'Save study plan'}</button>
           </form>
-        </div>
+        </PracticeDialog>
       )}
-
-      {/* =========================================================================
-          MODAL 3: ADMISSION TICKET / SLIP VIEW & PRINT (CANVAS STYLE)
-         ========================================================================= */}
-      {(viewingTicket || registrationSuccessTicket) && (() => {
-        const ticket = viewingTicket || registrationSuccessTicket!;
-        const exam = exams.find(e => e.id === ticket.examId) || exams[0];
-        const centerObj = EXAM_CENTERS.find(c => c.id === ticket.examCenter);
-
-        return (
-          <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-[#0b0e26] border-2 border-amber-500/40 rounded-3xl max-w-2xl w-full max-h-[92vh] overflow-y-auto p-6 sm:p-8 space-y-6 shadow-2xl animate-scaleUp print:border-black print:bg-white print:text-black">
-              {/* Slip Header */}
-              <div className="flex items-start justify-between border-b border-amber-500/30 pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 print:text-black">
-                    <Award className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <span className="text-[11px] font-mono font-bold text-amber-400 tracking-wider uppercase block">
-                      OFFICIAL EXAMINATION ADMISSION SLIP
-                    </span>
-                    <h3 className="text-xl font-black text-white print:text-black font-mono">
-                      {isAr ? 'بطاقة دخول الاختبار المهني المعتمد' : 'NDT Candidate Examination Ticket'}
-                    </h3>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 print:hidden">
-                  <button
-                    onClick={handlePrintTicket}
-                    className="p-2 rounded-xl bg-amber-500 text-slate-950 font-bold hover:bg-amber-400 transition cursor-pointer"
-                    title={isAr ? 'طباعة بطاقة الدخول' : 'Print Slip'}
-                  >
-                    <Printer className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => {
-                      setViewingTicket(null);
-                      setRegistrationSuccessTicket(null);
-                    }}
-                    className="p-2 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 cursor-pointer"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Admission Number & Barcode Simulation */}
-              <div className="bg-[#07091a] p-4 rounded-2xl border border-slate-800 flex flex-wrap items-center justify-between gap-3 print:bg-slate-100 print:border-black">
-                <div>
-                  <span className="text-slate-400 text-xs block">{isAr ? 'رقم ترخيص الدخول الرسمي:' : 'Admission Reference ID:'}</span>
-                  <span className="text-xl font-mono font-black text-amber-400 print:text-black tracking-wider">
-                    {ticket.admissionNumber}
-                  </span>
-                </div>
-
-                {/* Simulated Barcode */}
-                <div className="font-mono text-xs text-slate-400 tracking-widest bg-black px-3 py-1.5 rounded border border-slate-700 text-center">
-                  ||||| | |||| ||| ||||| ||
-                  <span className="block text-[9px] text-slate-500 mt-0.5">{ticket.registrationId}</span>
-                </div>
-              </div>
-
-              {/* Candidate & Exam Data Table */}
-              <div className="grid sm:grid-cols-2 gap-4 text-xs sm:text-sm">
-                <div className="space-y-2">
-                  <div>
-                    <span className="text-slate-400 text-xs block">{isAr ? 'اسم المرشح:' : 'Candidate Name:'}</span>
-                    <strong className="text-white print:text-black text-base">{ticket.candidateName}</strong>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 text-xs block">{isAr ? 'رقم الهوية / جواز السفر:' : 'National ID / Passport:'}</span>
-                    <span className="text-slate-200 print:text-black font-mono">{ticket.nationalIdOrPassport}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 text-xs block">{isAr ? 'جهة العمل / الانتساب:' : 'Sponsor / Company:'}</span>
-                    <span className="text-slate-200 print:text-black">{ticket.companyOrUniversity || 'Independent Candidate'}</span>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div>
-                    <span className="text-slate-400 text-xs block">{isAr ? 'الاختبار المسجل:' : 'Scheduled Exam:'}</span>
-                    <strong className="text-amber-300 print:text-black font-semibold">{exam.title[language]}</strong>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 text-xs block">{isAr ? 'تاريخ وموعد الجلسة:' : 'Session Date:'}</span>
-                    <span className="text-white print:text-black font-bold font-mono">{ticket.examDate}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 text-xs block">{isAr ? 'موقع المركز المعتمد:' : 'Center Location:'}</span>
-                    <span className="text-slate-200 print:text-black">
-                      {centerObj ? (isAr ? centerObj.nameAr : centerObj.nameEn) : ticket.examCenter}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Instructions on Exam Day */}
-              <div className="rounded-2xl border border-slate-800 bg-[#070918] p-4 text-xs text-slate-300 space-y-1.5 print:bg-slate-50 print:border-black">
-                <strong className="text-amber-400 print:text-black font-bold block flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4" />
-                  {isAr ? 'تعليمات وإرشادات يوم الاختبار للمرشح:' : 'Candidate Test Day Mandatory Guidelines:'}
-                </strong>
-                <p>• {isAr ? 'الحضور إلى المركز قبل موعد الاختبار بـ 30 دقيقة على الأقل لإجراءات التسجيل والتحقق من الهوية.' : 'Arrive at the testing center at least 30 minutes prior to session start.'}</p>
-                <p>• {isAr ? 'إحضار أصل بطاقة الرقم القومي أو جواز السفر الساري وشهادة فحص النظر الطبية.' : 'Bring original government photo ID and original eye examination attestation.'}</p>
-                <p>• {isAr ? 'الأكواد المسموح بإدخالها تخضع للتفتيش؛ يمنع إدخال الهواتف أو الساعات الذكية إلى قاعة الامتحان.' : 'Permitted code books will be audited; smart devices are strictly prohibited in the testing hall.'}</p>
-              </div>
-
-              {/* Footer */}
-              <div className="pt-2 flex items-center justify-between border-t border-slate-800 text-xs text-slate-400 print:text-black">
-                <span>{isAr ? 'تاريخ الإصدار: ' : 'Issued At: '}{new Date().toLocaleDateString()}</span>
-                <span className="font-mono">{exam.accreditationBody}</span>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
-
+      {viewingPlan && (
+        <PracticeDialog title={isAr ? 'خطة مذاكرة محفوظة' : 'Saved study plan'} closeLabel={closeLabel} onClose={() => setViewingPlan(null)}>
+          <p className="text-sm">{practiceNotice}</p>
+          <p className="font-bold">{exams.find(exam => exam.id === viewingPlan.examId)?.title[language]}</p>
+          <p className="text-sm"><bdi>{viewingPlan.studyOn}</bdi> · {viewingPlan.format === 'remote' ? (isAr ? 'مذاكرة عن بُعد' : 'Remote study') : (isAr ? 'مذاكرة حضورية' : 'In-person study')}</p>
+          <button type="button" onClick={() => window.print()} className="rounded-lg border border-slate-500 px-3 py-2 text-sm print:hidden">{isAr ? 'طباعة خطة المذاكرة' : 'Print study plan'}</button>
+        </PracticeDialog>
+      )}
     </div>
   );
 };

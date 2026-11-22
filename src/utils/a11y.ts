@@ -8,7 +8,7 @@
  * minimum contract: focusable, announced as a control, activated by Enter and
  * Space, and visible focus via `focus-visible` classes in the component.
  */
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect } from 'react';
 import type React from 'react';
 
 type ActivationEvent = React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>;
@@ -81,4 +81,54 @@ export function useEscapeKey(active: boolean, onEscape: () => void): void {
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, [active, onEscape]);
+}
+
+/** Focus the dialog, keep sequential keyboard navigation inside it, and restore its opener. */
+export function useModalFocus(active: boolean, ref: React.RefObject<HTMLElement | null>) {
+  useLayoutEffect(() => {
+    const dialog = ref.current;
+    if (!active || !dialog) return;
+    const opener = document.activeElement;
+    const native = dialog.tagName === 'DIALOG' ? dialog as HTMLDialogElement : null;
+    if (native && !native.open) {
+      if (typeof native.showModal === 'function') native.showModal();
+      else native.setAttribute('open', '');
+    }
+    const tabbables = () => Array.from(dialog.querySelectorAll<HTMLElement>(
+      'a[href], button, input:not([type="hidden"]), select, textarea, summary, [tabindex]',
+    )).filter(element => {
+      if (element.matches(':disabled') || element.tabIndex < 0 || element.closest('[hidden], [inert], [aria-hidden="true"]')) return false;
+      // Only the summary of a closed disclosure is in the tab order.
+      const closedDetails = element.closest('details:not([open])');
+      if (closedDetails && !(element.tagName === 'SUMMARY' && element.parentElement === closedDetails)) return false;
+      const style = element.ownerDocument.defaultView?.getComputedStyle(element);
+      return style?.visibility !== 'hidden' && style?.display !== 'none' &&
+        (element.checkVisibility?.({ visibilityProperty: true }) ?? true);
+    });
+    const initial = dialog.querySelector<HTMLElement>('[data-modal-initial-focus]') ?? tabbables()[0] ?? dialog;
+    initial.focus();
+    const containTab = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab' || event.defaultPrevented) return;
+      const candidates = tabbables();
+      const first = candidates[0];
+      const last = candidates.at(-1);
+      const focus = document.activeElement;
+      if (!first || !last) {
+        event.preventDefault();
+        dialog.focus();
+      } else if (!focus || !candidates.includes(focus as HTMLElement) || (event.shiftKey ? focus === first : focus === last)) {
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus();
+      }
+    };
+    document.addEventListener('keydown', containTab);
+    return () => {
+      document.removeEventListener('keydown', containTab);
+      if (native?.open) {
+        if (typeof native.close === 'function') native.close();
+        else native.removeAttribute('open');
+      }
+      if (opener instanceof HTMLElement && opener.isConnected) opener.focus({ preventScroll: true });
+    };
+  }, [active, ref]);
 }

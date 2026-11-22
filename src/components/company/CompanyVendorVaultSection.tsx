@@ -1,7 +1,8 @@
 import React from 'react';
 import { Language } from '../../types';
 import { INSCO_COMPANY_DATA } from '../../data/inscoCompanyData';
-import { FileText, Download, ShieldCheck, CheckCircle2, ExternalLink } from 'lucide-react';
+import { FileText, Download, ShieldCheck, ListChecks, ExternalLink } from 'lucide-react';
+import { CtaButton } from '../ui/CtaButton';
 import { SectionHeading } from '../ui/SectionHeading';
 
 interface CompanyVendorVaultSectionProps {
@@ -30,16 +31,16 @@ export const CompanyVendorVaultSection: React.FC<CompanyVendorVaultSectionProps>
         {/* Section Header */}
         <SectionHeading
           className="mb-12"
-          eyebrow={isAr ? 'خزينة وثائق التأهيل والكتالوج الرسمي' : 'Vendor Vault & Evidence Annexes'}
+          eyebrow={isAr ? 'ملف الشركة ومتطلبات التأهيل' : 'Company profile & qualification documents'}
           title={
             isAr
-              ? 'ملف التأهيل الفني والبروشور المعتمد (50 صفحة)'
-              : 'Complete 50-Page Vendor Prequalification Dossier'
+              ? 'نسخة عامة من ملف التأهيل'
+              : 'Public extract for vendor qualification'
           }
           description={
             isAr
-              ? 'يمكن لفرق المشتريات والمشروعات تحميل البروشور الرسمي بصيغة PDF ومراجعة الملاحق الثبوتية كاملة من شهادات الأيزو وتراخيص الأجهزة وسوابق الأعمال.'
-              : 'Procurement and QA/QC committees can directly download the master corporate profile PDF containing the full catalogue of evidence annexes.'
+              ? 'ملف تاريخي يحتفظ بأرقام الصفحات الأصلية. النسخ الشخصية والتراخيص وعقود العملاء ليست جزءًا من التحميل العام؛ اطلب المستندات المطلوبة بقناة خاصة.'
+              : 'The historical extract keeps the original page references. Personnel, licence and client scans are not included; request the documents you need through a private channel.'
           }
         />
 
@@ -54,24 +55,24 @@ export const CompanyVendorVaultSection: React.FC<CompanyVendorVaultSectionProps>
 
               <h3 className="text-xl sm:text-2xl font-black text-white">
                 {isAr
-                  ? 'بروشور وملف سابقة الأعمال الرسمية لشركة إنسكو (PDF)'
-                  : 'Official INSCO Corporate Profile & Track Record Dossier (PDF)'}
+                  ? 'ملف الشركة وسابقة الأعمال (PDF)'
+                  : 'INSCO Company Profile & Track Record (PDF)'}
               </h3>
 
               <p className="text-sm text-slate-300 leading-relaxed">
                 {isAr
-                  ? 'ملف رسمي شامل يضم الرؤية، المعدات المملوكة (16 وحدة معالجة حرارية وأجهزة كراوتكرامر وأوليمبوس)، كشوفات المشاريع، والسير الذاتية لكوادر التفتيش.'
-                  : 'Comprehensive 50-page dossier detailing executive governance, owned fleet (16 PWHT units, Olympus/Krautkramer systems), major project contracts, and engineer qualification registers.'}
+                  ? 'نبذة تاريخية وسجل الأعمال ونسخ شهادات نظم الإدارة. الصفحات المستبعدة تحمل إشعارًا بدلًا من المستند الأصلي.'
+                  : 'Historical company background, project records and corporate ISO copies. Restricted pages show a notice instead of the original document.'}
               </p>
 
               <div className="pt-2 flex flex-wrap items-center gap-3">
                 <a
                   href={INSCO_COMPANY_DATA.pdfBrochureUrl}
-                  download="INSCO_Company_Profile_2026.pdf"
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-sm transition shadow-sm"
+                  download="INSCO_Company_Profile_Public_Extract.pdf"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-sky-300 hover:bg-sky-200 text-slate-950 font-semibold text-sm transition shadow-sm"
                 >
                   <Download className="w-4 h-4 shrink-0" />
-                  <span>{isAr ? 'تحميل الملف كاملاً (PDF مباشر)' : 'Download Full PDF (50 Pages)'}</span>
+                  <span>{isAr ? 'تحميل النسخة العامة (PDF)' : 'Download public extract (PDF)'}</span>
                 </a>
 
                 <a
@@ -89,11 +90,11 @@ export const CompanyVendorVaultSection: React.FC<CompanyVendorVaultSectionProps>
             {/* Quick Summary Pill */}
             <div className="lg:col-span-4 rounded-xl border border-slate-800 bg-slate-950/80 p-5 space-y-3 font-mono text-xs text-slate-300">
               <div className="text-slate-400 font-bold uppercase pb-1 border-b border-slate-800">
-                {isAr ? 'بيانات الوثيقة المعتمدة' : 'Dossier Meta'}
+                {isAr ? 'بيانات النسخة التاريخية' : 'Dossier Meta'}
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">{isAr ? 'عدد الصفحات:' : 'Pages:'}</span>
-                <span className="text-cyan-400 font-bold">50 صفحة</span>
+                <span className="text-cyan-400 font-bold">{isAr ? '50 صفحة' : '50 pages'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">{isAr ? 'تاريخ الإصدار:' : 'Issue Date:'}</span>
@@ -104,7 +105,7 @@ export const CompanyVendorVaultSection: React.FC<CompanyVendorVaultSectionProps>
                 <span className="text-slate-200">Rev. 05</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">{isAr ? 'اعتماد إيجاك:' : 'EGAC CAB:'}</span>
+                <span className="text-slate-400">{isAr ? 'رقم الجهة في الملف:' : 'CAB ID in dossier:'}</span>
                 <span className="text-cyan-400 font-bold">#120007</span>
               </div>
             </div>
@@ -115,10 +116,10 @@ export const CompanyVendorVaultSection: React.FC<CompanyVendorVaultSectionProps>
         <div className="space-y-6 mb-14">
           <div>
             <h3 className="text-lg font-bold text-white">
-              {isAr ? 'فهرس الملاحق الثبوتية (Annexes A - E)' : 'Index of Certified Evidence Annexes'}
+              {isAr ? 'فهرس الملاحق (A–E)' : 'Annex index (A–E)'}
             </h3>
             <p className="text-xs text-slate-400">
-              {isAr ? 'أرقام الصفحات المباشرة في ملف الـ PDF المرفق' : 'Direct page markers within the 50-page PDF document'}
+              {isAr ? 'نسخ ISO متاحة؛ المستندات الأخرى على الطلب.' : 'ISO copies are available; request other records privately.'}
             </p>
           </div>
 
@@ -147,16 +148,18 @@ export const CompanyVendorVaultSection: React.FC<CompanyVendorVaultSectionProps>
                   </p>
                 </div>
 
-                <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs font-mono text-slate-400">
+                <div className="pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-xs font-mono text-slate-400">
                   <span>{annex.issuingBody}</span>
-                  <a
-                    href={INSCO_COMPANY_DATA.pdfBrochureUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-cyan-400 hover:text-cyan-300 font-semibold"
-                  >
-                    {isAr ? 'انتقل للصفحة' : 'Jump'}
-                  </a>
+                  {annex.pageNo <= 17 ? (
+                    <a href={`${INSCO_COMPANY_DATA.pdfBrochureUrl}#page=${annex.pageNo}`} target="_blank" rel="noopener noreferrer"
+                      className="inline-flex min-h-9 items-center text-cyan-300 underline underline-offset-4">
+                      {isAr ? 'افتح النسخة التاريخية' : 'Open historical copy'}
+                    </a>
+                  ) : (
+                    <a href="#contact" className="inline-flex min-h-9 items-center text-cyan-300 underline underline-offset-4">
+                      {isAr ? 'اطلب المستند' : 'Request document'}
+                    </a>
+                  )}
                 </div>
               </div>
             ))}
@@ -167,17 +170,17 @@ export const CompanyVendorVaultSection: React.FC<CompanyVendorVaultSectionProps>
         <div className="rounded-xl border border-slate-800 bg-slate-900/30 p-6 sm:p-8 space-y-6">
           <div className="max-w-2xl">
             <div className="text-xs font-mono uppercase tracking-wider text-cyan-400 mb-1">
-              {isAr ? 'قائمة التحقق لاعتماد الموردين' : 'Vendor Registration Ready-Pack'}
+              {isAr ? 'قائمة التحقق لاعتماد الموردين' : 'Documents to request'}
             </div>
             <h3 className="text-xl font-bold text-white">
               {isAr
-                ? 'جاهزية كاملة لمتطلبات التسجيل بسجلات الموردين'
-                : '100% Pre-Packaged Compliance for Approved Vendor Lists (AVL)'}
+                ? 'قائمة تحقق لتأهيل المورد'
+                : 'Checklist for vendor qualification'}
             </h3>
             <p className="text-xs text-slate-400 mt-1">
               {isAr
-                ? 'توفر إنسكو كافة الوثائق القانونية والفنية والمالية المطلوبة من إدارات العقود والمشتريات.'
-                : 'INSCO maintains pre-compiled compliance packages ready for corporate procurement evaluations.'}
+                ? 'حدّد المستندات اللازمة لنطاق التعاقد واطلب نسخًا حديثة من الفريق الفني. القائمة ليست إثباتًا لتوافر الوثائق أو سريانها.'
+                : 'Ask the technical team for current documents for your scope. This checklist does not establish availability or validity.'}
             </p>
           </div>
 
@@ -187,11 +190,12 @@ export const CompanyVendorVaultSection: React.FC<CompanyVendorVaultSectionProps>
                 key={idx}
                 className="flex items-start gap-2.5 p-3 rounded-lg bg-slate-950/60 border border-slate-800 text-xs text-slate-300"
               >
-                <CheckCircle2 className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+                <ListChecks className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
                 <span>{item[language]}</span>
               </div>
             ))}
           </div>
+          <CtaButton href="#contact" variant="secondary">{isAr ? 'اطلب وثائق التأهيل' : 'Request qualification documents'}</CtaButton>
         </div>
       </div>
     </section>

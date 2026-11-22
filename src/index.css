@@ -1,6 +1,8 @@
 @import "tailwindcss";
-/* Do not use the previous Pages build as input to the next build. */
+/* Build inputs are the application, not generated Pages files or UX evidence. */
 @source not "../docs";
+@source not "../documentation";
+@source not "../scripts/ux-smoke";
 
 :root,
 :root[data-theme="dark"] {
@@ -509,3 +511,85 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* Corporate entry: the full catalogues live on their own routes. */
+.corporate-home {
+  --co-surface: #0b1628;
+  --co-alt: #101e33;
+  --co-card: #112139;
+  --co-line: #30455f;
+  --co-ink: #f2f7fd;
+  --co-muted: #b5c6da;
+  --co-link: #9cdefb;
+  color: var(--co-ink);
+  background: var(--co-surface);
+}
+:root[data-theme="light"] .corporate-home {
+  --co-surface: #fff;
+  --co-alt: #f0f5f9;
+  --co-card: #fff;
+  --co-line: #c8d6e4;
+  --co-ink: #122542;
+  --co-muted: #405872;
+  --co-link: #065b85;
+}
+.corporate-wrap { width: min(100%, 80rem); margin-inline: auto; padding-inline: clamp(1rem, 3.8vw, 2rem); }
+.corporate-hero {
+  background: radial-gradient(ellipse at 80% 30%, #183454, transparent 58%), #0a172c;
+  border-block-end: 1px solid #324a64;
+  color: #f3f8ff;
+}
+.corporate-hero-grid, .corporate-paired { display: grid; min-width: 0; gap: clamp(1.5rem, 4vw, 3.75rem); }
+.corporate-hero-grid { align-items: center; padding-block: clamp(2.75rem, 5.7vw, 6rem); }
+.corporate-eyebrow { display: inline-flex; align-items: center; flex-wrap: wrap; gap: .6rem; color: #9fdef7; font: 700 .73rem/1.4 ui-monospace, monospace; letter-spacing: .09em; }
+.corporate-eyebrow > span:first-child, .corporate-hero-media figcaption span { width: .45rem; height: .45rem; background: #7dd3fc; border-radius: 50%; flex-shrink: 0; }
+.corporate-eyebrow-rule { width: 1.4rem; height: 1px; background: #5989ab; }
+.corporate-hero h1 { margin-block: .9rem .8rem; max-width: 18ch; font-size: clamp(2.2rem, 5.1vw, 4.5rem); line-height: 1.06; letter-spacing: -.045em; font-weight: 830; text-wrap: balance; }
+[dir="rtl"] .corporate-hero h1 { max-width: 16ch; letter-spacing: normal; line-height: 1.24; font-size: clamp(2.1rem, 4.8vw, 4.15rem); }
+.corporate-hero-description { max-width: 39ch; margin-block: 0 1.5rem; color: #c5d6eb; font-size: clamp(1rem, 1.35vw, 1.15rem); line-height: 1.75; }
+.corporate-actions, .corporate-related { display: flex; flex-wrap: wrap; align-items: center; gap: .65rem; }
+.corporate-hero-media, .corporate-secondary-media { min-width: 0; margin: 0; border: 1px solid var(--co-line); border-radius: 1rem; overflow: hidden; background: var(--co-card); }
+.corporate-hero-media { border-color: #416483; background: #0a1d34; box-shadow: 0 1.15rem 3.5rem #05101e75; }
+.corporate-hero-media img, .corporate-secondary-media img { display: block; width: 100%; height: auto; object-fit: cover; }
+.corporate-hero-media img { aspect-ratio: 16 / 11; object-position: 66% 48%; }
+.corporate-hero-media figcaption, .corporate-secondary-media figcaption { display: flex; gap: .55rem; align-items: center; padding: .65rem 1rem; font-size: .76rem; color: var(--co-muted); }
+.corporate-hero-media figcaption { color: #c3d6eb; }
+.corporate-band { border-block-end: 1px solid var(--co-line); padding-block: clamp(2.8rem, 5vw, 5rem); }
+.corporate-services { background: var(--co-alt); }
+.corporate-facts, .corporate-record, .corporate-service-card { border: 1px solid var(--co-line); border-radius: .85rem; background: var(--co-card); padding: clamp(1rem, 3vw, 1.4rem); }
+.corporate-facts ul { display: flex; flex-wrap: wrap; gap: .45rem; margin-block: .65rem .9rem; list-style: none; padding: 0; }
+.corporate-facts li { font-size: .82rem; padding: .3rem .55rem; border-radius: .3rem; border: 1px solid var(--co-line); }
+.corporate-label { font-size: .94rem; font-weight: 760; margin-block: 0 .7rem; }
+.corporate-link, .corporate-related a { display: inline-flex; align-items: center; gap: .4rem; width: fit-content; min-height: 2rem; color: var(--co-link); text-decoration: underline; text-underline-offset: .25rem; font-size: .9rem; font-weight: 720; }
+.corporate-related { gap: .25rem 1rem; }
+.corporate-section-head { display: flex; justify-content: space-between; align-items: end; flex-wrap: wrap; gap: .9rem; margin-block-end: 1.5rem; }
+.corporate-card-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .85rem; list-style: none; margin: 0; padding: 0; }
+.corporate-card-grid > li { min-width: 0; }
+.corporate-service-card { display: flex; flex-direction: column; gap: .55rem; height: 100%; color: var(--co-ink); transition: border-color .16s ease; }
+.corporate-service-card:hover { border-color: var(--co-link); }
+.corporate-service-card h3, .corporate-record h3 { font-weight: 770; margin: 0; }
+.corporate-record h3 { margin-block: .6rem .35rem; }
+.corporate-service-card p, .corporate-record p, .corporate-features dd, .corporate-empty { color: var(--co-muted); font-size: .9rem; line-height: 1.65; }
+.corporate-record small { display: block; margin-block-start: .65rem; color: var(--co-link); }
+.corporate-card-mark, .corporate-card-link, .corporate-record svg, .corporate-features svg { color: var(--co-link); }
+.corporate-card-mark, .corporate-card-link, .corporate-features dt { display: flex; align-items: center; gap: .5rem; }
+.corporate-card-mark { font: 760 .78rem/1.4 ui-monospace, monospace; }
+.corporate-card-link { font-size: .8rem; font-weight: 750; margin-block-start: auto; padding-block-start: .25rem; }
+.corporate-features { margin-block: 1.25rem; padding-inline-start: 1rem; border-inline-start: 2px solid var(--co-line); display: grid; gap: .6rem; }
+.corporate-features dt { font-weight: 760; }
+.corporate-contact-band { background: #122742; border-color: #2c4565; color: #fff; }
+.corporate-contact-band .corporate-actions { margin-block-start: 1.1rem; }
+.corporate-home a:focus-visible { outline: 2px solid var(--co-link); outline-offset: 3px; }
+@media (min-width: 900px) {
+  .corporate-hero-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.06fr); }
+  .corporate-paired { grid-template-columns: minmax(0, 1fr) minmax(0, .88fr); }
+}
+@media (max-width: 780px) { .corporate-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 440px) {
+  .corporate-card-grid { grid-template-columns: 1fr; }
+  .corporate-hero .corporate-actions > * { width: 100%; }
+  .corporate-hero-media img { aspect-ratio: 16 / 10; }
+}
+
+/* Anchors and programmatic focus must not land under the shared sticky header. */
+html { scroll-padding-block-start: var(--insco-sticky-offset, 0px); }

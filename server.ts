@@ -1,7 +1,7 @@
 /** Serves the INSCO site, AI/RFQ gateways, and the private admin API. */
 import express from 'express';
 import type { Request, Response } from 'express';
-import { existsSync } from 'fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { createServer } from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -30,32 +30,20 @@ import {
   TutorFailure,
   TutorStatus,
 } from './src/ai/contract';
-import type { CorpusDocument, CorpusStats } from './src/ai/corpus';
+
 import type { SearchHit } from './src/ai/search';
 import { isModelMissing, streamTutorText, TutorAiClient, TutorTransportMode } from './src/ai/transport';
 import { createOperations } from './server/admin/operations';
 
 dotenv.config();
 
-type AiLibraryModule = {
-  getCorpus: () => CorpusDocument[];
-  getCorpusStats: () => CorpusStats;
-  retrieveForTutor: (query: string, options?: { limit?: number; discipline?: string }) => SearchHit[];
-};
-
+type AiLibraryModule = ReturnType<typeof import('./server/tutor/reviewedLibrary').buildReviewedTutorLibrary>;
 let aiLibraryPromise: Promise<AiLibraryModule> | null = null;
 
 function loadAiLibrary(): Promise<AiLibraryModule> {
-  if (!aiLibraryPromise) {
-    aiLibraryPromise = Promise.all([
-      import('./src/ai/corpus'),
-      import('./src/ai/search'),
-    ]).then(([corpusMod, searchMod]) => ({
-      getCorpus: corpusMod.getCorpus,
-      getCorpusStats: corpusMod.getCorpusStats,
-      retrieveForTutor: searchMod.retrieveForTutor,
-    }));
-  }
+  aiLibraryPromise ??= import('./server/tutor/reviewedLibrary').then(({ buildReviewedTutorLibrary }) =>
+    buildReviewedTutorLibrary(file => readFileSync(path.join(siteRoot, 'edb', file), 'utf8'))
+  );
   return aiLibraryPromise;
 }
 
@@ -65,6 +53,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 const isProduction = process.env.NODE_ENV === 'production';
+const siteRoot = path.join(__dirname, !isProduction ? 'public' : existsSync(path.join(__dirname, 'dist')) ? 'dist' : 'docs');
 const trustedProxies = process.env.TRUST_PROXY?.trim();
 if (trustedProxies) app.set('trust proxy', trustedProxies);
 
@@ -95,8 +84,8 @@ const ai: GoogleGenAI | null = API_KEY
           httpOptions: { headers: { 'User-Agent': 'aistudio-build' } },
         });
       } catch (error) {
-        clientInitError = error instanceof Error ? error.message : String(error);
-        console.error('[ai] client init failed:', clientInitError);
+        clientInitError = 'client_init_failed';
+        console.error('[ai] Tutor client initialization failed.');
         return null;
       }
     })()
@@ -184,27 +173,29 @@ const SYSTEM: Record<'ar' | 'en', string> = {
   ar: [
     'أنت مدرّس في أكاديمية إنسكو للفحص غير الإتلافي (NDT) والمعالجة الحرارية.',
     'قواعد ملزمة:',
-    '1) أجب فقط من المقاطع المرفقة ومن مبادئ الفيزياء والهندسة العامة. إن لم يكفِ السياق فقل بصراحة: «لا أجد هذا في مكتبة إنسكو» واقترح ما يمكن البحث عنه.',
+    '1) أجب فقط من المقاطع المرفقة التي اجتازت المراجعة. إن لم يكفِ السياق فقل بصراحة: «لا أجد هذا في مكتبة إنسكو» واقترح ما يمكن البحث عنه.',
     '2) لا تخترع نص بند كود ولا رقم بند ولا نسبة قبول. عند ذكر كود، اذكر رقم البند فقط إن ورد في المقاطع.',
-    '3) بعد كل فكرة استشهد بمعرّف المقطع بين قوسين مربعين مثل [book-ut#p3] أو [nde-ut#ut-calibration].',
+    '3) بعد كل فكرة استشهد بمعرّف المقطع بين قوسين مربعين مثل [edb-course-nde-ut#p3].',
     '4) هذه مادة دراسة ذاتية، وليست شهادة ولا تأهيلاً. لا تدّعِ اعتماداً من ASNT أو ISO.',
-    '5) اكتب عربياً هندسياً واضحاً، بفقرات قصيرة، وبنقاط عند التعداد. لا تكرر السؤال.',
+    '5) للتعلّم فقط. لا تصدر قرار قبول أو رفض أو صلاحية تشغيل، ولا تعطِ إعدادات ميدانية. أحِل ذلك للإجراء المكتوب والمهندس المختص.',
+    '6) اكتب عربياً هندسياً واضحاً، بفقرات قصيرة، وبنقاط عند التعداد. لا تكرر السؤال.',
   ].join('\n'),
   en: [
     'You are a tutor at the INSCO academy for non-destructive testing and heat treatment.',
     'Binding rules:',
-    '1) Answer only from the provided passages plus general physics and engineering. If the context is insufficient, say plainly "I cannot find this in the INSCO library" and suggest what to search for.',
+    '1) Answer only from the provided reviewed passages. If the context is insufficient, say plainly "I cannot find this in the INSCO library" and suggest what to search for.',
     '2) Never invent code clause text, clause numbers or acceptance percentages. Cite a clause number only when it appears in the passages.',
-    '3) After each claim, cite the passage id in square brackets, e.g. [book-ut#p3] or [nde-ut#ut-calibration].',
+    '3) After each claim, cite the passage id in square brackets, e.g. [edb-course-nde-ut#p3].',
     '4) This is self-study material, not a certificate or a qualification. Never claim ASNT or ISO accreditation.',
-    '5) Write clear technical English in short paragraphs, using bullets for lists. Do not restate the question.',
+    '5) Do not decide acceptance, operational readiness or field settings. Refer those decisions to the applicable written procedure and qualified engineer.',
+    '6) Write clear technical English in short paragraphs, using bullets for lists. Do not restate the question.',
   ].join('\n'),
 };
 
 const MODE_HINT: Record<string, { ar: string; en: string }> = {
   explain: { ar: 'اشرح المفهوم من الأساس مع مثال عددي إن أمكن.', en: 'Explain from first principles, with a worked number if possible.' },
   compare: { ar: 'قارن بين الطريقتين/الحالتين في جدول أو نقاط، واذكر متى تُستخدم كل واحدة.', en: 'Compare the two methods/cases in a table or bullets, and say when each applies.' },
-  code: { ar: 'ركّز على متطلبات الكود: ماذا يطلب، وعلى من ينطبق، وما حدود الاستخدام.', en: 'Focus on code requirements: what is required, to whom it applies, and its limits.' },
+  code: { ar: 'اذكر مرجع التعلّم وحدود المقطع. لا تحدد بند قبول لمشروع فعلي.', en: 'Identify the study reference and its limits; do not specify a code acceptance criterion for a real job.' },
   practice: { ar: 'اطرح سؤالاً تدريبياً واحداً ثم حلّه خطوة بخطوة.', en: 'Pose one practice question, then solve it step by step.' },
 };
 
@@ -227,7 +218,7 @@ function buildContext(hits: SearchHit[], language: 'ar' | 'en'): string {
   for (const hit of hits) {
     const document = hit.document;
     const heading = `[${document.id}] ${document.title[language] || document.title.ar} — ${
-      document.kind === 'textbook' ? `${document.bookId} p${document.pageNumber}` : document.kind
+      document.pageNumber ? `${document.bookId} p${document.pageNumber}` : document.kind
     }`;
     const body = (document.text[language] || document.text.ar || '').replace(/\s+/g, ' ').trim();
     const slice = body.slice(0, Math.max(400, Math.floor(budget / Math.max(1, hits.length))));
@@ -272,14 +263,14 @@ app.use(operations.router);
 app.use(express.json({ limit: '96kb' }));
 
 app.get(TUTOR_ENDPOINTS.status, async (_req: Request, res: Response) => {
-  const { getCorpus } = await loadAiLibrary();
+  const { reviewedDocuments } = await loadAiLibrary();
   const status: TutorStatus = {
     configured: Boolean(ai),
     reason: ai ? 'ok' : clientInitError ? 'client_init_failed' : 'no_key',
     model: MODEL_CHAIN[0],
     deepModel: TUTOR_MODELS.deep,
     limits: TUTOR_LIMITS,
-    retrieval: { documents: getCorpus().length, ready: true },
+    retrieval: { documents: reviewedDocuments, ready: reviewedDocuments > 0 },
     transport: API_MODE,
   };
   res.setHeader('Cache-Control', 'no-store');
@@ -307,11 +298,10 @@ async function prepare(body: unknown, res: Response): Promise<TutorPayload | nul
   const { retrieveForTutor } = await loadAiLibrary();
   const request = parsed.value;
   const question = latestQuestion(request);
-  const hits = retrieveForTutor(question, { limit: TUTOR_LIMITS.passages });
+  const hits = retrieveForTutor(question);
   const citations = hits.map(toCitation);
-  const confident = hits.length > 0;
-
   const context = buildContext(hits, request.language);
+  const confident = Boolean(context);
   const hint = MODE_HINT[request.mode]?.[request.language] ?? '';
   const header =
     request.language === 'ar'
@@ -351,7 +341,7 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
       res.setHeader('Retry-After', String(failure.retryAfterSeconds));
     }
     res.status(STATUS_CODE[failure.code]).json({
-      error: { ...failure, message: failureMessage(failure.code, 'ar') },
+      error: { ...failure, message: failureMessage(failure.code, payload.language) },
     });
     return;
   }
@@ -362,10 +352,23 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
     res.status(STATUS_CODE.not_configured).json({
       error: {
         code: 'not_configured',
-        message: failureMessage('not_configured', 'ar'),
+        message: failureMessage('not_configured', payload.language),
         detail: 'Set GEMINI_API_KEY on the server that hosts /api/ai/*.',
       },
     });
+    return;
+  }
+
+  // Fail closed in both protocols, including the legacy JSON endpoint.
+  if (!payload.confident) {
+    const message = payload.language === 'ar'
+      ? 'لا توجد مادة مراجَعة مطابقة تكفي للإجابة. راجع مراجع الأكاديمية أو اطرح السؤال على مختص مؤهل.'
+      : 'There is not enough reviewed source material to answer. Consult the academy references or a qualified specialist.';
+    const meta = { model: MODEL_CHAIN[0], citations: [], retrieved: 0, confident: false, elapsedMs: 0 };
+    res.setHeader('Cache-Control', 'no-store');
+    if (!streaming) { res.json({ text: message, content: message, meta }); return; }
+    res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+    res.end(encodeSse({ type: 'meta', meta }) + encodeSse({ type: 'delta', text: message }) + encodeSse({ type: 'done' }));
     return;
   }
 
@@ -396,7 +399,7 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
     } catch (error) {
       const timedOut = controller.signal.aborted;
       const code: TutorErrorCode = timedOut ? 'timeout' : 'upstream_error';
-      console.error('[ai] tutor failed:', error instanceof Error ? error.message : error);
+      console.error('[ai] Tutor request failed:', code);
       res.status(STATUS_CODE[code]).json({ error: { code, message: failureMessage(code, payload.language) } });
     } finally {
       clearTimeout(timer);
@@ -413,21 +416,6 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
 
   res.write(encodeSse({ type: 'meta', meta }));
 
-  // Nothing retrieved: answer from the library boundary, not from the model.
-  if (!payload.confident) {
-    const { getCorpusStats } = await loadAiLibrary();
-    const stats = getCorpusStats();
-    const message =
-      payload.language === 'ar'
-        ? `لم أجد سؤالاً مطابقاً في مكتبة إنسكو (${stats.pages} صفحة و${stats.lessons} درساً). جرّب صياغة أخرى، أو استخدم البحث في المكتبة، أو اذكر الطريقة (VT/PT/MT/UT/RT/ET) والكود الذي تسأل عنه.`
-        : `I could not match this question to the INSCO library (${stats.pages} pages, ${stats.lessons} lessons). Try different wording, use library search, or name the method (VT/PT/MT/UT/RT/ET) and the code you are asking about.`;
-    res.write(encodeSse({ type: 'delta', text: message }));
-    res.write(encodeSse({ type: 'done' }));
-    res.end();
-    clearTimeout(timer);
-    return;
-  }
-
   try {
     for await (const delta of streamFromModel(payload.prompt, payload.system, controller.signal)) {
       res.write(encodeSse({ type: 'delta', text: delta }));
@@ -436,7 +424,7 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
   } catch (error) {
     const timedOut = controller.signal.aborted;
     const code: TutorErrorCode = timedOut ? 'timeout' : 'upstream_error';
-    console.error('[ai] stream failed:', error instanceof Error ? error.message : error);
+    console.error('[ai] Tutor stream failed:', code);
     res.write(encodeSse({ type: 'error', error: { code, message: failureMessage(code, payload.language) } }));
     res.write(encodeSse({ type: 'done' }));
   } finally {
@@ -852,18 +840,16 @@ async function startServer(): Promise<void> {
         .catch(next);
     });
   } else {
-    const distCandidate = path.resolve(__dirname, 'dist');
-    const staticRoot = existsSync(distCandidate)
-      ? distCandidate
-      : path.resolve(__dirname, 'docs');
-    app.use(express.static(staticRoot));
+    app.use(express.static(siteRoot));
     app.get('*', (_req, res) => {
-      res.sendFile(path.resolve(staticRoot, 'index.html'));
+      res.sendFile(path.resolve(siteRoot, 'index.html'));
     });
   }
 
   server.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server listening on http://0.0.0.0:${PORT} (${isProduction ? 'production' : 'development'})`);
+    const address = server.address();
+    const port = typeof address === 'object' && address ? address.port : PORT;
+    console.log(`Server listening on http://0.0.0.0:${port} (${isProduction ? 'production' : 'development'})`);
     console.log(`[ai] tutor: ${ai ? `enabled, model ${MODEL_CHAIN[0]}` : 'disabled (no GEMINI_API_KEY)'}`);
     console.log(`[ai] transport: ${API_MODE}${ai ? '' : ' (no key, calls will be refused)'}`);
     console.log(`[rfq] delivery: ${operations.rfqEnabled ? 'configured' : 'not configured (POST /api/rfq will answer 503)'}`);

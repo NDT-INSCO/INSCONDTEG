@@ -115,5 +115,20 @@ export function reviewSummary() {
 /** Checksum of a signed build, read from the generated EDB index when available. */
 export function checksumForCourse(index: { books?: { id: string; checksum?: string }[] } | null, courseId: string): string | undefined {
   if (!index || !Array.isArray(index.books)) return undefined;
-  return index.books.find(book => book.id === `edb-course-${courseId}`)?.checksum;
+  return index.books.find(book => book?.id === `edb-course-${courseId}`)?.checksum;
+}
+
+/** A signature in the register is only current for the exact published edition. */
+export function reviewedCourseIds(
+  index: Parameters<typeof checksumForCourse>[0],
+  register: readonly CourseReviewEntry[] = NDE_ED_REVIEW_REGISTER,
+  now: Date = new Date(),
+): Set<string> {
+  const day = now.toISOString().slice(0, 10);
+  return new Set(register.filter(entry => {
+    if (entry.stage !== 'reviewed' || validateReviewEntry(entry).length || !entry.reviewedAt) return false;
+    const signedDate = new Date(`${entry.reviewedAt}T00:00:00Z`);
+    if (!Number.isFinite(signedDate.getTime()) || signedDate.toISOString().slice(0, 10) !== entry.reviewedAt || entry.reviewedAt > day) return false;
+    return checksumForCourse(index, entry.courseId) === entry.checksum;
+  }).map(entry => entry.courseId));
 }

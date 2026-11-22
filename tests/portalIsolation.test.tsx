@@ -105,6 +105,26 @@ test('every address resolves to one portal and comes back unchanged', () => {
   }
 });
 
+test('old corporate anchors and demo links retain their address and open the actual destination', () => {
+  const cases = {
+    services: 'services', 'ndt-methods-catalog': 'services', 'services-regional-map': 'services',
+    about: 'about', industries: 'about', 'fleet-inspector': 'equipment', capabilities: 'equipment',
+    certifications: 'quality', 'standards-matrix': 'quality', projects: 'projects', testimonials: 'projects',
+    vault: 'dossier', vendor: 'dossier', rfq: 'quote', contact: 'quote', 'quick-actions': 'quote', 'cost-estimator': 'quote',
+    'inspector-qr-access': 'field', 'field-attendance-timeline': 'field', privacy: 'privacy',
+  };
+  for (const [anchor, detail] of Object.entries(cases)) {
+    const hash = `#${anchor}`;
+    assert.deepEqual(routes.parseRoute(hash), { portal: 'company', page: 'detail', detail, anchor });
+    assert.equal(routes.routeToHash(routes.parseRoute(hash)), hash);
+  }
+  for (const hash of ['#hologram-lab', '#demo/pwht-simulator', '#ultrasonic-lab', '#demo/inspection-showcase']) {
+    const route = routes.parseRoute(hash);
+    assert.equal(route.page, 'demo');
+    assert.equal(routes.routeToHash(route), hash);
+  }
+});
+
 test('the corporate home stays hash-free, and an unknown hash is just an anchor', () => {
   assert.equal(routes.routeToHash({ portal: 'company', page: 'home' }), '');
   const unknown = routes.parseRoute('#not-a-page');

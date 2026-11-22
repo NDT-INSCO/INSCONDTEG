@@ -71,7 +71,11 @@ export async function createOperations(env: NodeJS.ProcessEnv, { production, bas
       res.status(429).json({ ok: false, error: 'rfq_rate_limited', detail: 'Too many requests. Try again later.' });
       return;
     }
-    const result = await handleRfqRequest(req.body, { deliver: delivery }, address);
+    res.set('Cache-Control', 'no-store');
+    const result = await handleRfqRequest(req.body, {
+      deliver: delivery,
+      reportFailure: reason => console.warn(`[rfq] Receiving channel: ${reason}`),
+    }, address);
     res.status(result.status).json(result.body);
   }));
   const handleError: ErrorRequestHandler = (error, _req, res, next) => {

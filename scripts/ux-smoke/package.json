@@ -1,0 +1,15 @@
+{
+  "name": "insco-ux-v2",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "compare": "node compare-home.mjs",
+    "home": "node corporate-smoke.mjs",
+    "journeys": "node journeys.mjs"
+  },
+  "dependencies": {
+    "@sparticuz/chromium": "153.0.0",
+    "axe-core": "4.11.1",
+    "playwright-core": "1.65.1"
+  }
+}

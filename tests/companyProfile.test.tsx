@@ -117,7 +117,8 @@ test('CompanyHero mounts interactive 3D banner controls, switches techniques/pre
   assert.ok(ui.getAllByText(/Ir-192 \/ Se-75/i).length > 0);
 
   fireEvent.click(ui.getByRole('button', { name: /PWHT 65 kW/i }));
-  assert.ok(ui.getAllByText(/760°C Programmed Soak/i).length > 0);
+  assert.ok(ui.getByText('Illustrative ramp, soak and cooling cycle'));
+  assert.equal(ui.getByRole('button', { name: /PWHT 65 kW/i }).getAttribute('aria-pressed'), 'true');
 
   // Camera preset & collapse dock
   fireEvent.click(ui.getByRole('button', { name: /Weld Root/i }));
@@ -127,7 +128,7 @@ test('CompanyHero mounts interactive 3D banner controls, switches techniques/pre
   assert.ok(ui.getByRole('button', { name: /Hide Controls/i }));
 });
 
-test('CompanyServicesSection displays 12 NDT methods and 16 PWHT fleet details', () => {
+test('CompanyServicesSection shows core NDT and PWHT with no unconfirmed Eddy Current offering', () => {
   const ui = render(<CompanyServicesSection language="en" />);
 
   // Check PWHT fleet 16 units
@@ -138,6 +139,7 @@ test('CompanyServicesSection displays 12 NDT methods and 16 PWHT fleet details',
   assert.ok(ui.getAllByText(/Ultrasonic Testing/i).length > 0);
   assert.ok(ui.getAllByText(/Radiographic Testing/i).length > 0);
   assert.ok(ui.getAllByText(/Magnetic Particle Testing/i).length > 0);
+  assert.equal(ui.queryByText(/Eddy Current/i), null);
 
   // Filter by Volumetric
   const volumetricFilter = ui.getByRole('button', { name: /Volumetric NDT/i });
@@ -147,7 +149,7 @@ test('CompanyServicesSection displays 12 NDT methods and 16 PWHT fleet details',
   assert.ok(ui.getAllByText(/Ultrasonic/i).length > 0);
 });
 
-test('CompanyCertificationsSection displays Triple ISO, IRCA Lead Auditor and ENRRA license', () => {
+test('CompanyCertificationsSection lists historical ISO records and private qualification requests', () => {
   const ui = render(<CompanyCertificationsSection language="ar" />);
 
   // Check ISO 9001, 14001, 45001
@@ -156,7 +158,8 @@ test('CompanyCertificationsSection displays Triple ISO, IRCA Lead Auditor and EN
   assert.ok(ui.getAllByText(/ISO 45001:2018/i).length > 0);
 
   // Check IRCA Lead Auditor details
-  assert.ok(ui.getAllByText(/UDN 27956/i).length > 0);
+  assert.ok(ui.getByRole('link', { name: 'اطلب وثائق التأهيل الحالية' }));
+  assert.doesNotMatch(ui.container.textContent ?? '', /UDN 27956|LS\.0112/);
 
   // Check ENRRA license
   assert.ok(ui.getAllByText(/ترخيص هيئة الرقابة النووية والإشعاعية/i).length > 0);
@@ -182,7 +185,7 @@ test('CompanyProjectsSection allows switching between clients and power plant fa
   assert.ok(ui.getAllByText(/Ayoun Mousa/i).length > 0);
 });
 
-test('CompanyVendorVaultSection lists all 5 Annexes and provides verified PDF download', () => {
+test('CompanyVendorVaultSection lists all 5 Annexes and keeps public PDF and routes restricted annexes to contact', () => {
   const ui = render(<CompanyVendorVaultSection language="ar" />);
 
   // Check Annexes codes
@@ -192,8 +195,10 @@ test('CompanyVendorVaultSection lists all 5 Annexes and provides verified PDF do
   assert.ok(ui.getAllByText('E-01').length > 0);
 
   // Check direct download link
-  const dlLink = ui.getByRole('link', { name: /تحميل الملف كاملاً \(PDF مباشر\)/i });
+  const dlLink = ui.getByRole('link', { name: /تحميل النسخة العامة \(PDF\)/i });
   assert.equal(dlLink.getAttribute('href'), '/assets/aistudio/__________________d082de13.pdf');
+  assert.ok(ui.getAllByRole('link', { name: 'افتح النسخة التاريخية' }).some(link => link.getAttribute('href')?.endsWith('#page=15')));
+  assert.ok(ui.getAllByRole('link', { name: 'اطلب المستند' }).every(link => link.getAttribute('href') === '#contact'));
 });
 
 const fillRfq = (ui: { getByPlaceholderText: (pattern: RegExp) => HTMLElement }) => {
@@ -210,7 +215,7 @@ test('RFQ never claims success when the request could not be sent', async () => 
     />,
   );
   fillRfq(ui);
-  fireEvent.click(ui.getByRole('button', { name: /إرسال طلب التسعير المعتمد/i }));
+  fireEvent.click(ui.getByRole('button', { name: /إرسال طلب التسعير/i }));
 
   await waitFor(() => assert.ok(ui.getByRole('alert')));
   assert.equal(ui.queryAllByText(/تم استلام طلبكم بنجاح/i).length, 0, 'no success screen without a server');
@@ -219,8 +224,11 @@ test('RFQ never claims success when the request could not be sent', async () => 
   // The customer still gets a channel that reaches a human.
   const mail = ui.getByRole('link', { name: /إرسال بالبريد الإلكتروني/i });
   assert.ok(mail.getAttribute('href')?.startsWith('mailto:'));
-  assert.ok(decodeURIComponent(mail.getAttribute('href')!).includes('Orascom Construction'));
-  assert.ok(ui.getByRole('link', { name: /إرسال واتساب/i }));
+  assert.ok(!mail.getAttribute('href')?.includes('?'));
+  assert.ok(!ui.getByRole('link', { name: /إرسال واتساب/i }).getAttribute('href')?.includes('?'));
+  fireEvent.click(ui.getByRole('button', { name: /نسخ مسودة الطلب/i }));
+  const draft = (await ui.findByLabelText(/انسخ النص التالي يدويًا/i)) as HTMLTextAreaElement;
+  assert.match(draft.value, /Orascom Construction/);
 });
 
 test('RFQ shows the reference issued by the server, and only that', async () => {
@@ -231,33 +239,24 @@ test('RFQ shows the reference issued by the server, and only that', async () => 
     />,
   );
   fillRfq(ui);
-  fireEvent.click(ui.getByRole('button', { name: /إرسال طلب التسعير المعتمد/i }));
+  fireEvent.click(ui.getByRole('button', { name: /إرسال طلب التسعير/i }));
 
   await waitFor(() => assert.ok(ui.getAllByText(/تم استلام طلبكم بنجاح/i).length > 0));
   assert.ok(ui.getAllByText(/INSCO-RFQ-20261117-7K2Q9P/).length > 0);
   assert.equal(ui.queryAllByRole('alert').length || 0, 0);
 });
 
-test('CompanyTestimonialsSection displays sliding cards with client feedback and controls', () => {
+test('legacy testimonials destination keeps browsing controls without unsupported quotes', () => {
   const ui = render(<CompanyTestimonialsSection language="ar" />);
-
-  // Should render section title and initial client testimonial (Siemens)
-  assert.ok(ui.getAllByText(/شهادات العملاء وسجلات النجاح الميداني/i).length > 0);
-  assert.ok(ui.getAllByText(/SIEMENS Energy \/ PGESCO/i).length > 0);
-  assert.ok(ui.getAllByText(/1,200\+/i).length > 0);
-
-  // Quick client selector tabs are present for all partners
-  assert.ok(ui.getByRole('button', { name: /ORASCOM Construction/i }));
-  assert.ok(ui.getByRole('button', { name: /PETROMASILA Exploration & Production/i }));
-  assert.ok(ui.getByRole('button', { name: /El Sewedy Electric/i }));
-  assert.ok(ui.getByRole('button', { name: /Serka Insaat/i }));
-
-  // Click Next button to slide to next card
-  const nextBtn = ui.getByRole('button', { name: /Next Testimonial/i });
-  fireEvent.click(nextBtn);
-
-  // Counter updates to 02 / 05
-  assert.ok(ui.getAllByText(/02/i).length > 0);
+  assert.ok(ui.getByRole('region', { name: 'مراجع المشروعات' }));
+  assert.ok(ui.getByRole('heading', { name: /محطة عيون موسى/ }));
+  assert.doesNotMatch(ui.container.textContent ?? '', /ماركوس|1,200|100%|180,000/);
+  assert.match(ui.getByRole('link', { name: /ملف الشركة · صفحة 12/ }).getAttribute('href')!, /#page=12$/);
+  const next = ui.getByRole('button', { name: 'المرجع التالي' });
+  fireEvent.click(next);
+  assert.ok(ui.getByRole('heading', { name: /محطة كهرباء البرلس/ }));
+  assert.ok(ui.getByRole('button', { name: 'ORASCOM Construction', pressed: true }));
+  assert.ok(ui.getByRole('button', { name: 'شغّل العرض التلقائي' }));
 });
 
 test('App root renders corporate facade by default and switches to Educational Academy', () => {
@@ -284,12 +283,13 @@ test('App root renders corporate facade by default and switches to Educational A
   assert.ok(ui.getAllByRole('button', { name: 'ملف التأهيل' }).length > 0);
 });
 
-test('CompanyFleetInspector displays calibrated equipment registry and allows category filtering', () => {
+test('CompanyFleetInspector displays company equipment records and allows category filtering', () => {
   const ui = render(<CompanyFleetInspector language="ar" />);
 
   // Should display equipment registry heading and metrics
   assert.ok(ui.getAllByText(/سجل الأصول والمعايرة والتجهيزات الميدانية/i).length > 0);
-  assert.ok(ui.getAllByText(/48\+/i).length > 0);
+  assert.ok(ui.getByText(/فئات معدات بالسجل/i));
+  assert.ok(ui.getByText(/لم تُنشر حالة الصيانة/i));
 
   // Default item is PWHT 65 kW units
   assert.ok(ui.getAllByText(/INS-PWHT-01 to INS-PWHT-16/i).length > 0);
@@ -475,7 +475,7 @@ test('GlobalHeaderSearch filters services, educational modules, and company info
 });
 
 test('the corporate portal keeps express quotation and hands the training syllabus to the academy', async () => {
-  const { CompanyPortal } = await import('../src/components/company/CompanyPortal');
+  const { CompanyQuotePage } = await import('../src/components/company/CompanyQuotePage');
   const { CompanyQuickActionsSection } = await import('../src/components/company/CompanyQuickActionsSection');
   const { buildTrainingSyllabusDocument } = await import('../src/utils/trainingSyllabusGenerator');
 
@@ -493,7 +493,7 @@ test('the corporate portal keeps express quotation and hands the training syllab
   };
 
   try {
-    const ui = render(<CompanyPortal language="en" onNavigateToAcademy={() => {}} />);
+    const ui = render(<CompanyQuotePage language="en" anchor="cost-estimator" />);
 
     // The corporate portal keeps the express quotation card only: the audit
     // asked us to stop mixing a training download into the commercial path.
@@ -536,7 +536,7 @@ test('the corporate portal keeps express quotation and hands the training syllab
 });
 
 test('CompanyProjectCostEstimator computes service budgets & site requirements and transfers scope to RFQ', async () => {
-  const { CompanyPortal } = await import('../src/components/company/CompanyPortal');
+  const { CompanyQuotePage } = await import('../src/components/company/CompanyQuotePage');
   const { calculateProjectEstimate } = await import('../src/utils/projectCostEstimator');
 
   // 1. Verify pure estimator engine across shifts, thickness, and RT RSO allocation
@@ -562,8 +562,8 @@ test('CompanyProjectCostEstimator computes service budgets & site requirements a
   assert.ok(turnaroundRtEst.estimatedRtFilms > 0);
   assert.ok(turnaroundRtEst.totalCertifiedPersonnel > dayEst.totalCertifiedPersonnel);
 
-  // 2. Render CompanyPortal and interact with the Project Cost Estimator UI
-  const ui = render(<CompanyPortal language="en" onNavigateToAcademy={() => {}} />);
+  // 2. Render the RFQ destination and interact with the Project Cost Estimator UI
+  const ui = render(<CompanyQuotePage language="en" anchor="cost-estimator" />);
 
   assert.ok(
     ui.getByText(/Interactive Project Cost & Mobilization Requirements Estimator/i)

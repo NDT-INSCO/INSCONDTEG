@@ -381,3 +381,11 @@ node --experimental-test-module-mocks --import tsx --test tests/networkFeed.test
 node --experimental-test-module-mocks --import tsx --test tests/networkJobs.test.tsx
 npm run verify
 ```
+
+> **لماذا `--test-force-exit`؟** ملفات الشبكة تبني `App` كاملاً داخل jsdom، فتبقى فيه
+> مؤقتات لا تُغلق بعد آخر اختبار فيتعلّق تشغيل CI بعد نجاح كل الاختبارات (ظهر ذلك على
+> مشغّل GitHub: `ok 15` ثم لا شيء). العلم يُنهي العملية بعد طباعة النتائج، ولا يُخفي أي
+> فشل — نفس الملفات ونفس التأكيدات.
+
+```bash
+```

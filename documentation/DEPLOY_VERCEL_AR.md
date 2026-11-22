@@ -20,24 +20,27 @@
 | المشروع | `inscondteg` · `prj_EZ8Wuf2ypYHt4KKe2XetVo6pwW7w` |
 | الفريق | `ndt-insco's projects` (`team_JooGvQDMhwDLLTIvOHsJMilR`) |
 | المستودع | `NDT-INSCO/INSCONDTEG` · فرع الإنتاج `main` |
-| آخر نشر إنتاجي | `dpl_7fTNWnwiEvXVzsucgEW8rQcB6gQe` — الحالة **READY** ومُرقَّى (`PROMOTED`) |
+| أول نشر إنتاجي | `dpl_7fTNWnwiEvXVzsucgEW8rQcB6gQe` — **READY** ومُرقَّى (`PROMOTED`) |
+| آخر نشر إنتاجي | `dpl_HHNH26pUAFumDehMgcDFPx11Rs75` من الالتزام `5762fbe` — **READY** ومُرقَّى، والنطاق مُسنَد |
 | الرابط العام | <https://inscondteg.vercel.app> |
 
 **مُتحقَّق منه فعلياً:** الصفحة الرئيسية تُقرأ من Vercel بلا تسجيل دخول، ودالة
 `api/insco.ts` تعمل: `GET /api/site/announcement` يرجّع `{"message":null}` — وهذا هو
 الشيء الذي لا تستطيعه GitHub Pages أصلاً.
 
-## أمران يجب أن يُقالا بوضوح
+## ملاحظتان يجب أن تُقالا بوضوح
 
 1. **رابط كل نشر محمي، والنطاق الثابت عام.** إعداد الفريق الافتراضي هو
    «Vercel Authentication: كل النشرات عدا النطاقات المخصصة»، فرابط مثل
    `inscondteg-q34xqlu7p-ndt-insco.vercel.app` يطلب تسجيل دخول Vercel.
    النطاق الإنتاجي `inscondteg.vercel.app` **عام ويعمل** (تحقّقنا منه). إن أردت أن تكون
    نشرات المعاينة عامة أيضاً: Project → Settings → Deployment Protection.
-2. **الدفع إلى `main` لا ينشئ نشراً تلقائياً الآن.** المشروع أُنشئ بحالة
-   `gitProviderOptions.createDeployments: "disabled"`، أي أن Vercel لا يبني عند كل دفع.
-   لتفعيله: <https://vercel.com/ndt-insco/inscondteg/settings/git> ← **Deployments**.
-   حتى يُفعّل، النشر يُطلب صراحةً (أو يُعاد النشر من آخر التزام في لوحة Vercel).
+2. **النشر التلقائي يعمل فعلاً — خلافاً لما ظنّيناه أول الأمر.** بعد دمج PR #40 ظهر
+   نشر إنتاجي جديد من الالتزام `5762fbe` وأصبح **READY** ثم `PROMOTED`، وأُسنِد النطاق
+   إليه تلقائياً؛ كما ظهر نشر معاينة لكل PR (`Vercel` check على PR #40). بيانات المشروع
+   تحمل `gitProviderOptions.createDeployments: "disabled"` — وهي **مضلِّلة ولا تعبّر عن
+   السلوك الفعلي**، والسلوك الفعلي هو المرجع: كل دفع إلى `main` ينشر إنتاجياً، وكل PR
+   يحصل على معاينة. لذلك لا حاجة لأي إعداد إضافي، ولا يُنشر شيء يدوياً.
 
 ## إعدادات `vercel.json` التي بُني عليها فعلاً:
 

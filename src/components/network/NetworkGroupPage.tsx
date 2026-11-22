@@ -39,6 +39,7 @@ import {
   validateGroupPostDraft,
   type NetworkGroupDraft,
   type NetworkGroupPostDraft,
+  describeGroupFailure,
 } from '../../network/networkGroupsForm';
 
 interface NetworkGroupPageProps {
@@ -248,7 +249,7 @@ export const NetworkGroupPage: React.FC<NetworkGroupPageProps> = ({
           ? isAr
             ? 'هذا الجروب بالدعوة فقط — يضيفك المالك.'
             : 'This group is invitation-only — its owner adds members.'
-          : message
+          : describeGroupFailure(failure, isAr)
       );
     } finally {
       setJoining(false);
@@ -268,7 +269,7 @@ export const NetworkGroupPage: React.FC<NetworkGroupPageProps> = ({
         await api.createGroupPost(user, group.id, { displayName: card.displayName, headline: card.headline }, toGroupPostInput(draft));
         setDraft(EMPTY_GROUP_POST_DRAFT);
       } catch (failure) {
-        setActionError(failure instanceof Error ? failure.message : String(failure));
+        setActionError(describeGroupFailure(failure, isAr));
       } finally {
         setPosting(false);
       }
@@ -285,7 +286,7 @@ export const NetworkGroupPage: React.FC<NetworkGroupPageProps> = ({
         const api = await import('../../client/communityGroupsService');
         await api.answerGroupRequest(group.id, target.uid, decision);
       } catch (failure) {
-        setActionError(failure instanceof Error ? failure.message : String(failure));
+        setActionError(describeGroupFailure(failure, isAr));
       } finally {
         setAnswering(null);
       }
@@ -317,7 +318,7 @@ export const NetworkGroupPage: React.FC<NetworkGroupPageProps> = ({
         const api = await import('../../client/communityGroupsService');
         await api.inviteToCommunityGroup(group.id, { uid: target.uid, displayName: target.displayName });
       } catch (failure) {
-        setActionError(failure instanceof Error ? failure.message : String(failure));
+        setActionError(describeGroupFailure(failure, isAr));
       } finally {
         setInviting(null);
       }
@@ -449,7 +450,7 @@ export const NetworkGroupPage: React.FC<NetworkGroupPageProps> = ({
 
         {actionError ? (
           <p role="alert" className="mt-2 rounded border border-rose-500/40 bg-rose-500/10 px-2 py-1 text-[10px] text-rose-200">
-            {isAr ? `تعذّر تنفيذ الإجراء: ${actionError}` : `Action failed: ${actionError}`}
+            {actionError}
           </p>
         ) : null}
 

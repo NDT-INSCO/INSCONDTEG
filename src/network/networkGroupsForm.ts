@@ -303,3 +303,38 @@ export function groupAccess(
 export function approvedMemberCount(members: Pick<CommunityGroupMember, 'status'>[]): number {
   return members.filter(member => member.status === 'approved').length;
 }
+
+/**
+ * Why a write was refused, in the words the member can act on.
+ *
+ * The most common refusal in this feature is not the member's fault: the rules in
+ * `firestore.rules` live in the repository, and until they are published to the
+ * Firebase project, the server answers `permission-denied` to every group write.
+ * That is a deployment fact, not a UI bug — so the interface says exactly that
+ * instead of echoing `Firestore create failed (permission-denied)`.
+ */
+export function describeGroupFailure(error: unknown, isAr: boolean): string {
+  const raw = error as { code?: unknown; message?: unknown } | null;
+  const code = typeof raw?.code === 'string' ? raw.code : '';
+  const message = typeof raw?.message === 'string' ? raw.message : String(error ?? '');
+
+  if (code === 'permission-denied' || message.includes('permission-denied')) {
+    return isAr
+      ? 'الخادم رفض العملية: قواعد Firebase المنشورة لا تسمح بالجروبات بعد. الملف firestore.rules موجود في المستودع ولم يُنشر على المشروع — بعد نشره تعمل هذه الخطوة من أول مرة.'
+      : 'The server refused: the deployed Firebase rules do not allow groups yet. firestore.rules is in the repository but has not been published to the project — once it is, this action works first time.';
+  }
+  if (code === 'unauthenticated' || message.includes('unauthenticated')) {
+    return isAr ? 'انتهت الجلسة — سجّل الدخول ثم أعد المحاولة.' : 'The session ended — sign in and try again.';
+  }
+  if (
+    code === 'unavailable' ||
+    message.includes('unavailable') ||
+    message.includes('offline') ||
+    message.includes('network-request-failed')
+  ) {
+    return isAr
+      ? 'تعذّر الوصول إلى الخادم (شبكة أو حجب). لم يُحفظ شيء — أعد المحاولة.'
+      : 'The server was unreachable (network or blocking). Nothing was saved — try again.';
+  }
+  return isAr ? `تعذّر تنفيذ الإجراء: ${message}` : `Action failed: ${message}`;
+}

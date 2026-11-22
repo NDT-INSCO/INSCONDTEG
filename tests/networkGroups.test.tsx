@@ -48,6 +48,7 @@ let postsByGroup: Record<string, Record<string, unknown>[]> = {};
 let groupDoc: Record<string, unknown> | null = null;
 let directory: Record<string, unknown>[] = [];
 let uploadNeverAnswers = false;
+let joinError: { code: string; message: string } | null = null;
 
 const group = (overrides: Record<string, unknown> = {}) => ({
   id: 'g1',
@@ -89,6 +90,7 @@ mock.module('../src/client/communityGroupsService.ts', {
     },
     joinCommunityGroup: async (...args: unknown[]) => {
       calls.push({ fn: 'joinCommunityGroup', args });
+      if (joinError) throw Object.assign(new Error(joinError.message), { code: joinError.code });
       const target = args[0] as { joinPolicy: string };
       return target.joinPolicy === 'open' ? 'approved' : 'pending';
     },
@@ -151,6 +153,7 @@ beforeEach(() => {
   groupDoc = null;
   directory = [];
   uploadNeverAnswers = false;
+  joinError = null;
 });
 
 afterEach(() => cleanup());
@@ -236,6 +239,18 @@ test('group and post drafts refuse what the rules would refuse', () => {
   assert.deepEqual(form.toGroupPostInput({ title: '   ', body: ' نص ' }), { body: 'نص' });
 });
 
+test('a refusal names its real cause instead of echoing a Firestore code', () => {
+  const denied = form.describeGroupFailure({ code: 'permission-denied' }, true);
+  assert.ok(denied.includes('firestore.rules'), 'the rules file is named');
+  assert.ok(denied.includes('لم يُنشر'), 'it says the rules are not published');
+  assert.ok(!denied.includes('permission-denied'), 'no raw code is shown to the member');
+
+  assert.ok(form.describeGroupFailure({ code: 'unauthenticated' }, true).includes('سجّل الدخول'));
+  assert.ok(form.describeGroupFailure({ code: 'unavailable' }, true).includes('شبكة'));
+  assert.ok(form.describeGroupFailure({ message: 'network-request-failed' }, false).includes('unreachable'));
+  assert.ok(form.describeGroupFailure(new Error('boom'), false).includes('boom'));
+});
+
 /* -------------------------------- the list -------------------------------- */
 
 test('an empty list says it is empty, with no invented groups', async () => {
@@ -263,6 +278,19 @@ test('an open group joins immediately, carrying my card name', async () => {
     assert.equal(user.uid, 'uid-me');
     assert.equal(displayName, 'أحمد محمود', 'the request carries the member own card name');
   });
+});
+
+test('when the deployed rules refuse the write, the page says the rules are unpublished', async () => {
+  groups = [group({ joinPolicy: 'open' })];
+  joinError = { code: 'permission-denied', message: 'Firestore create failed (permission-denied)' };
+
+  const { getByTestId, findByRole } = mountList();
+  await waitFor(() => assert.ok(getByTestId('network-group-join')));
+  fireEvent.click(getByTestId('network-group-join'));
+
+  const alert = await findByRole('alert');
+  assert.ok((alert.textContent ?? '').includes('firestore.rules'));
+  assert.ok(!(alert.textContent ?? '').includes('permission-denied'));
 });
 
 test('a request-only group takes a request and then says it is pending', async () => {

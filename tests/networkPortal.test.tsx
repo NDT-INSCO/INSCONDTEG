@@ -207,9 +207,9 @@ test('the banner tells the truth about what is live and what is still a prototyp
 });
 
 test('write actions are genuinely disabled, not merely styled to look disabled', () => {
-  // The feed is live now, so it is checked in its own suite; these sections are
-  // still prototypes and must keep every write visibly disabled.
-  for (const section of ['groups', 'messages', 'verify'] as const) {
+  // The feed and the groups are live now, so each is checked in its own suite; these
+  // sections are still prototypes and must keep every write visibly disabled.
+  for (const section of ['messages', 'verify'] as const) {
     const { getAllByTestId, unmount } = render(
       <NetworkPortal
         language="ar"
@@ -227,6 +227,24 @@ test('write actions are genuinely disabled, not merely styled to look disabled',
     }
     unmount();
   }
+});
+
+test('groups is a real section now, so it shows no disabled placeholder button', () => {
+  const { queryAllByTestId, container } = render(
+    <NetworkPortal
+      language="ar"
+      section="groups"
+      onOpenSection={() => {}}
+      onOpenCompany={() => {}}
+      onOpenAcademy={() => {}}
+    />
+  );
+  assert.equal(queryAllByTestId('network-write-disabled').length, 0, 'a live section must not ship fake disabled buttons');
+  const states = ['network-groups-live', 'network-groups-gate', 'network-groups-unavailable', 'network-groups-loading'];
+  assert.ok(
+    states.some(id => container.querySelector(`[data-testid="${id}"]`)),
+    'groups renders its real state, whatever that state is'
+  );
 });
 
 test('the message box cannot be typed into, and the feed offers no dead composer', () => {

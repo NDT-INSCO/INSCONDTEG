@@ -6,7 +6,6 @@ import {
   NetworkArticles,
   NetworkCompanies,
   NetworkEvents,
-  NetworkGroups,
   NetworkMessages,
   NetworkNotifications,
   NetworkSearch,
@@ -33,6 +32,12 @@ const NetworkDirectorySection = lazy(() =>
 );
 const NetworkMemberProfile = lazy(() =>
   import('./NetworkMemberProfile').then(module => ({ default: module.NetworkMemberProfile }))
+);
+const NetworkGroupsSection = lazy(() =>
+  import('./NetworkGroupsSection').then(module => ({ default: module.NetworkGroupsSection }))
+);
+const NetworkGroupPage = lazy(() =>
+  import('./NetworkGroupPage').then(module => ({ default: module.NetworkGroupPage }))
 );
 
 export interface NetworkPortalProps {
@@ -140,7 +145,34 @@ export const NetworkPortal: React.FC<NetworkPortalProps> = ({
           </div>
         );
       case 'groups':
-        return <NetworkGroups language={language} />;
+        /* `#network/groups/<id>` is one group; the bare section is the list. */
+        if (entryId) {
+          return (
+            <div data-testid="network-section-group">
+              <Suspense fallback={<LoadingSection language={language} />}>
+                <NetworkGroupPage
+                  groupId={entryId}
+                  language={language}
+                  onOpenAccount={openAccountPanel}
+                  onOpenProfile={() => openSection('profile')}
+                  onBack={() => openSection('groups')}
+                />
+              </Suspense>
+            </div>
+          );
+        }
+        return (
+          <div data-testid="network-section-groups">
+            <Suspense fallback={<LoadingSection language={language} />}>
+              <NetworkGroupsSection
+                language={language}
+                onOpenAccount={openAccountPanel}
+                onOpenProfile={() => openSection('profile')}
+                onOpenGroup={groupId => onOpenSection('groups', groupId)}
+              />
+            </Suspense>
+          </div>
+        );
       case 'jobs':
         return (
           <div data-testid="network-section-jobs">
@@ -187,7 +219,11 @@ export const NetworkPortal: React.FC<NetworkPortalProps> = ({
       data-portal="network"
       data-section={section}
       data-prototype={
-        section === 'feed' || section === 'profile' || section === 'people' || section === 'jobs'
+        section === 'feed' ||
+        section === 'profile' ||
+        section === 'people' ||
+        section === 'jobs' ||
+        section === 'groups'
           ? 'partial'
           : 'true'
       }

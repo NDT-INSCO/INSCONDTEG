@@ -195,38 +195,6 @@ export const NetworkProfile: React.FC<{ language: Language; onOpenSection: (s: N
   );
 };
 
-/* --------------------------------- groups ---------------------------------- */
-
-export const NetworkGroups: React.FC<{ language: Language }> = ({ language }) => {
-  const isAr = language === 'ar';
-  return (
-    <div data-testid="network-section-groups">
-      <SectionIntro language={language} id="groups" />
-      <div className="grid min-w-0 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
-        {NETWORK_GROUPS.map(group => (
-          <Panel key={group.slug} label={group[isAr ? 'ar' : 'en']}>
-            <div className="flex min-w-0 items-start justify-between gap-1.5">
-              <div className="flex min-w-0 items-center gap-1.5">
-                <Users className="h-4 w-4 shrink-0 text-violet-300" aria-hidden="true" />
-                <h3 className="min-w-0 truncate text-xs font-bold text-white">{group[isAr ? 'ar' : 'en']}</h3>
-              </div>
-              <SampleBadge language={language} />
-            </div>
-            <p className="mt-1 text-[10px] text-slate-500">{disciplineLabel(group.discipline, isAr ? 'ar' : 'en')}</p>
-            <p className="mt-1.5 rounded border border-[#232345] bg-[#0b0b18] px-1.5 py-1 text-[10px] leading-relaxed text-slate-400">
-              {isAr ? `قواعد المجموعة: ${group.rulesAr}` : `Group rules: ${group.rulesEn}`}
-            </p>
-            <div className="mt-2 flex items-center justify-between gap-1.5">
-              <span className="min-w-0 truncate text-[10px] text-slate-500">{group[isAr ? 'membersAr' : 'membersEn']}</span>
-              <DisabledAction language={language} labelAr="انضمام" labelEn="Join" icon={<UserPlus className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />} />
-            </div>
-          </Panel>
-        ))}
-      </div>
-    </div>
-  );
-};
-
 /* --------------------------------- people ---------------------------------- */
 
 export const NetworkPeople: React.FC<{ language: Language }> = ({ language }) => {

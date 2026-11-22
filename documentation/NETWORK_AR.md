@@ -42,8 +42,8 @@
 | `#network/feed` | المنشورات | نقاشات فنية، أسئلة ميدانية، دراسات حالة |
 | `#network/profile` | ملفي المهني | الهوية المهنية، التخصص، الشهادات وحالة كل شهادة |
 | `#network/profile/<handle>` | ملف عضو | نفس البنية، لعضو آخر (يظهر بعد وجود الحسابات) |
-| `#network/groups` | المجموعات | مجموعات التخصص: UT · PAUT/TOFD · RT · لحام · PWHT · جودة · تآكل |
-| `#network/groups/<slug>` | مجموعة واحدة | قواعد المجموعة + منشوراتها |
+| `#network/groups` | المجموعات | كل جروب ينشئه عضو، مع سياستَي الانضمام والنشر التي اختارها مالكه |
+| `#network/groups/<groupId>` | مجموعة واحدة | من يدخلها وكيف + منشوراتها (والأدوات عند المالك) |
 | `#network/people` | الخبراء والأعضاء | دليل + اقتراحات من نفس التخصص |
 | `#network/jobs` | الفرص المهنية | وظائف ومهام فحص بفلاتر التخصص والدولة والخبرة |
 | `#network/jobs/<id>` | فرصة واحدة | التفاصيل + التقديم/الحفظ |
@@ -134,8 +134,9 @@
 | `posts/{id}` | `authorId, type, discipline, title, body, media[], groupId?, linkedLesson?, counts{likes,comments}, visibility, createdAt` | المؤلف (عدا `counts`) |
 | `posts/{id}/comments/{id}` | `authorId, body, createdAt` | المؤلف |
 | `posts/{id}/reactions/{uid}` | `kind, createdAt` | صاحب التفاعل |
-| `groups/{slug}` | `name, discipline, about, rules, ownerId, memberCount` | المالك/الإدارة |
-| `groups/{slug}/members/{uid}` | `role, joinedAt` | الخادم (عضوية) |
+| `community_groups/{groupId}` | `name, description, ownerUid, ownerName, joinPolicy, postPolicy, coverURL?, createdAt, updatedAt` | مالك الجروب وحده |
+| `community_group_members/{groupId_uid}` | `groupId, uid, displayName, role (owner/member), status (pending/approved/rejected)` | العضو لنفسه · المالك للطلب |
+| `community_groups/{groupId}/posts/{postId}` | `authorUid, authorName, authorHeadline?, title?, body` | الأعضاء المعتمَدون حسب سياسة المالك |
 | `connections/{pairId}` | `from, to, status (pending/accepted), createdAt` | الطرفان عبر الخادم |
 | `follows/{a_b}` | `followerId, targetId, createdAt` | المتابع |
 | `jobs/{id}` | `orgId, title, discipline, level, country, city, employmentType, requirements[], description, status, createdAt` | المؤسسة الموثّقة |
@@ -406,27 +407,104 @@ allow write: if request.auth.uid == userId
   معلنة كغير مُتحقَّق منها، صفحة «للأعضاء» مرفوضة لزائر، «ممنوع بالقراءة» ≠ «غير
   موجود»، منشورات علنية فقط، اتصال محجوب معلن، والمحرّر يعلن أن الرفع معطّل.
 
-## 12. ما هو موجود اليوم بالضبط (المرحلة B + C + D + E + F)
+## 12. المرحلة G — الجروبات: القرار بيد المالك، والفرض في القواعد
+
+كل عضو يستطيع إنشاء جروب من `#network/groups`، ويكتب **قرارين** لا ثالث لهما:
+
+| القرار | الخيارات | ماذا يعني في القواعد |
+| --- | --- | --- |
+| `joinPolicy` | `open` | الانضمام فوري: العضو يكتب صفّه `approved` بنفسه |
+| | `request` | العضو يكتب صفّه `pending`؛ والمالك وحده يقلبه إلى `approved`/`rejected` |
+| | `invite` | لا يكتب العضو صفّاً أبداً؛ المالك وحده يضيف الأعضاء |
+| `postPolicy` | `members` | كل عضو `approved` ينشر في الجروب |
+| | `owners` | المالك وحده ينشر؛ والبقية يقرأون ويقولون ذلك صراحةً |
+
+الاختياران يُحفظان على مستند الجروب، وتُقرأ منهما الواجهة **والقواعد** معاً (`groupAccess`
+في `src/network/networkGroupsForm.ts` هو الحكم الواحد). فلا يوجد زر «انضمام» في جروب
+بالدعوة، ولا زر «نشر» عند عضو عندما اختار المالك `owners` — والسبب مكتوب في مكان الزر.
+
+### لماذا صفوفة عضوية منفصلة
+
+`community_group_members/{groupId_uid}` بمعرّف مركّب: صفّ واحد لكل عضو في كل جروب، وقراءته
+مباشرةً بلا استعلام مركّب ولا فهرس. وقاعدة الإنشاء هي التي تفرّق بين `open` و`request`
+و`invite`:
+
+```text
+allow create: if isVerifiedUser()
+  && memberId == incoming().groupId + '_' + incoming().uid
+  && exists(/community_groups/$(incoming().groupId))
+  && (
+       (incoming().role == 'owner' && incoming().uid == request.auth.uid
+        && groupData(...).ownerUid == request.auth.uid)
+    || (incoming().role == 'member' && incoming().uid == request.auth.uid
+        && ((joinPolicy == 'open'    && status == 'approved')
+         || (joinPolicy == 'request' && status == 'pending')))
+    || (joinPolicy == 'invite' && groupData(...).ownerUid == request.auth.uid)
+  );
+```
+
+`allow update` لا يسمح بتغيير `uid/groupId/role` إطلاقاً، ولا يسمح بحقل `status` إلا
+لمالك الجروب: **العضو لا يعتمد نفسه**.
+
+### منشورات الجروب لا تدخل المنشورات العامة
+
+`community_groups/{groupId}/posts` مجموعة فرعية مستقلة، وقراءتها (`get` و`list`) تتطلب
+عضوية `approved` فعلياً. والنتيجة أن غير العضو **لا يرى** المنشورات أصلاً — لذلك الصفحة
+تعرض له بوابة «كيف تدخل» وليس قائمة فارغة، وتقول إن القواعد هي التي تمنع القراءة وليس
+زراً مخفياً. والنشر يمرّ بشرطين معاً: عضوية معتمدة **و** (`postPolicy == 'members'`
+أو أنت المالك).
+
+### إنشاء الجروب: كتابتان بالترتيب لا دفعة واحدة
+
+الكاتب يحتاج `exists()` للجروب في قاعدة صفّ المالك، و`exists()` داخل دفعة واحدة يُقيَّم
+على حالة ما قبل الدفعة — فدفعةٌ تكتب الجروب وصفّ المالك معاً **تُرفض**. لذلك:
+`setDoc` للجروب، ثم `setDoc` لصفّ المالك. وإن فشلت الثانية يقول الخطأ نصاً إن الجروب
+أُنشئ ولم تُسجَّل العضوية، بدل إيهام العضو بأن كل شيء نجح.
+
+### ما لا يوجد بقصد
+
+- **لا عدّاد أعضاء على المستند** — لا شيء ينحرف: العدد يُحسب من الصفوف المعتمدة.
+- **لا «جروبات مقترحة» وهمية**، ولا جروب بلا مالك، ولا عضو يُضاف من غير علمه إلا بيد المالك.
+- **لا إشعارات ولا رسائل جروب** في هذه المرحلة؛ المنشور داخل الجروب فقط.
+- الجروب **عام القراءة كمستند** (اسمه ووصفه وسياساته) ليقرر الزائر قبل التسجيل،
+  أما قائمة الأعضاء فتُقرأ لكل عضو مؤكَّد (الأسماء العامة أصلاً في الدليل) والمنشورات
+  لغير الأعضاء **مغلقة**.
+
+### الاختبارات
+
+- `tests/networkGroups.test.tsx` (**14**): مصفوفة `groupAccess` كاملة، رفض المسودّات،
+  جروب مفتوح ينضم فوراً، طلب انضمام يصبح `pending`، جروب بالدعوة بلا زر انضمام،
+  إنشاء يرسل السياستين، غير العضو يرى البوابة لا الفراغ، عضو ينشر، عضو ممنوع من النشر
+  يُعلَن له السبب، المالك يوافق على طلب ويضيف من الدليل الحقيقي.
+- `tests/networkGroups.emulator.test.ts` (**8**, محاكي Firestore): إنشاء الجروب وصفّ
+  المالك، عضو غير مؤكَّد مرفوض، انضمام فوري في المفتوح، `pending` في «بالطلب» ورفض
+  الاعتماد الذاتي، رفض الانضمام في «بالدعوة»، تغيير السياسات للمالك وحده، قراءة المنشورات
+  لغير الأعضاء مرفوضة، وحدود النشر بحسب السياسة، والحذف.
+
+## 13. ما هو موجود اليوم بالضبط (المرحلة B + C + D + E + F + G)
 
 - `#network` وبوابته الكاملة: ترويسة، تنقّل 12 قسماً، تذييل مستقل.
 - الباب الرابع في: `PortalSwitchBar` (بنفسجي) · `PortalChooser` (أربع بطاقات) · `MobileNavDrawer` (مجموعة خاصة).
-- كل الأقسام الاثني عشر تُعرض، ببيانات **قوالب موسومة** «نموذج توضيحي»، لا أسماء أعضاء.
-- كل إجراء كتابة (`نشر` · `تعليق` · `انضمام` · `اتصال` · `تقديم` · `إرسال` · `طلب تحقق`) **معطّل فعلياً** وسببه مكتوب.
+- الأقسام الحيّة (المنشورات · الدليل · الفرص · الصفحة العامة · الجروبات) ببيانات Firestore
+  حقيقية، وما زال تصوراً بعدها (الرسائل · التحقق · المقالات · الفعاليات · المؤسسات):
+  بياناتها **قوالب موسومة** «نموذج توضيحي»، وكل إجراء كتابة فيها **معطّل فعلياً** وسببه مكتوب.
 - `#network/profile`: بطاقة مهنية حقيقية على الحساب الموحّد (المرحلة C).
 - `#network/people`: دليل أعضاء حقيقي من البطاقات المنشورة، وحالة فراغ صريحة.
 - `#network/feed`: منشورات وتعليقات وإعجاب حقيقي، ونشر يتطلب بطاقة مؤكَّدة (المرحلة D).
 - «أضف إلى شبكتي» في دليل الأعضاء: اتصال حقيقي على `community_connections`.
 - `#network/jobs`: نشر فرصة · فلترة · إغلاق/إعادة فتح · تواصل مع الناشر (المرحلة E).
 - `#network/people/<uid>`: صفحة تعريف عامة بالبانر والصورة وزر LinkedIn والمنشورات (المرحلة F).
+- `#network/groups`: كل عضو ينشئ جروبه ويختار سياستَي الانضمام والنشر، ويُفرَضان في القواعد (المرحلة G).
+- `#network/groups/<groupId>`: صفحة الجروب مع منشورات أعضائه وأدوات المالك (الطلبات · الدعوات).
 - الشهادات تظهر كإقرار غير مُتحقَّق منه، وبمسارَي التحقق مفصولان نصياً.
 - العزل مُختبَر: لا تظهر بوابة العملاء ولا الأكاديمية ولا الشركة داخل الشبكة، ولا العكس.
 
-**غير موجود بقصد:** تقديم رسمي على وظيفة، رسالة، قبول متبادل للاتصال، شارة تحقق مُمنوحة.
-هذه تحتاج E2–G، ولن تُستعار من بيانات وهمية.
+**غير موجود بقصد:** تقديم رسمي على وظيفة، رسالة، قبول متبادل للاتصال، شارة تحقق مُمنوحة،
+إشعارات أو رسائل داخل الجروبات. هذه تحتاج مراحل لاحقة، ولن تُستعار من بيانات وهمية.
 
 ---
 
-## 13. الاختبارات
+## 14. الاختبارات
 
 | الملف | ما يثبته |
 | --- | --- |
@@ -439,6 +517,8 @@ allow write: if request.auth.uid == userId
 | `tests/networkJobs.test.tsx` | حدود الفرص، تطهير الطرق، لا تقديم وهمي، النشر والإغلاق والتواصل |
 | `tests/networkIdentity.test.ts` | LinkedIn فقط، https فقط، حدود الملفات، الجمهور، بانر من البطاقة وحدها |
 | `tests/networkPublicProfile.test.tsx` | الصفحة العامة: صور حقيقية، رفض «للأعضاء»، منشورات علنية فقط |
+| `tests/networkGroups.test.tsx` | الجروبات: مصفوفة الوصول، السياستين، البوابة قبل الفراغ، لا زر في «بالدعوة» |
+| `tests/networkGroups.emulator.test.ts` | القواعد نفسها في المحاكي: من يعتمد من، ومن يقرأ المنشورات، ومن ينشر |
 
 أمر التشغيل:
 
@@ -447,6 +527,7 @@ npx tsx --test tests/networkPortal.test.tsx
 node --experimental-test-module-mocks --import tsx --test tests/networkProfile.test.tsx
 node --experimental-test-module-mocks --import tsx --test tests/networkFeed.test.tsx
 node --experimental-test-module-mocks --import tsx --test tests/networkJobs.test.tsx
+node --experimental-test-module-mocks --import tsx --test tests/networkGroups.test.tsx
 npm run verify
 ```
 

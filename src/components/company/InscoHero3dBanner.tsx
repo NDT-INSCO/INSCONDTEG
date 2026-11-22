@@ -269,6 +269,7 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
   const presetTransitionRef = useRef<boolean>(false);
   const onInspectedPartRef = useRef(onInspectedPartChange);
   const renderOnDemand = useRef<(() => void) | null>(null);
+  const cancelScheduledFrame = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     modeRef.current = mode;
@@ -288,7 +289,8 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
 
   useEffect(() => {
     pausedRef.current = paused;
-    if (!paused) renderOnDemand.current?.();
+    if (paused) cancelScheduledFrame.current?.();
+    else renderOnDemand.current?.();
   }, [paused]);
 
   useEffect(() => {
@@ -349,7 +351,7 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x020617);
-    scene.fog = new THREE.FogExp2(0x020617, 0.048);
+    scene.fog = new THREE.FogExp2(0x020617, background ? 0.034 : 0.048);
 
     // Mandatory studio environment reflection (RoomEnvironment)
     const pmremGenerator = new THREE.PMREMGenerator(renderer);
@@ -817,7 +819,8 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
     let elapsed = 0;
     let framedWidth = 0;
     let framedHeight = 0;
-    let framedOffset = 0;
+    let framedX = 0;
+    let framedY = 0;
 
     const cancelQueuedDraw = () => {
       cancelAnimationFrame(frameId);
@@ -881,16 +884,19 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
       const w = container.clientWidth || initW;
       const h = container.clientHeight || initH;
       const isWide = w >= (background ? 900 : 980);
-      // The homepage uses an off-axis camera to keep the model in the visual
-      // half while the entire desktop banner is backed by the same scene.
-      const offset = background && isWide ? w * (isArRef.current ? 0.235 : -0.235) : 0;
-      if (w !== framedWidth || h !== framedHeight || offset !== framedOffset) {
-        if (offset) camera.setViewOffset(w, h, offset, 0, w, h);
-        else camera.clearViewOffset();
-        if (background) presetTransitionRef.current = true;
+      // Frame the original rig high across the desktop and phone mastheads:
+      // its movement is visible through the navbar, not in a separate card.
+      const offsetX = background && isWide ? w * (isArRef.current ? 0.235 : -0.235) : 0;
+      const offsetY = background ? h * 0.255 : 0;
+      if (w !== framedWidth || h !== framedHeight || offsetX !== framedX || offsetY !== framedY) {
+        if (background) {
+          camera.setViewOffset(w, h, offsetX, offsetY, w, h);
+          presetTransitionRef.current = true;
+        }
         framedWidth = w;
         framedHeight = h;
-        framedOffset = offset;
+        framedX = offsetX;
+        framedY = offsetY;
       }
       const desiredRigX = !background && isWide ? (isArRef.current ? -1.45 : 1.45) : 0;
       heroRigGroup.position.x = THREE.MathUtils.damp(heroRigGroup.position.x, desiredRigX, 5, dt);
@@ -906,7 +912,7 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
         _camGoalPos.set(baseX + 2.4, 2.05, 4.65);
         _camGoalTarget.set(baseX + 0.35, 0.55, 0);
       } else {
-        const distance = background && isWide ? Math.max(7.5, (h / w) * 23.5) : isWide ? 7.1 : 8.2;
+        const distance = background ? Math.max(7.5, (h / w) * (isWide ? 22 : 10.75)) : isWide ? 7.1 : 8.2;
         _camGoalPos.set(baseX + (isArRef.current ? -0.9 : 0.9), 2.15, distance);
         _camGoalTarget.set(baseX, -0.05, 0);
       }
@@ -999,11 +1005,13 @@ export const InscoHero3dBanner: React.FC<InscoHero3dBannerProps> = ({
     };
 
     renderOnDemand.current = requestFrame;
+    cancelScheduledFrame.current = cancelQueuedDraw;
     if (prefersReducedMotion) controls.addEventListener('change', requestFrame);
     requestFrame();
 
     return () => {
       renderOnDemand.current = null;
+      cancelScheduledFrame.current = null;
       controls.removeEventListener('change', requestFrame);
       disposed = true;
       cancelQueuedDraw();

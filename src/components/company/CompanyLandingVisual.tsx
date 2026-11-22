@@ -18,7 +18,11 @@ class BackdropBoundary extends React.Component<{ children: React.ReactNode }, { 
   render() { return this.state.failed ? null : this.props.children; }
 }
 
-export function CompanyLandingVisual({ language }: { language: Language }) {
+export function CompanyLandingVisual({ language, chromeHeight, onVisibilityChange }: {
+  language: Language;
+  chromeHeight: number;
+  onVisibilityChange?: (visible: boolean) => void;
+}) {
   const isAr = language === 'ar';
   const stageRef = useRef<HTMLDivElement>(null);
   const [inView, setInView] = useState(false);
@@ -30,9 +34,20 @@ export function CompanyLandingVisual({ language }: { language: Language }) {
 
   useEffect(() => {
     const stage = stageRef.current;
-    const motion = window.matchMedia?.('(prefers-reduced-motion: reduce)');
-    if (!stage || !motion || typeof IntersectionObserver === 'undefined' || !window.WebGL2RenderingContext) return;
+    if (!stage || typeof IntersectionObserver !== 'function') return;
+    // The shared nav is sticky, the masthead is not. Once the hero clears the
+    // bottom of the nav, restore its usual surface and stop drawing frames.
+    const observer = new IntersectionObserver(([entry]) => {
+      setInView(entry.isIntersecting);
+      onVisibilityChange?.(entry.isIntersecting);
+    }, { rootMargin: `${-chromeHeight}px 0px 0px` });
+    observer.observe(stage);
+    return () => observer.disconnect();
+  }, [chromeHeight, onVisibilityChange]);
 
+  useEffect(() => {
+    const motion = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    if (!motion || !window.WebGL2RenderingContext) return;
     const syncMotion = () => {
       setMotionAllowed(!motion.matches);
       if (motion.matches) {
@@ -41,21 +56,17 @@ export function CompanyLandingVisual({ language }: { language: Language }) {
       }
     };
     const syncVisibility = () => setPageVisible(!document.hidden);
-    const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting));
-    observer.observe(stage);
     syncMotion();
     syncVisibility();
     motion.addEventListener('change', syncMotion);
     document.addEventListener('visibilitychange', syncVisibility);
     return () => {
-      observer.disconnect();
       motion.removeEventListener('change', syncMotion);
       document.removeEventListener('visibilitychange', syncVisibility);
     };
   }, []);
 
-  // Paint the heading, actions and responsive photo first. The original 3D
-  // scene is a separate chunk, requested only when its backdrop can be seen.
+  // Paint the heading, controls and photo before loading the original scene.
   useEffect(() => {
     if (!motionAllowed || !inView || !pageVisible || loadScene) return;
     const start = () => setLoadScene(true);
@@ -71,15 +82,15 @@ export function CompanyLandingVisual({ language }: { language: Language }) {
   const MotionIcon = paused ? Play : Pause;
 
   return (
-    <figure className="corporate-hero-media" data-scene-ready={live || undefined}>
-      <div className="corporate-hero-stage" ref={stageRef}>
+    <>
+      <div className="corporate-masthead-backdrop" data-testid="corporate-masthead-backdrop"
+        data-scene-ready={live || undefined} ref={stageRef} aria-hidden="true">
         <picture>
-          <source type="image/webp" srcSet={`${publicUrl('images/insco-field-inspection-720.webp')} 720w, ${publicUrl('images/insco-field-inspection-1200.webp')} 1200w`} sizes="(min-width: 1120px) 590px, (min-width: 900px) 48vw, 94vw" />
-          <img src={COMPANY_MEDIA.heroInspection} width={1376} height={768} fetchPriority="high" decoding="async"
-            alt={isAr ? 'صورة توضيحية لفحص وصلة ملحومة في منشأة صناعية' : 'Illustration of a welded joint being inspected inside an industrial plant'} />
+          <source type="image/webp" srcSet={`${publicUrl('images/insco-field-inspection-720.webp')} 720w, ${publicUrl('images/insco-field-inspection-1200.webp')} 1200w`} sizes="100vw" />
+          <img src={COMPANY_MEDIA.heroInspection} width={1376} height={768} fetchPriority="high" decoding="async" alt="" />
         </picture>
         {loadScene && motionAllowed && (
-          <div className="corporate-hero-backdrop" data-testid="corporate-hero-backdrop" aria-hidden="true">
+          <div className="corporate-hero-backdrop" data-testid="corporate-hero-backdrop">
             <BackdropBoundary>
               <Suspense fallback={null}>
                 <InspectionScene language={language} mode="ut" cameraPreset="overview" autoOrbit background
@@ -89,20 +100,15 @@ export function CompanyLandingVisual({ language }: { language: Language }) {
           </div>
         )}
       </div>
-      <figcaption>
-        <span className="corporate-hero-caption-label">
-          <span aria-hidden="true" className="corporate-hero-caption-dot" />
-          {live
-            ? (isAr ? 'محاكاة توضيحية لفحص الأنابيب' : 'Illustrative pipe inspection scene')
-            : (isAr ? 'مشهد توضيحي · الفحص الصناعي' : 'Illustrative scene · industrial inspection')}
-        </span>
+      <div className="corporate-wrap corporate-hero-tools">
+        <p><span aria-hidden="true" />{isAr ? 'مشهد توضيحي للفحص الصناعي' : 'Illustrative industrial inspection scene'}</p>
         {live && (
           <CtaButton variant="secondary" size="sm" className="corporate-hero-motion" onClick={() => setPaused(value => !value)}>
             <MotionIcon className="size-3.5 shrink-0" aria-hidden="true" />
             {paused ? (isAr ? 'شغّل الحركة' : 'Play motion') : (isAr ? 'أوقف الحركة' : 'Pause motion')}
           </CtaButton>
         )}
-      </figcaption>
-    </figure>
+      </div>
+    </>
   );
 }

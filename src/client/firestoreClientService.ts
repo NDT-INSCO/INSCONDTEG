@@ -1454,6 +1454,7 @@ export async function upsertCommunityWorkspace(
     bannerURL?: string;
     linkedInUrl?: string;
     profileVisibility?: 'public' | 'members';
+    skills?: string;
   },
   existing: CommunityWorkspaceProfile | null
 ): Promise<void> {
@@ -1491,6 +1492,17 @@ export async function upsertCommunityWorkspace(
     ...(input.photoURL ? { photoURL: input.photoURL } : {}),
     ...(input.bannerURL ? { bannerURL: input.bannerURL } : {}),
     ...(input.linkedInUrl ? { linkedInUrl: input.linkedInUrl } : {}),
+    // Declared skills. Sanitised here as a second line of defence: only the
+    // characters the rules regex allows survive, and a dangling comma is dropped.
+    ...(input.skills !== undefined && {
+      skills: String(input.skills)
+        .toLowerCase()
+        .replace(/[^a-z0-9_,]/g, '')
+        .replace(/,+/g, ',')
+        .replace(/^,|,$/g, '')
+        .slice(0, 700)
+        .replace(/,+$/, ''),
+    }),
     updatedAt: serverTimestamp(),
   };
 

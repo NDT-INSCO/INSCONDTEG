@@ -191,6 +191,11 @@ export interface CommunityWorkspaceProfile {
   linkedInUrl?: string;
   /** Absence means public — see NETWORK_PROFILE_VISIBILITY. */
   profileVisibility?: 'public' | 'members';
+  /**
+   * Declared skills, comma-separated ids from `NETWORK_SKILLS` (max 20).
+   * One string on purpose: `firestore.rules` can then prove the whole field.
+   */
+  skills?: string;
   createdAt?: unknown;
   updatedAt?: unknown;
 }
@@ -278,6 +283,33 @@ export interface CommunityGroupPost {
   authorName: string;
   authorHeadline?: string;
   title?: string;
+  body: string;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+}
+
+/**
+ * One confirmed member vouching for one skill on another member's card.
+ * The id is deterministic (`toUid_skillId_fromUid`), so a second endorsement of
+ * the same skill by the same member cannot exist — it is a set, not a counter.
+ */
+export interface CommunityEndorsement {
+  id: string;
+  toUid: string;
+  skillId: string;
+  fromUid: string;
+  fromName: string;
+  createdAt?: unknown;
+}
+
+/** Written words about a colleague — one per pair, editable by its author. */
+export interface CommunityRecommendation {
+  id: string;
+  fromUid: string;
+  fromName: string;
+  toUid: string;
+  toName: string;
+  relation: string;
   body: string;
   createdAt?: unknown;
   updatedAt?: unknown;

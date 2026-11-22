@@ -103,7 +103,7 @@ export const CompanyQuickActionsSection: React.FC<CompanyQuickActionsSectionProp
               <span>
                 {mode === 'syllabus'
                   ? isAr ? 'الأكاديمية · المنهج التدريبي' : 'Academy · Training syllabus'
-                  : isAr ? 'التسعير السريع' : 'Express quotation'}
+                  : isAr ? 'تجهيز طلب عرض سعر' : 'Quote request presets'}
               </span>
             </div>
             <h2
@@ -116,8 +116,8 @@ export const CompanyQuickActionsSection: React.FC<CompanyQuickActionsSectionProp
                   : 'Training syllabus in one click'
                 : mode === 'quote'
                   ? isAr
-                    ? 'طلب عرض سعر فوري بخطوة واحدة'
-                    : 'One-step express quotation'
+                    ? 'ابدأ طلب عرض سعر باختيار الخدمة'
+                    : 'Start a quote request by service'
                   : isAr
                     ? 'الوصول المباشر بنقرة واحدة للتسعير التجاري والمنهج التدريبي'
                     : 'Quote presets and training syllabus'}
@@ -147,14 +147,14 @@ export const CompanyQuickActionsSection: React.FC<CompanyQuickActionsSectionProp
 
               <h3 className="text-lg sm:text-xl font-bold text-white">
                 {isAr
-                  ? 'طلب عرض سعر فوري للمشروعات والتفتيش الهندسي'
-                  : 'Direct Commercial & Field Inspection Quotation'}
+                  ? 'اختار نطاق الفحص أو المعالجة المطلوب'
+                  : 'Select the scope of inspection or heat treatment'}
               </h3>
 
               <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
                 {isAr
-                  ? 'انتقل مباشرةً إلى نموذج التسعير السريع المربوط بقطاع العمليات الفنية مع إمكانية التحديد المسبق لنوع الخدمة المطلوبة.'
-                  : 'Jump straight to our pre-configured technical RFQ desk for rapid mobilization, shutdown support, or vendor prequalification.'}
+                  ? 'اختار نوع الخدمة لملء جزء من نموذج الطلب. الاختيار لا يرسل الطلب ولا يصدر عرض سعر.'
+                  : 'Choose a service to prefill the request form. This does not send a request or issue a quote.'}
               </p>
 
               {/* Optional 1-click scope presets */}
@@ -194,8 +194,8 @@ export const CompanyQuickActionsSection: React.FC<CompanyQuickActionsSectionProp
                   <CheckCircle2 className="w-4 h-4 shrink-0" aria-hidden="true" />
                   <span>
                     {isAr
-                      ? 'تم تفعيل وتوجيهك مباشرةً إلى نموذج عرض السعر (#RFQ).'
-                      : 'RFQ form activated and focused.'}
+                      ? 'نموذج طلب عرض السعر جاهز للمراجعة. لم يُرسل طلب.'
+                      : 'Quote form ready to review. Nothing was submitted.'}
                   </span>
                 </div>
               )}

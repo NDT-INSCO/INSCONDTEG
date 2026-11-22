@@ -196,7 +196,7 @@ test('CompanyVendorVaultSection lists all 5 Annexes and keeps public PDF and rou
 
   // Check direct download link
   const dlLink = ui.getByRole('link', { name: /تحميل النسخة العامة \(PDF\)/i });
-  assert.equal(dlLink.getAttribute('href'), '/assets/aistudio/__________________d082de13.pdf');
+  assert.equal(dlLink.getAttribute('href'), '/assets/aistudio/__________________d082de13.pdf?v=ccbfdffb');
   assert.ok(ui.getAllByRole('link', { name: 'افتح النسخة التاريخية' }).some(link => link.getAttribute('href')?.endsWith('#page=15')));
   assert.ok(ui.getAllByRole('link', { name: 'اطلب المستند' }).every(link => link.getAttribute('href') === '#contact'));
 });
@@ -474,7 +474,7 @@ test('GlobalHeaderSearch filters services, educational modules, and company info
   assert.ok(ui.getAllByRole('button', { name: /اطلب عرض سعر/i }).length > 0);
 });
 
-test('the corporate portal keeps express quotation and hands the training syllabus to the academy', async () => {
+test('the corporate portal keeps quote presets and hands the training syllabus to the academy', async () => {
   const { CompanyQuotePage } = await import('../src/components/company/CompanyQuotePage');
   const { CompanyQuickActionsSection } = await import('../src/components/company/CompanyQuickActionsSection');
   const { buildTrainingSyllabusDocument } = await import('../src/utils/trainingSyllabusGenerator');
@@ -495,9 +495,9 @@ test('the corporate portal keeps express quotation and hands the training syllab
   try {
     const ui = render(<CompanyQuotePage language="en" anchor="cost-estimator" />);
 
-    // The corporate portal keeps the express quotation card only: the audit
+    // The corporate portal keeps the quote request presets only: the audit
     // asked us to stop mixing a training download into the commercial path.
-    assert.ok(ui.getAllByText(/Express quotation/i).length > 0);
+    assert.ok(ui.getAllByText(/Quote request presets/i).length > 0);
     assert.equal(
       ui.queryByRole('button', { name: /^Download Training Syllabus$/i }),
       null,
@@ -506,7 +506,7 @@ test('the corporate portal keeps express quotation and hands the training syllab
 
     const quoteBtn = ui.getByRole('button', { name: /^Request Quote$/i });
     fireEvent.click(quoteBtn);
-    assert.ok(ui.getByText(/RFQ form activated and focused/i));
+    assert.ok(ui.getByText(/Quote form ready to review. Nothing was submitted/i));
     const companyInput = ui.container.querySelector('#rfq-company-input');
     assert.equal(document.activeElement, companyInput);
 
@@ -572,7 +572,7 @@ test('CompanyProjectCostEstimator computes service budgets & site requirements a
   // Add RT service (now 3 services: PWHT + UT + RT -> 5% bundle applied)
   fireEvent.click(ui.getByTestId('estimator-service-rt'));
   assert.ok(ui.getByText(/5% Bundle Applied/i));
-  assert.ok(ui.getByText(/Includes dedicated ENRRA Radiation Safety Officer/i));
+  assert.ok(ui.getByText(/Includes a planning allowance for radiation safety/i));
 
   // Update joint count to 80 and switch currency to EGP
   const jointInput = ui.getByLabelText(/Estimated Weld Joints \/ Test Points/i) as HTMLInputElement;
@@ -586,6 +586,9 @@ test('CompanyProjectCostEstimator computes service budgets & site requirements a
   const rfqTextarea = ui.container.querySelector('#rfq textarea') as HTMLTextAreaElement;
   assert.match(rfqTextarea.value, /80 weld joints/i);
   assert.match(rfqTextarea.value, /PWHT \+ UT \/ PAUT \+ RT/i);
+  assert.match(rfqTextarea.value, /Est\. crew:/i);
+  assert.doesNotMatch(ui.container.textContent ?? '', /ENRRA licensed|Certified Crew/i);
+  assert.doesNotMatch(rfqTextarea.value, /certified personnel/i);
 });
 
 

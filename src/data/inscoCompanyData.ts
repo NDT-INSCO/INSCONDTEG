@@ -123,7 +123,8 @@ export const INSCO_COMPANY_DATA: CompanyProfile = {
   commercialRegistrationNo: '209632',
   egacCabNo: '#120007',
   ndtOrgId: '54161',
-  pdfBrochureUrl: publicUrl('assets/aistudio/__________________d082de13.pdf'),
+  // Keep old bookmarks working; new downloads identify the stripped public edition.
+  pdfBrochureUrl: publicUrl('assets/aistudio/__________________d082de13.pdf?v=ccbfdffb'),
 
   metrics: [
     {
@@ -279,10 +280,10 @@ export const INSCO_COMPANY_DATA: CompanyProfile = {
       standards: 'ASME V Art. 2 - ISO 17636',
       category: { ar: 'فحص حجمي بالأشعة وتوثيق دائم', en: 'Volumetric Imaging & Permanent Film Archive' },
       description: {
-        ar: 'حزم إشعاعية من مصادر جاما (Ir-192 / Se-75) أو أجهزة X-ray تخترق اللحامات وتظهر التغيرات الكثافية على الأفلام والكواشف الرقمية بترخيص ENRRA الصارم.',
-        en: 'Gamma beams (Ir-192, Se-75) or X-rays traverse welds exposing film or digital detectors, revealing volumetric defects under strict ENRRA radiation-safety controls.'
+        ar: 'حزم إشعاعية من مصادر جاما (Ir-192 / Se-75) أو أجهزة X-ray تخترق اللحامات وتظهر التغيرات الكثافية على الأفلام والكواشف الرقمية؛ التنفيذ يتطلب مراجعة ترخيص الممارسة ونطاقه قبل بدء العمل.',
+        en: 'Gamma beams (Ir-192, Se-75) or X-rays traverse welds exposing film or digital detectors, to help reveal volumetric defects. Confirm the applicable licence scope and radiation-safety requirements before work.'
       },
-      equipment: { ar: 'حاويات جاما Sentinel / Spec 150، أجهزة أشعة سينية، أفلام صناعية، أجهزة Densitometer', en: 'Gamma projectors (Ir-192, Se-75), industrial X-ray units, calibrated densitometers' }
+      equipment: { ar: 'حاويات جاما Sentinel / Spec 150، أجهزة أشعة سينية، أفلام صناعية، أجهزة Densitometer', en: 'Gamma projectors (Ir-192, Se-75), industrial X-ray units, densitometers' }
     },
     {
       id: 'mt',

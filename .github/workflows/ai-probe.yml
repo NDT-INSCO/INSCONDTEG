@@ -27,12 +27,18 @@ jobs:
             echo "::notice title=$path::$pcode $body"
           }
 
-          for attempt in 1 2 3 4 5 6 7 8 9 10; do
-            code=$(curl -s -o /tmp/status.json -w '%{http_code}' --max-time 30 "$base/api/ai/status" || echo 000)
-            echo "attempt $attempt -> /api/ai/status = $code"
-            [ "$code" = "200" ] && break
+          # Wait for *this* commit to be the one serving production, not merely for the
+          # endpoint to answer: an older deployment answers too, with older behaviour.
+          sha="${GITHUB_SHA:0:7}"
+          for attempt in $(seq 1 24); do
+            live=$(curl -s --max-time 20 "$base/api/site/build-info" | sed -n 's/.*"commit":"\([a-f0-9]*\)".*/\1/p')
+            echo "attempt $attempt -> serving ${live:-unknown} (want $sha)"
+            [ "$live" = "$sha" ] && break
             sleep 20
           done
+          echo "::notice title=deployment::serving ${live:-unknown}, expected $sha"
+
+          code=$(curl -s -o /tmp/status.json -w '%{http_code}' --max-time 30 "$base/api/ai/status" || echo 000)
           body=$(head -c 400 /tmp/status.json | tr -d '\n')
           echo "::notice title=/api/ai/status::$code $body"
 

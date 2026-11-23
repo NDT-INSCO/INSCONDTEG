@@ -236,15 +236,11 @@ function upstreamFailure(
   const signal = classifyUpstreamError(error);
   const safe = sanitiseUpstreamDetail(error);
   lastUpstream = { signal, at: new Date().toISOString(), detail: safe };
-<<<<<<< HEAD
   // A rejected key and a quota hit both have a precise answer; everything else stays
   // a generic upstream failure.
   const code: TutorErrorCode =
     signal === 'rate_limited' ? 'rate_limited' : signal === 'key_rejected' ? 'key_rejected' : 'upstream_error';
   return { code, signal, detail: safe };
-=======
-  return { code: signal === 'rate_limited' ? 'rate_limited' : 'upstream_error', signal, detail: safe };
->>>>>>> origin/main
 }
 
 /** The failure body: the sentence the reader gets, plus a safe upstream snippet. */

@@ -280,14 +280,11 @@ export interface TutorStatus {
    * never a key. It is what makes "the model is unreachable" diagnosable from outside.
    */
   lastUpstream?: { signal: UpstreamSignal; at: string; detail?: string };
-<<<<<<< HEAD
   /**
    * The *shape* of the configured key — never the key. Enough to tell a truncated
    * paste or a stray quote from a key that Google has revoked.
    */
   keyShape?: { length: number; looksLikeAiStudioKey: boolean };
-=======
->>>>>>> origin/main
   /**
    * `error` is set only when the corpus itself could not be read — never guessed.
    * `source` says which library is answering: reviewed courses, the unreviewed academy

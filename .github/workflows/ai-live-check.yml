@@ -1,12 +1,15 @@
 name: AI live check
 
 # Asks the deployed domain the two questions a reader actually asks — the tutor and the
-# copilot — and prints what came back, with the model chain and the last upstream reason.
+# copilot — and publishes the answers as annotations.
 #
 # `ai-probe.yml` only runs on `main` and refuses to report unless the deployment matches
 # the commit it is testing. That is right for gating a merge, and useless when the
-# question is "what does production answer *right now*" from a branch. This runs from any
-# branch, on demand, and never blocks anything.
+# question is "what does production answer *right now*". This runs from any branch.
+#
+# Annotations are the output channel on purpose: workflow logs cannot be downloaded from
+# the runner (`gh run view --log` returns EOF), while annotations stay readable through
+# the API.
 
 on:
   workflow_dispatch:
@@ -21,50 +24,50 @@ on:
 jobs:
   live:
     runs-on: ubuntu-latest
+    env:
+      BASE: ${{ github.event.inputs.base || 'https://inscondteg.vercel.app' }}
     steps:
       - name: Ask the tutor
         run: |
           set -u
-          base="${{ github.event.inputs.base || 'https://inscondteg.vercel.app' }}"
-          echo "## Tutor — $base"
           curl -s -N --max-time 90 -H 'Content-Type: application/json' \
             -H 'Accept: text/event-stream' \
             -d '{"messages":[{"role":"user","content":"ما هو الفحص بالموجات فوق الصوتية PAUT وما الفرق بينه وبين TOFD؟"}],"language":"ar","stream":true}' \
-            "$base/api/ai/tutor" > /tmp/tutor.sse || echo "curl exit $?"
+            "$BASE/api/ai/tutor" > /tmp/tutor.sse || echo "curl exit $?"
 
-          echo "### events"
-          sed -n 's/^data: //p' /tmp/tutor.sse | cut -c1-400
-
-          echo "### counts"
-          echo "deltas=$(grep -c '"type":"delta"' /tmp/tutor.sse || true)"
-          echo "errors=$(grep -c '"type":"error"' /tmp/tutor.sse || true)"
-          echo "bytes=$(wc -c < /tmp/tutor.sse | tr -d ' ')"
-          grep '"type":"error"' /tmp/tutor.sse | head -2 || true
+          echo "deltas=$(grep -c '"type":"delta"' /tmp/tutor.sse || true)" >> "$GITHUB_ENV"
+          first=$(sed -n 's/.*"type":"delta","text":"\(.\{0,160\}\).*/\1/p' /tmp/tutor.sse | head -1)
+          echo "TUTOR_FIRST=$first" >> "$GITHUB_ENV"
+          err=$(grep '"type":"error"' /tmp/tutor.sse | head -1 | cut -c1-200)
+          echo "TUTOR_ERR=${err:-none}" >> "$GITHUB_ENV"
+          meta=$(grep '"type":"meta"' /tmp/tutor.sse | head -1 | cut -c1-160)
+          echo "TUTOR_META=${meta:-none}" >> "$GITHUB_ENV"
 
       - name: Ask the copilot
         run: |
           set -u
-          base="${{ github.event.inputs.base || 'https://inscondteg.vercel.app' }}"
-          echo "## Copilot — $base"
           code=$(curl -s -o /tmp/copilot.json -w '%{http_code}' --max-time 90 \
             -H 'Content-Type: application/json' \
             -d '{"message":"مرحبا","mode":"assistant","language":"ar"}' \
-            "$base/api/ai/agent/user-copilot" || echo 000)
-          echo "http=$code"
-          head -c 600 /tmp/copilot.json
+            "$BASE/api/ai/agent/user-copilot" || echo 000)
+          echo "COPILOT_HTTP=$code" >> "$GITHUB_ENV"
+          echo "COPILOT_BODY=$(head -c 200 /tmp/copilot.json)" >> "$GITHUB_ENV"
 
-      - name: Which models answer, and what does the gateway know
+      - name: Probe each model
         run: |
           set -u
-          base="${{ github.event.inputs.base || 'https://inscondteg.vercel.app' }}"
-          echo "## build"
-          curl -s --max-time 20 "$base/api/site/build-info?cachebust=$GITHUB_SHA"
-          echo
-          echo "## status"
-          curl -s --max-time 20 "$base/api/ai/status?cachebust=$GITHUB_SHA"
-          echo
           for model in gemini-3.5-flash-lite gemini-3.8-flash gemini-3.6-flash gemini-4-hydrogen; do
-            echo "## $model"
-            curl -s --max-time 30 "$base/api/ai/ping?api=interactions&model=$model&cachebust=$GITHUB_SHA" | head -c 400
-            echo
+            body=$(curl -s --max-time 30 "$BASE/api/ai/ping?api=interactions&model=$model&cachebust=$GITHUB_SHA")
+            line=$(echo "$body" | tr -d '\n' | cut -c1-200)
+            echo "::notice title=ping $model::$line"
           done
+          echo "::notice title=build::$(curl -s --max-time 20 "$BASE/api/site/build-info?cachebust=$GITHUB_SHA" | tr -d '\n' | cut -c1-200)"
+          echo "::notice title=status::$(curl -s --max-time 20 "$BASE/api/ai/status?cachebust=$GITHUB_SHA" | tr -d '\n' | cut -c1-260)"
+
+      - name: Publish what the reader would see
+        run: |
+          echo "::notice title=tutor deltas::${deltas:-0}"
+          echo "::notice title=tutor meta::${TUTOR_META:-none}"
+          echo "::notice title=tutor first delta::${TUTOR_FIRST:-none}"
+          echo "::notice title=tutor error::${TUTOR_ERR:-none}"
+          echo "::notice title=copilot::http=${COPILOT_HTTP:-?} body=${COPILOT_BODY:-none}"

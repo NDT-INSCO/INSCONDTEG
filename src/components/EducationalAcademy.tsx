@@ -51,10 +51,12 @@ import { CurriculumLevelProgressTracker } from './academy/CurriculumLevelProgres
 import { UserCourseProgressDashboard } from './academy/UserCourseProgressDashboard';
 import { SemanticSearchBar, SearchTarget } from './academy/SemanticSearchBar';
 import { fetchTutorStatus, streamTutor } from '../ai/client';
+import { citationCopy } from '../ai/citationCopy';
 import {
   failureMessage,
   TUTOR_LIMITS,
   TutorCitation,
+  TutorMeta,
   TutorFailure,
   TutorLanguage,
   TutorStatus,
@@ -282,6 +284,9 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({
   const [isAiLoading, setIsAiLoading] = useState<boolean>(false);
   const [aiStatus, setAiStatus] = useState<TutorStatus | null>(null);
   const [aiCitations, setAiCitations] = useState<TutorCitation[]>([]);
+  // Which library answered: reviewed courses, the academy corpus, or nothing. The
+  // label under the answer depends on it, and it is never assumed to be "reviewed".
+  const [aiSource, setAiSource] = useState<TutorMeta['source'] | undefined>(undefined);
   const [aiFailure, setAiFailure] = useState<TutorFailure | null>(null);
   const aiAbort = React.useRef<AbortController | null>(null);
 
@@ -411,7 +416,10 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({
       },
       {
         signal: controller.signal,
-        onMeta: meta => setAiCitations(meta.citations),
+        onMeta: meta => {
+          setAiCitations(meta.citations);
+          setAiSource(meta.source);
+        },
         onDelta: text => setAiResponse(previous => previous + text),
         onError: failure => setAiFailure(failure),
         onDone: () => setIsAiLoading(false),
@@ -1493,8 +1501,12 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({
 
             {aiCitations.length > 0 && (
               <div className="space-y-2">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                  {isAr ? 'المقاطع المسترجعة من المصادر المراجَعة' : 'Retrieved reviewed passages'}
+                <p
+                  className={`text-[11px] font-bold uppercase tracking-wider ${
+                    citationCopy(aiSource, isAr).tone === 'academy' ? 'text-amber-300' : 'text-slate-500'
+                  }`}
+                >
+                  {citationCopy(aiSource, isAr).heading}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {aiCitations.map(citation => (
@@ -1505,16 +1517,13 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({
                       className="max-w-full truncate rounded-lg border border-[#2a3260] bg-[#0d1028] px-3 py-1.5 text-[11px] text-slate-300 hover:border-amber-400 hover:text-amber-200"
                       title={citation.id}
                     >
+                      {citation.reviewed === false ? (isAr ? 'غير مُراجَع · ' : 'unreviewed · ') : ''}
                       {isAr ? 'ص' : 'p'}
                       {citation.pageNumber ?? '—'} · {citation.title[language] || citation.title.ar}
                     </button>
                   ))}
                 </div>
-                <p className="text-[10px] text-slate-500">
-                  {isAr
-                    ? 'مادة دراسة ذاتية غير معتمدة. القرارات الفنية تُبنى على نسخة الكود المرخصة في العقد.'
-                    : 'Self-study material, not accredited. Technical decisions follow the licensed contract code.'}
-                </p>
+                <p className="text-[10px] text-slate-500">{citationCopy(aiSource, isAr).note}</p>
               </div>
             )}
           </div>

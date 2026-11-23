@@ -37,13 +37,18 @@ test('only the exact signed EDB edition supplies citable passages', () => {
   assert.deepEqual(reviewedTutorDocuments(readEdb, undefined, asOf), [], 'the current public register has no signed courses');
 });
 
-async function launchTutor(t: TestContext, configured: boolean) {
+async function launchTutor(t: TestContext, configured: boolean, env: Record<string, string> = {}) {
   const dir = await mkdtemp(join(tmpdir(), 'insco-tutor-test-'));
   // Isolate dotenv, admin configuration, credentials and the SDK's network.
   const child = fork(fileURLToPath(new URL('./helpers/noTutorUpstream.ts', import.meta.url)), [], {
     cwd: dir,
     execArgv: ['--import', import.meta.resolve('tsx')],
-    env: { NODE_ENV: 'production', PORT: '0', GEMINI_API_KEY: configured ? 'isolated-test-no-network' : '' },
+    env: {
+      NODE_ENV: 'production',
+      PORT: '0',
+      GEMINI_API_KEY: configured ? 'isolated-test-no-network' : '',
+      ...env,
+    },
     silent: true,
   });
   let attempts = 0;
@@ -73,17 +78,21 @@ async function launchTutor(t: TestContext, configured: boolean) {
   return { call, upstreamAttempts: () => attempts };
 }
 
-test('a configured tutor with no reviewed passages refuses JSON and SSE without generation', async t => {
-  const { call, upstreamAttempts } = await launchTutor(t, true);
+test('with no library at all the tutor refuses JSON and SSE without generation', async t => {
+  // The academy fallback is off here on purpose: this is the state in which the tutor
+  // must decline rather than answer from nothing.
+  const { call, upstreamAttempts } = await launchTutor(t, true, { TUTOR_ALLOW_ACADEMY_FALLBACK: 'false' });
   const response = await call(TUTOR_ENDPOINTS.status);
   assert.equal(response.status, 200);
   const status = await response.json() as TutorStatus;
   assert.equal(status.configured, true);
-  assert.deepEqual(status.retrieval, { documents: 0, ready: false });
+  assert.equal(status.retrieval.documents, 0);
+  assert.equal(status.retrieval.ready, false);
+  assert.equal(status.retrieval.source, 'none');
   const legacy = await call(TUTOR_ENDPOINTS.legacyTutor, { topic: 'What is visual inspection?', language: 'en' });
   assert.equal(legacy.status, 200);
   const json = await legacy.json();
-  assert.match(json.text, /not enough reviewed source material/);
+  assert.match(json.text, /no matching material/i);
   assert.equal(json.content, json.text);
   assert.equal(json.meta.confident, false);
   assert.deepEqual(json.meta.citations, []);
@@ -94,8 +103,51 @@ test('a configured tutor with no reviewed passages refuses JSON and SSE without 
   assert.equal(rest, '');
   assert.deepEqual(events.map(event => event.type), ['meta', 'delta', 'done']);
   assert.ok(events[0].type === 'meta' && !events[0].meta.confident && events[0].meta.retrieved === 0);
-  assert.ok(events[1].type === 'delta' && events[1].text.includes('لا توجد مادة مراجَعة'));
+  assert.ok(events[0].type === 'meta' && events[0].meta.source === 'none');
+  assert.ok(events[1].type === 'delta' && events[1].text.includes('لا توجد مادة مطابقة'));
   assert.equal(upstreamAttempts(), 0);
+});
+
+test('without a reviewed course the tutor answers from the academy corpus and says so', async t => {
+  const { call, upstreamAttempts } = await launchTutor(t, true);
+  const status = await (await call(TUTOR_ENDPOINTS.status)).json() as TutorStatus;
+  assert.equal(status.configured, true);
+  assert.equal(status.retrieval.source, 'academy', 'the reviewed corpus is empty in this repository');
+  assert.ok(status.retrieval.documents > 0);
+  assert.equal(status.retrieval.ready, true);
+
+  // A question the academy material cannot match is still refused — no generation.
+  const miss = await call(TUTOR_ENDPOINTS.legacyTutor, { topic: 'zzz qqq xyzzy', language: 'en' });
+  assert.equal(miss.status, 200);
+  const missJson = await miss.json();
+  assert.equal(missJson.meta.confident, false);
+  assert.equal(missJson.meta.source, 'academy');
+  assert.match(missJson.text, /academy material/i);
+  assert.equal(upstreamAttempts(), 0, 'nothing is generated for a question with no passage');
+
+  // A question the corpus does match reaches the model. The isolated upstream refuses
+  // the call, which is exactly the proof that generation was attempted, and the failure
+  // is reported instead of answered.
+  const hit = await call(TUTOR_ENDPOINTS.tutor, {
+    messages: [{ role: 'user', content: 'ما الفرق بين PAUT و TOFD؟' }],
+    language: 'ar',
+    mode: 'explain',
+  });
+  assert.equal(hit.status, 200);
+  const { events } = parseSseBuffer(await hit.text());
+  const meta = events.find(event => event.type === 'meta');
+  assert.ok(meta && meta.type === 'meta');
+  assert.equal(meta.meta.confident, true, 'the corpus matched, so this is not the empty state');
+  assert.equal(meta.meta.source, 'academy');
+  assert.ok(meta.meta.citations.length > 0);
+  for (const citation of meta.meta.citations) {
+    assert.equal(citation.reviewed, false, 'academy citations are never presented as reviewed');
+  }
+  // The isolated upstream refuses every call: the stream must report that, not invent text.
+  const failure = events.find(event => event.type === 'error');
+  assert.ok(failure && failure.type === 'error');
+  assert.equal(failure.error.code, 'upstream_error');
+  assert.ok(upstreamAttempts() >= 1, 'generation was attempted');
 });
 
 test('unconfigured tutor and invalid requests are distinct, not canned answers', async t => {

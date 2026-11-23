@@ -180,6 +180,12 @@ export interface TutorCitation {
   courseId?: string;
   /** BM25 score; exposed so the UI can be honest about weak matches. */
   score: number;
+  /**
+   * False when the passage comes from the academy corpus rather than the reviewed
+   * course corpus. The UI must label those citations; the type makes it impossible to
+   * forget that a citation is a claim about its source.
+   */
+  reviewed?: boolean;
 }
 
 export interface TutorMeta {
@@ -190,6 +196,8 @@ export interface TutorMeta {
   confident: boolean;
   /** Milliseconds the answer took, server side. */
   elapsedMs: number;
+  /** Which library the citations came from — the reader is told, not left to guess. */
+  source?: 'reviewed' | 'academy' | 'none';
 }
 
 export type TutorErrorCode =
@@ -219,8 +227,19 @@ export interface TutorStatus {
   model: string;
   deepModel: string;
   limits: typeof TUTOR_LIMITS;
-  /** `error` is set only when the corpus itself could not be read — never guessed. */
-  retrieval: { documents: number; ready: boolean; error?: string };
+  /**
+   * `error` is set only when the corpus itself could not be read — never guessed.
+   * `source` says which library is answering: reviewed courses, the unreviewed academy
+   * corpus, or nothing at all (in which case the tutor declines).
+   */
+  retrieval: {
+    documents: number;
+    ready: boolean;
+    source?: 'reviewed' | 'academy' | 'none';
+    /** How many of those documents came from the reviewed course corpus. */
+    reviewed?: number;
+    error?: string;
+  };
   /** Which Google interface the server will call: `interactions` is primary. */
   transport?: 'auto' | 'interactions' | 'legacy' | string;
 }

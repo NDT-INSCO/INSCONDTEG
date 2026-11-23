@@ -308,6 +308,25 @@ gh run list --workflow=ai-probe.yml --limit 1
 جرّب بعد دقيقة»)، `key_rejected`، `model_unavailable` — والرسالة النصية لم تعد واحدة
 للجميع.
 
+### السبب الثالث: جوجل نفسها ترفض المفتاح
+
+بعد نشر التصنيف ظهر الجواب من جوجل لا منّا:
+
+```
+{"error":{"code":400,"message":"API key not valid. Please pass a valid API key."}}
+```
+
+أي أن المتغيّر `GEMINI_API_KEY` موجود على Vercel (`aiKeyPresent: true`) لكن **قيمته**
+لم تُعرَف عند جوجل: مفتاح مُلغى (AI Studio تُلغي أي مفتاح يظهر في مستودع عام)، أو نسخة
+ناقصة/بها علامة اقتباس. لذلك:
+
+- صار للمفتاح المرفوض كودُه `key_rejected` ورسالة عربية تقول السبب والعلاج، لا
+  «تعذّر الوصول إلى النموذج».
+- `/api/ai/status` يعرض `keyShape: {length, looksLikeAiStudioKey}` — **الطول والشكل
+  فقط، لا المفتاح** — لتمييز لصقة ناقصة من مفتاح مُلغى.
+- الحل دائماً: مفتاح جديد من <https://aistudio.google.com/apikey> يوضع في
+  Environment Variables ثم Redeploy.
+
 
 
 **على GitHub Pages (بلا خادم):** يبقى الموقع صالحاً بالكامل — الكتب والمقررات

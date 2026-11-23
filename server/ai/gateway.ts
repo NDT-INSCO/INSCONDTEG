@@ -371,6 +371,51 @@ function streamFromModel(
 
   router.use(express.json({ limit: '96kb' }));
 
+router.get('/api/ai/ping', async (req: Request, res: Response) => {
+  /**
+   * One tiny question per model, with the cost of each written down.
+   *
+   * 'Busy' and 'slow' are indistinguishable from a 45-second failure of the whole chain.
+   * This route asks each model in turn for sixteen tokens and reports milliseconds,
+   * category and Google's own sentence, stopping at the first that answers.
+   */
+  if (!ai) {
+    res.status(503).json({ error: { code: 'not_configured', message: 'No AI key on this server' } });
+    return;
+  }
+  const wanted =
+    typeof req.query.model === 'string' && req.query.model ? [req.query.model] : MODEL_CHAIN;
+  const results: Array<Record<string, unknown>> = [];
+
+  for (const model of wanted) {
+    const started = Date.now();
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    try {
+      const answer = await ai.models.generateContent({
+        model,
+        contents: 'قل: تم',
+        config: { maxOutputTokens: 16, abortSignal: controller.signal },
+      });
+      results.push({ model, ok: true, ms: Date.now() - started, text: (answer.text || '').slice(0, 40) });
+      break;
+    } catch (error) {
+      results.push({
+        model,
+        ok: false,
+        ms: Date.now() - started,
+        signal: classifyUpstreamError(error),
+        detail: sanitiseUpstreamDetail(error),
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ ok: results.some(result => result.ok === true), results });
+});
+
 router.get('/api/ai/models', async (_req: Request, res: Response) => {
   /**
    * What this key may actually call, straight from Google.

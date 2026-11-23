@@ -14,6 +14,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   ChainAttempt,
+  PER_MODEL_TIMEOUT_MS,
   hasInteractions,
   InteractionStreamEvent,
   streamTutorText,
@@ -134,7 +135,8 @@ test('the interaction request carries the prompt, system instruction and abort s
   assert.equal(params.stream, true);
   assert.equal(params.store, false, 'student questions must not be stored server-side');
   assert.equal(params.generation_config?.max_output_tokens, 1600);
-  assert.equal(options?.signal, controller.signal);
+  assert.ok(options?.signal instanceof AbortSignal, 'the model call carries its own signal');
+  assert.notEqual(options.signal, controller.signal, 'each model gets a slice of the request budget');
 });
 
 test('a streamed interaction error event fails the answer instead of returning half text', async () => {
@@ -359,4 +361,85 @@ test('the chain records which model said what', async () => {
       ['gemini-3.6-flash', 'model_busy'],
     ]
   );
+});
+
+test('one slow model does not consume the whole request budget', async () => {
+  const logs: string[] = [];
+  const attempts: ChainAttempt[] = [];
+  // A client whose first model never answers, and whose second answers at once.
+  let call = 0;
+  const client: TutorAiClient = {
+    models: {
+      async generateContentStream(params) {
+        call += 1;
+        const signal = params.config?.abortSignal;
+        if (call === 1) {
+          return (async function* () {
+            // Like the SDK: the stream stays open until its signal aborts it.
+            await new Promise((_, reject) => {
+              signal?.addEventListener('abort', () => reject(new Error('This operation was aborted')), {
+                once: true,
+              });
+            });
+            yield { text: 'never reached' };
+          })();
+        }
+        return (async function* () {
+          yield { text: 'Answered by the second model.' };
+        })();
+      },
+    },
+  };
+
+  const parts = await collect(
+    streamTutorText(client, {
+      ...base,
+      mode: 'legacy',
+      log: message => logs.push(message),
+      attempts,
+      perModelTimeoutMs: 80,
+    })
+  );
+
+  assert.deepEqual(parts, ['Answered by the second model.']);
+  assert.match(logs.join('\n'), /ran out of time; trying the next model/);
+  assert.deepEqual(attempts[0], { model: 'gemini-3.8-flash', signal: 'upstream_error' });
+});
+
+test('aborting the request aborts the model call in flight', async () => {
+  const controller = new AbortController();
+  const logs: string[] = [];
+  let sawAbort = false;
+  const client: TutorAiClient = {
+    models: {
+      async generateContentStream(params) {
+        return (async function* () {
+          await new Promise((_, reject) => {
+            params.config?.abortSignal?.addEventListener(
+              'abort',
+              () => {
+                sawAbort = true;
+                reject(new Error('This operation was aborted'));
+              },
+              { once: true }
+            );
+          });
+          yield { text: 'never reached' };
+        })();
+      },
+    },
+  };
+
+  const stream = streamTutorText(client, {
+    ...base,
+    mode: 'legacy',
+    signal: controller.signal,
+    log: message => logs.push(message),
+  });
+  const collected = collect(stream);
+  setTimeout(() => controller.abort(), 30);
+  await collected;
+
+  assert.equal(sawAbort, true, 'the model call saw the abort');
+  assert.doesNotMatch(logs.join('\n'), /ran out of time/, 'a cancelled request is not a timeout');
 });

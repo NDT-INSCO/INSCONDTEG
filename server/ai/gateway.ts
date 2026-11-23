@@ -30,6 +30,7 @@ import {
   type UserCopilotResponse,
 } from '../../src/ai/agentsContract.js';
 import {
+  classifyUpstreamError,
   encodeSse,
   failureMessage,
   latestQuestion,
@@ -41,6 +42,7 @@ import {
   TutorErrorCode,
   TutorFailure,
   TutorStatus,
+  UpstreamSignal,
 } from '../../src/ai/contract.js';
 import type { SearchHit } from '../../src/ai/search.js';
 import { buildTutorLibrary, type TutorLibrary } from '../tutor/library.js';
@@ -206,6 +208,34 @@ const STATUS_CODE: Record<TutorErrorCode, number> = {
   upstream_error: 502,
 };
 
+/**
+ * The last upstream failure this instance saw, and its category.
+ *
+ * It is a category and a timestamp only: never the message, which can echo request
+ * text, and never any part of the key. It is published on `/api/ai/status` so the
+ * next failure can be diagnosed from a browser instead of from the Vercel log console.
+ */
+let lastUpstream: TutorStatus['lastUpstream'] = undefined;
+
+/**
+ * Turn a thrown upstream error into a code the client can act on.
+ *
+ * `upstream_error` used to be the answer for everything, which made a quota hit
+ * indistinguishable from a rejected key or a retired model. A quota hit is both true
+ * and temporary, so it is reported as `rate_limited` (429, "wait a moment") rather than
+ * as a 502. The full message goes to the log; the signal goes to `/api/ai/status`.
+ */
+function upstreamFailure(
+  error: unknown,
+  timedOut: boolean
+): { code: TutorErrorCode; signal: UpstreamSignal; detail: string } {
+  const detail = error instanceof Error ? error.message : String(error);
+  if (timedOut) return { code: 'timeout', signal: 'upstream_error', detail };
+  const signal = classifyUpstreamError(error);
+  lastUpstream = { signal, at: new Date().toISOString() };
+  return { code: signal === 'rate_limited' ? 'rate_limited' : 'upstream_error', signal, detail };
+}
+
 /* ------------------------------------------------------------------ */
 /* prompt assembly                                                     */
 /* ------------------------------------------------------------------ */
@@ -313,6 +343,7 @@ router.get(TUTOR_ENDPOINTS.status, async (_req: Request, res: Response) => {
       ...(libraryFailure ? { error: libraryFailure } : {}),
     },
     transport: API_MODE,
+    ...(lastUpstream ? { lastUpstream } : {}),
   };
   res.setHeader('Cache-Control', 'no-store');
   res.json(status);
@@ -453,9 +484,8 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
       }
       res.json({ text, content: text, meta: { ...meta, elapsedMs: Date.now() - started } });
     } catch (error) {
-      const timedOut = controller.signal.aborted;
-      const code: TutorErrorCode = timedOut ? 'timeout' : 'upstream_error';
-      console.error('[ai] Tutor request failed:', code);
+      const { code, signal, detail } = upstreamFailure(error, controller.signal.aborted);
+      console.error(`[ai] Tutor request failed: ${signal}: ${detail}`);
       res.status(STATUS_CODE[code]).json({ error: { code, message: failureMessage(code, payload.language) } });
     } finally {
       clearTimeout(timer);
@@ -478,9 +508,8 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
     }
     res.write(encodeSse({ type: 'done' }));
   } catch (error) {
-    const timedOut = controller.signal.aborted;
-    const code: TutorErrorCode = timedOut ? 'timeout' : 'upstream_error';
-    console.error('[ai] Tutor stream failed:', code);
+    const { code, signal, detail } = upstreamFailure(error, controller.signal.aborted);
+    console.error(`[ai] Tutor stream failed: ${signal}: ${detail}`);
     res.write(encodeSse({ type: 'error', error: { code, message: failureMessage(code, payload.language) } }));
     res.write(encodeSse({ type: 'done' }));
   } finally {
@@ -673,9 +702,8 @@ router.post(AGENT_ENDPOINTS.userCopilot, async (req: Request, res: Response) => 
       elapsedMs: Date.now() - started,
     } satisfies UserCopilotResponse);
   } catch (error) {
-    const timedOut = controller.signal.aborted;
-    const code: TutorErrorCode = timedOut ? 'timeout' : 'upstream_error';
-    console.error('[ai] user-copilot failed:', error instanceof Error ? error.message : error);
+    const { code, signal, detail } = upstreamFailure(error, controller.signal.aborted);
+    console.error(`[ai] user-copilot failed: ${signal}: ${detail}`);
     res.status(STATUS_CODE[code]).json({
       error: { code, message: failureMessage(code, input.language) },
     });
@@ -784,9 +812,8 @@ router.post(AGENT_ENDPOINTS.siteManager, async (req: Request, res: Response) => 
       elapsedMs: Date.now() - started,
     } satisfies SiteManagerResponse);
   } catch (error) {
-    const timedOut = controller.signal.aborted;
-    const code: TutorErrorCode = timedOut ? 'timeout' : 'upstream_error';
-    console.error('[ai] site-manager failed:', error instanceof Error ? error.message : error);
+    const { code, signal, detail } = upstreamFailure(error, controller.signal.aborted);
+    console.error(`[ai] site-manager failed: ${signal}: ${detail}`);
     res.status(STATUS_CODE[code]).json({
       error: { code, message: failureMessage(code, input.language) },
     });
@@ -850,9 +877,8 @@ router.post(AGENT_ENDPOINTS.communityAssist, async (req: Request, res: Response)
       elapsedMs: Date.now() - started,
     } satisfies CommunityAssistResponse);
   } catch (error) {
-    const timedOut = controller.signal.aborted;
-    const code: TutorErrorCode = timedOut ? 'timeout' : 'upstream_error';
-    console.error('[ai] community-assist failed:', error instanceof Error ? error.message : error);
+    const { code, signal, detail } = upstreamFailure(error, controller.signal.aborted);
+    console.error(`[ai] community-assist failed: ${signal}: ${detail}`);
     res.status(STATUS_CODE[code]).json({
       error: { code, message: failureMessage(code, input.language) },
     });

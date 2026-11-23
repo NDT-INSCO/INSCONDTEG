@@ -12,6 +12,8 @@
  * and out of the browser bundle entirely.
  */
 
+import { classifyUpstreamError } from './contract.js';
+
 export type TutorTransportMode = 'auto' | 'interactions' | 'legacy';
 
 /** The slice of an interaction stream event that carries answer text. */
@@ -79,6 +81,16 @@ export function isInterfaceUnavailable(error: unknown): boolean {
  * Walk the model chain for one transport. A model that answers a few tokens and
  * then fails must not be retried, or the reader would see the opening twice.
  */
+const sleep = (ms: number, signal: AbortSignal) =>
+  new Promise<void>(resolve => {
+    if (signal.aborted) return resolve();
+    const timer = setTimeout(resolve, ms);
+    signal.addEventListener('abort', () => { clearTimeout(timer); resolve(); }, { once: true });
+  });
+
+/** One retry for a quota blip, and only before the reader has seen a token. */
+const RATE_LIMIT_RETRY_DELAY_MS = 1500;
+
 async function* runChain<T>(
   models: string[],
   signal: AbortSignal,
@@ -87,21 +99,33 @@ async function* runChain<T>(
 ): AsyncGenerator<T, void, unknown> {
   let lastError: unknown = null;
   for (const model of models) {
-    let yielded = false;
-    try {
-      for await (const item of open(model)) {
-        yielded = true;
-        yield item;
+    let retried = false;
+    for (;;) {
+      let yielded = false;
+      try {
+        for await (const item of open(model)) {
+          yielded = true;
+          yield item;
+        }
+        return;
+      } catch (error) {
+        lastError = error;
+        if (signal.aborted) return;
+        // A model that emitted text and then failed is never retried: the reader would
+        // see the opening twice.
+        if (!yielded && classifyUpstreamError(error) === 'rate_limited' && !retried) {
+          retried = true;
+          log(`[ai] rate limited on ${model}; retrying once`);
+          await sleep(RATE_LIMIT_RETRY_DELAY_MS, signal);
+          if (signal.aborted) return;
+          continue;
+        }
+        if (!yielded && isModelMissing(error)) {
+          log(`[ai] model ${model} unavailable, trying next`);
+          break;
+        }
+        throw error;
       }
-      return;
-    } catch (error) {
-      lastError = error;
-      if (signal.aborted) return;
-      if (!yielded && isModelMissing(error)) {
-        log(`[ai] model ${model} unavailable, trying next`);
-        continue;
-      }
-      throw error;
     }
   }
   throw lastError instanceof Error ? lastError : new Error('No model in the chain answered');

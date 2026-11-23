@@ -200,6 +200,29 @@ export interface TutorMeta {
   source?: 'reviewed' | 'academy' | 'none';
 }
 
+/**
+ * What the upstream actually said, in a vocabulary the server can act on.
+ *
+ * `upstream_error` used to be the only answer the gateway could give, so a quota hit
+ * (429), a rejected key (401) and a retired model id (404) all read the same to the
+ * reader: "the model is unreachable". They need different responses — wait, fix the
+ * key, or move to the next model — so the distinction is made here, from the message
+ * the SDK supplies.
+ */
+export type UpstreamSignal = 'rate_limited' | 'key_rejected' | 'model_unavailable' | 'upstream_error';
+
+export function classifyUpstreamError(error: unknown): UpstreamSignal {
+  const message = (error instanceof Error ? error.message : String(error ?? '')).toLowerCase();
+  if (/429|resource_exhausted|rate limit|quota|too many requests/.test(message)) return 'rate_limited';
+  if (/401|403|api[_ -]?key|unauthenticated|permission_denied|invalid authentication/.test(message)) {
+    return 'key_rejected';
+  }
+  if (/404|not found|not_found|does not exist|unsupported model|invalid model/.test(message)) {
+    return 'model_unavailable';
+  }
+  return 'upstream_error';
+}
+
 export type TutorErrorCode =
   | 'not_configured'
   | 'invalid_request'
@@ -227,6 +250,11 @@ export interface TutorStatus {
   model: string;
   deepModel: string;
   limits: typeof TUTOR_LIMITS;
+  /**
+   * The last upstream failure, as a category and a timestamp — never a message and
+   * never a key. It is what makes "the model is unreachable" diagnosable from outside.
+   */
+  lastUpstream?: { signal: UpstreamSignal; at: string };
   /**
    * `error` is set only when the corpus itself could not be read — never guessed.
    * `source` says which library is answering: reviewed courses, the unreviewed academy
@@ -303,7 +331,7 @@ export function failureMessage(code: TutorErrorCode, language: TutorLanguage): s
     not_configured:
       'المستشار الذكي غير مُهيّأ على هذا الخادم. المكتبة والمناهج تعمل بالكامل، لكن الأسئلة الحرة تحتاج مفتاح Gemini على الخادم.',
     invalid_request: 'الطلب غير صالح: اكتب سؤالاً أقصر أو ابدأ محادثة جديدة.',
-    rate_limited: 'عدد الأسئلة كبير في وقت قصير. انتظر قليلاً ثم أعد المحاولة.',
+    rate_limited: 'الحد مؤقت — جرّب بعد دقيقة. وصلنا إلى حدّ استخدام النموذج في هذه اللحظة، والمكتبة والبحث يعملان دون تغيير.',
     budget_exhausted: 'تم الوصول إلى سقف الاستخدام اليومي للمستشار. جرّب غداً أو استخدم البحث في المكتبة.',
     timeout: 'استغرق النموذج وقتاً أطول من المسموح. أعد المحاولة أو اجعل السؤال أقصر.',
     upstream_error: 'تعذّر الوصول إلى النموذج الآن. المكتبة والبحث يعملان دون تغيير.',
@@ -312,7 +340,7 @@ export function failureMessage(code: TutorErrorCode, language: TutorLanguage): s
     not_configured:
       'The tutor is not configured on this server. The library and courses work fully; free-form questions need a Gemini key on the server.',
     invalid_request: 'Invalid request: shorten the question or start a new conversation.',
-    rate_limited: 'Too many questions in a short window. Wait a moment and retry.',
+    rate_limited: 'Temporary limit — try again in a minute. The model reached its usage cap just now; the library and search keep working.',
     budget_exhausted: 'The daily tutor budget is used up. Try tomorrow or use library search.',
     timeout: 'The model took longer than allowed. Retry, or ask a shorter question.',
     upstream_error: 'The model is unreachable right now. The library and search are unaffected.',

@@ -31,6 +31,8 @@ interface LegacyCall {
 function fakeClient(options: {
   interactionEvents?: InteractionStreamEvent[];
   interactionError?: Error;
+  /** Thrown by the first `interactions.create` only — for the rate-limit retry. */
+  interactionErrorOnce?: Error;
   legacyChunks?: string[];
   legacyError?: Error;
   onInteraction?: () => void;
@@ -45,6 +47,11 @@ function fakeClient(options: {
         interactions.push({ params, options: requestOptions });
         options.onInteraction?.();
         if (options.interactionError) throw options.interactionError;
+        if (options.interactionErrorOnce) {
+          const once = options.interactionErrorOnce;
+          options.interactionErrorOnce = undefined;
+          throw once;
+        }
         const events = options.interactionEvents ?? [];
         return (async function* () {
           for (const event of events) yield event;
@@ -249,4 +256,34 @@ test('an aborted request stops quietly instead of reporting an upstream error', 
 
   const parts = await collect(streamTutorText(client, { ...base, mode: 'auto', signal: controller.signal }));
   assert.deepEqual(parts, ['before the abort']);
+});
+
+test('a quota error is retried once on the same model before giving up', async () => {
+  const logs: string[] = [];
+  const { client, interactions } = fakeClient({
+    interactionErrorOnce: new Error('429 RESOURCE_EXHAUSTED: Quota exceeded for quota metric'),
+    interactionEvents: [{ event_type: 'step.delta', delta: { type: 'text', text: 'The IIW block.' } }],
+  });
+
+  const parts = await collect(
+    streamTutorText(client, { ...base, mode: 'interactions', log: message => logs.push(message) })
+  );
+
+  assert.deepEqual(parts, ['The IIW block.']);
+  assert.equal(interactions.length, 2, 'a quota blip must be retried, not surfaced to the student');
+  assert.equal(interactions[0].params.model, interactions[1].params.model, 'the retry keeps the model');
+  assert.match(logs.join('\n'), /rate limited on gemini-3\.8-flash; retrying once/);
+});
+
+test('a rejected key is never retried and never hidden', async () => {
+  const { client, interactions, legacy } = fakeClient({
+    interactionError: new Error('400 API key not valid. Please pass a valid API key.'),
+  });
+
+  await assert.rejects(
+    () => collect(streamTutorText(client, { ...base, mode: 'interactions' })),
+    /API key not valid/
+  );
+  assert.equal(interactions.length, 1, 'retrying a bad key only wastes the student\'s time');
+  assert.equal(legacy.length, 0);
 });

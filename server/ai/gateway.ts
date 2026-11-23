@@ -387,11 +387,38 @@ router.get('/api/ai/ping', async (req: Request, res: Response) => {
     typeof req.query.model === 'string' && req.query.model ? [req.query.model] : MODEL_CHAIN;
   const results: Array<Record<string, unknown>> = [];
 
+  const viaInteractions = req.query.api === 'interactions';
+
   for (const model of wanted) {
     const started = Date.now();
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 8000);
+    const timer = setTimeout(() => controller.abort(), 10000);
     try {
+      if (viaInteractions) {
+        // The path Google documents for 3.x. Same question, same budget, streamed.
+        const stream = (await ai.interactions.create(
+          {
+            model,
+            input: 'قل: تم',
+            generation_config: { max_output_tokens: 16 },
+            stream: true,
+            store: false,
+          },
+          { signal: controller.signal }
+        )) as unknown as AsyncIterable<{ event_type?: string; delta?: { type?: string; text?: string } }>;
+        let text = '';
+        const events: string[] = [];
+        for await (const event of stream) {
+          if (events.length < 8) events.push(event.event_type || '?');
+          if (event.event_type === 'step.delta' && event.delta?.type === 'text') {
+            text += event.delta.text || '';
+            if (text) break;
+          }
+        }
+        results.push({ model, ok: true, ms: Date.now() - started, text: text.slice(0, 40), events });
+        break;
+      }
+
       const answer = await ai.models.generateContent({
         model,
         contents: 'قل: تم',
@@ -413,7 +440,7 @@ router.get('/api/ai/ping', async (req: Request, res: Response) => {
   }
 
   res.setHeader('Cache-Control', 'no-store');
-  res.json({ ok: results.some(result => result.ok === true), results });
+  res.json({ ok: results.some(result => result.ok === true), viaInteractions, results });
 });
 
 router.get('/api/ai/models', async (_req: Request, res: Response) => {

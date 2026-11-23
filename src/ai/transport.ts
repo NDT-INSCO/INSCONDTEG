@@ -75,6 +75,8 @@ export interface StreamOptions {
   log?: (message: string) => void;
   /** Filled in as the chain is walked: which model said what. */
   attempts?: ChainAttempt[];
+  /** Override the per-model time slice (tests use a few milliseconds). */
+  perModelTimeoutMs?: number;
 }
 
 /** A model id that this key/project cannot use: move to the next one. */
@@ -118,12 +120,22 @@ const sleep = (ms: number, signal: AbortSignal) =>
 const CHAIN_PASSES = 2;
 const CHAIN_BACKOFF_MS = 1500;
 
+/**
+ * How long one model gets before the chain moves on.
+ *
+ * The whole chain shares a 45-second request budget; without a per-model slice a single
+ * model that hangs consumes all of it and the reader gets a timeout even though three
+ * other models were never asked.
+ */
+export const PER_MODEL_TIMEOUT_MS = 12000;
+
 async function* runChain<T>(
   models: string[],
   signal: AbortSignal,
-  open: (model: string) => AsyncIterable<T>,
+  open: (model: string, signal: AbortSignal) => AsyncIterable<T>,
   log: (message: string) => void,
-  attempts?: ChainAttempt[]
+  attempts?: ChainAttempt[],
+  perModelTimeoutMs: number = PER_MODEL_TIMEOUT_MS
 ): AsyncGenerator<T, void, unknown> {
   let lastError: unknown = null;
 
@@ -132,8 +144,12 @@ async function* runChain<T>(
 
     for (const model of models) {
       let yielded = false;
+      const budget = new AbortController();
+      const onAbort = () => budget.abort();
+      signal.addEventListener('abort', onAbort, { once: true });
+      const timer = setTimeout(() => budget.abort(), perModelTimeoutMs);
       try {
-        for await (const item of open(model)) {
+        for await (const item of open(model, budget.signal)) {
           yielded = true;
           yield item;
         }
@@ -141,6 +157,13 @@ async function* runChain<T>(
       } catch (error) {
         lastError = error;
         if (signal.aborted) return;
+        if (budget.signal.aborted) {
+          // This model alone ran out of time; the next one may still answer.
+          sawTransient = true;
+          attempts?.push({ model, signal: 'upstream_error' });
+          log(`[ai] ${model} ran out of time; trying the next model`);
+          continue;
+        }
         // A model that emitted text and then failed is never retried: the reader would
         // see the opening twice.
         if (yielded) throw error;
@@ -162,6 +185,9 @@ async function* runChain<T>(
         }
         // A rejected key is never retried — it wastes the reader's time and hides the cause.
         throw error;
+      } finally {
+        clearTimeout(timer);
+        signal.removeEventListener('abort', onAbort);
       }
     }
 
@@ -254,9 +280,10 @@ export async function* streamTutorText(
       yield* runChain(
         options.models,
         options.signal,
-        model => streamViaInteractions(client, model, options),
+        (model, modelSignal) => streamViaInteractions(client, model, { ...options, signal: modelSignal }),
         log,
-        options.attempts
+        options.attempts,
+        options.perModelTimeoutMs
       );
       return;
     } catch (error) {
@@ -272,8 +299,9 @@ export async function* streamTutorText(
   yield* runChain(
     options.models,
     options.signal,
-    model => streamViaLegacyModels(client, model, options),
+    (model, modelSignal) => streamViaLegacyModels(client, model, { ...options, signal: modelSignal }),
     log,
-    options.attempts
+    options.attempts,
+    options.perModelTimeoutMs
   );
 }

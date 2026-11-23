@@ -1,18 +1,28 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   AlertTriangle,
+  BookmarkCheck,
   Bot,
+  Brain,
+  Check,
   Compass,
   Copy,
+  Edit3,
   FileCheck2,
+  History,
+  MessageSquare,
+  PlusCircle,
   Send,
   ShieldAlert,
   Sparkles,
+  Trash2,
   Users,
   X,
 } from 'lucide-react';
 import type { Language } from '../../types';
 import { useEscapeKey, useModalFocus } from '../../utils/a11y';
+import { isStaticPages } from '../../utils/staticPages';
+import { gatewayBase } from '../../ai/client';
 import type { ClientSectionId, PortalId } from '../../utils/portalRoutes';
 import type { AcademyTab } from '../../academyTabs';
 import {
@@ -20,9 +30,8 @@ import {
   runSiteManagerAgent,
   AgentApiError,
 } from '../../ai/agentsClient';
-import { gatewayBase } from '../../ai/client';
-import { isStaticPages } from '../../utils/staticPages';
 import type {
+  ChatGptPlatformAction,
   SiteManagerMode,
   SiteManagerResponse,
   SiteTelemetrySnapshot,
@@ -38,6 +47,19 @@ import {
   subscribeSiteTelemetry,
   type OpenAiDockDetail,
 } from '../../ai/telemetryStore';
+import { InscoChatGptWorkspace } from './InscoChatGptWorkspace';
+import {
+  type CopilotChatTurn,
+  type CopilotConversationThread,
+  type CopilotHistoryState,
+  createCopilotThreadId,
+  deleteCopilotThread,
+  deriveCopilotThreadTitle,
+  loadCopilotHistoryState,
+  renameCopilotThread,
+  saveCopilotHistoryState,
+  upsertCopilotThread,
+} from '../../ai/copilotHistoryStore';
 
 interface InscoDualAiDockProps {
   language: Language;
@@ -46,13 +68,6 @@ interface InscoDualAiDockProps {
   onOpenCompany: (sectionId?: string) => void;
   onOpenClient: (section?: ClientSectionId) => void;
   onOpenAcademy: (tab?: AcademyTab) => void;
-}
-
-interface CopilotChatTurn {
-  role: 'user' | 'assistant';
-  content: string;
-  actions?: UserCopilotAction[];
-  draftPost?: UserCopilotResponse['draftPost'];
 }
 
 export const InscoDualAiDock: React.FC<InscoDualAiDockProps> = ({
@@ -65,14 +80,33 @@ export const InscoDualAiDock: React.FC<InscoDualAiDockProps> = ({
 }) => {
   const isAr = language === 'ar';
   const [open, setOpen] = useState(false);
-  const [activeAgent, setActiveAgent] = useState<'copilot' | 'manager'>('copilot');
+  const [activeAgent, setActiveAgent] = useState<'copilot' | 'chatgpt' | 'manager'>('copilot');
+  const [chatGptExpanded, setChatGptExpanded] = useState(true);
+  const [chatGptInitialPrompt, setChatGptInitialPrompt] = useState<string | null>(null);
 
-  // User Copilot State
-  const [copilotMode, setCopilotMode] = useState<UserCopilotMode>('assistant');
+  // User Copilot State + LocalStorage Thread History
+  const [historyState, setHistoryState] = useState<CopilotHistoryState>(() =>
+    loadCopilotHistoryState()
+  );
+  const initialActiveThread = historyState.activeThreadId
+    ? historyState.threads.find((t) => t.id === historyState.activeThreadId)
+    : undefined;
+  const [activeThreadId, setActiveThreadId] = useState<string>(
+    () => initialActiveThread?.id || createCopilotThreadId()
+  );
+  const [copilotMode, setCopilotMode] = useState<UserCopilotMode>(
+    () => initialActiveThread?.mode || 'assistant'
+  );
   const [copilotInput, setCopilotInput] = useState('');
   const [copilotLoading, setCopilotLoading] = useState(false);
   const [copilotError, setCopilotError] = useState<string | null>(null);
-  const [turns, setTurns] = useState<CopilotChatTurn[]>([]);
+  const [turns, setTurns] = useState<CopilotChatTurn[]>(
+    () => initialActiveThread?.turns || []
+  );
+  const [showCopilotHistory, setShowCopilotHistory] = useState(false);
+  const [threadSavedNotice, setThreadSavedNotice] = useState(false);
+  const [renamingThreadId, setRenamingThreadId] = useState<string | null>(null);
+  const [renameDraft, setRenameDraft] = useState('');
 
   // Site Manager AI State
   const [telemetry, setTelemetry] = useState<SiteTelemetrySnapshot>(() =>
@@ -98,17 +132,38 @@ export const InscoDualAiDock: React.FC<InscoDualAiDockProps> = ({
     const handler = (ev: Event) => {
       const custom = ev as CustomEvent<OpenAiDockDetail>;
       setOpen(true);
-      if (custom.detail?.agent) setActiveAgent(custom.detail.agent);
-      if (custom.detail?.prompt) setCopilotInput(custom.detail.prompt);
+      if (custom.detail?.agent) {
+        setActiveAgent(custom.detail.agent);
+        if (custom.detail.agent === 'chatgpt') {
+          setChatGptExpanded(true);
+        }
+      }
+      if (custom.detail?.prompt) {
+        if (custom.detail?.agent === 'chatgpt') {
+          setChatGptInitialPrompt(custom.detail.prompt);
+        } else {
+          setCopilotInput(custom.detail.prompt);
+        }
+      }
       setTelemetry(getSiteTelemetrySnapshot());
     };
     window.addEventListener(INSCO_OPEN_AI_DOCK_EVENT, handler);
     return () => window.removeEventListener(INSCO_OPEN_AI_DOCK_EVENT, handler);
   }, []);
 
-  // A static GitHub Pages build ships no gateway at all: say so honestly instead
-  // of letting every click fail with a 404.
-  const gatewayUnavailable = !gatewayBase() && isStaticPages();
+  const navigateTarget = (rawTarget?: string) => {
+    const t = (rawTarget || '').toLowerCase();
+    if (t.includes('community')) onOpenClient('community');
+    else if (t.includes('timeclock')) onOpenClient('timeclock');
+    else if (t.includes('companies')) onOpenClient('companies');
+    else if (t.includes('requests')) onOpenClient('requests');
+    else if (t.includes('sim_labs_ar') || t.includes('ar')) onOpenAcademy('sim_labs_ar');
+    else if (t.includes('sim_labs_rt') || t.includes('workshop') || t.includes('rt')) {
+      onOpenAcademy('sim_labs_rt');
+    } else if (t.includes('academy')) onOpenAcademy();
+    else if (t.includes('rfq')) onOpenCompany('rfq');
+    else onOpenCompany();
+  };
 
   const executeCopilotAction = (
     action: UserCopilotAction,
@@ -142,16 +197,118 @@ export const InscoDualAiDock: React.FC<InscoDualAiDockProps> = ({
       return;
     }
     if (action.actionType === 'navigate' && action.target) {
-      const t = action.target.toLowerCase();
-      if (t.includes('community')) onOpenClient('community');
-      else if (t.includes('timeclock')) onOpenClient('timeclock');
-      else if (t.includes('companies')) onOpenClient('companies');
-      else if (t.includes('requests')) onOpenClient('requests');
-      else if (t.includes('sim_labs_ar') || t.includes('ar')) onOpenAcademy('sim_labs_ar');
-      else if (t.includes('academy')) onOpenAcademy();
-      else if (t.includes('rfq')) onOpenCompany('rfq');
-      else onOpenCompany();
+      navigateTarget(action.target);
       setOpen(false);
+    }
+  };
+
+  const executeChatGptAction = (action: ChatGptPlatformAction) => {
+    if (action.actionType === 'apply_post_draft' && action.draftPost) {
+      dispatchApplyPostDraft({
+        postType: action.draftPost.postType,
+        ndtMethod: action.draftPost.ndtMethod,
+        title: action.draftPost.title,
+        body: action.draftPost.body,
+        tags: action.draftPost.tags,
+      });
+      onOpenClient('community');
+      setOpen(false);
+      return;
+    }
+    if (action.actionType === 'open_community') {
+      onOpenClient('community');
+      setOpen(false);
+      return;
+    }
+    if (action.actionType === 'open_rfq') {
+      onOpenCompany('rfq');
+      setOpen(false);
+      return;
+    }
+    if (action.actionType === 'open_ar_lab') {
+      onOpenAcademy('sim_labs_ar');
+      setOpen(false);
+      return;
+    }
+    if (action.actionType === 'open_workshop') {
+      onOpenAcademy('sim_labs_rt');
+      setOpen(false);
+      return;
+    }
+    if (action.actionType === 'navigate' && action.target) {
+      navigateTarget(action.target);
+      setOpen(false);
+    }
+  };
+
+  const persistCopilotTurns = (
+    nextTurns: CopilotChatTurn[],
+    modeUsed: UserCopilotMode,
+    targetId: string
+  ) => {
+    if (nextTurns.length === 0) return;
+    setHistoryState((prev) =>
+      upsertCopilotThread(prev, {
+        id: targetId,
+        mode: modeUsed,
+        turns: nextTurns,
+      })
+    );
+  };
+
+  const handleSaveCurrentCopilotThread = () => {
+    if (turns.length === 0) return;
+    setHistoryState((prev) =>
+      upsertCopilotThread(prev, {
+        id: activeThreadId,
+        mode: copilotMode,
+        turns,
+      })
+    );
+    setThreadSavedNotice(true);
+    window.setTimeout(() => setThreadSavedNotice(false), 1800);
+  };
+
+  const handleStartNewCopilotThread = () => {
+    if (turns.length > 0) {
+      persistCopilotTurns(turns, copilotMode, activeThreadId);
+    }
+    const freshId = createCopilotThreadId();
+    setActiveThreadId(freshId);
+    setTurns([]);
+    setCopilotError(null);
+    setCopilotInput('');
+    setShowCopilotHistory(false);
+    setHistoryState((prev) => {
+      const next = { ...prev, activeThreadId: null };
+      saveCopilotHistoryState(next);
+      return next;
+    });
+  };
+
+  const handleLoadCopilotThread = (thread: CopilotConversationThread) => {
+    if (turns.length > 0 && activeThreadId !== thread.id) {
+      persistCopilotTurns(turns, copilotMode, activeThreadId);
+    }
+    setActiveThreadId(thread.id);
+    setTurns(thread.turns);
+    setCopilotMode(thread.mode);
+    setCopilotError(null);
+    setShowCopilotHistory(false);
+    setHistoryState((prev) => {
+      const next = { ...prev, activeThreadId: thread.id };
+      saveCopilotHistoryState(next);
+      return next;
+    });
+  };
+
+  const handleDeleteCopilotThread = (threadId: string) => {
+    setHistoryState((prev) => deleteCopilotThread(prev, threadId));
+    if (threadId === activeThreadId) {
+      const freshId = createCopilotThreadId();
+      setActiveThreadId(freshId);
+      setTurns([]);
+      setCopilotError(null);
     }
   };
 
@@ -160,12 +317,15 @@ export const InscoDualAiDock: React.FC<InscoDualAiDockProps> = ({
     const modeToUse = overrideMode ?? copilotMode;
     if (text.length < 2 || copilotLoading) return;
 
+    const currentThreadId = activeThreadId;
     setCopilotError(null);
     const nextHistory: UserCopilotMessage[] = turns.slice(-8).map(t => ({
       role: t.role,
       content: t.content,
     }));
-    setTurns(prev => [...prev, { role: 'user', content: text }]);
+    const withUserTurn: CopilotChatTurn[] = [...turns, { role: 'user', content: text }];
+    setTurns(withUserTurn);
+    persistCopilotTurns(withUserTurn, modeToUse, currentThreadId);
     if (!overrideMsg) setCopilotInput('');
 
     setCopilotLoading(true);
@@ -186,15 +346,17 @@ export const InscoDualAiDock: React.FC<InscoDualAiDockProps> = ({
           })),
         },
       });
-      setTurns(prev => [
-        ...prev,
+      const completedTurns: CopilotChatTurn[] = [
+        ...withUserTurn,
         {
           role: 'assistant',
           content: res.reply,
           actions: res.suggestedActions,
           draftPost: res.draftPost,
         },
-      ]);
+      ];
+      setTurns(completedTurns);
+      persistCopilotTurns(completedTurns, modeToUse, currentThreadId);
     } catch (err) {
       const msg =
         err instanceof AgentApiError
@@ -266,32 +428,58 @@ export const InscoDualAiDock: React.FC<InscoDualAiDockProps> = ({
     }
   };
 
+  const isFullChatGpt = activeAgent === 'chatgpt' && chatGptExpanded;
+
   return (
     <>
-      {/* Compact Bottom-End Launcher Button */}
-      <button
-        type="button"
-        data-testid="insco-dual-ai-launcher"
-        aria-label={isAr ? 'وكلاء INSCO الذكية (AI)' : 'INSCO AI Agents'}
-        aria-haspopup="dialog"
-        onClick={() => {
-          setTelemetry(getSiteTelemetrySnapshot());
-          setOpen(true);
-        }}
-        className="fixed bottom-16 xl:bottom-5 end-4 sm:end-6 z-40 inline-flex min-h-10 min-w-10 items-center justify-center gap-2 rounded-xl border border-cyan-400/50 bg-slate-900/95 hover:bg-slate-800 px-2.5 py-2 sm:px-3.5 text-xs font-black text-white shadow-xl backdrop-blur cursor-pointer"
-      >
-        <Sparkles className="w-4 h-4 text-cyan-400" aria-hidden="true" />
-        <span className="hidden sm:inline">{isAr ? 'وكلاء INSCO الذكية (AI)' : 'INSCO AI Agents'}</span>
-      </button>
+      {/* Bottom-End Floating AI Launchers */}
+      <div className="fixed bottom-16 xl:bottom-5 end-4 sm:end-6 z-40 flex items-center gap-2">
+        <button
+          type="button"
+          data-testid="insco-chatgpt-launcher"
+          aria-label={isAr ? 'وكيل INSCO AI (ChatGPT)' : 'INSCO AI (ChatGPT)'}
+          aria-haspopup="dialog"
+          onClick={() => {
+            setTelemetry(getSiteTelemetrySnapshot());
+            setActiveAgent('chatgpt');
+            setChatGptExpanded(true);
+            setOpen(true);
+          }}
+          className="inline-flex min-h-10 min-w-10 items-center justify-center gap-2 rounded-xl border border-emerald-400/50 bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 px-2.5 py-2 sm:px-3.5 text-xs font-black text-white shadow-xl backdrop-blur cursor-pointer"
+        >
+          <Brain className="w-4 h-4 shrink-0 text-white" aria-hidden="true" />
+          <span className="hidden sm:inline">{isAr ? 'وكيل INSCO AI' : 'INSCO ChatGPT'}</span>
+        </button>
+
+        <button
+          type="button"
+          data-testid="insco-dual-ai-launcher"
+          aria-label={isAr ? 'وكلاء INSCO الذكية (AI)' : 'INSCO AI Agents'}
+          aria-haspopup="dialog"
+          onClick={() => {
+            setTelemetry(getSiteTelemetrySnapshot());
+            setOpen(true);
+          }}
+          className="inline-flex min-h-10 min-w-10 items-center justify-center gap-2 rounded-xl border border-cyan-400/50 bg-slate-900/95 hover:bg-slate-800 px-2.5 py-2 sm:px-3.5 text-xs font-black text-white shadow-xl backdrop-blur cursor-pointer"
+        >
+          <Sparkles className="w-4 h-4 shrink-0 text-cyan-400" aria-hidden="true" />
+          <span className="hidden sm:inline">{isAr ? 'وكلاء INSCO الذكية (AI)' : 'INSCO AI Agents'}</span>
+        </button>
+      </div>
 
       {open && (
-        <div className="fixed inset-0 z-[85] flex justify-end" role="presentation">
+        <div
+          className={`fixed inset-0 z-[85] flex ${
+            isFullChatGpt ? 'items-center justify-center p-2 sm:p-4' : 'justify-end'
+          }`}
+          role="presentation"
+        >
           <button
             type="button"
             tabIndex={-1}
             aria-label={isAr ? 'إغلاق لوحة الوكلاء الذكية' : 'Close AI Agents panel'}
             onClick={() => setOpen(false)}
-            className="absolute inset-0 bg-slate-950/75 backdrop-blur-sm cursor-default"
+            className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm cursor-default"
           />
 
           <div
@@ -301,21 +489,38 @@ export const InscoDualAiDock: React.FC<InscoDualAiDockProps> = ({
             aria-label={isAr ? 'وكلاء الذكاء الاصطناعي لإدارة الموقع ومساعدة المستخدمين' : 'INSCO Dual Professional AI Agents'}
             dir={isAr ? 'rtl' : 'ltr'}
             data-testid="insco-dual-ai-drawer"
-            className="relative z-10 w-full max-w-xl h-full bg-slate-950 border-s border-slate-800 shadow-2xl flex flex-col"
+            className={`relative z-10 w-full bg-slate-950 shadow-2xl flex flex-col overflow-hidden ${
+              isFullChatGpt
+                ? 'max-w-7xl h-[94vh] rounded-2xl border border-slate-800'
+                : 'max-w-xl h-full border-s border-slate-800'
+            }`}
           >
+            {/* A static Pages build ships no gateway at all: say so instead of letting
+                every request fail with a network error the reader cannot act on. */}
+            {!gatewayBase() && isStaticPages() && (
+              <p
+                data-testid="ai-gateway-unavailable"
+                className="m-3 rounded-lg border border-amber-400/40 bg-amber-500/10 px-3 py-2 text-[11px] font-bold text-amber-300"
+              >
+                {isAr
+                  ? 'هذا البناء ثابت (static) ولا يحتوي بوابة الذكاء الاصطناعي. الوكلاء يعملون على نسخة Vercel المستضافة.'
+                  : 'This static build has no AI gateway. The agents need the hosted INSCO AI gateway.'}
+              </p>
+            )}
+
             {/* Drawer Header & Agent Tabs */}
-            <div className="p-4 border-b border-slate-800 space-y-3">
+            <div className="p-3 sm:p-4 border-b border-slate-800 space-y-2.5 shrink-0">
               <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <Bot className="w-5 h-5 text-cyan-400" aria-hidden="true" />
-                  <div>
-                    <h2 className="text-sm font-black text-white">
-                      {isAr ? 'مركز وكلاء INSCO الذكية (Gemini AI)' : 'INSCO Dual AI Command'}
+                <div className="flex items-center gap-2 min-w-0">
+                  <Bot className="w-5 h-5 shrink-0 text-cyan-400" aria-hidden="true" />
+                  <div className="min-w-0">
+                    <h2 className="text-sm font-black text-white truncate">
+                      {isAr ? 'مركز وكلاء INSCO الذكية (Gemini AI)' : 'INSCO AI Command & ChatGPT Studio'}
                     </h2>
-                    <p className="text-[11px] text-slate-400">
+                    <p className="text-[11px] text-slate-400 truncate">
                       {isAr
-                        ? 'وكيل إدارة الموقع والعمليات · والمساعد الشامل للمستخدمين'
-                        : 'Site Manager Director AI · Universal User Copilot AI'}
+                        ? 'وكيل INSCO الشامل (ChatGPT) · المساعد السريع · وكيل إدارة الموقع'
+                        : 'Autonomous ChatGPT Studio · User Copilot · Site Manager Director'}
                     </p>
                   </div>
                 </div>
@@ -323,24 +528,40 @@ export const InscoDualAiDock: React.FC<InscoDualAiDockProps> = ({
                   type="button"
                   onClick={() => setOpen(false)}
                   aria-label={isAr ? 'إغلاق' : 'Close'}
-                  className="p-1.5 rounded-lg border border-slate-700 text-slate-300 hover:text-white cursor-pointer"
+                  className="p-1.5 rounded-lg border border-slate-700 text-slate-300 hover:text-white cursor-pointer shrink-0"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-4 h-4 shrink-0" />
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  data-testid="ai-tab-chatgpt"
+                  onClick={() => {
+                    setTelemetry(getSiteTelemetrySnapshot());
+                    setActiveAgent('chatgpt');
+                  }}
+                  className={`flex items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-black transition cursor-pointer ${
+                    activeAgent === 'chatgpt'
+                      ? 'bg-gradient-to-r from-emerald-600 to-cyan-600 text-white'
+                      : 'border border-slate-800 bg-slate-900 text-slate-300 hover:text-white'
+                  }`}
+                >
+                  <Brain className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                  <span>{isAr ? 'INSCO AI (ChatGPT)' : 'INSCO AI (ChatGPT)'}</span>
+                </button>
                 <button
                   type="button"
                   data-testid="ai-tab-copilot"
                   onClick={() => setActiveAgent('copilot')}
-                  className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-black transition cursor-pointer ${
+                  className={`flex items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-black transition cursor-pointer ${
                     activeAgent === 'copilot'
                       ? 'bg-cyan-600 text-white'
                       : 'border border-slate-800 bg-slate-900 text-slate-300 hover:text-white'
                   }`}
                 >
-                  <Users className="w-3.5 h-3.5" aria-hidden="true" />
+                  <Users className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
                   <span>{isAr ? 'المساعد الشامل للمستخدم' : 'User Copilot AI'}</span>
                 </button>
                 <button
@@ -350,33 +571,225 @@ export const InscoDualAiDock: React.FC<InscoDualAiDockProps> = ({
                     setTelemetry(getSiteTelemetrySnapshot());
                     setActiveAgent('manager');
                   }}
-                  className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-black transition cursor-pointer ${
+                  className={`flex items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-black transition cursor-pointer ${
                     activeAgent === 'manager'
                       ? 'bg-amber-500 text-slate-950'
                       : 'border border-slate-800 bg-slate-900 text-slate-300 hover:text-white'
                   }`}
                 >
-                  <ShieldAlert className="w-3.5 h-3.5" aria-hidden="true" />
+                  <ShieldAlert className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
                   <span>{isAr ? 'وكيل إدارة الموقع' : 'Site Manager AI'}</span>
                 </button>
               </div>
             </div>
 
-            {gatewayUnavailable && (
-              <div
-                role="status"
-                data-testid="ai-gateway-unavailable"
-                className="mx-4 mt-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200"
-              >
-                {isAr
-                  ? 'الموقع الثابت بدون واجهة AI: لم يُضبط المزود هنا.'
-                  : 'This static build has no AI gateway. Agent calls need the hosted INSCO AI gateway.'}
+            {/* AGENT 0: FULL CHATGPT-CLASS INSCO AI STUDIO */}
+            {activeAgent === 'chatgpt' && (
+              <div className="flex-1 flex flex-col min-h-0">
+                <InscoChatGptWorkspace
+                  language={language}
+                  context={{
+                    portal,
+                    section,
+                    feedPreview: telemetry.recentPosts.slice(0, 5).map(p => ({
+                      id: p.id,
+                      title: p.title,
+                      ndtMethod: p.ndtMethod,
+                      excerpt: p.excerpt,
+                    })),
+                  }}
+                  isExpanded={chatGptExpanded}
+                  onToggleExpand={() => setChatGptExpanded(prev => !prev)}
+                  onExecuteAction={executeChatGptAction}
+                  initialPrompt={chatGptInitialPrompt}
+                />
               </div>
             )}
 
             {/* AGENT 1: UNIVERSAL USER COPILOT */}
             {activeAgent === 'copilot' && (
               <div className="flex-1 flex flex-col min-h-0">
+                {/* 1-Click Switch Banner to Full ChatGPT Studio */}
+                <div className="px-4 py-2 border-b border-slate-800/80 bg-emerald-950/30 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 text-[11px] text-emerald-200 min-w-0">
+                    <Brain className="w-3.5 h-3.5 shrink-0 text-emerald-400" aria-hidden="true" />
+                    <span className="truncate">
+                      {isAr
+                        ? 'هل تريد التجربة الكاملة مثل ChatGPT (بث مباشر + بحث ويب + ملفات + Canvas)؟'
+                        : 'Need the full ChatGPT experience (streaming, web search, files, Canvas)?'}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    data-testid="copilot-upgrade-chatgpt-btn"
+                    onClick={() => {
+                      setActiveAgent('chatgpt');
+                      setChatGptExpanded(true);
+                    }}
+                    className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-2.5 py-1 text-[11px] font-black text-white shrink-0 cursor-pointer"
+                  >
+                    <MessageSquare className="w-3 h-3 shrink-0" aria-hidden="true" />
+                    <span>{isAr ? 'فتح ChatGPT Studio' : 'Open ChatGPT Studio'}</span>
+                  </button>
+                </div>
+
+                {/* Copilot LocalStorage Thread History Toolbar */}
+                <div
+                  data-testid="copilot-history-toolbar"
+                  className="px-4 py-2 border-b border-slate-800/80 bg-slate-900/60 flex flex-wrap items-center justify-between gap-2"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      data-testid="copilot-history-toggle"
+                      aria-expanded={showCopilotHistory}
+                      onClick={() => setShowCopilotHistory((v) => !v)}
+                      className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-bold cursor-pointer ${
+                        showCopilotHistory
+                          ? 'border-cyan-400 bg-cyan-500/20 text-cyan-200'
+                          : 'border-slate-700 bg-slate-900 text-slate-200 hover:border-cyan-400'
+                      }`}
+                    >
+                      <History className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                      <span>
+                        {isAr
+                          ? `سجل المحادثات (${historyState.threads.length})`
+                          : `History (${historyState.threads.length})`}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      data-testid="copilot-save-thread-btn"
+                      disabled={turns.length === 0}
+                      onClick={handleSaveCurrentCopilotThread}
+                      className="inline-flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-900 hover:border-emerald-400 disabled:opacity-40 px-2.5 py-1 text-[11px] font-bold text-emerald-300 cursor-pointer"
+                    >
+                      {threadSavedNotice ? (
+                        <Check className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                      ) : (
+                        <BookmarkCheck className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                      )}
+                      <span>
+                        {threadSavedNotice
+                          ? isAr
+                            ? 'تم الحفظ'
+                            : 'Saved!'
+                          : isAr
+                          ? 'حفظ المحادثة'
+                          : 'Save Thread'}
+                      </span>
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    data-testid="copilot-new-chat-btn"
+                    onClick={handleStartNewCopilotThread}
+                    className="inline-flex items-center gap-1 rounded-lg bg-cyan-600/20 hover:bg-cyan-600/35 border border-cyan-500/40 px-2.5 py-1 text-[11px] font-bold text-cyan-200 cursor-pointer"
+                  >
+                    <PlusCircle className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                    <span>{isAr ? 'محادثة جديدة' : 'New Chat'}</span>
+                  </button>
+                </div>
+
+                {/* Collapsible Saved Conversation Threads List */}
+                {showCopilotHistory && (
+                  <div
+                    data-testid="copilot-history-panel"
+                    className="max-h-56 overflow-y-auto border-b border-slate-800 bg-slate-900/95 p-3 space-y-1.5"
+                  >
+                    {historyState.threads.length === 0 ? (
+                      <div className="text-[11px] text-slate-400 text-center py-2">
+                        {isAr
+                          ? 'لا توجد محادثات محفوظة بعد. ابدأ الدردشة ليتم حفظها تلقائياً في المتصفح.'
+                          : 'No saved threads yet. Start chatting to auto-save conversations in LocalStorage.'}
+                      </div>
+                    ) : (
+                      historyState.threads.map((thread) => {
+                        const isActive = thread.id === activeThreadId;
+                        return (
+                          <div
+                            key={thread.id}
+                            className={`rounded-lg border px-2.5 py-2 flex items-center justify-between gap-2 text-xs ${
+                              isActive
+                                ? 'border-cyan-500/50 bg-cyan-500/15 text-white'
+                                : 'border-slate-800 bg-slate-950/70 text-slate-300 hover:border-slate-700'
+                            }`}
+                          >
+                            {renamingThreadId === thread.id ? (
+                              <form
+                                className="flex-1 flex items-center gap-1.5"
+                                onSubmit={(e) => {
+                                  e.preventDefault();
+                                  setHistoryState((prev) =>
+                                    renameCopilotThread(prev, thread.id, renameDraft)
+                                  );
+                                  setRenamingThreadId(null);
+                                }}
+                              >
+                                <input
+                                  type="text"
+                                  data-testid={`copilot-thread-rename-input-${thread.id}`}
+                                  value={renameDraft}
+                                  onChange={(e) => setRenameDraft(e.target.value)}
+                                  className="flex-1 rounded border border-cyan-500 bg-slate-900 px-2 py-0.5 text-[11px] text-white"
+                                  autoFocus
+                                />
+                                <button
+                                  type="submit"
+                                  className="px-2 py-0.5 rounded bg-cyan-600 text-[10px] font-bold text-white cursor-pointer"
+                                >
+                                  {isAr ? 'حفظ' : 'OK'}
+                                </button>
+                              </form>
+                            ) : (
+                              <button
+                                type="button"
+                                data-testid={`copilot-thread-load-${thread.id}`}
+                                onClick={() => handleLoadCopilotThread(thread)}
+                                className="flex-1 text-start min-w-0 cursor-pointer space-y-0.5"
+                              >
+                                <div className="font-bold truncate">
+                                  {thread.title || deriveCopilotThreadTitle(thread.turns)}
+                                </div>
+                                <div className="text-[10px] text-slate-400 font-mono">
+                                  {thread.mode} · {thread.turns.length}{' '}
+                                  {isAr ? 'رسالة' : 'msgs'}
+                                </div>
+                              </button>
+                            )}
+
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                type="button"
+                                data-testid={`copilot-thread-rename-${thread.id}`}
+                                aria-label={isAr ? 'تسمية المحادثة' : 'Rename thread'}
+                                onClick={() => {
+                                  setRenamingThreadId(thread.id);
+                                  setRenameDraft(thread.title);
+                                }}
+                                className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
+                              >
+                                <Edit3 className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                              </button>
+                              <button
+                                type="button"
+                                data-testid={`copilot-thread-delete-${thread.id}`}
+                                aria-label={isAr ? 'حذف المحادثة' : 'Delete thread'}
+                                onClick={() => handleDeleteCopilotThread(thread.id)}
+                                className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-slate-800 cursor-pointer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
+
                 <div className="px-4 py-2.5 border-b border-slate-800/80 flex flex-wrap gap-1.5">
                   {(
                     [
@@ -429,7 +842,7 @@ export const InscoDualAiDock: React.FC<InscoDualAiDockProps> = ({
                   {turns.length === 0 && (
                     <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-2 text-xs text-slate-300">
                       <div className="font-black text-white flex items-center gap-1.5">
-                        <Compass className="w-4 h-4 text-cyan-400" aria-hidden="true" />
+                        <Compass className="w-4 h-4 shrink-0 text-cyan-400" aria-hidden="true" />
                         <span>
                           {isAr
                             ? 'أهلاً بك! أنا مساعد INSCO الذكي الشامل'
@@ -479,7 +892,7 @@ export const InscoDualAiDock: React.FC<InscoDualAiDockProps> = ({
                             }}
                             className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 text-[11px] font-bold text-white cursor-pointer"
                           >
-                            <FileCheck2 className="w-3.5 h-3.5" aria-hidden="true" />
+                            <FileCheck2 className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
                             <span>
                               {isAr
                                 ? 'إدراج المسودة في مجتمع INSCO'
@@ -537,7 +950,7 @@ export const InscoDualAiDock: React.FC<InscoDualAiDockProps> = ({
                     disabled={copilotLoading || copilotInput.trim().length < 2}
                     className="inline-flex items-center gap-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-45 px-3.5 py-2 text-xs font-black text-white cursor-pointer"
                   >
-                    <Send className="w-3.5 h-3.5" aria-hidden="true" />
+                    <Send className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
                     <span>
                       {copilotLoading
                         ? isAr
@@ -640,7 +1053,7 @@ export const InscoDualAiDock: React.FC<InscoDualAiDockProps> = ({
                   <button
                     type="submit"
                     disabled={managerLoading}
-                    className="rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 px-3.5 py-2 text-xs font-black text-slate-950 cursor-pointer whitespace-nowrap"
+                    className="rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 px-3.5 py-2 text-xs font-black text-slate-950 cursor-pointer shrink-0"
                   >
                     {managerLoading
                       ? isAr
@@ -739,7 +1152,7 @@ export const InscoDualAiDock: React.FC<InscoDualAiDockProps> = ({
                             }}
                             className="inline-flex items-center gap-1 rounded border border-slate-700 px-2 py-1 text-[10px] text-slate-200 cursor-pointer"
                           >
-                            <Copy className="w-3 h-3" aria-hidden="true" />
+                            <Copy className="w-3 h-3 shrink-0" aria-hidden="true" />
                             <span>{copiedNotice ? (isAr ? 'تم النسخ' : 'Copied') : isAr ? 'نسخ' : 'Copy'}</span>
                           </button>
                         </div>
@@ -761,7 +1174,7 @@ export const InscoDualAiDock: React.FC<InscoDualAiDockProps> = ({
                           }}
                           className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 text-[11px] font-bold text-white cursor-pointer"
                         >
-                          <FileCheck2 className="w-3.5 h-3.5" aria-hidden="true" />
+                          <FileCheck2 className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
                           <span>
                             {isAr ? 'فتح في محرر منشورات المجتمع' : 'Open in Community Composer'}
                           </span>

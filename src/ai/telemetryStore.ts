@@ -14,7 +14,7 @@ export interface PostDraftDetail {
 }
 
 export interface OpenAiDockDetail {
-  agent?: 'copilot' | 'manager';
+  agent?: 'copilot' | 'manager' | 'chatgpt';
   prompt?: string;
 }
 

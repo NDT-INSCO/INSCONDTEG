@@ -1,5 +1,7 @@
 import {
   AGENT_ENDPOINTS,
+  ChatGptStreamEvent,
+  ChatGptStreamRequest,
   CommunityAssistRequest,
   CommunityAssistResponse,
   SiteManagerRequest,
@@ -101,3 +103,75 @@ export function runCommunityAssist(
     signal
   );
 }
+
+export interface ChatGptStreamHandlers {
+  onEvent: (event: ChatGptStreamEvent) => void;
+}
+
+export async function streamChatGptAgent(
+  request: ChatGptStreamRequest,
+  handlers: ChatGptStreamHandlers,
+  signal?: AbortSignal
+): Promise<void> {
+  const res = await fetch(AGENT_ENDPOINTS.chatgptStream, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+    signal,
+  });
+
+  if (!res.ok) {
+    const errBody = (await res.json().catch(() => ({}))) as {
+      error?: { code?: string; message?: string };
+    };
+    const msg =
+      errBody?.error?.message ||
+      `AI service unavailable (HTTP ${res.status}). Ensure GEMINI_API_KEY is configured on the server.`;
+    throw new AgentApiError(msg, res.status, errBody?.error?.code || 'agent_error');
+  }
+
+  if (!res.body) {
+    throw new AgentApiError('Empty response stream from server.', 502, 'empty_stream');
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  const dispatchFrame = (frame: string) => {
+    const lines = frame.split(/\r?\n/);
+    const dataLines: string[] = [];
+    for (const line of lines) {
+      if (line.startsWith('data:')) {
+        dataLines.push(line.slice(5).trimStart());
+      }
+    }
+    if (dataLines.length === 0) return;
+    const rawJson = dataLines.join('\n');
+    try {
+      const parsed = JSON.parse(rawJson) as ChatGptStreamEvent;
+      handlers.onEvent(parsed);
+    } catch {
+      // Ignore malformed trailing heartbeat chunk
+    }
+  };
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    let boundary = buffer.indexOf('\n\n');
+    while (boundary !== -1) {
+      const frame = buffer.slice(0, boundary);
+      buffer = buffer.slice(boundary + 2);
+      dispatchFrame(frame);
+      boundary = buffer.indexOf('\n\n');
+    }
+  }
+
+  if (buffer.trim()) {
+    dispatchFrame(buffer);
+  }
+}
+

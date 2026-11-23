@@ -299,6 +299,32 @@ function parseModelJson<T>(raw: string): T {
   }
 }
 
+/**
+ * Google does not always refuse a throttled request up front: on the free tier it often
+ * starts streaming, then ends the interaction with "high demand". The reader is left with
+ * half an answer and a busy banner even though the question was understood.
+ *
+ * So a stream that stops after producing text is resumed — the model is shown what it
+ * already wrote and asked to continue from there, without repeating itself. Resuming is
+ * bounded by a count and by the request's own clock; when either runs out, the partial
+ * answer stands and the reader is told why.
+ */
+const RESUME_LIMIT = 2;
+/** Leave enough of the request budget for the resumed answer to say something. */
+const RESUME_MIN_REMAINING_MS = 8000;
+
+function resumeInstruction(language: 'ar' | 'en', written: string): string {
+  const tail = written.slice(-1200);
+  return language === 'ar'
+    ? `هذا ما كتبته حتى الآن في إجابتك:\n\n${tail}\n\nأكمل من حيث توقفت تماماً. لا تُعد كتابة ما سبق، ولا تكتب مقدمة جديدة، وأكمل الجملة الناقصة إن وُجدت.`
+    : `This is what you have written so far:\n\n${tail}\n\nContinue exactly where you stopped. Do not repeat what you already wrote, do not start a new introduction, and finish the sentence that was cut.`;
+}
+
+/** Only a throttled or stalled stream is worth resuming; a rejected key never is. */
+function isResumable(signal: UpstreamSignal): boolean {
+  return signal === 'model_busy' || signal === 'rate_limited' || signal === 'upstream_error';
+}
+
 /** The failure body: the sentence the reader gets, plus a safe upstream snippet. */
 function failureBody(
   code: TutorErrorCode,
@@ -692,9 +718,35 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
   res.write(encodeSse({ type: 'meta', meta }));
 
   const streamAttempts: ChainAttempt[] = [];
+  let written = '';
   try {
-    for await (const delta of streamFromModel(payload.prompt, payload.system, controller.signal, streamAttempts)) {
-      res.write(encodeSse({ type: 'delta', text: delta }));
+    for (let resume = 0; ; resume += 1) {
+      const prompt =
+        resume === 0
+          ? payload.prompt
+          : `${payload.prompt}\n\n${resumeInstruction(payload.language, written)}`;
+      try {
+        for await (const delta of streamFromModel(prompt, payload.system, controller.signal, streamAttempts)) {
+          written += delta;
+          res.write(encodeSse({ type: 'delta', text: delta }));
+        }
+        break;
+      } catch (error) {
+        const remaining = REQUEST_TIMEOUT_MS - (Date.now() - started);
+        const kind = classifyUpstreamError(error);
+        // A warning, not a failure: the reader keeps what was written and gets the rest.
+        if (
+          written &&
+          resume < RESUME_LIMIT &&
+          remaining > RESUME_MIN_REMAINING_MS &&
+          isResumable(kind) &&
+          !controller.signal.aborted
+        ) {
+          console.warn(`[ai] tutor stream stopped as ${kind}; resuming (${resume + 1}/${RESUME_LIMIT})`);
+          continue;
+        }
+        throw error;
+      }
     }
     res.write(encodeSse({ type: 'done' }));
   } catch (error) {
@@ -734,7 +786,58 @@ async function generateStructuredAgentJson<T>(params: {
   const candidates = [AGENT_MODELS.primary, AGENT_MODELS.fallback, ...AGENT_MODELS.fallbacks];
   let lastError: unknown = null;
 
+  /**
+   * The interface Google actually serves, asked first.
+   *
+   * `models.generateContent` is the retired path — one key here answers it with "no longer
+   * available to new users" and another simply never returns. Leading with it cost the
+   * copilot four silent 18-second slices and a 504 before the working interface was even
+   * tried, so the order is now reversed: JSON over `interactions`, legacy only as a last
+   * resort.
+   */
+  const interactionSystem =
+    params.systemInstruction +
+    '\n\nأعد كائن JSON واحداً فقط يطابق هذا المخطط، بلا شرح ولا أسوار كود:\n' +
+    JSON.stringify(params.responseSchema);
+
   for (const model of candidates) {
+    if (params.signal.aborted) throw lastError ?? new Error('Agent request aborted');
+    const budget = new AbortController();
+    const onAbort = () => budget.abort();
+    params.signal.addEventListener('abort', onAbort, { once: true });
+    // A whole-call slice: an agent answer is one JSON document, so there is no useful
+    // "it started writing" moment to protect — if the document is not done in the slice,
+    // the next model is a better bet than waiting.
+    const timer = setTimeout(() => budget.abort(), PER_MODEL_TIMEOUT_MS);
+    try {
+      let raw = '';
+      for await (const delta of streamTutorText(ai as unknown as TutorAiClient, {
+        prompt: params.prompt,
+        system: interactionSystem,
+        signal: budget.signal,
+        models: [model],
+        mode: 'interactions',
+        maxOutputTokens: 1400,
+        log: message => console.warn(message),
+      })) {
+        raw += delta;
+      }
+      const parsed = parseModelJson<T>(raw);
+      console.warn(`[ai] agent answered through interactions on ${model}`);
+      return { data: parsed, model };
+    } catch (err) {
+      lastError = err;
+      if (params.signal.aborted) throw err;
+      console.warn(`[ai] agent interactions on ${model} failed: ${sanitiseUpstreamDetail(err)}`);
+    } finally {
+      clearTimeout(timer);
+      params.signal.removeEventListener('abort', onAbort);
+    }
+  }
+
+  /** Last resort: the legacy call, for a key where Interactions is the broken half. */
+  for (const model of candidates.slice(0, 2)) {
+    if (params.signal.aborted) throw lastError ?? new Error('Agent request aborted');
     const budget = new AbortController();
     const onAbort = () => budget.abort();
     params.signal.addEventListener('abort', onAbort, { once: true });
@@ -748,72 +851,21 @@ async function generateStructuredAgentJson<T>(params: {
           responseMimeType: 'application/json',
           responseSchema: params.responseSchema as never,
           temperature: 0.35,
-          maxOutputTokens: 1800,
+          maxOutputTokens: 1400,
           abortSignal: budget.signal,
         },
       });
       const rawText = (response.text || '').trim();
-      if (!rawText) {
-        throw new Error('Model returned empty structured payload');
-      }
+      if (!rawText) throw new Error('Model returned empty structured payload');
       const parsed = parseModelJson<T>(rawText);
       return { data: parsed, model };
     } catch (err) {
       lastError = err;
       if (params.signal.aborted) throw err;
-      const kind = classifyUpstreamError(err);
-      if (isModelMissing(err) || kind === 'model_busy' || kind === 'rate_limited') {
-        // Busy is a fact about one model; the copilot has four more to ask.
-        console.warn(`[ai] agent model ${model} ${kind}; trying the next one`);
-        continue;
-      }
-      if (budget.signal.aborted) {
-        // Only this model ran out of its slice; the request itself is still alive.
-        console.warn(`[ai] agent model ${model} ran out of time; trying the next one`);
-        continue;
-      }
-      throw err;
+      console.warn(`[ai] agent legacy on ${model} failed: ${sanitiseUpstreamDetail(err)}`);
     } finally {
       clearTimeout(timer);
       params.signal.removeEventListener('abort', onAbort);
-    }
-  }
-
-  /**
-   * Second chance, on the interface Google actually serves.
-   *
-   * `models.generateContent` is the retired path — one key here answers it with
-   * "no longer available to new users" and another simply never returns. The tutor
-   * already answers through `interactions.create`, so the agents use it too, with the
-   * schema asked for in words instead of enforced by the wire.
-   */
-  const interactionSystem =
-    params.systemInstruction +
-    '\n\nأعد كائن JSON واحداً فقط يطابق هذا المخطط، بلا شرح ولا أسوار كود:\n' +
-    JSON.stringify(params.responseSchema);
-
-  for (const model of candidates) {
-    if (params.signal.aborted) throw lastError ?? new Error('Agent request aborted');
-    try {
-      let raw = '';
-      for await (const delta of streamTutorText(ai as unknown as TutorAiClient, {
-        prompt: params.prompt,
-        system: interactionSystem,
-        signal: params.signal,
-        models: [model],
-        mode: 'interactions',
-        maxOutputTokens: 2400,
-        log: message => console.warn(message),
-      })) {
-        raw += delta;
-      }
-      const parsed = parseModelJson<T>(raw);
-      console.warn(`[ai] agent answered through interactions on ${model}`);
-      return { data: parsed, model };
-    } catch (err) {
-      lastError = err;
-      if (params.signal.aborted) throw err;
-      console.warn(`[ai] agent interactions on ${model} failed: ${sanitiseUpstreamDetail(err)}`);
     }
   }
 

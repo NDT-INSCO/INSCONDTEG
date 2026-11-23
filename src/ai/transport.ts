@@ -129,7 +129,15 @@ const CHAIN_BACKOFF_MS = 1500;
  * off mid-sentence is how a reader ends up with half an answer and a "the service is busy"
  * banner, which is exactly what production was doing.
  */
-export const PER_MODEL_TIMEOUT_MS = 18000;
+export const PER_MODEL_TIMEOUT_MS = 9000;
+
+/**
+ * One agent answer is a single JSON document, so there is no "it started writing" moment
+ * worth protecting: the whole call gets this slice, and the next model is a better bet than
+ * waiting. Four candidates must still fit inside the request budget, which is why this is
+ * shorter than the tutor's first-token deadline.
+ */
+export const AGENT_PER_MODEL_TIMEOUT_MS = 10000;
 
 async function* runChain<T>(
   models: string[],

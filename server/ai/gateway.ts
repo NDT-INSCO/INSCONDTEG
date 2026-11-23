@@ -50,7 +50,7 @@ import { buildTutorLibrary, type TutorLibrary } from '../tutor/library.js';
 import {
   ChainAttempt,
   isModelMissing,
-  PER_MODEL_TIMEOUT_MS,
+  AGENT_PER_MODEL_TIMEOUT_MS,
   streamTutorText,
   TutorAiClient,
   TutorTransportMode,
@@ -808,7 +808,7 @@ async function generateStructuredAgentJson<T>(params: {
     // A whole-call slice: an agent answer is one JSON document, so there is no useful
     // "it started writing" moment to protect — if the document is not done in the slice,
     // the next model is a better bet than waiting.
-    const timer = setTimeout(() => budget.abort(), PER_MODEL_TIMEOUT_MS);
+    const timer = setTimeout(() => budget.abort(), AGENT_PER_MODEL_TIMEOUT_MS);
     try {
       let raw = '';
       for await (const delta of streamTutorText(ai as unknown as TutorAiClient, {
@@ -841,7 +841,7 @@ async function generateStructuredAgentJson<T>(params: {
     const budget = new AbortController();
     const onAbort = () => budget.abort();
     params.signal.addEventListener('abort', onAbort, { once: true });
-    const timer = setTimeout(() => budget.abort(), PER_MODEL_TIMEOUT_MS);
+    const timer = setTimeout(() => budget.abort(), AGENT_PER_MODEL_TIMEOUT_MS);
     try {
       const response = await ai.models.generateContent({
         model,

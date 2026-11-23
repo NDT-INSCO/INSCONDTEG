@@ -233,9 +233,22 @@ function upstreamFailure(
 ): { code: TutorErrorCode; signal: UpstreamSignal; detail: string } {
   const detail = error instanceof Error ? error.message : String(error);
   if (timedOut) return { code: 'timeout', signal: 'upstream_error', detail };
-  const signal = classifyUpstreamError(error);
+
+  let signal = classifyUpstreamError(error);
+  /**
+   * The streaming SDK drops Google's sentence when it cannot parse the error body, so a
+   * 400 can arrive as `API error occurred: {"httpMeta":{"response":{}}` with no wording
+   * to match. The key belongs to the deployment, not to one route: if this instance
+   * rejected it within the last ten minutes, this is the same failure.
+   */
+  if (signal === 'upstream_error' && lastUpstream?.signal === 'key_rejected') {
+    const age = Date.now() - Date.parse(lastUpstream.at);
+    if (Number.isFinite(age) && age < 10 * 60 * 1000) signal = 'key_rejected';
+  }
+
   const safe = sanitiseUpstreamDetail(error);
   lastUpstream = { signal, at: new Date().toISOString(), detail: safe };
+
   // A rejected key and a quota hit both have a precise answer; everything else stays
   // a generic upstream failure.
   const code: TutorErrorCode =

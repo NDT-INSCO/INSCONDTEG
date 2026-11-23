@@ -295,7 +295,13 @@ export interface TutorStatus {
    * The last upstream failure, as a category and a timestamp — never a message and
    * never a key. It is what makes "the model is unreachable" diagnosable from outside.
    */
-  lastUpstream?: { signal: UpstreamSignal; at: string; detail?: string };
+  lastUpstream?: {
+    signal: UpstreamSignal;
+    at: string;
+    detail?: string;
+    /** Which model said what, in order — the chain is otherwise invisible. */
+    attempts?: { model: string; signal: UpstreamSignal }[];
+  };
   /**
    * The *shape* of the configured key — never the key. Enough to tell a truncated
    * paste or a stray quote from a key that Google has revoked.

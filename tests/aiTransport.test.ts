@@ -13,6 +13,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  ChainAttempt,
   hasInteractions,
   InteractionStreamEvent,
   streamTutorText,
@@ -340,4 +341,22 @@ test('a client with no Interactions surface goes straight to the legacy call', a
 test('hasInteractions tells the two client shapes apart', () => {
   assert.equal(hasInteractions(fakeClient({}).client), true);
   assert.equal(hasInteractions(fakeClient({ withoutInteractions: true }).client), false);
+});
+
+test('the chain records which model said what', async () => {
+  const attempts: ChainAttempt[] = [];
+  const { client } = fakeClient({
+    busyCount: 2,
+    interactionEvents: [{ event_type: 'step.delta', delta: { type: 'text', text: 'ok' } }],
+  });
+
+  await collect(streamTutorText(client, { ...base, mode: 'interactions', attempts }));
+
+  assert.deepEqual(
+    attempts.map(a => [a.model, a.signal]),
+    [
+      ['gemini-3.8-flash', 'model_busy'],
+      ['gemini-3.6-flash', 'model_busy'],
+    ]
+  );
 });

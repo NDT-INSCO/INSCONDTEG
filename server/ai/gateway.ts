@@ -47,7 +47,13 @@ import {
 } from '../../src/ai/contract.js';
 import type { SearchHit } from '../../src/ai/search.js';
 import { buildTutorLibrary, type TutorLibrary } from '../tutor/library.js';
-import { isModelMissing, streamTutorText, TutorAiClient, TutorTransportMode } from '../../src/ai/transport.js';
+import {
+  ChainAttempt,
+  isModelMissing,
+  streamTutorText,
+  TutorAiClient,
+  TutorTransportMode,
+} from '../../src/ai/transport.js';
 
 /**
  * The AI settings, read from the environment in one place.
@@ -230,7 +236,8 @@ let lastUpstream: TutorStatus['lastUpstream'] = undefined;
  */
 function upstreamFailure(
   error: unknown,
-  timedOut: boolean
+  timedOut: boolean,
+  attempts?: ChainAttempt[]
 ): { code: TutorErrorCode; signal: UpstreamSignal; detail: string } {
   const detail = error instanceof Error ? error.message : String(error);
   if (timedOut) return { code: 'timeout', signal: 'upstream_error', detail };
@@ -248,7 +255,12 @@ function upstreamFailure(
   }
 
   const safe = sanitiseUpstreamDetail(error);
-  lastUpstream = { signal, at: new Date().toISOString(), detail: safe };
+  lastUpstream = {
+    signal,
+    at: new Date().toISOString(),
+    detail: safe,
+    ...(attempts && attempts.length ? { attempts: attempts.slice(-6) } : {}),
+  };
 
   // A rejected key and a quota hit both have a precise answer; everything else stays
   // a generic upstream failure.
@@ -341,7 +353,8 @@ function buildContext(hits: SearchHit[], language: 'ar' | 'en'): string {
 function streamFromModel(
   prompt: string,
   system: string,
-  signal: AbortSignal
+  signal: AbortSignal,
+  attempts?: ChainAttempt[]
 ): AsyncGenerator<string, void, unknown> {
   if (!ai) throw new Error('AI client is not configured');
   return streamTutorText(ai as unknown as TutorAiClient, {
@@ -352,10 +365,50 @@ function streamFromModel(
     mode: (API_MODE as TutorTransportMode) || 'auto',
     maxOutputTokens: TUTOR_LIMITS.outputTokens,
     log: message => console.warn(message),
+    attempts,
   });
 }
 
   router.use(express.json({ limit: '96kb' }));
+
+router.get('/api/ai/models', async (_req: Request, res: Response) => {
+  /**
+   * What this key may actually call, straight from Google.
+   *
+   * The chain walks a hard-coded list, and "busy" cannot be told apart from "this id does
+   * not exist on this project" by guessing. This route removes the guessing: it lists the
+   * models with a name, and marks which of them the chain already uses.
+   */
+  if (!ai) {
+    res.status(503).json({ error: { code: 'not_configured', message: 'No AI key on this server' } });
+    return;
+  }
+  try {
+    const pager = await ai.models.list({ config: { pageSize: 200 } });
+    const names: string[] = [];
+    // The pager exposes `page` today; the loop keeps this working if that changes.
+    const page = (pager as unknown as { page?: { name?: string }[] }).page;
+    if (Array.isArray(page)) {
+      for (const model of page) if (model?.name) names.push(model.name.replace(/^models\//, ''));
+    } else {
+      for await (const model of pager as unknown as AsyncIterable<{ name?: string }>) {
+        if (model?.name) names.push(model.name.replace(/^models\//, ''));
+      }
+    }
+    names.sort();
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({
+      count: names.length,
+      models: names,
+      chain: MODEL_CHAIN,
+      inChain: MODEL_CHAIN.filter(model => names.includes(model)),
+      missingFromKey: MODEL_CHAIN.filter(model => !names.includes(model)),
+    });
+  } catch (error) {
+    const { code, signal, detail } = upstreamFailure(error, false);
+    res.status(STATUS_CODE[code]).json({ error: failureBody(code, 'en', { signal, detail }) });
+  }
+});
 
 router.get(TUTOR_ENDPOINTS.status, async (_req: Request, res: Response) => {
   const library = await loadAiLibrary();
@@ -510,14 +563,15 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
   };
 
   if (!streaming) {
+    const attempts: ChainAttempt[] = [];
     try {
       let text = '';
-      for await (const delta of streamFromModel(payload.prompt, payload.system, controller.signal)) {
+      for await (const delta of streamFromModel(payload.prompt, payload.system, controller.signal, attempts)) {
         text += delta;
       }
       res.json({ text, content: text, meta: { ...meta, elapsedMs: Date.now() - started } });
     } catch (error) {
-      const { code, signal, detail } = upstreamFailure(error, controller.signal.aborted);
+      const { code, signal, detail } = upstreamFailure(error, controller.signal.aborted, attempts);
       console.error(`[ai] Tutor request failed: ${signal}: ${detail}`);
       res
         .status(STATUS_CODE[code])
@@ -537,13 +591,14 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
 
   res.write(encodeSse({ type: 'meta', meta }));
 
+  const streamAttempts: ChainAttempt[] = [];
   try {
-    for await (const delta of streamFromModel(payload.prompt, payload.system, controller.signal)) {
+    for await (const delta of streamFromModel(payload.prompt, payload.system, controller.signal, streamAttempts)) {
       res.write(encodeSse({ type: 'delta', text: delta }));
     }
     res.write(encodeSse({ type: 'done' }));
   } catch (error) {
-    const { code, signal, detail } = upstreamFailure(error, controller.signal.aborted);
+    const { code, signal, detail } = upstreamFailure(error, controller.signal.aborted, streamAttempts);
     console.error(`[ai] Tutor stream failed: ${signal}: ${detail}`);
     res.write(
       encodeSse({ type: 'error', error: failureBody(code, payload.language, { signal, detail }) })

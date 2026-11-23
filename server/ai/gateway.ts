@@ -43,6 +43,7 @@ import {
   TutorStatus,
 } from '../../src/ai/contract';
 import type { SearchHit } from '../../src/ai/search';
+import { buildReviewedTutorLibrary } from '../tutor/reviewedLibrary';
 import { isModelMissing, streamTutorText, TutorAiClient, TutorTransportMode } from '../../src/ai/transport';
 
 /**
@@ -70,12 +71,30 @@ export function isTutorConfigured(env: NodeJS.ProcessEnv): boolean {
 export function createAiGateway(edbRoot: string): express.Router {
   const router = express.Router();
 
-  let aiLibraryPromise: Promise<ReturnType<typeof import('../tutor/reviewedLibrary').buildReviewedTutorLibrary>> | null = null;
+  // A static import on purpose. This used to be `await import('../tutor/reviewedLibrary')`,
+  // which `tsx` resolves but a bundled serverless runtime does not: the request died with
+  // an unhandled rejection and the deployed site answered 500 on `/api/ai/status`.
+  type AiLibrary = ReturnType<typeof buildReviewedTutorLibrary>;
+  const EMPTY_LIBRARY: AiLibrary = { reviewedDocuments: 0, retrieveForTutor: () => [] };
+  let aiLibraryPromise: Promise<AiLibrary> | null = null;
+  let libraryFailure = '';
 
-  function loadAiLibrary() {
-    aiLibraryPromise ??= import('../tutor/reviewedLibrary').then(({ buildReviewedTutorLibrary }) =>
-      buildReviewedTutorLibrary(file => readFileSync(path.join(edbRoot, 'edb', file), 'utf8'))
-    );
+  /**
+   * The reviewed corpus, or nothing at all.
+   *
+   * A missing or unreadable corpus is *reported* (`retrieval.ready: false` in the status
+   * route), never thrown: the gateway must still be able to say why it cannot answer.
+   */
+  function loadAiLibrary(): Promise<AiLibrary> {
+    aiLibraryPromise ??= Promise.resolve().then(() => {
+      try {
+        return buildReviewedTutorLibrary(file => readFileSync(path.join(edbRoot, 'edb', file), 'utf8'));
+      } catch (error) {
+        libraryFailure = error instanceof Error ? error.message : String(error);
+        console.error('[ai] reviewed library unavailable:', libraryFailure);
+        return EMPTY_LIBRARY;
+      }
+    });
     return aiLibraryPromise;
   }
 
@@ -279,7 +298,7 @@ router.get(TUTOR_ENDPOINTS.status, async (_req: Request, res: Response) => {
     model: MODEL_CHAIN[0],
     deepModel: TUTOR_MODELS.deep,
     limits: TUTOR_LIMITS,
-    retrieval: { documents: reviewedDocuments, ready: reviewedDocuments > 0 },
+    retrieval: { documents: reviewedDocuments, ready: reviewedDocuments > 0, ...(libraryFailure ? { error: libraryFailure } : {}) },
     transport: API_MODE,
   };
   res.setHeader('Cache-Control', 'no-store');

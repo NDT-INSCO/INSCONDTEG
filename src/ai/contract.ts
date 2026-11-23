@@ -219,7 +219,8 @@ export interface TutorStatus {
   model: string;
   deepModel: string;
   limits: typeof TUTOR_LIMITS;
-  retrieval: { documents: number; ready: boolean };
+  /** `error` is set only when the corpus itself could not be read — never guessed. */
+  retrieval: { documents: number; ready: boolean; error?: string };
   /** Which Google interface the server will call: `interactions` is primary. */
   transport?: 'auto' | 'interactions' | 'legacy' | string;
 }

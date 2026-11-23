@@ -1,0 +1,39 @@
+name: AI endpoint check
+
+# Answers one question with evidence instead of a guess: does the deployed site actually
+# serve `/api/ai/*`? The site once answered 404 there while the interface blamed the API
+# key, and a 500 there is invisible from the page.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe the deployed AI gateway
+        run: |
+          set -u
+          base="https://inscondteg.vercel.app"
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            code=$(curl -s -o /tmp/status.json -w '%{http_code}' --max-time 30 "$base/api/ai/status" || echo 000)
+            echo "attempt $attempt → /api/ai/status = $code"
+            [ "$code" = "200" ] && break
+            sleep 20
+          done
+
+          echo '--- body ---'
+          head -c 600 /tmp/status.json || true
+          echo
+          echo '--- unknown route (expect 404 JSON from the gateway) ---'
+          curl -s -o /tmp/unknown.json -w 'code=%{http_code}\n' --max-time 30 "$base/api/ai/does-not-exist" || true
+          head -c 300 /tmp/unknown.json || true
+          echo
+          echo '--- control route that has always worked ---'
+          curl -s -o /dev/null -w 'code=%{http_code}\n' --max-time 30 "$base/api/site/announcement" || true
+
+          if [ "$code" != "200" ]; then
+            echo "::error::/api/ai/status did not answer 200 — the AI gateway is not deployed or is failing."
+            exit 1
+          fi

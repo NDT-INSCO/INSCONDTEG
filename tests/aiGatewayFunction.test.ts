@@ -10,7 +10,11 @@
 import assert from 'node:assert/strict';
 import { createServer, type Server } from 'node:http';
 import { AddressInfo } from 'node:net';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { after, before, test } from 'node:test';
+import express from 'express';
 
 delete process.env.GEMINI_API_KEY;
 delete process.env.API_KEY;
@@ -66,4 +70,74 @@ test('an unknown AI route says so instead of hanging', async () => {
   assert.equal(response.status, 404);
   const body = (await response.json()) as { error?: { code?: string } };
   assert.equal(body.error?.code, 'not_found');
+});
+
+/**
+ * A missing corpus must be *reported*, not thrown.
+ *
+ * The deployed function died on this once: the reviewed library was loaded through a
+ * dynamic import the bundled runtime could not resolve, so `/api/ai/status` answered
+ * 500 and the site looked like a bad key. The gateway now loads it statically and
+ * degrades to zero documents with an explicit `ready: false`.
+ */
+test('the status route still answers when the corpus directory is missing', async () => {
+  const { createAiGateway } = await import('../server/ai/gateway.ts');
+  const emptyRoot = mkdtempSync(path.join(tmpdir(), 'insco-no-edb-'));
+  const app = express();
+  app.use(createAiGateway(emptyRoot));
+
+  const local = createServer(app as never);
+  await new Promise<void>(resolve => local.listen(0, '127.0.0.1', resolve));
+  const { port } = local.address() as AddressInfo;
+  try {
+    const response = await fetch(`http://127.0.0.1:${port}/api/ai/status`);
+    assert.equal(response.status, 200, 'a broken corpus must not become a 500');
+    const body = (await response.json()) as { retrieval: { documents: number; ready: boolean } };
+    assert.equal(body.retrieval.documents, 0);
+    assert.equal(body.retrieval.ready, false);
+  } finally {
+    await new Promise<void>(resolve => local.close(() => resolve()));
+  }
+});
+
+test('the client blames the route for a 404 and the key only for not_configured', async () => {
+  const { askUserCopilot } = await import('../src/ai/agentsClient.ts');
+  const realFetch = globalThis.fetch;
+
+  const stub = (status: number, body: unknown) => {
+    globalThis.fetch = (async () =>
+      new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })) as typeof fetch;
+  };
+
+  try {
+    stub(404, {});
+    await assert.rejects(
+      askUserCopilot({ message: 'اختبار', language: 'ar' } as never),
+      (error: Error) => {
+        assert.match(error.message, /not deployed/i);
+        assert.doesNotMatch(error.message, /GEMINI_API_KEY/);
+        return true;
+      }
+    );
+
+    stub(503, { error: { code: 'not_configured' } });
+    await assert.rejects(
+      askUserCopilot({ message: 'اختبار', language: 'ar' } as never),
+      (error: Error) => {
+        assert.match(error.message, /GEMINI_API_KEY/);
+        return true;
+      }
+    );
+
+    stub(500, { error: { code: 'gateway_error', message: 'server exploded' } });
+    await assert.rejects(
+      askUserCopilot({ message: 'اختبار', language: 'ar' } as never),
+      (error: Error) => {
+        assert.equal(error.message, 'server exploded', 'the server message is shown verbatim');
+        return true;
+      }
+    );
+  } finally {
+    globalThis.fetch = realFetch;
+  }
 });

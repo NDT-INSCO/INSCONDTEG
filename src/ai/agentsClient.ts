@@ -37,10 +37,17 @@ async function postAgentJson<TReq, TRes>(
   } & TRes;
 
   if (!res.ok) {
+    // Say what actually happened. A 404 means the route is not deployed (the site once
+    // blamed the API key for exactly this), and only `not_configured` is a key problem.
+    const code = data?.error?.code || 'agent_error';
     const msg =
       data?.error?.message ||
-      `AI service unavailable (HTTP ${res.status}). Ensure GEMINI_API_KEY is configured on the server.`;
-    throw new AgentApiError(msg, res.status, data?.error?.code || 'agent_error');
+      (res.status === 404
+        ? 'The AI route is not deployed on this domain (HTTP 404).'
+        : code === 'not_configured'
+          ? 'No GEMINI_API_KEY on the server that hosts /api/ai/*.'
+          : `AI service unavailable (HTTP ${res.status}).`);
+    throw new AgentApiError(msg, res.status, code);
   }
 
   return data as TRes;

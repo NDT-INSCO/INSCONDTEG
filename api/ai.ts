@@ -24,6 +24,17 @@ const edbRoot =
 
 const app = express();
 app.disable('x-powered-by');
+
+// Never let a stalled upstream turn into a silent hang: a serverless request that
+// neither answers nor errors is the worst outcome for whoever is looking at it.
+app.use((_req, res, next) => {
+  res.setTimeout(55_000, () => {
+    if (res.headersSent) return;
+    res.status(504).json({ error: { code: 'timeout', message: 'The AI gateway did not answer in time.' } });
+  });
+  next();
+});
+
 app.use(createAiGateway(edbRoot));
 app.use((_req, res) => {
   res.status(404).json({ error: { code: 'not_found', message: 'Unknown AI route.' } });

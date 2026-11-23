@@ -48,3 +48,10 @@ test('the upstream snippet is shortened and carries no credential', () => {
   assert.ok(detail.length <= 200, 'the snippet is a snippet');
   assert.equal(sanitiseUpstreamDetail(undefined), '');
 });
+
+test('a key Google rejects is named as such, not as an unreachable model', () => {
+  const ar = failureMessage('key_rejected', 'ar');
+  assert.match(ar, /API key not valid/);
+  assert.match(ar, /مفتاح/);
+  assert.doesNotMatch(ar, /تعذّر الوصول/);
+});

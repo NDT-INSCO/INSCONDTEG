@@ -140,7 +140,15 @@ test('[DONE] is understood as the end of the stream', () => {
 /* ---------------------------------------------------------------- */
 
 test('every error code has a message in both languages', () => {
-  const codes = ['not_configured', 'invalid_request', 'rate_limited', 'budget_exhausted', 'timeout', 'upstream_error'] as const;
+  const codes = [
+    'not_configured',
+    'invalid_request',
+    'rate_limited',
+    'budget_exhausted',
+    'timeout',
+    'key_rejected',
+    'upstream_error',
+  ] as const;
   for (const code of codes) {
     const ar = failureMessage(code, 'ar');
     const en = failureMessage(code, 'en');

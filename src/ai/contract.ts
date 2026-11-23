@@ -229,6 +229,7 @@ export type TutorErrorCode =
   | 'rate_limited'
   | 'budget_exhausted'
   | 'timeout'
+  | 'key_rejected'
   | 'upstream_error';
 
 export interface TutorFailure {
@@ -279,6 +280,11 @@ export interface TutorStatus {
    * never a key. It is what makes "the model is unreachable" diagnosable from outside.
    */
   lastUpstream?: { signal: UpstreamSignal; at: string; detail?: string };
+  /**
+   * The *shape* of the configured key — never the key. Enough to tell a truncated
+   * paste or a stray quote from a key that Google has revoked.
+   */
+  keyShape?: { length: number; looksLikeAiStudioKey: boolean };
   /**
    * `error` is set only when the corpus itself could not be read — never guessed.
    * `source` says which library is answering: reviewed courses, the unreviewed academy
@@ -358,6 +364,8 @@ export function failureMessage(code: TutorErrorCode, language: TutorLanguage): s
     rate_limited: 'الحد مؤقت — جرّب بعد دقيقة. وصلنا إلى حدّ استخدام النموذج في هذه اللحظة، والمكتبة والبحث يعملان دون تغيير.',
     budget_exhausted: 'تم الوصول إلى سقف الاستخدام اليومي للمستشار. جرّب غداً أو استخدم البحث في المكتبة.',
     timeout: 'استغرق النموذج وقتاً أطول من المسموح. أعد المحاولة أو اجعل السؤال أقصر.',
+    key_rejected:
+      'جوجل رفضت مفتاح Gemini الموجود على الخادم (400: API key not valid). المكتبة والبحث يعملان دون تغيير، والأسئلة الحرة تحتاج مفتاحاً جديداً من AI Studio في متغيّرات Vercel.',
     upstream_error: 'تعذّر الوصول إلى النموذج الآن. المكتبة والبحث يعملان دون تغيير.',
   };
   const en: Record<TutorErrorCode, string> = {
@@ -367,6 +375,8 @@ export function failureMessage(code: TutorErrorCode, language: TutorLanguage): s
     rate_limited: 'Temporary limit — try again in a minute. The model reached its usage cap just now; the library and search keep working.',
     budget_exhausted: 'The daily tutor budget is used up. Try tomorrow or use library search.',
     timeout: 'The model took longer than allowed. Retry, or ask a shorter question.',
+    key_rejected:
+      'Google rejected the Gemini key on this server (400: API key not valid). The library and search are unaffected; free-form questions need a new key from AI Studio in the Vercel environment variables.',
     upstream_error: 'The model is unreachable right now. The library and search are unaffected.',
   };
   return language === 'en' ? en[code] : ar[code];

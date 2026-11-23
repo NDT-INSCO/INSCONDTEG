@@ -3,10 +3,12 @@ import assert from 'node:assert/strict';
 import { afterEach, beforeEach, test } from 'node:test';
 import { JSDOM } from 'jsdom';
 import type { DashboardData } from '../src/admin/contract';
-import { externalAdminLink } from '../src/admin/public';
+import { adminPortalLink, externalAdminLink, readPublicAnnouncement } from '../src/admin/public';
 
 const HOSTED = 'https://admin.insco.test/';
 const PAGES = 'https://ndt-insco.github.io/INSCONDTEG/';
+const UNLINKED_PAGES = 'https://fork-of-insco.github.io/INSCONDTEG/';
+const VERCEL_ADMIN = 'https://inscondteg.vercel.app/#admin';
 const dom = new JSDOM('<!doctype html><html lang="ar"><body></body></html>', {
   url: HOSTED, pretendToBeVisual: true,
 });
@@ -77,8 +79,36 @@ test('a direct footer link shows the only admin key beside the prominent English
   assert.equal(ui.queryByRole('dialog'), null, 'the first-visit chooser must not cover the footer');
 });
 
-test('a Pages deep link shows why sign-in is unavailable without trying the admin API', async () => {
+test('the official Pages footer key opens the hosted admin in a separate, isolated tab', () => {
+  dom.reconfigure({ url: `${PAGES}#company-footer` });
+  const ui = render(<App />);
+  const footer = within(ui.container.querySelector('#company-footer')!);
+  const key = footer.getByRole('link', { name: 'بوابة الإدارة' });
+  assert.equal(key.getAttribute('href'), VERCEL_ADMIN);
+  assert.equal(key.getAttribute('target'), '_blank');
+  assert.equal(key.getAttribute('rel'), 'noopener noreferrer');
+});
+
+test('a saved #admin bookmark offers the hosted portal, not a form or cross-origin API request', async () => {
   dom.reconfigure({ url: `${PAGES}#admin` });
+  localStorage.removeItem('insco_portal_choice_v1');
+  const requests: string[] = [];
+  globalThis.fetch = async input => {
+    requests.push(String(input));
+    return signedOut();
+  };
+  const ui = render(<App />);
+  const link = await ui.findByRole('link', { name: 'فتح بوابة الإدارة' });
+  assert.equal(link.getAttribute('href'), VERCEL_ADMIN);
+  assert.equal(link.getAttribute('target'), '_blank');
+  assert.equal(link.getAttribute('rel'), 'noopener noreferrer');
+  assert.equal(ui.queryByLabelText('كلمة المرور', { exact: true }), null);
+  assert.equal(await readPublicAnnouncement(new AbortController().signal), null);
+  assert.deepEqual(requests, []);
+});
+
+test('an unlinked Pages fork shows why sign-in is unavailable without trying the admin API', async () => {
+  dom.reconfigure({ url: `${UNLINKED_PAGES}#admin` });
   localStorage.removeItem('insco_portal_choice_v1');
   let adminCalls = 0;
   globalThis.fetch = async input => {
@@ -185,6 +215,18 @@ test('a compatible device can choose the Arabic passkey button and still use the
     if (credential) Object.defineProperty(globalThis, 'PublicKeyCredential', credential);
     else Reflect.deleteProperty(globalThis, 'PublicKeyCredential');
   }
+});
+
+test('the built-in admin destination is scoped to the official Pages path and supports an explicit override', () => {
+  const official = new URL(PAGES);
+  assert.equal(adminPortalLink('', official), VERCEL_ADMIN);
+  assert.equal(adminPortalLink('', new URL('/INSCONDTEG', official)), VERCEL_ADMIN);
+  for (const other of [UNLINKED_PAGES, HOSTED, VERCEL_ADMIN, 'https://ndt-insco.github.io/INSCONDTEG-test/']) {
+    assert.equal(adminPortalLink('', new URL(other)), null, other);
+  }
+  assert.equal(adminPortalLink('https://approved.example/', official), 'https://approved.example/#admin');
+  assert.equal(adminPortalLink('off', official), null);
+  assert.equal(adminPortalLink('https://untrusted.github.io/', official), null);
 });
 
 test('a Pages footer only accepts an external HTTPS admin URL and gives it the correct hash', () => {

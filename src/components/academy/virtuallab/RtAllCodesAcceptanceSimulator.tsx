@@ -742,8 +742,7 @@ export const RtAllCodesAcceptanceSimulator: React.FC<RtAllCodesAcceptanceSimulat
                 <div
                   key={v.codeId}
                   data-testid={`rt-film-code-row-${v.codeId}`}
-                  onClick={() => setFocusedCodeId(v.codeId)}
-                  className={`rounded-xl border p-3.5 transition cursor-pointer space-y-2 ${
+                  className={`relative rounded-xl border p-3.5 transition space-y-2 ${
                     isFocused
                       ? isLight
                         ? 'border-cyan-500 bg-cyan-50/40'
@@ -751,6 +750,13 @@ export const RtAllCodesAcceptanceSimulator: React.FC<RtAllCodesAcceptanceSimulat
                       : subSurface
                   }`}
                 >
+                  <button
+                    type="button"
+                    aria-label={isAr ? `عرض تفاصيل ${v.shortCode}` : `Show ${v.shortCode} details`}
+                    aria-pressed={isFocused}
+                    onClick={() => setFocusedCodeId(v.codeId)}
+                    className="absolute inset-0 z-10 cursor-pointer rounded-xl focus-visible:outline-2 focus-visible:outline-cyan-500"
+                  />
                   {/* Top Row: Code Name + Clause + Explicit Icon Verdict */}
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex flex-wrap items-baseline gap-2 min-w-0">
@@ -773,7 +779,7 @@ export const RtAllCodesAcceptanceSimulator: React.FC<RtAllCodesAcceptanceSimulat
                             e.stopPropagation();
                             onSelectGoverningCode(mappedLabCode);
                           }}
-                          className={`px-2 py-1 rounded border text-[11px] font-bold transition cursor-pointer ${
+                          className={`relative z-20 px-2 py-1 rounded border text-[11px] font-bold transition cursor-pointer ${
                             isLight
                               ? 'bg-white border-slate-300 text-slate-700 hover:border-cyan-500'
                               : 'bg-slate-900 border-slate-700 text-slate-300 hover:border-cyan-400'

@@ -1,0 +1,31 @@
+name: Admin link readiness
+
+# Like the link monitor, keep this live network check separate from the
+# reproducible site build. It runs for destination config changes or on request.
+on:
+  pull_request:
+    paths:
+      - 'src/admin/public.ts'
+      - 'scripts/check-admin-host.ts'
+      - '.github/workflows/admin-link-readiness.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  signed-out:
+    if: github.repository == 'NDT-INSCO/INSCONDTEG'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Check the built-in Pages destination without credentials
+        run: npm run admin:check -- --pages-default

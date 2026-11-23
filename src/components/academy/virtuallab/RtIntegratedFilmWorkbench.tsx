@@ -18,6 +18,7 @@ import {
   ChevronLeft,
 } from 'lucide-react';
 import { Language } from '../../../types';
+import { clickableRow } from '../../../utils/a11y';
 import { useTheme } from '../../../utils/themeStore';
 import {
   AsmeIqiWireSelection,
@@ -947,11 +948,16 @@ export const RtIntegratedFilmWorkbench: React.FC<RtIntegratedFilmWorkbenchProps>
                       const gov = entry.verdicts.find((v) => v.codeId === governingCodeId);
                       const isRej = gov?.verdict === 'REJECT';
                       const isFocused = focusedIndication?.id === entry.id;
+                      const rowSelection = clickableRow(() => setSelectedIndicationId(entry.id), isFocused);
                       return (
                         <tr
                           key={entry.id}
-                          onClick={() => setSelectedIndicationId(entry.id)}
-                          className={`cursor-pointer transition ${
+                          {...rowSelection}
+                          onKeyDown={event => {
+                            // Leave keyboard activation of the row's Remove button to the browser.
+                            if (event.target === event.currentTarget) rowSelection.onKeyDown(event);
+                          }}
+                          className={`cursor-pointer transition focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-amber-500 ${
                             isFocused ? 'bg-amber-500/10' : 'hover:bg-slate-800/30'
                           }`}
                         >

@@ -8,10 +8,16 @@
  */
 
 export const AGENT_MODELS = {
-  primary: 'gemini-4-hydrogen',
-  fallback: 'gemini-3.8-flash',
+  /**
+   * Measured on production, not by release date: `gemini-4-hydrogen` answered 503 high
+   * demand every time it was asked, and it was first in this chain — so every copilot
+   * request spent its opening seconds on a model that was never going to answer.
+   * It stays in the chain, at the back, where a busy model belongs.
+   */
+  primary: 'gemini-3.8-flash',
+  fallback: 'gemini-3.6-flash',
   /** Walked when a model is busy or rate-limited, not only when an id is missing. */
-  fallbacks: ['gemini-3.6-flash', 'gemini-3.7-flash', 'gemini-flash-latest'] as const,
+  fallbacks: ['gemini-3.5-flash-lite', 'gemini-4-hydrogen'] as const,
 } as const;
 
 export const AGENT_ENDPOINTS = {

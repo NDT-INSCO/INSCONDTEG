@@ -57,6 +57,22 @@ export async function createOperations(env: NodeJS.ProcessEnv, { production, bas
   }));
   router.get(ANNOUNCEMENT_API, publicCors, publicAnnouncement(store));
 
+  // A deployment fingerprint, not a secret. It answers the question "is the code I
+  // just merged the code this domain runs, and does this deployment see the AI key?".
+  // Only booleans and a commit prefix — never a value, never a header, never a token.
+  router.get('/api/site/build-info', publicCors, (_req, res) => {
+    const flag = (name: string) => Boolean(env[name]?.trim());
+    res.set({ 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' });
+    res.json({
+      commit: (env.VERCEL_GIT_COMMIT_SHA || '').slice(0, 7) || null,
+      env: env.VERCEL_ENV || null,
+      region: env.VERCEL_REGION || null,
+      aiKeyPresent: flag('GEMINI_API_KEY') || flag('API_KEY'),
+      hasAiRoute: true,
+      node: process.version,
+    });
+  });
+
   // Hosted RFQ quotas are shared as well; the inbox is a durable receipt, not an email claim.
   const rfqScope = hosted && createHmac('sha256', hosted.stateKey).update(`rfq\0${config?.origin ?? ''}`).digest('hex');
   const rfqState = hosted && store && rfqScope ? store.auth(rfqScope, hosted.stateKey, config?.origin ?? null) : null;

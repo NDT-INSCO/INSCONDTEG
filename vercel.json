@@ -14,6 +14,10 @@
       "destination": "/api/insco"
     },
     {
+      "source": "/api/site/:path*",
+      "destination": "/api/insco"
+    },
+    {
       "source": "/api/rfq",
       "destination": "/api/insco"
     },

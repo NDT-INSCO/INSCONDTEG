@@ -286,6 +286,28 @@ gh run list --workflow=ai-probe.yml --limit 1
 وفحص آلي بعد كل دفع إلى `main`: `.github/workflows/ai-probe.yml` يستدعي المسار ويطبع الكود
 والجسم، ويفشل إن لم يكن `200` — بدل أن نصدّق أن النشر تم.»
 
+### السبب الحقيقي الثاني: SDK بلا `interactions`
+
+كل سؤال حر كان يرجع `502 upstream_error` («تعذّر الوصول إلى النموذج الآن») والمفتاح سليم.
+السبب: الطبقة الأساسية في `src/ai/transport.ts` كانت تنادي `client.interactions.create`،
+ونسخة `@google/genai` المثبّتة (**2.32.0**) لا تُعرّض `interactions` وقت التشغيل أصلاً —
+مفاتيح الكائن هي `models, live, batches, chats, caches, files, …` فقط. أي أن النداء كان
+يرمي `TypeError` محلياً قبل أي اتصال بجوجل، والخطأ لم يكن مطابقاً لقاعدة «الواجهة غير
+متاحة»، فلم يُسقط إلى `models.generateContentStream` وخرج كما هو.
+
+الإصلاح الآن:
+
+- `interactions` صار **اختيارياً** في نوع العميل، مع `hasInteractions(client)` تفحص
+  وجود الدالة وقت التشغيل؛ فإن غابت، ينتقل الطلب مباشرة إلى `generateContentStream`
+  ويكتب سطراً في السجل بدل أن يفشل السؤال.
+- `isInterfaceUnavailable()` يعتبر `TypeError` و«is not a function» و«cannot read propert…»
+  عيوبَ واجهة، لا أعطال شبكة.
+
+وما يجعل التشخيص ممكناً من المتصفح بلا سجلات: `/api/ai/status` يعرض
+`lastUpstream: {signal, at}` بثلاث حالات مفصولة — `rate_limited` (٤٢٩، «الحد مؤقت —
+جرّب بعد دقيقة»)، `key_rejected`، `model_unavailable` — والرسالة النصية لم تعد واحدة
+للجميع.
+
 
 
 **على GitHub Pages (بلا خادم):** يبقى الموقع صالحاً بالكامل — الكتب والمقررات

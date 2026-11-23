@@ -70,3 +70,15 @@ jobs:
             echo "::error title=/api/ai/status::did not answer 200 — the AI gateway is not deployed on this domain or is failing."
             exit 1
           fi
+
+          # A stream that carries no text is a failure however the status code read.
+          # The taxonomy comes from `/api/ai/status` `lastUpstream`, so a red probe
+          # says which of quota / key / model it was, not just that something broke.
+          deltas=$(grep -c '"type":"delta"' /tmp/tutor.txt || true)
+          upstream=$(curl -s --max-time 20 "$base/api/ai/status" | sed -n 's/.*"lastUpstream":\([^}]*}\).*/\1/p')
+          echo "tutor deltas: ${deltas}  lastUpstream: ${upstream:-none}"
+          echo "::notice title=tutor answer::deltas=${deltas} lastUpstream=${upstream:-none}"
+          if [ "${deltas:-0}" -eq 0 ]; then
+            echo "::error title=/api/ai/tutor::the stream carried no answer text — lastUpstream says: ${upstream:-none}"
+            exit 1
+          fi

@@ -13,6 +13,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  hasInteractions,
   InteractionStreamEvent,
   streamTutorText,
   TutorAiClient,
@@ -37,6 +38,8 @@ function fakeClient(options: {
   legacyError?: Error;
   onInteraction?: () => void;
   onLegacy?: () => void;
+  /** A client shaped like `@google/genai` 2.x at runtime: no Interactions surface. */
+  withoutInteractions?: boolean;
 }): { client: TutorAiClient; interactions: InteractionCall[]; legacy: LegacyCall[] } {
   const interactions: InteractionCall[] = [];
   const legacy: LegacyCall[] = [];
@@ -70,6 +73,8 @@ function fakeClient(options: {
       },
     },
   };
+
+  if (options.withoutInteractions) delete (client as { interactions?: unknown }).interactions;
 
   return { client, interactions, legacy };
 }
@@ -286,4 +291,26 @@ test('a rejected key is never retried and never hidden', async () => {
   );
   assert.equal(interactions.length, 1, 'retrying a bad key only wastes the student\'s time');
   assert.equal(legacy.length, 0);
+});
+
+test('a client with no Interactions surface goes straight to the legacy call', async () => {
+  const logs: string[] = [];
+  const { client, interactions, legacy } = fakeClient({
+    withoutInteractions: true,
+    legacyChunks: ['The IIW block has five steps.'],
+  });
+
+  const parts = await collect(
+    streamTutorText(client, { ...base, mode: 'auto', log: message => logs.push(message) })
+  );
+
+  assert.deepEqual(parts, ['The IIW block has five steps.']);
+  assert.equal(interactions.length, 0);
+  assert.equal(legacy.length, 1, 'the legacy call is the only path a 2.x client has');
+  assert.match(logs.join('\n'), /no Interactions API/);
+});
+
+test('hasInteractions tells the two client shapes apart', () => {
+  assert.equal(hasInteractions(fakeClient({}).client), true);
+  assert.equal(hasInteractions(fakeClient({ withoutInteractions: true }).client), false);
 });

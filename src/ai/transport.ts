@@ -24,7 +24,13 @@ export interface InteractionStreamEvent {
 }
 
 export interface TutorAiClient {
-  interactions: {
+  /**
+   * Optional on purpose. `@google/genai` 2.x does not expose this surface at
+   * runtime even where its types mention it, and a missing method is not a network
+   * failure: it must fall through to the legacy call instead of turning every
+   * question into "the model is unreachable".
+   */
+  interactions?: {
     create(
       params: {
         model: string;
@@ -71,10 +77,17 @@ export function isModelMissing(error: unknown): boolean {
 
 /** The whole interface (not one model) is missing: the legacy path may work. */
 export function isInterfaceUnavailable(error: unknown): boolean {
+  if (error instanceof TypeError) return true;
   const message = error instanceof Error ? error.message : String(error);
-  return /not found|not_found|404|405|501|unknown method|not implemented|unsupported api version/i.test(
+  return /not found|not_found|404|405|501|unknown method|not implemented|unsupported api version|not a function|cannot read propert/i.test(
     message
   );
+}
+
+/** Does this client actually expose the Interactions surface at runtime? */
+export function hasInteractions(client: TutorAiClient): boolean {
+  const surface = client.interactions;
+  return Boolean(surface) && typeof surface?.create === 'function';
 }
 
 /**
@@ -136,7 +149,9 @@ async function* streamViaInteractions(
   model: string,
   options: StreamOptions
 ): AsyncGenerator<string, void, unknown> {
-  const stream = await client.interactions.create(
+  const interactions = client.interactions;
+  if (!interactions) throw new TypeError('This client has no Interactions API');
+  const stream = await interactions.create(
     {
       model,
       input: options.prompt,
@@ -200,7 +215,11 @@ export async function* streamTutorText(
   const log = options.log ?? (() => {});
   const mode: TutorTransportMode = options.mode ?? 'auto';
 
-  if (mode !== 'legacy') {
+  if (mode !== 'legacy' && !hasInteractions(client)) {
+    // The SDK in use has no Interactions surface. Saying so plainly beats failing
+    // every question with "the model is unreachable".
+    log('[ai] this client has no Interactions API; using generateContentStream');
+  } else if (mode !== 'legacy') {
     try {
       yield* runChain(
         options.models,

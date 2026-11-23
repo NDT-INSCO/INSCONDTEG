@@ -18,8 +18,10 @@ on:
         description: Deployment to test
         required: false
         default: https://inscondteg.vercel.app
+  # Every push to every branch would mean six model calls per commit, on the same
+  # free-tier quota this file exists to measure. Main is where the answer matters.
   push:
-    branches: ['**']
+    branches: [main]
 
 jobs:
   live:

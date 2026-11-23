@@ -30,12 +30,12 @@ export const TUTOR_MODELS = {
   primary: 'gemini-3.8-flash',
   deep: 'gemini-4-argon',
   /**
-   * Ordered after `GET /api/ai/models` confirmed every id below is callable with the
-   * production key. `gemini-flash-latest` sits first on purpose: it is Google's own
-   * alias for whichever flash model has capacity, so a saturated `gemini-3.8-flash`
-   * does not take the tutor down with it.
+   * Ordered by what `GET /api/ai/ping` measured on production, not by release date.
+   * `gemini-3.8-flash` and its alias `gemini-flash-latest` share one exhausted daily
+   * quota, so `gemini-3.6-flash` — which answered in 556ms — comes next. `2.5-flash`
+   * is gone for new keys: "no longer available to new users".
    */
-  fallbacks: ['gemini-flash-latest', 'gemini-3.6-flash', 'gemini-2.5-flash'] as const,
+  fallbacks: ['gemini-3.6-flash', 'gemini-3.7-flash', 'gemini-flash-latest'] as const,
 } as const;
 
 /** `thinking_level` is the 4-Argon-era knob; low is right for short answers. */

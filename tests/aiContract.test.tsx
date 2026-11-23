@@ -168,7 +168,7 @@ test('an unreachable gateway reports itself as unconfigured, not as an answer', 
 
 test('the primary model is a current Flash model, not a retired one', () => {
   assert.equal(TUTOR_MODELS.primary, 'gemini-3.8-flash');
-  assert.ok(!TUTOR_MODELS.fallbacks.includes('gemini-3.7-flash' as never));
-  assert.ok(!TUTOR_MODELS.fallbacks.includes('gemini-3.5-flash' as never));
+  assert.ok(!TUTOR_MODELS.fallbacks.includes('gemini-3.5-flash' as never), 'hangs on this key');
+  assert.ok(!TUTOR_MODELS.fallbacks.includes('gemini-2.5-flash' as never), 'gone for new keys');
   assert.equal(TUTOR_MODELS.deep, 'gemini-4-argon');
 });

@@ -83,7 +83,7 @@ test("Google's high-demand 503 is a busy model, not a broken key", () => {
   assert.match(failureMessage('model_busy', 'en'), /busy/i);
 });
 
-test('the chain leads with Google\'s capacity alias before fixed ids', () => {
-  assert.equal(TUTOR_MODELS.fallbacks[0], 'gemini-flash-latest');
-  assert.ok(TUTOR_MODELS.fallbacks.includes('gemini-2.5-flash'));
+test('the chain is ordered by what answers, not by release date', () => {
+  assert.equal(TUTOR_MODELS.fallbacks[0], 'gemini-3.6-flash');
+  assert.ok(!TUTOR_MODELS.fallbacks.includes('gemini-2.5-flash' as never), 'gone for new keys');
 });

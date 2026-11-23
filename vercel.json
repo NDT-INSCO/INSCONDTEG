@@ -44,7 +44,7 @@
   "functions": {
     "api/ai.ts": {
       "maxDuration": 60,
-      "includeFiles": "dist/edb/**"
+      "includeFiles": "public/edb/**"
     }
   }
 }

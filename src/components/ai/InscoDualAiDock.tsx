@@ -21,6 +21,8 @@ import {
 } from 'lucide-react';
 import type { Language } from '../../types';
 import { useEscapeKey, useModalFocus } from '../../utils/a11y';
+import { isStaticPages } from '../../utils/staticPages';
+import { gatewayBase } from '../../ai/client';
 import type { ClientSectionId, PortalId } from '../../utils/portalRoutes';
 import type { AcademyTab } from '../../academyTabs';
 import {
@@ -493,6 +495,19 @@ export const InscoDualAiDock: React.FC<InscoDualAiDockProps> = ({
                 : 'max-w-xl h-full border-s border-slate-800'
             }`}
           >
+            {/* A static Pages build ships no gateway at all: say so instead of letting
+                every request fail with a network error the reader cannot act on. */}
+            {!gatewayBase() && isStaticPages() && (
+              <p
+                data-testid="ai-gateway-unavailable"
+                className="m-3 rounded-lg border border-amber-400/40 bg-amber-500/10 px-3 py-2 text-[11px] font-bold text-amber-300"
+              >
+                {isAr
+                  ? 'هذا البناء ثابت (static) ولا يحتوي بوابة الذكاء الاصطناعي. الوكلاء يعملون على نسخة Vercel المستضافة.'
+                  : 'This static build has no AI gateway. The agents need the hosted INSCO AI gateway.'}
+              </p>
+            )}
+
             {/* Drawer Header & Agent Tabs */}
             <div className="p-3 sm:p-4 border-b border-slate-800 space-y-2.5 shrink-0">
               <div className="flex items-center justify-between gap-3">

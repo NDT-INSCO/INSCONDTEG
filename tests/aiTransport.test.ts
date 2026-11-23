@@ -14,7 +14,6 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   ChainAttempt,
-  PER_MODEL_TIMEOUT_MS,
   hasInteractions,
   InteractionStreamEvent,
   streamTutorText,

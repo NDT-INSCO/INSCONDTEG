@@ -21,7 +21,7 @@ import {
   type CommunityAssistResponse,
   type SiteManagerResponse,
   type UserCopilotResponse,
-} from './src/ai/agentsContract';
+} from './src/ai/agentsContract.js';
 import {
   encodeSse,
   failureMessage,
@@ -34,27 +34,42 @@ import {
   TutorErrorCode,
   TutorFailure,
   TutorStatus,
-} from './src/ai/contract';
+} from './src/ai/contract.js';
 
-import type { SearchHit } from './src/ai/search';
-import { isModelMissing, streamTutorText, TutorAiClient, TutorTransportMode } from './src/ai/transport';
-import { createOperations } from './server/admin/operations';
+import type { SearchHit } from './src/ai/search.js';
+import { isModelMissing, streamTutorText, TutorAiClient, TutorTransportMode } from './src/ai/transport.js';
+import { buildTutorLibrary, type TutorLibrary } from './server/tutor/library.js';
+import { createOperations } from './server/admin/operations.js';
 import {
   buildArchitectureBlueprint,
   buildResponseLogicContract,
   buildTrainedKnowledgeContext,
   selectAdaptiveArchitecture,
-} from './server/ai/cognitiveArchitecture';
+} from './server/ai/cognitiveArchitecture.js';
 
 dotenv.config();
 
-type AiLibraryModule = ReturnType<typeof import('./server/tutor/reviewedLibrary').buildReviewedTutorLibrary>;
+/**
+ * The same library selection the serverless gateway uses: the reviewed corpus if it has
+ * anything, the academy corpus if it does not, nothing if both are empty — and the answer
+ * says which one it used.
+ *
+ * This file kept a reviewed-only loader after the gateway moved on, so the standalone
+ * server reported `documents: 0` (and stayed silent) where production answered from the
+ * academy corpus, and the tutor-review tests caught the difference.
+ */
+type AiLibraryModule = TutorLibrary & { reviewedDocuments: number };
 let aiLibraryPromise: Promise<AiLibraryModule> | null = null;
 
 function loadAiLibrary(): Promise<AiLibraryModule> {
-  aiLibraryPromise ??= import('./server/tutor/reviewedLibrary').then(({ buildReviewedTutorLibrary }) =>
-    buildReviewedTutorLibrary(file => readFileSync(path.join(siteRoot, 'edb', file), 'utf8'))
-  );
+  aiLibraryPromise ??= Promise.resolve().then(() => {
+    const built = buildTutorLibrary(
+      file => readFileSync(path.join(siteRoot, 'edb', file), 'utf8'),
+      { allowAcademyFallback: process.env.TUTOR_ALLOW_ACADEMY_FALLBACK !== 'false' }
+    );
+    if (built.failure) console.error('[ai] reviewed library unavailable:', built.failure);
+    return { ...built.library, reviewedDocuments: built.reviewedDocuments };
+  });
   return aiLibraryPromise;
 }
 
@@ -167,12 +182,19 @@ function takeToken(ip: string): LimitResult {
   return { allowed: true };
 }
 
+/**
+ * Must cover every `TutorErrorCode`, or the type-check fails — which is how this map came
+ * to light: `key_rejected` and `model_busy` were added to the contract, and this second
+ * copy of the gateway kept the old six.
+ */
 const STATUS_CODE: Record<TutorErrorCode, number> = {
   not_configured: 503,
   invalid_request: 400,
   rate_limited: 429,
   budget_exhausted: 429,
   timeout: 504,
+  key_rejected: 502,
+  model_busy: 503,
   upstream_error: 502,
 };
 
@@ -210,7 +232,11 @@ const MODE_HINT: Record<string, { ar: string; en: string }> = {
   practice: { ar: 'اطرح سؤالاً تدريبياً واحداً ثم حلّه خطوة بخطوة.', en: 'Pose one practice question, then solve it step by step.' },
 };
 
-function toCitation(hit: SearchHit): TutorCitation {
+/**
+ * `reviewed` is not decoration: the reader is told which corpus a passage came from, and an
+ * academy passage must never be presented as a reviewed one.
+ */
+function toCitation(hit: SearchHit, reviewed: boolean): TutorCitation {
   const document = hit.document;
   return {
     id: document.id,
@@ -220,6 +246,7 @@ function toCitation(hit: SearchHit): TutorCitation {
     pageNumber: document.pageNumber,
     courseId: document.courseId,
     score: Math.round(hit.score * 100) / 100,
+    reviewed,
   };
 }
 
@@ -274,14 +301,19 @@ app.use(operations.router);
 app.use(express.json({ limit: '6mb' }));
 
 app.get(TUTOR_ENDPOINTS.status, async (_req: Request, res: Response) => {
-  const { reviewedDocuments } = await loadAiLibrary();
+  const library = await loadAiLibrary();
   const status: TutorStatus = {
     configured: Boolean(ai),
     reason: ai ? 'ok' : clientInitError ? 'client_init_failed' : 'no_key',
     model: MODEL_CHAIN[0],
     deepModel: TUTOR_MODELS.deep,
     limits: TUTOR_LIMITS,
-    retrieval: { documents: reviewedDocuments, ready: reviewedDocuments > 0 },
+    retrieval: {
+      documents: library.documents,
+      ready: library.documents > 0,
+      source: library.source,
+      ...(library.reviewedDocuments > 0 ? { reviewed: library.reviewedDocuments } : {}),
+    },
     transport: API_MODE,
   };
   res.setHeader('Cache-Control', 'no-store');
@@ -294,6 +326,8 @@ interface TutorPayload {
   mode: string;
   citations: TutorCitation[];
   confident: boolean;
+  /** Which corpus answered: the reviewed one, the academy one, or neither. */
+  source: TutorLibrary['source'];
   prompt: string;
   system: string;
 }
@@ -306,11 +340,11 @@ async function prepare(body: unknown, res: Response): Promise<TutorPayload | nul
     });
     return null;
   }
-  const { retrieveForTutor } = await loadAiLibrary();
+  const library = await loadAiLibrary();
   const request = parsed.value;
   const question = latestQuestion(request);
-  const hits = retrieveForTutor(question);
-  const citations = hits.map(toCitation);
+  const hits = library.retrieve(question);
+  const citations = hits.map(hit => toCitation(hit, library.source === 'reviewed' && library.reviewedDocuments > 0));
   const context = buildContext(hits, request.language);
   const confident = Boolean(context);
   const hint = MODE_HINT[request.mode]?.[request.language] ?? '';
@@ -335,6 +369,7 @@ async function prepare(body: unknown, res: Response): Promise<TutorPayload | nul
     mode: request.mode,
     citations,
     confident,
+    source: library.source,
     prompt: history ? `${history}\n\n${prompt}` : prompt,
     system: `${SYSTEM[request.language]}\n\n${hint}`,
   };
@@ -372,10 +407,17 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
 
   // Fail closed in both protocols, including the legacy JSON endpoint.
   if (!payload.confident) {
+    // The same two sentences the serverless gateway uses: an empty library and a library
+    // with no matching passage are different facts and must not share one message.
+    const emptyLibrary = payload.source === 'none';
     const message = payload.language === 'ar'
-      ? 'لا توجد مادة مراجَعة مطابقة تكفي للإجابة. راجع مراجع الأكاديمية أو اطرح السؤال على مختص مؤهل.'
-      : 'There is not enough reviewed source material to answer. Consult the academy references or a qualified specialist.';
-    const meta = { model: MODEL_CHAIN[0], citations: [], retrieved: 0, confident: false, elapsedMs: 0 };
+      ? emptyLibrary
+        ? 'لا توجد مادة مطابقة في مكتبة الموقع. راجع مراجع الأكاديمية أو اطرح السؤال على مختص مؤهل.'
+        : 'لا توجد مقاطع مطابقة لسؤالك في مادة الأكاديمية. أعد صياغته بمصطلح أدق أو راجع مراجع الأكاديمية.'
+      : emptyLibrary
+        ? 'The site library has no matching material. Consult the academy references or a qualified specialist.'
+        : 'No passage in the academy material matches this question. Rephrase it with a more specific term.';
+    const meta = { model: MODEL_CHAIN[0], citations: [], retrieved: 0, confident: false, elapsedMs: 0, source: payload.source };
     res.setHeader('Cache-Control', 'no-store');
     if (!streaming) { res.json({ text: message, content: message, meta }); return; }
     res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
@@ -398,6 +440,7 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
     retrieved: payload.citations.length,
     confident: payload.confident,
     elapsedMs: 0,
+    source: payload.source,
   };
 
   if (!streaming) {
@@ -933,7 +976,7 @@ app.post(AGENT_ENDPOINTS.chatgptStream, async (req: Request, res: Response) => {
   let libraryHits: SearchHit[] = [];
   try {
     const lib = await loadAiLibrary();
-    libraryHits = lib.retrieveForTutor(input.verifyTargetTurn?.question || input.message);
+    libraryHits = lib.retrieve(input.verifyTargetTurn?.question || input.message);
   } catch {
     libraryHits = [];
   }

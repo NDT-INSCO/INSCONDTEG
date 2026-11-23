@@ -284,6 +284,9 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({
   const [isAiLoading, setIsAiLoading] = useState<boolean>(false);
   const [aiStatus, setAiStatus] = useState<TutorStatus | null>(null);
   const [aiCitations, setAiCitations] = useState<TutorCitation[]>([]);
+  // How the answer was produced, and the steps it took — honest labels, never assumptions.
+  const [aiKind, setAiKind] = useState<'model' | 'library' | undefined>(undefined);
+  const [aiSteps, setAiSteps] = useState<string[]>([]);
   // Which library answered: reviewed courses, the academy corpus, or nothing. The
   // label under the answer depends on it, and it is never assumed to be "reviewed".
   const [aiSource, setAiSource] = useState<TutorMeta['source'] | undefined>(undefined);
@@ -394,19 +397,24 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({
     setIsAiLoading(true);
     setAiResponse('');
     setAiCitations([]);
+    setAiKind(undefined);
+    setAiSteps([]);
     setAiFailure(null);
 
     const controller = new AbortController();
     aiAbort.current = controller;
 
     // If the status probe has not finished, take it now so a static deploy
-    // explains itself instead of spinning forever.
+    // explains itself instead of spinning forever. A missing key is NOT a dead
+    // end — the tutor answers from the library — so only an unreachable
+    // gateway (a static deploy with no gateway at all) stops the request.
     const status = aiStatus ?? (await fetchTutorStatus());
-    if (!status.configured) {
+    if (!status.configured && status.reason === 'unreachable') {
       setAiStatus(status);
       setIsAiLoading(false);
       return;
     }
+    setAiStatus(status);
 
     await streamTutor(
       {
@@ -419,6 +427,8 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({
         onMeta: meta => {
           setAiCitations(meta.citations);
           setAiSource(meta.source);
+          setAiKind(meta.kind);
+          setAiSteps(meta.steps ?? []);
         },
         onDelta: text => setAiResponse(previous => previous + text),
         onError: failure => setAiFailure(failure),
@@ -442,7 +452,10 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({
   };
 
   const needsTutorReview = Boolean(aiStatus?.configured && aiStatus.retrieval?.ready === false);
-  const aiUnavailable = aiStatus !== null && (!aiStatus.configured || needsTutorReview);
+  const noGateway = Boolean(aiStatus && !aiStatus.configured && aiStatus.reason === 'unreachable');
+  const aiUnavailable = aiStatus !== null && (noGateway || needsTutorReview);
+  // The tutor answers from the library when there is no model on the server.
+  const libraryOnly = Boolean(aiStatus && !aiStatus.configured && aiStatus.reason !== 'unreachable');
   const ndeEdProgress = section === 'progress' ? overallNdeEdProgress() : null;
 
   return (
@@ -1414,6 +1427,14 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({
               </div>
             )}
 
+            {!aiUnavailable && libraryOnly && aiStatus !== null && (
+              <p className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-4 py-2 text-[11px] leading-6 text-emerald-200">
+                {isAr
+                  ? 'المستشار يجيب من مكتبة إنسكو نفسها (بدون مفتاح نموذج) — الإجابة مستخرجة من نصوص المكتبة، لا توليد. لا تُعتمد قرارًا تشغيليًا.'
+                  : 'The tutor answers from the INSCO library itself (no model key) — extracted from library texts, not generated. Do not rely on it for operating decisions.'}
+              </p>
+            )}
+
             {!aiUnavailable && aiStatus !== null && (
               <>
                 <div className="flex flex-wrap gap-2">
@@ -1495,6 +1516,24 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({
                     <Sparkles className="w-5 h-5 animate-spin" />
                     {isAr ? 'جارٍ استرجاع المقاطع من المكتبة ثم الصياغة…' : 'Retrieving library passages, then composing…'}
                   </span>
+                )}
+              </div>
+            )}
+
+            {aiResponse && aiKind === 'library' && (
+              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 space-y-2">
+                <p className="text-xs font-bold text-emerald-200">
+                  {isAr ? 'إجابة مبنية على مكتبة إنسكو — بدون مفتاح نموذج' : 'Answer composed from the INSCO library — no model key'}
+                </p>
+                {aiSteps.length > 0 && (
+                  <ol className="space-y-1 text-[11px] leading-5 text-slate-300">
+                    {aiSteps.map((step, index) => (
+                      <li key={`${index}-${step}`} className="flex gap-2">
+                        <span className="text-emerald-300 font-mono">{index + 1}.</span>
+                        <span>{step}</span>
+                      </li>
+                    ))}
+                  </ol>
                 )}
               </div>
             )}

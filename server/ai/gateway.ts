@@ -42,10 +42,12 @@ import {
   TutorCitation,
   TutorErrorCode,
   TutorFailure,
+  TutorMeta,
   TutorStatus,
   UpstreamSignal,
 } from '../../src/ai/contract.js';
 import type { SearchHit } from '../../src/ai/search.js';
+import { composeSelfAnswer } from '../../src/ai/selfAnswer.js';
 import { buildTutorLibrary, type TutorLibrary } from '../tutor/library.js';
 import {
   ChainAttempt,
@@ -571,6 +573,10 @@ interface TutorPayload {
   system: string;
   /** Which library produced the citations — echoed to the reader in `meta`. */
   source: 'reviewed' | 'academy' | 'none';
+  /** The retrieved passages behind the citations — kept whole for the library-only path. */
+  hits: SearchHit[];
+  /** How many documents the library indexed, reported honestly on the library-only path. */
+  documents: number;
 }
 
 async function prepare(body: unknown, res: Response): Promise<TutorPayload | null> {
@@ -588,6 +594,7 @@ async function prepare(body: unknown, res: Response): Promise<TutorPayload | nul
   const reviewed = library.source === 'reviewed';
   const citations = hits.map(hit => toCitation(hit, reviewed));
   const context = buildContext(hits, request.language);
+  const selfHits = hits.slice(0, TUTOR_LIMITS.passages);
   const confident = Boolean(context);
   const hint = MODE_HINT[request.mode]?.[request.language] ?? '';
   // The model is told, in the same breath as the passages, that academy material is not
@@ -619,6 +626,8 @@ async function prepare(body: unknown, res: Response): Promise<TutorPayload | nul
     prompt: history ? `${history}\n\n${prompt}` : prompt,
     system: `${SYSTEM[request.language]}\n\n${hint}`,
     source: library.source,
+    hits: selfHits,
+    documents: library.documents,
   };
 }
 
@@ -640,15 +649,56 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
   }
 
   if (!ai) {
-    // Honest failure: no key means no answer. The old build returned a canned
-    // paragraph here, which is worse than saying nothing.
-    res.status(STATUS_CODE.not_configured).json({
-      error: {
-        code: 'not_configured',
-        message: failureMessage('not_configured', payload.language),
-        detail: 'Set GEMINI_API_KEY on the server that hosts /api/ai/*.',
-      },
+    // The library is the tutor's own knowledge. It can answer without a model
+    // key: the same retrieval the model path uses, composed honestly from the
+    // passages — no invented words, no citations the corpus does not hold. A
+    // reader without the key still gets a grounded answer and the steps it
+    // took, never a silent refusal that reads as a broken tutor.
+    const selfAnswer = composeSelfAnswer({
+      question: payload.question,
+      language: payload.language,
+      hits: payload.hits,
+      corpusSize: payload.documents,
     });
+    if (!selfAnswer) {
+      // Nothing to answer from: the honest decline, exactly as without a key.
+      const emptyLibrary = payload.source === 'none';
+      const message = payload.language === 'ar'
+        ? emptyLibrary
+          ? 'لا توجد مادة مطابقة في مكتبة الموقع. راجع مراجع الأكاديمية أو اطرح السؤال على مختص مؤهل.'
+          : 'لا توجد مقاطع مطابقة لسؤالك في مادة الأكاديمية. أعد صياغته بمصطلح أدق أو راجع مراجع الأكاديمية.'
+        : emptyLibrary
+          ? 'The site library has no matching material. Consult the academy references or a qualified specialist.'
+          : 'No passage in the academy material matches this question. Rephrase it with a more specific term.';
+      const meta: TutorMeta = { model: null, citations: [], retrieved: 0, confident: false, elapsedMs: 0, source: payload.source };
+      res.setHeader('Cache-Control', 'no-store');
+      if (!streaming) { res.json({ text: message, content: message, meta }); return; }
+      res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+      res.end(
+        encodeSse({ type: 'meta', meta }) + encodeSse({ type: 'delta', text: message }) + encodeSse({ type: 'done' })
+      );
+      return;
+    }
+
+    const meta: TutorMeta = {
+      model: null,
+      citations: payload.citations,
+      retrieved: payload.citations.length,
+      confident: payload.confident,
+      elapsedMs: 0,
+      source: payload.source,
+      kind: 'library',
+      steps: selfAnswer.steps,
+    };
+    res.setHeader('Cache-Control', 'no-store');
+    const text = selfAnswer.text;
+    if (!streaming) { res.json({ text, content: text, meta }); return; }
+    res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+    res.end(
+      encodeSse({ type: 'meta', meta }) +
+        encodeSse({ type: 'delta', text }) +
+        encodeSse({ type: 'done' })
+    );
     return;
   }
 
@@ -662,7 +712,7 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
       : emptyLibrary
         ? 'The site library has no matching material. Consult the academy references or a qualified specialist.'
         : 'No passage in the academy material matches this question. Rephrase it with a more specific term.';
-    const meta = { model: MODEL_CHAIN[0], citations: [], retrieved: 0, confident: false, elapsedMs: 0, source: payload.source };
+    const meta: TutorMeta = { model: null, citations: [], retrieved: 0, confident: false, elapsedMs: 0, source: payload.source };
     res.setHeader('Cache-Control', 'no-store');
     if (!streaming) { res.json({ text: message, content: message, meta }); return; }
     res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');

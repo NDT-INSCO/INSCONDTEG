@@ -43,15 +43,32 @@ test('the status route exists on the function and reports the missing key', asyn
   assert.ok(body.model.length > 0, 'the model name is reported even when unconfigured');
 });
 
-test('a tutor call without a key is refused, not answered', async () => {
+test('a tutor call without a key is answered from the library, not refused', async () => {
+  // The tutor must answer from its own corpus — the same question that used to
+  // 503 is answered honestly, with the model flagged as none and the steps visible.
   const response = await fetch(`${base}/api/ai/tutor`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
     body: JSON.stringify({ prompt: 'ما هو الفرق بين PAUT و TOFD؟', language: 'ar' }),
   });
-  assert.equal(response.status, 503);
-  const body = (await response.json()) as { error?: { code?: string } };
-  assert.equal(body.error?.code, 'not_configured');
+  assert.equal(response.status, 200, 'the tutor answers from the library without a key');
+  const body = await response.text();
+  assert.match(body, /"kind":"library"/, 'the answer is labelled as a library answer');
+  assert.match(body, /"model":null/, 'no model ran, so no model id is reported');
+  assert.match(body, /"steps"/, 'the steps the answer took are visible to the reader');
+  assert.match(body, /book-paut-tofd/, 'a citation the library actually holds');
+});
+
+test('a tutor call without a key and without a match declines honestly', async () => {
+  const response = await fetch(`${base}/api/ai/tutor`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
+    body: JSON.stringify({ prompt: 'yyzz qqq', language: 'ar' }),
+  });
+  assert.equal(response.status, 200);
+  const body = await response.text();
+  assert.match(body, /لا توجد مقاطع مطابقة/);
+  assert.doesNotMatch(body, /"kind":"library"/, 'a decline is not an answer');
 });
 
 test('every agent route the client calls is mounted', async () => {

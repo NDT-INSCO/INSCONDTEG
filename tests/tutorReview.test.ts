@@ -155,8 +155,12 @@ test('unconfigured tutor and invalid requests are distinct, not canned answers',
   const invalid = await call(TUTOR_ENDPOINTS.tutor, {});
   assert.equal(invalid.status, 400);
   assert.equal((await invalid.json()).error.code, 'invalid_request');
-  const disabled = await call(TUTOR_ENDPOINTS.tutor, { prompt: 'What is a visual inspection?', language: 'en' });
-  assert.equal(disabled.status, 503);
-  assert.equal((await disabled.json()).error.code, 'not_configured');
-  assert.equal(upstreamAttempts(), 0);
+  // An unconfigured tutor answers from the library, not a refusal: the same
+  // corpus the search box uses, honestly labelled and with no model attempt.
+  const libraryAnswer = await call(TUTOR_ENDPOINTS.tutor, { prompt: 'What is a visual inspection?', language: 'en' });
+  assert.equal(libraryAnswer.status, 200);
+  const body = await libraryAnswer.text();
+  assert.match(body, /"kind":"library"/);
+  assert.match(body, /"model":null/);
+  assert.equal(upstreamAttempts(), 0, 'the library path must not reach the model');
 });

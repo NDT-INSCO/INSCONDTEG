@@ -201,7 +201,8 @@ export interface TutorCitation {
 }
 
 export interface TutorMeta {
-  model: string;
+  /** Which model answered, or null when no model ran (the library-only path). */
+  model: string | null;
   citations: TutorCitation[];
   retrieved: number;
   /** false when retrieval found nothing above TUTOR_LIMITS.minScore. */
@@ -210,6 +211,14 @@ export interface TutorMeta {
   elapsedMs: number;
   /** Which library the citations came from — the reader is told, not left to guess. */
   source?: 'reviewed' | 'academy' | 'none';
+  /**
+   * How the answer was produced: a model answer (`model`) or an answer composed
+   * from the library itself (`library`). The UI labels the two differently — a
+   * library answer must never be presented as model output.
+   */
+  kind?: 'model' | 'library';
+  /** The steps the answer actually took, in the reader's language; library path only. */
+  steps?: string[];
 }
 
 /**

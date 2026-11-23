@@ -40,21 +40,11 @@ jobs:
           with open(sys.argv[1], encoding='utf-8', errors='replace') as file:
               lines = [re.sub(r'\x1b\[[0-9;]*m', '', line.strip()) for line in file]
 
-          # The emulator's gRPC noise matches every filter, and pushing it into the
-          # last window buries the one line that names the failing test. Take the
-          # failing test's own block instead: its "# Subtest:" name, the "not ok"
-          # line that failed it, and the error/code lines that follow.
-          fail_lines = [line for line in lines if re.search(r'not ok|# Fail|# Subtest|# tests|# pass|# fail', line)]
-          if fail_lines:
-              summary = '\n'.join(fail_lines[-40:])
-          else:
-              # The emulator may have died before the tests printed anything: fall
-              # back to the lines that look like errors, skipping gRPC noise.
-              noise = [line for line in lines
-                       if line and not re.search(r'GrpcConnection|@firebase/', line)
-                       and not re.search(r'^\s*\[', line)
-                       and re.search(r'fail|error|Error|assert|exit|Java|Test', line, re.I)]
-              summary = '\n'.join((noise or lines)[-30:])
+          # The emulator prints one gRPC noise line per rejected write; the one
+          # that matters is the last line of the log (the failing test's error).
+          # Print the last window of the log so the failing test name, its error,
+          # and the summary are all visible in the annotation.
+          summary = '\n'.join(lines[-60:]).strip()
 
           print('::error title=Firestore emulator verification::' + summary.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')[-3500:])
           PYLOG

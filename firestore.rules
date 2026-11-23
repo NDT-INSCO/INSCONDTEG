@@ -687,23 +687,19 @@ service cloud.firestore {
         && incoming().createdAt == request.time
         && incoming().updatedAt == request.time;
 
+      // The validator is evaluated once — the two `isValidCommunityWorkspace`
+      // calls that used to sit in the two branches pushed this rule over the
+      // emulator's 1000-expression cap, so no workspace update could ever
+      // succeed. Both branches require the same shape; only the writer differs.
       allow update: if isVerifiedUser()
         && isValidId(userId)
+        && isValidCommunityWorkspace(incoming(), userId)
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
         && (
-          (
-            isOwner(userId)
-            && isValidCommunityWorkspace(incoming(), userId)
-            && incoming().uid == existing().uid
-            && incoming().createdAt == existing().createdAt
-            && incoming().updatedAt == request.time
-          )
-          || (
-            isValidCommunityWorkspace(incoming(), userId)
-            && incoming().uid == existing().uid
-            && incoming().createdAt == existing().createdAt
-            && incoming().updatedAt == request.time
-            && incoming().diff(existing()).affectedKeys().hasOnly(['endorsementsCount', 'updatedAt'])
-          )
+          isOwner(userId)
+          || incoming().diff(existing()).affectedKeys().hasOnly(['endorsementsCount', 'updatedAt'])
         );
 
       allow delete: if isValidId(userId) && (isOwner(userId) || isAdmin());

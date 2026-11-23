@@ -50,6 +50,7 @@ import { buildTutorLibrary, type TutorLibrary } from '../tutor/library.js';
 import {
   ChainAttempt,
   isModelMissing,
+  PER_MODEL_TIMEOUT_MS,
   streamTutorText,
   TutorAiClient,
   TutorTransportMode,
@@ -707,6 +708,10 @@ async function generateStructuredAgentJson<T>(params: {
   let lastError: unknown = null;
 
   for (const model of candidates) {
+    const budget = new AbortController();
+    const onAbort = () => budget.abort();
+    params.signal.addEventListener('abort', onAbort, { once: true });
+    const timer = setTimeout(() => budget.abort(), PER_MODEL_TIMEOUT_MS);
     try {
       const response = await ai.models.generateContent({
         model,
@@ -717,7 +722,7 @@ async function generateStructuredAgentJson<T>(params: {
           responseSchema: params.responseSchema as never,
           temperature: 0.35,
           maxOutputTokens: 1800,
-          abortSignal: params.signal,
+          abortSignal: budget.signal,
         },
       });
       const rawText = (response.text || '').trim();
@@ -735,9 +740,61 @@ async function generateStructuredAgentJson<T>(params: {
         console.warn(`[ai] agent model ${model} ${kind}; trying the next one`);
         continue;
       }
+      if (budget.signal.aborted) {
+        // Only this model ran out of its slice; the request itself is still alive.
+        console.warn(`[ai] agent model ${model} ran out of time; trying the next one`);
+        continue;
+      }
       throw err;
+    } finally {
+      clearTimeout(timer);
+      params.signal.removeEventListener('abort', onAbort);
     }
   }
+
+  /**
+   * Second chance, on the interface Google actually serves.
+   *
+   * `models.generateContent` is the retired path — one key here answers it with
+   * "no longer available to new users" and another simply never returns. The tutor
+   * already answers through `interactions.create`, so the agents use it too, with the
+   * schema asked for in words instead of enforced by the wire.
+   */
+  const interactionSystem =
+    params.systemInstruction +
+    '\n\nأعد كائن JSON واحداً فقط يطابق هذا المخطط، بلا شرح ولا أسوار كود:\n' +
+    JSON.stringify(params.responseSchema);
+
+  for (const model of candidates) {
+    if (params.signal.aborted) throw lastError ?? new Error('Agent request aborted');
+    try {
+      let raw = '';
+      for await (const delta of streamTutorText(ai as unknown as TutorAiClient, {
+        prompt: params.prompt,
+        system: interactionSystem,
+        signal: params.signal,
+        models: [model],
+        mode: 'interactions',
+        maxOutputTokens: 1800,
+        log: message => console.warn(message),
+      })) {
+        raw += delta;
+      }
+      const cleaned = raw
+        .trim()
+        .replace(/^```(?:json)?\s*/i, '')
+        .replace(/```$/, '')
+        .trim();
+      const parsed = JSON.parse(cleaned) as T;
+      console.warn(`[ai] agent answered through interactions on ${model}`);
+      return { data: parsed, model };
+    } catch (err) {
+      lastError = err;
+      if (params.signal.aborted) throw err;
+      console.warn(`[ai] agent interactions on ${model} failed: ${sanitiseUpstreamDetail(err)}`);
+    }
+  }
+
   throw lastError instanceof Error ? lastError : new Error('All agent models failed');
 }
 

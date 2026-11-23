@@ -20,6 +20,8 @@ import {
   runSiteManagerAgent,
   AgentApiError,
 } from '../../ai/agentsClient';
+import { gatewayBase } from '../../ai/client';
+import { isStaticPages } from '../../utils/staticPages';
 import type {
   SiteManagerMode,
   SiteManagerResponse,
@@ -103,6 +105,10 @@ export const InscoDualAiDock: React.FC<InscoDualAiDockProps> = ({
     window.addEventListener(INSCO_OPEN_AI_DOCK_EVENT, handler);
     return () => window.removeEventListener(INSCO_OPEN_AI_DOCK_EVENT, handler);
   }, []);
+
+  // A static GitHub Pages build ships no gateway at all: say so honestly instead
+  // of letting every click fail with a 404.
+  const gatewayUnavailable = !gatewayBase() && isStaticPages();
 
   const executeCopilotAction = (
     action: UserCopilotAction,
@@ -355,6 +361,18 @@ export const InscoDualAiDock: React.FC<InscoDualAiDockProps> = ({
                 </button>
               </div>
             </div>
+
+            {gatewayUnavailable && (
+              <div
+                role="status"
+                data-testid="ai-gateway-unavailable"
+                className="mx-4 mt-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200"
+              >
+                {isAr
+                  ? 'الموقع الثابت بدون واجهة AI: لم يُضبط المزود هنا.'
+                  : 'This static build has no AI gateway. Agent calls need the hosted INSCO AI gateway.'}
+              </div>
+            )}
 
             {/* AGENT 1: UNIVERSAL USER COPILOT */}
             {activeAgent === 'copilot' && (

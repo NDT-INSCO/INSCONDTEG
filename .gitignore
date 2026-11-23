@@ -13,3 +13,6 @@ release/
 
 .vercel/
 .vercel-sim/
+
+# scratch research folder (untracked)
+google_drive/

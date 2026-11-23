@@ -7,6 +7,12 @@ import {
   UserCopilotRequest,
   UserCopilotResponse,
 } from './agentsContract';
+import { gatewayBase } from './client';
+import { isStaticPages } from '../utils/staticPages';
+
+export function agentUrl(path: string): string {
+  return `${gatewayBase()}${path}`;
+}
 
 export class AgentApiError extends Error {
   readonly status: number;
@@ -25,7 +31,17 @@ async function postAgentJson<TReq, TRes>(
   payload: TReq,
   signal?: AbortSignal
 ): Promise<TRes> {
-  const res = await fetch(endpoint, {
+  // A static GitHub Pages build ships no gateway at all: say so honestly instead
+  // of firing a request that can never answer. Same posture as the tutor.
+  if (!gatewayBase() && isStaticPages()) {
+    throw new AgentApiError(
+      'The AI agents require the INSCO AI gateway. This site is a static build without a gateway attached.',
+      503,
+      'not_configured'
+    );
+  }
+
+  const res = await fetch(agentUrl(endpoint), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),

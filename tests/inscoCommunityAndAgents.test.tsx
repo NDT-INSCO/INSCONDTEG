@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
 
 const dom = new JSDOM('<!doctype html><html lang="en" dir="ltr"><body></body></html>', {
-  url: 'https://ndt-insco.github.io/INSCONDTEG/',
+  url: 'https://insco-portal.example.com/',
   pretendToBeVisual: true,
 });
 
@@ -124,7 +124,7 @@ test('InscoDualAiDock operates both User Copilot and Site Manager AI and propaga
             body: 'Sectorial scan 40-70 deg with 64-element phased array probe.',
             tags: ['PAUT', 'ASME'],
           },
-          model: 'gemini-4-hydrogen',
+          model: 'gemini-3.5-flash-lite',
           elapsedMs: 120,
         }),
         { status: 200, headers: { 'Content-Type': 'application/json' } }
@@ -143,7 +143,7 @@ test('InscoDualAiDock operates both User Copilot and Site Manager AI and propaga
           },
         ],
         flaggedPostIds: [],
-        model: 'gemini-4-hydrogen',
+        model: 'gemini-3.5-flash-lite',
         elapsedMs: 95,
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }

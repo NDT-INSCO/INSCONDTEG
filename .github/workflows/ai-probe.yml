@@ -20,10 +20,11 @@ jobs:
 
           probe() {
             path="$1"
-            code=$(curl -s -o /tmp/body -w '%{http_code}' --max-time 30 "$base$path" || echo 000)
+            local pcode
+            pcode=$(curl -s -o /tmp/body -w '%{http_code}' --max-time 30 "$base$path" || echo 000)
             body=$(head -c 240 /tmp/body | tr -d '\n')
-            echo "$path -> $code  $body"
-            echo "::notice title=$path::$code $body"
+            echo "$path -> $pcode  $body"
+            echo "::notice title=$path::$pcode $body"
           }
 
           for attempt in 1 2 3 4 5 6 7 8 9 10; do
@@ -42,6 +43,14 @@ jobs:
           echo '--- build-info body ---'
           curl -s --max-time 30 "$base/api/site/build-info" || true
           echo
+
+          echo '--- a real tutor answer (first bytes of the stream) ---'
+          curl -s -N --max-time 45 -H 'Content-Type: application/json' \
+            -d '{"prompt":"اذكر في سطر واحد الفرق بين PAUT و TOFD.","language":"ar"}' \
+            "$base/api/ai/tutor" -o /tmp/tutor.txt || true
+          head -c 500 /tmp/tutor.txt | tr -d '\n'
+          echo
+          echo "::notice title=/api/ai/tutor::$(head -c 300 /tmp/tutor.txt | tr -d '\n')"
 
           if [ "$code" != "200" ]; then
             echo "::error title=/api/ai/status::did not answer 200 — the AI gateway is not deployed on this domain or is failing."

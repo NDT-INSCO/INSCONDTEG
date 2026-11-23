@@ -43,7 +43,7 @@ import {
   TutorStatus,
 } from '../../src/ai/contract.js';
 import type { SearchHit } from '../../src/ai/search.js';
-import { buildReviewedTutorLibrary } from '../tutor/reviewedLibrary.js';
+import { buildTutorLibrary, type TutorLibrary } from '../tutor/library.js';
 import { isModelMissing, streamTutorText, TutorAiClient, TutorTransportMode } from '../../src/ai/transport.js';
 
 /**
@@ -74,26 +74,30 @@ export function createAiGateway(edbRoot: string): express.Router {
   // A static import on purpose. This used to be `await import('../tutor/reviewedLibrary.js')`,
   // which `tsx` resolves but a bundled serverless runtime does not: the request died with
   // an unhandled rejection and the deployed site answered 500 on `/api/ai/status`.
-  type AiLibrary = ReturnType<typeof buildReviewedTutorLibrary>;
-  const EMPTY_LIBRARY: AiLibrary = { reviewedDocuments: 0, retrieveForTutor: () => [] };
-  let aiLibraryPromise: Promise<AiLibrary> | null = null;
+  let aiLibraryPromise: Promise<TutorLibrary> | null = null;
+  let reviewedDocuments = 0;
   let libraryFailure = '';
 
   /**
-   * The reviewed corpus, or nothing at all.
-   *
-   * A missing or unreadable corpus is *reported* (`retrieval.ready: false` in the status
-   * route), never thrown: the gateway must still be able to say why it cannot answer.
+   * The reviewed corpus if it has anything, the academy corpus if it does not, and
+   * nothing if both are empty — in which order, and which one won, is reported by the
+   * status route. A missing corpus is never thrown: the gateway must be able to say why
+   * it cannot answer.
    */
-  function loadAiLibrary(): Promise<AiLibrary> {
+  function loadAiLibrary(): Promise<TutorLibrary> {
     aiLibraryPromise ??= Promise.resolve().then(() => {
-      try {
-        return buildReviewedTutorLibrary(file => readFileSync(path.join(edbRoot, 'edb', file), 'utf8'));
-      } catch (error) {
-        libraryFailure = error instanceof Error ? error.message : String(error);
-        console.error('[ai] reviewed library unavailable:', libraryFailure);
-        return EMPTY_LIBRARY;
+      const built = buildTutorLibrary(
+        file => readFileSync(path.join(edbRoot, 'edb', file), 'utf8'),
+        // The tutor's own tests and hosts can turn the fallback off; production wants it.
+        { allowAcademyFallback: process.env.TUTOR_ALLOW_ACADEMY_FALLBACK !== 'false' }
+      );
+      reviewedDocuments = built.reviewedDocuments;
+      libraryFailure = built.failure;
+      if (built.failure) console.error('[ai] reviewed library unavailable:', built.failure);
+      if (built.library.source === 'academy') {
+        console.warn(`[ai] no reviewed courses; answering from the academy corpus (${built.library.documents} passages)`);
       }
+      return built.library;
     });
     return aiLibraryPromise;
   }
@@ -236,7 +240,7 @@ const MODE_HINT: Record<string, { ar: string; en: string }> = {
   practice: { ar: 'اطرح سؤالاً تدريبياً واحداً ثم حلّه خطوة بخطوة.', en: 'Pose one practice question, then solve it step by step.' },
 };
 
-function toCitation(hit: SearchHit): TutorCitation {
+function toCitation(hit: SearchHit, reviewed: boolean): TutorCitation {
   const document = hit.document;
   return {
     id: document.id,
@@ -246,6 +250,7 @@ function toCitation(hit: SearchHit): TutorCitation {
     pageNumber: document.pageNumber,
     courseId: document.courseId,
     score: Math.round(hit.score * 100) / 100,
+    reviewed,
   };
 }
 
@@ -291,14 +296,22 @@ function streamFromModel(
   router.use(express.json({ limit: '96kb' }));
 
 router.get(TUTOR_ENDPOINTS.status, async (_req: Request, res: Response) => {
-  const { reviewedDocuments } = await loadAiLibrary();
+  const library = await loadAiLibrary();
   const status: TutorStatus = {
     configured: Boolean(ai),
     reason: ai ? 'ok' : clientInitError ? 'client_init_failed' : 'no_key',
     model: MODEL_CHAIN[0],
     deepModel: TUTOR_MODELS.deep,
     limits: TUTOR_LIMITS,
-    retrieval: { documents: reviewedDocuments, ready: reviewedDocuments > 0, ...(libraryFailure ? { error: libraryFailure } : {}) },
+    retrieval: {
+      documents: library.documents,
+      ready: library.documents > 0,
+      source: library.source,
+      // The reviewed count is kept separate: an academy answer must never be read as a
+      // reviewed one just because `documents` is large.
+      ...(reviewedDocuments > 0 ? { reviewed: reviewedDocuments } : {}),
+      ...(libraryFailure ? { error: libraryFailure } : {}),
+    },
     transport: API_MODE,
   };
   res.setHeader('Cache-Control', 'no-store');
@@ -313,6 +326,8 @@ interface TutorPayload {
   confident: boolean;
   prompt: string;
   system: string;
+  /** Which library produced the citations — echoed to the reader in `meta`. */
+  source: 'reviewed' | 'academy' | 'none';
 }
 
 async function prepare(body: unknown, res: Response): Promise<TutorPayload | null> {
@@ -323,18 +338,24 @@ async function prepare(body: unknown, res: Response): Promise<TutorPayload | nul
     });
     return null;
   }
-  const { retrieveForTutor } = await loadAiLibrary();
+  const library = await loadAiLibrary();
   const request = parsed.value;
   const question = latestQuestion(request);
-  const hits = retrieveForTutor(question);
-  const citations = hits.map(toCitation);
+  const hits = library.retrieve(question);
+  const reviewed = library.source === 'reviewed';
+  const citations = hits.map(hit => toCitation(hit, reviewed));
   const context = buildContext(hits, request.language);
   const confident = Boolean(context);
   const hint = MODE_HINT[request.mode]?.[request.language] ?? '';
-  const header =
-    request.language === 'ar'
-      ? 'مقاطع من مكتبة إنسكو (استخدم معرّفاتها في الاستشهاد):'
-      : 'Passages from the INSCO library (cite these ids):';
+  // The model is told, in the same breath as the passages, that academy material is not
+  // reviewed study content — otherwise it would present it as approved reference.
+  const header = reviewed
+    ? request.language === 'ar'
+      ? 'مقاطع من مكتبة إنسكو المراجَعة (استخدم معرّفاتها في الاستشهاد):'
+      : 'Passages from the reviewed INSCO library (cite these ids):'
+    : request.language === 'ar'
+      ? 'مقاطع من مادة الأكاديمية (غير مُراجَعة — استخدم معرّفاتها في الاستشهاد، ووضّح أن الإجابة استرشادية للتعلّم لا مرجع معتمد):'
+      : 'Passages from the academy corpus (NOT reviewed — cite their ids and say the answer is study guidance, not an approved reference):';
   const prompt = confident
     ? `${header}\n\n${context}\n\n---\n\n${hint}\n\n${
         request.language === 'ar' ? 'السؤال' : 'Question'
@@ -354,6 +375,7 @@ async function prepare(body: unknown, res: Response): Promise<TutorPayload | nul
     confident,
     prompt: history ? `${history}\n\n${prompt}` : prompt,
     system: `${SYSTEM[request.language]}\n\n${hint}`,
+    source: library.source,
   };
 }
 
@@ -389,10 +411,15 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
 
   // Fail closed in both protocols, including the legacy JSON endpoint.
   if (!payload.confident) {
+    const emptyLibrary = payload.source === 'none';
     const message = payload.language === 'ar'
-      ? 'لا توجد مادة مراجَعة مطابقة تكفي للإجابة. راجع مراجع الأكاديمية أو اطرح السؤال على مختص مؤهل.'
-      : 'There is not enough reviewed source material to answer. Consult the academy references or a qualified specialist.';
-    const meta = { model: MODEL_CHAIN[0], citations: [], retrieved: 0, confident: false, elapsedMs: 0 };
+      ? emptyLibrary
+        ? 'لا توجد مادة مطابقة في مكتبة الموقع. راجع مراجع الأكاديمية أو اطرح السؤال على مختص مؤهل.'
+        : 'لا توجد مقاطع مطابقة لسؤالك في مادة الأكاديمية. أعد صياغته بمصطلح أدق أو راجع مراجع الأكاديمية.'
+      : emptyLibrary
+        ? 'The site library has no matching material. Consult the academy references or a qualified specialist.'
+        : 'No passage in the academy material matches this question. Rephrase it with a more specific term.';
+    const meta = { model: MODEL_CHAIN[0], citations: [], retrieved: 0, confident: false, elapsedMs: 0, source: payload.source };
     res.setHeader('Cache-Control', 'no-store');
     if (!streaming) { res.json({ text: message, content: message, meta }); return; }
     res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
@@ -415,6 +442,7 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
     retrieved: payload.citations.length,
     confident: payload.confident,
     elapsedMs: 0,
+    source: payload.source,
   };
 
   if (!streaming) {

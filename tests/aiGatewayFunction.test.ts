@@ -80,7 +80,7 @@ test('an unknown AI route says so instead of hanging', async () => {
  * 500 and the site looked like a bad key. The gateway now loads it statically and
  * degrades to zero documents with an explicit `ready: false`.
  */
-test('the status route still answers when the corpus directory is missing', async () => {
+test('the status route answers with the academy library when the reviewed corpus is missing', async () => {
   const { createAiGateway } = await import('../server/ai/gateway.ts');
   const emptyRoot = mkdtempSync(path.join(tmpdir(), 'insco-no-edb-'));
   const app = express();
@@ -92,9 +92,12 @@ test('the status route still answers when the corpus directory is missing', asyn
   try {
     const response = await fetch(`http://127.0.0.1:${port}/api/ai/status`);
     assert.equal(response.status, 200, 'a broken corpus must not become a 500');
-    const body = (await response.json()) as { retrieval: { documents: number; ready: boolean } };
-    assert.equal(body.retrieval.documents, 0);
-    assert.equal(body.retrieval.ready, false);
+    const body = (await response.json()) as {
+      retrieval: { documents: number; ready: boolean; source?: string };
+    };
+    assert.equal(body.retrieval.source, 'academy', 'no reviewed course exists, so the academy corpus answers');
+    assert.ok(body.retrieval.documents > 0, 'and it is not empty');
+    assert.equal(body.retrieval.ready, true);
   } finally {
     await new Promise<void>(resolve => local.close(() => resolve()));
   }

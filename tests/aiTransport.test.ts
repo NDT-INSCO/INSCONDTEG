@@ -407,6 +407,38 @@ test('one slow model does not consume the whole request budget', async () => {
   assert.deepEqual(attempts[0], { model: 'gemini-3.8-flash', signal: 'upstream_error' });
 });
 
+test('a model that has started answering is allowed to finish', async () => {
+  // The per-model slice is a first-token deadline. Cutting a model off mid-answer is how
+  // production produced half an answer followed by "the service is busy".
+  let calls = 0;
+  let release: (() => void) | null = null;
+  const client: TutorAiClient = {
+    models: {
+      async generateContentStream() {
+        calls += 1;
+        return (async function* () {
+          yield { text: 'The answer begins' };
+          await new Promise<void>(resolve => { release = resolve; });
+          yield { text: ' and finishes.' };
+        })();
+      },
+    },
+  };
+
+  const parts: string[] = [];
+  const run = (async () => {
+    for await (const text of streamTutorText(client, { ...base, mode: 'legacy', perModelTimeoutMs: 40 })) {
+      parts.push(text);
+    }
+  })();
+
+  await new Promise(resolve => setTimeout(resolve, 150));
+  assert.equal(calls, 1, 'the next model is never asked for a second answer');
+  release!();
+  await run;
+  assert.deepEqual(parts, ['The answer begins', ' and finishes.']);
+});
+
 test('aborting the request aborts the model call in flight', async () => {
   const controller = new AbortController();
   const logs: string[] = [];

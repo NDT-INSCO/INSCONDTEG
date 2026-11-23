@@ -120,7 +120,11 @@ const MODEL_CHAIN: string[] = [
 const DAILY_BUDGET = Math.max(1, parseInt(process.env.TUTOR_DAILY_LIMIT || '300', 10));
 const PER_MINUTE = Math.max(1, parseInt(process.env.TUTOR_RATE_PER_MINUTE || '10', 10));
 const PER_DAY = Math.max(1, parseInt(process.env.TUTOR_RATE_PER_DAY || '200', 10));
-const REQUEST_TIMEOUT_MS = Math.max(5000, parseInt(process.env.TUTOR_TIMEOUT_MS || '45000', 10));
+/**
+ * The whole-request budget. The function may run 60s (`maxDuration`), so this leaves room
+ * for the tail of a long answer instead of cutting it at 45s and calling it a timeout.
+ */
+const REQUEST_TIMEOUT_MS = Math.max(5000, parseInt(process.env.TUTOR_TIMEOUT_MS || '55000', 10));
 // `interactions` is Google's current primary interface (2026). `legacy` keeps the
 // old models.generateContentStream path for an old key/project. `auto` tries the
 // Interactions API first and falls back once if the endpoint is unavailable.

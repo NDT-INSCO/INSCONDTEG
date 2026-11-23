@@ -99,6 +99,6 @@
     "typescript": "^7.0.2"
   },
   "engines": {
-    "node": "22.x"
+    "node": "24.x"
   }
 }

@@ -64,3 +64,16 @@ test('the provider sentence is found inside an SDK wrapper', () => {
   assert.equal(classifyUpstreamError(wrapped), 'key_rejected');
   assert.equal(sanitiseUpstreamDetail(wrapped), 'API key not valid. Please pass a valid API key.');
 });
+
+test("Google's high-demand 503 is a busy model, not a broken key", () => {
+  const busy = new Error(
+    'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.'
+  );
+  assert.equal(classifyUpstreamError(busy), 'model_busy');
+
+  const ar = failureMessage('model_busy', 'ar');
+  assert.match(ar, /مزدحم/);
+  assert.match(ar, /جرّب بعد دقيقة/);
+  assert.doesNotMatch(ar, /مفتاح/);
+  assert.match(failureMessage('model_busy', 'en'), /busy/i);
+});

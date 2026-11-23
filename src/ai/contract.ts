@@ -235,6 +235,30 @@ export interface TutorFailure {
   code: TutorErrorCode;
   message: string;
   retryAfterSeconds?: number;
+  /**
+   * What the provider actually said, shortened and stripped of anything
+   * credential-shaped. A generic sentence cannot be debugged; this can.
+   */
+  upstream?: UpstreamDetail;
+}
+
+export interface UpstreamDetail {
+  signal: UpstreamSignal;
+  detail: string;
+}
+
+/**
+ * Shorten a provider message to something safe to show: no `key=…`, no `AIza…`,
+ * no newlines, and at most 200 characters.
+ */
+export function sanitiseUpstreamDetail(error: unknown): string {
+  const raw = error instanceof Error ? error.message : String(error ?? '');
+  return raw
+    .replace(/\bkey=[^&\s"']+/gi, 'key=***')
+    .replace(/AIza[0-9A-Za-z_-]{10,}/g, 'AIza***')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 200);
 }
 
 export type TutorStreamEvent =
@@ -254,7 +278,7 @@ export interface TutorStatus {
    * The last upstream failure, as a category and a timestamp — never a message and
    * never a key. It is what makes "the model is unreachable" diagnosable from outside.
    */
-  lastUpstream?: { signal: UpstreamSignal; at: string };
+  lastUpstream?: { signal: UpstreamSignal; at: string; detail?: string };
   /**
    * `error` is set only when the corpus itself could not be read — never guessed.
    * `source` says which library is answering: reviewed courses, the unreviewed academy

@@ -32,6 +32,7 @@ import {
 import {
   classifyUpstreamError,
   encodeSse,
+  sanitiseUpstreamDetail,
   failureMessage,
   latestQuestion,
   normaliseTutorRequest,
@@ -232,8 +233,18 @@ function upstreamFailure(
   const detail = error instanceof Error ? error.message : String(error);
   if (timedOut) return { code: 'timeout', signal: 'upstream_error', detail };
   const signal = classifyUpstreamError(error);
-  lastUpstream = { signal, at: new Date().toISOString() };
-  return { code: signal === 'rate_limited' ? 'rate_limited' : 'upstream_error', signal, detail };
+  const safe = sanitiseUpstreamDetail(error);
+  lastUpstream = { signal, at: new Date().toISOString(), detail: safe };
+  return { code: signal === 'rate_limited' ? 'rate_limited' : 'upstream_error', signal, detail: safe };
+}
+
+/** The failure body: the sentence the reader gets, plus a safe upstream snippet. */
+function failureBody(
+  code: TutorErrorCode,
+  language: Parameters<typeof failureMessage>[1],
+  upstream: { signal: UpstreamSignal; detail: string }
+): TutorFailure {
+  return { code, message: failureMessage(code, language), upstream };
 }
 
 /* ------------------------------------------------------------------ */
@@ -486,7 +497,9 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
     } catch (error) {
       const { code, signal, detail } = upstreamFailure(error, controller.signal.aborted);
       console.error(`[ai] Tutor request failed: ${signal}: ${detail}`);
-      res.status(STATUS_CODE[code]).json({ error: { code, message: failureMessage(code, payload.language) } });
+      res
+        .status(STATUS_CODE[code])
+        .json({ error: failureBody(code, payload.language, { signal, detail }) });
     } finally {
       clearTimeout(timer);
     }
@@ -510,7 +523,9 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
   } catch (error) {
     const { code, signal, detail } = upstreamFailure(error, controller.signal.aborted);
     console.error(`[ai] Tutor stream failed: ${signal}: ${detail}`);
-    res.write(encodeSse({ type: 'error', error: { code, message: failureMessage(code, payload.language) } }));
+    res.write(
+      encodeSse({ type: 'error', error: failureBody(code, payload.language, { signal, detail }) })
+    );
     res.write(encodeSse({ type: 'done' }));
   } finally {
     clearTimeout(timer);
@@ -705,7 +720,7 @@ router.post(AGENT_ENDPOINTS.userCopilot, async (req: Request, res: Response) => 
     const { code, signal, detail } = upstreamFailure(error, controller.signal.aborted);
     console.error(`[ai] user-copilot failed: ${signal}: ${detail}`);
     res.status(STATUS_CODE[code]).json({
-      error: { code, message: failureMessage(code, input.language) },
+      error: failureBody(code, input.language, { signal, detail }),
     });
   } finally {
     clearTimeout(timer);
@@ -815,7 +830,7 @@ router.post(AGENT_ENDPOINTS.siteManager, async (req: Request, res: Response) => 
     const { code, signal, detail } = upstreamFailure(error, controller.signal.aborted);
     console.error(`[ai] site-manager failed: ${signal}: ${detail}`);
     res.status(STATUS_CODE[code]).json({
-      error: { code, message: failureMessage(code, input.language) },
+      error: failureBody(code, input.language, { signal, detail }),
     });
   } finally {
     clearTimeout(timer);
@@ -880,7 +895,7 @@ router.post(AGENT_ENDPOINTS.communityAssist, async (req: Request, res: Response)
     const { code, signal, detail } = upstreamFailure(error, controller.signal.aborted);
     console.error(`[ai] community-assist failed: ${signal}: ${detail}`);
     res.status(STATUS_CODE[code]).json({
-      error: { code, message: failureMessage(code, input.language) },
+      error: failureBody(code, input.language, { signal, detail }),
     });
   } finally {
     clearTimeout(timer);

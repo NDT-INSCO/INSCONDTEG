@@ -8,7 +8,7 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { classifyUpstreamError, failureMessage } from '../src/ai/contract';
+import { classifyUpstreamError, failureMessage, sanitiseUpstreamDetail } from '../src/ai/contract';
 
 test('the classifier separates quota, key and model failures', () => {
   assert.equal(classifyUpstreamError(new Error('429 RESOURCE_EXHAUSTED')), 'rate_limited');
@@ -31,4 +31,20 @@ test('a quota hit is reported as temporary, not as a broken tutor', () => {
   assert.doesNotMatch(ar, /تعذّر الوصول/);
   assert.match(en, /limit/i);
   assert.match(en, /minute/i);
+});
+
+test('the upstream snippet is shortened and carries no credential', () => {
+  const key = 'AIza' + 'x'.repeat(35);
+  const message =
+    '[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/' +
+    `v1beta/models/gemini-2.5-flash: [503] The model is overloaded. ?key=${key}`;
+
+  const detail = sanitiseUpstreamDetail(new Error(message));
+
+  assert.match(detail, /503/);
+  assert.match(detail, /overloaded/);
+  assert.doesNotMatch(detail, /AIza/);
+  assert.doesNotMatch(detail, new RegExp(key));
+  assert.ok(detail.length <= 200, 'the snippet is a snippet');
+  assert.equal(sanitiseUpstreamDetail(undefined), '');
 });

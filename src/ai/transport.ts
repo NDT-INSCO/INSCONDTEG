@@ -121,11 +121,13 @@ const CHAIN_PASSES = 2;
 const CHAIN_BACKOFF_MS = 1500;
 
 /**
- * How long one model gets before the chain moves on.
+ * How long a model gets to *start* answering before the chain moves on.
  *
- * The whole chain shares a 45-second request budget; without a per-model slice a single
- * model that hangs consumes all of it and the reader gets a timeout even though three
- * other models were never asked.
+ * This is a first-token deadline, not a whole-answer deadline. The whole chain shares one
+ * request budget; without a slice a silent model eats all of it and three other models are
+ * never asked. But a model that has begun writing must be allowed to finish — cutting it
+ * off mid-sentence is how a reader ends up with half an answer and a "the service is busy"
+ * banner, which is exactly what production was doing.
  */
 export const PER_MODEL_TIMEOUT_MS = 18000;
 
@@ -151,13 +153,21 @@ async function* runChain<T>(
       const timer = setTimeout(() => budget.abort(), perModelTimeoutMs);
       try {
         for await (const item of open(model, budget.signal)) {
-          yielded = true;
+          if (!yielded) {
+            yielded = true;
+            // It answered: the deadline was for a silent model, so stop the clock. From
+            // here the model writes under the request's own budget.
+            clearTimeout(timer);
+          }
           yield item;
         }
         return;
       } catch (error) {
         lastError = error;
         if (signal.aborted) return;
+        // Never hand a half-written answer to another model: the reader would see the
+        // opening twice, in two different voices.
+        if (yielded) throw error;
         if (budget.signal.aborted) {
           // This model alone ran out of time; the next one may still answer, but a
           // second walk of the whole chain would only spend the request budget again.
@@ -165,10 +175,6 @@ async function* runChain<T>(
           log(`[ai] ${model} ran out of time; trying the next model`);
           continue;
         }
-        // A model that emitted text and then failed is never retried: the reader would
-        // see the opening twice.
-        if (yielded) throw error;
-
         const kind = classifyUpstreamError(error);
         attempts?.push({
           model,

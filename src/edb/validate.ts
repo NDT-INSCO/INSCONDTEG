@@ -7,7 +7,7 @@ import {
   EdbDocument,
   EdbText,
   EdbValidationResult,
-} from './types';
+} from './types.js';
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);

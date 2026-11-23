@@ -1,4 +1,4 @@
-import { NdeEdSource } from './types';
+import { NdeEdSource } from './types.js';
 
 /**
  * Reading anchors used by the NDE-Ed courseware. Every URL below is a page on

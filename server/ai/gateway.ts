@@ -28,7 +28,7 @@ import {
   type CommunityAssistResponse,
   type SiteManagerResponse,
   type UserCopilotResponse,
-} from '../../src/ai/agentsContract';
+} from '../../src/ai/agentsContract.js';
 import {
   encodeSse,
   failureMessage,
@@ -41,10 +41,10 @@ import {
   TutorErrorCode,
   TutorFailure,
   TutorStatus,
-} from '../../src/ai/contract';
-import type { SearchHit } from '../../src/ai/search';
-import { buildReviewedTutorLibrary } from '../tutor/reviewedLibrary';
-import { isModelMissing, streamTutorText, TutorAiClient, TutorTransportMode } from '../../src/ai/transport';
+} from '../../src/ai/contract.js';
+import type { SearchHit } from '../../src/ai/search.js';
+import { buildReviewedTutorLibrary } from '../tutor/reviewedLibrary.js';
+import { isModelMissing, streamTutorText, TutorAiClient, TutorTransportMode } from '../../src/ai/transport.js';
 
 /**
  * The AI settings, read from the environment in one place.
@@ -71,7 +71,7 @@ export function isTutorConfigured(env: NodeJS.ProcessEnv): boolean {
 export function createAiGateway(edbRoot: string): express.Router {
   const router = express.Router();
 
-  // A static import on purpose. This used to be `await import('../tutor/reviewedLibrary')`,
+  // A static import on purpose. This used to be `await import('../tutor/reviewedLibrary.js')`,
   // which `tsx` resolves but a bundled serverless runtime does not: the request died with
   // an unhandled rejection and the deployed site answered 500 on `/api/ai/status`.
   type AiLibrary = ReturnType<typeof buildReviewedTutorLibrary>;

@@ -14,7 +14,7 @@
  * It contains no Node and no DOM API: it must stay importable from both.
  */
 
-import type { NdeEdText } from '../data/ndeEd/types';
+import type { NdeEdText } from '../data/ndeEd/types.js';
 
 /* ------------------------------------------------------------------ */
 /* models                                                              */

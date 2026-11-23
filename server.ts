@@ -7,7 +7,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { createAiGateway, isTutorConfigured, readAiEnv } from './server/ai/gateway.js';
-import { createOperations } from './server/admin/operations';
+import { createOperations } from './server/admin/operations.js';
 
 dotenv.config();
 

@@ -236,6 +236,31 @@ GEMINI_API_KEY=... TUTOR_API_MODE=auto PORT=8080 npx tsx server.ts
 - **404 من هذا المسار** → الدالة غير منشورة على هذا النطاق، والمشكلة ليست في المفتاح أبداً.
 - **500** → خطأ في الدالة نفسها؛ لم يعد يُخفى: كل خطأ يُعاد كـ JSON، والمهلة تُعاد `504` صريحة.
 
+### سبب ٥٠٠ حقيقي حدث فعلاً: امتدادات الاستيراد
+
+`FUNCTION_INVOCATION_FAILED` على كل مسار هو علامة على أن **تحميل الوحدة** فشل، لا على خطأ
+في منطق المسار. السبب هنا: ملفات بوابة الذكاء الاصطناعي كانت تستورد بلا امتداد
+(`from '../tutor/reviewedLibrary'`). `tsx` يحلّ ذلك، وNode ESM في Vercel لا يحلّه:
+`ERR_MODULE_NOT_FOUND` قبل تنفيذ أي سطر.
+
+القاعدة الآن، ويحرسها اختبار: **كل استيراد نسبي في سلسلة `api/*` يذكر امتداده `.js`**،
+و`import type` وحده مستثنى لأنه يُحذف قبل التشغيل. الاختبار
+`tests/vercelEsmImports.test.ts` يمشي على السلسلة من `api/ai.ts` و`api/insco.ts`
+ويفشل إن نسي أحدهم الامتداد.
+
+وطرق التحقق التي استُخدمت فعلاً بدل التخمين:
+
+```bash
+# 1) هل تُحمَّل الوحدة كما يحمّلها Vercel (Node ESM)؟
+npx tsc api/ai.ts --ignoreConfig --outDir .vercel-sim --rootDir . \
+  --module nodenext --moduleResolution nodenext --target es2022 \
+  --esModuleInterop --skipLibCheck
+node -e "import('./.vercel-sim/api/ai.js').then(m=>console.log(typeof m.default))"
+
+# 2) هل النطاق المنشور يجيب؟ (تعليقات التشغيل تُقرأ من الـ API)
+gh run list --workflow=ai-probe.yml --limit 1
+```
+
 وفحص آلي بعد كل دفع إلى `main`: `.github/workflows/ai-probe.yml` يستدعي المسار ويطبع الكود
 والجسم، ويفشل إن لم يكن `200` — بدل أن نصدّق أن النشر تم.»
 

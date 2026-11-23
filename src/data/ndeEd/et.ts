@@ -1,5 +1,5 @@
-import { NdeEdCourse } from './types';
-import { quiz, t } from './helpers';
+import { NdeEdCourse } from './types.js';
+import { quiz, t } from './helpers.js';
 
 export const etCourse: NdeEdCourse = {
   id: 'nde-et',

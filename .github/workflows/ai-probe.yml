@@ -44,7 +44,15 @@ jobs:
           curl -s --max-time 30 "$base/api/site/build-info" || true
           echo
 
-          echo '--- a real tutor answer (first bytes of the stream) ---'
+          echo '--- a real model call: the copilot agent (proves the key reaches Gemini) ---'
+          curl -s --max-time 60 -H 'Content-Type: application/json' \
+            -d '{"message":"قل مرحباً في سطر واحد واذكر أنك مساعد إنسكو.","language":"ar"}' \
+            "$base/api/ai/agent/user-copilot" -o /tmp/copilot.json || true
+          head -c 400 /tmp/copilot.json | tr -d '\n'
+          echo
+          echo "::notice title=/api/ai/agent/user-copilot::$(head -c 300 /tmp/copilot.json | tr -d '\n')"
+
+          echo '--- the tutor stream (declines when no course is reviewed) ---'
           curl -s -N --max-time 45 -H 'Content-Type: application/json' \
             -d '{"prompt":"اذكر في سطر واحد الفرق بين PAUT و TOFD.","language":"ar"}' \
             "$base/api/ai/tutor" -o /tmp/tutor.txt || true

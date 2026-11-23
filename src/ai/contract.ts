@@ -31,11 +31,15 @@ export const TUTOR_MODELS = {
   deep: 'gemini-4-argon',
   /**
    * Ordered by what `GET /api/ai/ping` measured on production, not by release date.
-   * `gemini-3.8-flash` and its alias `gemini-flash-latest` share one exhausted daily
-   * quota, so `gemini-3.6-flash` — which answered in 556ms — comes next. `2.5-flash`
-   * is gone for new keys: "no longer available to new users".
+   * `gemini-3.8-flash` — which answered in 556ms — leads; `2.5-flash` is gone for new
+   * keys ("no longer available to new users"). Two measured corrections to an earlier
+   * guess: `gemini-flash-latest` is *not on this key at all* (`missingFromKey`), so it
+   * only ever burned an attempt per request; `gemini-3.7-flash` answered 503 high demand
+   * and then hung; and the lite model carries its own, much larger free quota — a shorter
+   * answer beats another silence when the flashes are rate-limited. Three names total, so
+   * the worst case (3 × 18s) still fits the 60s the function may run.
    */
-  fallbacks: ['gemini-3.6-flash', 'gemini-3.7-flash', 'gemini-flash-latest'] as const,
+  fallbacks: ['gemini-3.6-flash', 'gemini-3.5-flash-lite'] as const,
 } as const;
 
 /** `thinking_level` is the 4-Argon-era knob; low is right for short answers. */

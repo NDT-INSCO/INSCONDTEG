@@ -344,6 +344,30 @@ This model is currently experiencing high demand. Spikes in demand are usually t
   ويكرّرها مرة واحدة. المفتاح المرفوض وحده لا يُعاد أبداً.
 - `keyShape.looksLikeAiStudioKey` صار يقبل الصيغتين: `AIza…` (39) و`AQ.…` (53).
 
+### السبب الخامس والأخير: SDK يتخلّف عن الواجهة التي تخدمها جوجل
+
+بعد أن صار المفتاح سليماً، ظهر في جسم خطأ جوجل نفسه:
+
+> `This model models/gemini-2.5-flash is no longer available to new users.`
+> `… Please update your code to use the Interactions API.`
+
+والمشروع كان مثبّتاً على `@google/genai` **2.32.0**، وهي لا تُصدّر `interactions` أصلاً.
+النسخة الحالية **3.6.1** تُصدّره ويعمل. لذلك:
+
+- رُفع الاعتماد إلى `@google/genai@^3.6.1`، وصار مسار `interactions.create` هو الأساس،
+  و`models.generateContentStream` احتياطياً فقط.
+- أُضيف `GET /api/ai/ping` (و`?api=interactions`) يسأل كل نموذج ١٦ رمزاً ويعيد
+  المللي ثانية والسبب وكلام جوجل — به عُرف أن `3.8-flash` استهلك حصته اليومية
+  (`retry in 17h…`)، وأن `3.6-flash` يجيب في أقل من ثانية، وأن `2.5-flash` لم يبق
+  متاحاً للمفاتيح الجديدة.
+- ترتيب السلسلة صار حسب القياس: `3.8-flash` ← `3.6-flash` ← `3.7-flash` ←
+  `gemini-flash-latest`، و`TUTOR_MODELS.primary` يبقى قابلاً للتغيير بـ`TUTOR_MODEL`.
+- كل نموذج له ١٢ ثانية (`PER_MODEL_TIMEOUT_MS`) قبل أن تنتقل السلسلة، وكل عميل
+  (`copilot`/`site-manager`) يجرّب `interactions` بعد فشل المسار القديم.
+
+النتيجة المقيسة على الإنتاج: `.github/workflows/ai-probe.yml` صار **أخضر**، وتعليقه
+`tutor answer: deltas=3` — أي أن المستشار يكتب فعلاً، بمصادر غير مُراجَعة من الأكاديمية.
+
 
 
 **على GitHub Pages (بلا خادم):** يبقى الموقع صالحاً بالكامل — الكتب والمقررات

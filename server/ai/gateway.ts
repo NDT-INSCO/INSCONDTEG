@@ -272,6 +272,29 @@ function upstreamFailure(
   return { code, signal, detail: safe };
 }
 
+/**
+ * Read JSON out of a model answer that may be fenced, padded, or cut short.
+ *
+ * The copilot asks for one object; models sometimes wrap it in prose or a code fence, and
+ * a truncated answer has no closing brace to forgive. Failing the whole request over a
+ * fence is a worse trade than reading the object between the first brace and the last.
+ */
+function parseModelJson<T>(raw: string): T {
+  const cleaned = raw
+    .trim()
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/```$/, '')
+    .trim();
+  try {
+    return JSON.parse(cleaned) as T;
+  } catch {
+    const start = cleaned.indexOf('{');
+    const end = cleaned.lastIndexOf('}');
+    if (start >= 0 && end > start) return JSON.parse(cleaned.slice(start, end + 1)) as T;
+    throw new Error('The model did not return JSON');
+  }
+}
+
 /** The failure body: the sentence the reader gets, plus a safe upstream snippet. */
 function failureBody(
   code: TutorErrorCode,
@@ -729,7 +752,7 @@ async function generateStructuredAgentJson<T>(params: {
       if (!rawText) {
         throw new Error('Model returned empty structured payload');
       }
-      const parsed = JSON.parse(rawText) as T;
+      const parsed = parseModelJson<T>(rawText);
       return { data: parsed, model };
     } catch (err) {
       lastError = err;
@@ -775,17 +798,12 @@ async function generateStructuredAgentJson<T>(params: {
         signal: params.signal,
         models: [model],
         mode: 'interactions',
-        maxOutputTokens: 1800,
+        maxOutputTokens: 2400,
         log: message => console.warn(message),
       })) {
         raw += delta;
       }
-      const cleaned = raw
-        .trim()
-        .replace(/^```(?:json)?\s*/i, '')
-        .replace(/```$/, '')
-        .trim();
-      const parsed = JSON.parse(cleaned) as T;
+      const parsed = parseModelJson<T>(raw);
       console.warn(`[ai] agent answered through interactions on ${model}`);
       return { data: parsed, model };
     } catch (err) {

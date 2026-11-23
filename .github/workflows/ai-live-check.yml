@@ -1,0 +1,70 @@
+name: AI live check
+
+# Asks the deployed domain the two questions a reader actually asks — the tutor and the
+# copilot — and prints what came back, with the model chain and the last upstream reason.
+#
+# `ai-probe.yml` only runs on `main` and refuses to report unless the deployment matches
+# the commit it is testing. That is right for gating a merge, and useless when the
+# question is "what does production answer *right now*" from a branch. This runs from any
+# branch, on demand, and never blocks anything.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base:
+        description: Deployment to test
+        required: false
+        default: https://inscondteg.vercel.app
+  push:
+    branches: ['**']
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ask the tutor
+        run: |
+          set -u
+          base="${{ github.event.inputs.base || 'https://inscondteg.vercel.app' }}"
+          echo "## Tutor — $base"
+          curl -s -N --max-time 90 -H 'Content-Type: application/json' \
+            -H 'Accept: text/event-stream' \
+            -d '{"messages":[{"role":"user","content":"ما هو الفحص بالموجات فوق الصوتية PAUT وما الفرق بينه وبين TOFD؟"}],"language":"ar","stream":true}' \
+            "$base/api/ai/tutor" > /tmp/tutor.sse || echo "curl exit $?"
+
+          echo "### events"
+          sed -n 's/^data: //p' /tmp/tutor.sse | cut -c1-400
+
+          echo "### counts"
+          echo "deltas=$(grep -c '"type":"delta"' /tmp/tutor.sse || true)"
+          echo "errors=$(grep -c '"type":"error"' /tmp/tutor.sse || true)"
+          echo "bytes=$(wc -c < /tmp/tutor.sse | tr -d ' ')"
+          grep '"type":"error"' /tmp/tutor.sse | head -2 || true
+
+      - name: Ask the copilot
+        run: |
+          set -u
+          base="${{ github.event.inputs.base || 'https://inscondteg.vercel.app' }}"
+          echo "## Copilot — $base"
+          code=$(curl -s -o /tmp/copilot.json -w '%{http_code}' --max-time 90 \
+            -H 'Content-Type: application/json' \
+            -d '{"message":"مرحبا","mode":"assistant","language":"ar"}' \
+            "$base/api/ai/agent/user-copilot" || echo 000)
+          echo "http=$code"
+          head -c 600 /tmp/copilot.json
+
+      - name: Which models answer, and what does the gateway know
+        run: |
+          set -u
+          base="${{ github.event.inputs.base || 'https://inscondteg.vercel.app' }}"
+          echo "## build"
+          curl -s --max-time 20 "$base/api/site/build-info?cachebust=$GITHUB_SHA"
+          echo
+          echo "## status"
+          curl -s --max-time 20 "$base/api/ai/status?cachebust=$GITHUB_SHA"
+          echo
+          for model in gemini-3.5-flash-lite gemini-3.8-flash gemini-3.6-flash gemini-4-hydrogen; do
+            echo "## $model"
+            curl -s --max-time 30 "$base/api/ai/ping?api=interactions&model=$model&cachebust=$GITHUB_SHA" | head -c 400
+            echo
+          done

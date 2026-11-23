@@ -84,10 +84,10 @@ test("Google's high-demand 503 is a busy model, not a broken key", () => {
 });
 
 test('the chain is ordered by what answers, not by release date', () => {
-  assert.equal(TUTOR_MODELS.fallbacks[0], 'gemini-3.6-flash');
-  // Measured, not guessed: the alias is absent from this key, and a lite model closes
-  // the chain on its own free quota.
+  // Measured, not guessed: the alias is absent from this key, and the lite model — the
+  // only one that answered while every flash hung — leads on its own free quota.
   assert.ok(!TUTOR_MODELS.fallbacks.includes('gemini-flash-latest' as never));
-  assert.equal(TUTOR_MODELS.fallbacks.at(-1), 'gemini-3.5-flash-lite');
+  assert.equal(TUTOR_MODELS.primary, 'gemini-3.5-flash-lite');
+  assert.equal(TUTOR_MODELS.fallbacks[0], 'gemini-3.8-flash');
   assert.ok(!TUTOR_MODELS.fallbacks.includes('gemini-2.5-flash' as never), 'gone for new keys');
 });

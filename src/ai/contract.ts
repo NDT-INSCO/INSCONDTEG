@@ -27,19 +27,21 @@ import type { NdeEdText } from '../data/ndeEd/types.js';
  * failing the whole feature on one deprecation.
  */
 export const TUTOR_MODELS = {
-  primary: 'gemini-3.8-flash',
+  /**
+   * The only model that answered when the flashes were throttled. Measured back to back
+   * on the same deployment: every `flash` hung for 16s and was aborted, while this one
+   * replied `تم` in 652ms — the free-tier quota is counted per model, so the model with
+   * headroom goes first. `TUTOR_MODEL` overrides it without a redeploy.
+   */
+  primary: 'gemini-3.5-flash-lite',
   deep: 'gemini-4-argon',
   /**
-   * Ordered by what `GET /api/ai/ping` measured on production, not by release date.
-   * `gemini-3.8-flash` — which answered in 556ms — leads; `2.5-flash` is gone for new
-   * keys ("no longer available to new users"). Two measured corrections to an earlier
-   * guess: `gemini-flash-latest` is *not on this key at all* (`missingFromKey`), so it
-   * only ever burned an attempt per request; `gemini-3.7-flash` answered 503 high demand
-   * and then hung; and the lite model carries its own, much larger free quota — a shorter
-   * answer beats another silence when the flashes are rate-limited. Three names total, so
-   * the worst case (3 × 18s) still fits the 60s the function may run.
+   * Ordered by what `GET /api/ai/ping` measured on production, not by release date:
+   * `3.8-flash` answered in 556ms while it had quota, `3.6-flash` in 992ms, and
+   * `2.5-flash` is gone for new keys ("no longer available to new users"). The other
+   * `flash` models sit here so they take over the moment their quota returns.
    */
-  fallbacks: ['gemini-3.6-flash', 'gemini-3.5-flash-lite'] as const,
+  fallbacks: ['gemini-3.8-flash', 'gemini-3.6-flash'] as const,
 } as const;
 
 /** `thinking_level` is the 4-Argon-era knob; low is right for short answers. */

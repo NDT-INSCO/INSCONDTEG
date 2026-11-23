@@ -166,9 +166,12 @@ test('an unreachable gateway reports itself as unconfigured, not as an answer', 
   assert.equal(status.retrieval.ready, false);
 });
 
-test('the primary model is a current Flash model, not a retired one', () => {
-  assert.equal(TUTOR_MODELS.primary, 'gemini-3.8-flash');
+test('the chain leads with a model that answers, and never with a retired one', () => {
+  // 3.5-flash-lite replied in 652ms while every `flash` hung for 16s and was aborted.
+  assert.equal(TUTOR_MODELS.primary, 'gemini-3.5-flash-lite');
+  assert.equal(TUTOR_MODELS.fallbacks[0], 'gemini-3.8-flash');
   assert.ok(!TUTOR_MODELS.fallbacks.includes('gemini-3.5-flash' as never), 'hangs on this key');
   assert.ok(!TUTOR_MODELS.fallbacks.includes('gemini-2.5-flash' as never), 'gone for new keys');
+  assert.ok(!TUTOR_MODELS.fallbacks.includes('gemini-flash-latest' as never), 'not on this key');
   assert.equal(TUTOR_MODELS.deep, 'gemini-4-argon');
 });

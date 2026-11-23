@@ -10,6 +10,8 @@
 export const AGENT_MODELS = {
   primary: 'gemini-4-hydrogen',
   fallback: 'gemini-3.8-flash',
+  /** Walked when a model is busy or rate-limited, not only when an id is missing. */
+  fallbacks: ['gemini-flash-latest', 'gemini-3.6-flash', 'gemini-2.5-flash'] as const,
 } as const;
 
 export const AGENT_ENDPOINTS = {

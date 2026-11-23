@@ -8,7 +8,12 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { classifyUpstreamError, failureMessage, sanitiseUpstreamDetail } from '../src/ai/contract';
+import {
+  classifyUpstreamError,
+  failureMessage,
+  sanitiseUpstreamDetail,
+  TUTOR_MODELS,
+} from '../src/ai/contract';
 
 test('the classifier separates quota, key and model failures', () => {
   assert.equal(classifyUpstreamError(new Error('429 RESOURCE_EXHAUSTED')), 'rate_limited');
@@ -76,4 +81,9 @@ test("Google's high-demand 503 is a busy model, not a broken key", () => {
   assert.match(ar, /جرّب بعد دقيقة/);
   assert.doesNotMatch(ar, /مفتاح/);
   assert.match(failureMessage('model_busy', 'en'), /busy/i);
+});
+
+test('the chain leads with Google\'s capacity alias before fixed ids', () => {
+  assert.equal(TUTOR_MODELS.fallbacks[0], 'gemini-flash-latest');
+  assert.ok(TUTOR_MODELS.fallbacks.includes('gemini-2.5-flash'));
 });

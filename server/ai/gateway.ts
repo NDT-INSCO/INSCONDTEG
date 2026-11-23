@@ -631,7 +631,7 @@ async function generateStructuredAgentJson<T>(params: {
   signal: AbortSignal;
 }): Promise<{ data: T; model: string }> {
   if (!ai) throw new Error('AI client is not configured');
-  const candidates = [AGENT_MODELS.primary, AGENT_MODELS.fallback];
+  const candidates = [AGENT_MODELS.primary, AGENT_MODELS.fallback, ...AGENT_MODELS.fallbacks];
   let lastError: unknown = null;
 
   for (const model of candidates) {
@@ -657,8 +657,10 @@ async function generateStructuredAgentJson<T>(params: {
     } catch (err) {
       lastError = err;
       if (params.signal.aborted) throw err;
-      if (isModelMissing(err)) {
-        console.warn(`[ai] agent model ${model} unavailable, trying fallback`);
+      const kind = classifyUpstreamError(err);
+      if (isModelMissing(err) || kind === 'model_busy' || kind === 'rate_limited') {
+        // Busy is a fact about one model; the copilot has four more to ask.
+        console.warn(`[ai] agent model ${model} ${kind}; trying the next one`);
         continue;
       }
       throw err;

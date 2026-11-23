@@ -29,7 +29,13 @@ import type { NdeEdText } from '../data/ndeEd/types.js';
 export const TUTOR_MODELS = {
   primary: 'gemini-3.8-flash',
   deep: 'gemini-4-argon',
-  fallbacks: ['gemini-3.6-flash', 'gemini-2.5-flash'] as const,
+  /**
+   * Ordered after `GET /api/ai/models` confirmed every id below is callable with the
+   * production key. `gemini-flash-latest` sits first on purpose: it is Google's own
+   * alias for whichever flash model has capacity, so a saturated `gemini-3.8-flash`
+   * does not take the tutor down with it.
+   */
+  fallbacks: ['gemini-flash-latest', 'gemini-3.6-flash', 'gemini-2.5-flash'] as const,
 } as const;
 
 /** `thinking_level` is the 4-Argon-era knob; low is right for short answers. */

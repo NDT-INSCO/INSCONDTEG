@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useLayoutEffect, useRef } from 'react';
 import * as d3 from 'd3';
-import { animate } from 'motion/react';
+import { animate, AnimatePresence, motion } from 'motion/react';
 import {
   Clock,
   Radio,
@@ -67,6 +67,282 @@ import {
 import { IsotopeDecayCurveChart } from './IsotopeDecayCurveChart';
 
 export type GeUnitSystem = 'metric' | 'imperial';
+
+export const GE_PB_PHOTOELECTRON_PATHS_STORAGE_KEY = 'ge_app_pb_photoelectron_paths_visible';
+export type GePbGhostTrailLength = 'short' | 'medium' | 'long';
+export const GE_PB_GHOST_TRAIL_LENGTH_STORAGE_KEY = 'ge_app_pb_ghost_trail_length';
+
+export interface GePbGhostTrailTierSpec {
+  reachFactor: number;
+  lagDelay: number;
+  enterDuration: number;
+  exitDuration: number;
+  flowDurationSec: number;
+  wakeDurationSec: number;
+  dashArray: string;
+  peakOpacity: number;
+  settledOpacity: number;
+  strokeWidthMultiplier: number;
+}
+
+export interface GePbGhostTrailAnimationConfig {
+  length: GePbGhostTrailLength;
+  labelEn: string;
+  labelAr: string;
+  primary: GePbGhostTrailTierSpec;
+  residual: GePbGhostTrailTierSpec;
+}
+
+export const GE_PB_GHOST_TRAIL_CONFIGS: Record<GePbGhostTrailLength, GePbGhostTrailAnimationConfig> = {
+  short: {
+    length: 'short',
+    labelEn: 'Short',
+    labelAr: 'قصير',
+    primary: {
+      reachFactor: 0.7,
+      lagDelay: 0.025,
+      enterDuration: 0.19,
+      exitDuration: 0.12,
+      flowDurationSec: 0.9,
+      wakeDurationSec: 1.25,
+      dashArray: '1.9 1.6',
+      peakOpacity: 0.52,
+      settledOpacity: 0.24,
+      strokeWidthMultiplier: 0.9,
+    },
+    residual: {
+      reachFactor: 0.54,
+      lagDelay: 0.045,
+      enterDuration: 0.22,
+      exitDuration: 0.14,
+      flowDurationSec: 1.1,
+      wakeDurationSec: 1.5,
+      dashArray: '2.1 2.0',
+      peakOpacity: 0.26,
+      settledOpacity: 0.1,
+      strokeWidthMultiplier: 0.88,
+    },
+  },
+  medium: {
+    length: 'medium',
+    labelEn: 'Medium',
+    labelAr: 'متوسط',
+    primary: {
+      reachFactor: 1.0,
+      lagDelay: 0.04,
+      enterDuration: 0.27,
+      exitDuration: 0.165,
+      flowDurationSec: 1.25,
+      wakeDurationSec: 1.8,
+      dashArray: '2.8 1.5',
+      peakOpacity: 0.62,
+      settledOpacity: 0.34,
+      strokeWidthMultiplier: 1.0,
+    },
+    residual: {
+      reachFactor: 1.0,
+      lagDelay: 0.08,
+      enterDuration: 0.32,
+      exitDuration: 0.2,
+      flowDurationSec: 1.55,
+      wakeDurationSec: 2.2,
+      dashArray: '3.2 1.8',
+      peakOpacity: 0.36,
+      settledOpacity: 0.16,
+      strokeWidthMultiplier: 1.0,
+    },
+  },
+  long: {
+    length: 'long',
+    labelEn: 'Long',
+    labelAr: 'طويل',
+    primary: {
+      reachFactor: 1.38,
+      lagDelay: 0.065,
+      enterDuration: 0.38,
+      exitDuration: 0.23,
+      flowDurationSec: 1.65,
+      wakeDurationSec: 2.55,
+      dashArray: '4.2 1.3',
+      peakOpacity: 0.72,
+      settledOpacity: 0.44,
+      strokeWidthMultiplier: 1.1,
+    },
+    residual: {
+      reachFactor: 1.65,
+      lagDelay: 0.12,
+      enterDuration: 0.46,
+      exitDuration: 0.28,
+      flowDurationSec: 2.05,
+      wakeDurationSec: 3.1,
+      dashArray: '5.2 1.5',
+      peakOpacity: 0.44,
+      settledOpacity: 0.22,
+      strokeWidthMultiplier: 1.12,
+    },
+  },
+};
+
+export const getPbGhostTrailAnimationConfig = (
+  length: GePbGhostTrailLength = 'medium'
+): GePbGhostTrailAnimationConfig =>
+  GE_PB_GHOST_TRAIL_CONFIGS[length] ?? GE_PB_GHOST_TRAIL_CONFIGS.medium;
+
+export const computePbGhostTrailEndpoint = (
+  originX: number,
+  originY: number,
+  targetX: number,
+  targetY: number,
+  reachFactor: number
+): { x2: number; y2: number } => ({
+  x2: Number((originX + (targetX - originX) * reachFactor).toFixed(2)),
+  y2: Number((originY + (targetY - originY) * reachFactor).toFixed(2)),
+});
+
+interface PbGhostTrailLinesProps {
+  origin: 'front_pb' | 'back_pb' | 'interleaf_pb';
+  originX: number;
+  originY: number;
+  targetX: number;
+  targetY: number;
+  enterDelay: number;
+  gradientId: string;
+  baseResidualWidth: number;
+  basePrimaryWidth: number;
+  originAnchorX: 0 | 1;
+  opacityScale?: number;
+  config: GePbGhostTrailAnimationConfig;
+}
+
+const PbGhostTrailLines: React.FC<PbGhostTrailLinesProps> = ({
+  origin,
+  originX,
+  originY,
+  targetX,
+  targetY,
+  enterDelay,
+  gradientId,
+  baseResidualWidth,
+  basePrimaryWidth,
+  originAnchorX,
+  opacityScale = 1,
+  config,
+}) => {
+  const residualEnd = computePbGhostTrailEndpoint(originX, originY, targetX, targetY, config.residual.reachFactor);
+  const primaryEnd = computePbGhostTrailEndpoint(originX, originY, targetX, targetY, config.primary.reachFactor);
+  const residualPeak = Number((config.residual.peakOpacity * opacityScale).toFixed(3));
+  const residualSettled = Number((config.residual.settledOpacity * opacityScale).toFixed(3));
+  const primaryPeak = Number((config.primary.peakOpacity * opacityScale).toFixed(3));
+  const primarySettled = Number((config.primary.settledOpacity * opacityScale).toFixed(3));
+
+  return (
+    <>
+      <motion.line
+        data-ghost-trail={origin}
+        data-trail-tier="residual"
+        data-trail-length={config.length}
+        data-trail-reach={config.residual.reachFactor}
+        data-flow-duration={`${config.residual.flowDurationSec}s`}
+        data-wake-duration={`${config.residual.wakeDurationSec}s`}
+        data-trail-blur="2.1px"
+        data-stagger-delay={(enterDelay + config.residual.lagDelay).toFixed(3)}
+        x1={originX}
+        y1={originY}
+        stroke={`url(#${gradientId})`}
+        strokeWidth={Number((baseResidualWidth * config.residual.strokeWidthMultiplier).toFixed(2))}
+        strokeLinecap="round"
+        strokeDasharray={config.residual.dashArray}
+        className={`rt-pb-electron-ghost-trail-residual rt-pb-ghost-len-${config.length}`}
+        style={{ originX: originAnchorX, originY: 0.5 }}
+        initial={{ x2: originX, y2: originY, scale: 0.08, opacity: 0 }}
+        animate={{
+          x2: residualEnd.x2,
+          y2: residualEnd.y2,
+          scale: [0.08, 1.12, 1],
+          opacity: [0, residualPeak, residualSettled],
+          transition: {
+            x2: { duration: config.residual.enterDuration, delay: enterDelay + config.residual.lagDelay, ease: [0.16, 1, 0.3, 1] },
+            y2: { duration: config.residual.enterDuration, delay: enterDelay + config.residual.lagDelay, ease: [0.16, 1, 0.3, 1] },
+            scale: { duration: config.residual.enterDuration + 0.04, delay: enterDelay + config.residual.lagDelay, ease: [0.16, 1, 0.3, 1], times: [0, 0.62, 1] },
+            opacity: { duration: config.residual.enterDuration + 0.04, delay: enterDelay + config.residual.lagDelay, ease: 'easeOut', times: [0, 0.45, 1] },
+          },
+        }}
+        exit={{
+          x2: originX,
+          y2: originY,
+          scale: 0.05,
+          opacity: 0,
+          transition: { duration: config.residual.exitDuration, ease: 'easeIn' },
+        }}
+      />
+      <motion.line
+        data-ghost-trail={origin}
+        data-trail-tier="primary"
+        data-trail-length={config.length}
+        data-trail-reach={config.primary.reachFactor}
+        data-flow-duration={`${config.primary.flowDurationSec}s`}
+        data-wake-duration={`${config.primary.wakeDurationSec}s`}
+        data-trail-blur="1.1px"
+        data-stagger-delay={(enterDelay + config.primary.lagDelay).toFixed(3)}
+        x1={originX}
+        y1={originY}
+        stroke={`url(#${gradientId})`}
+        strokeWidth={Number((basePrimaryWidth * config.primary.strokeWidthMultiplier).toFixed(2))}
+        strokeLinecap="round"
+        strokeDasharray={config.primary.dashArray}
+        className={`rt-pb-electron-ghost-trail-primary rt-pb-ghost-len-${config.length}`}
+        style={{ originX: originAnchorX, originY: 0.5 }}
+        initial={{ x2: originX, y2: originY, scale: 0.08, opacity: 0 }}
+        animate={{
+          x2: primaryEnd.x2,
+          y2: primaryEnd.y2,
+          scale: [0.08, 1.13, 1],
+          opacity: [0, primaryPeak, primarySettled],
+          transition: {
+            x2: { duration: config.primary.enterDuration, delay: enterDelay + config.primary.lagDelay, ease: [0.16, 1, 0.3, 1] },
+            y2: { duration: config.primary.enterDuration, delay: enterDelay + config.primary.lagDelay, ease: [0.16, 1, 0.3, 1] },
+            scale: { duration: config.primary.enterDuration + 0.05, delay: enterDelay + config.primary.lagDelay, ease: [0.16, 1, 0.3, 1], times: [0, 0.62, 1] },
+            opacity: { duration: config.primary.enterDuration + 0.04, delay: enterDelay + config.primary.lagDelay, ease: 'easeOut', times: [0, 0.45, 1] },
+          },
+        }}
+        exit={{
+          x2: originX,
+          y2: originY,
+          scale: 0.05,
+          opacity: 0,
+          transition: { duration: config.primary.exitDuration, ease: 'easeIn' },
+        }}
+      />
+    </>
+  );
+};
+
+const readInitialPbPhotoelectronPathsState = (): boolean => {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const stored = localStorage.getItem(GE_PB_PHOTOELECTRON_PATHS_STORAGE_KEY);
+      if (stored === 'true') return true;
+      if (stored === 'false') return false;
+    }
+  } catch {
+    // ignore storage access issues
+  }
+  return true;
+};
+
+const readInitialPbGhostTrailLength = (): GePbGhostTrailLength => {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const stored = localStorage.getItem(GE_PB_GHOST_TRAIL_LENGTH_STORAGE_KEY);
+      if (stored === 'short' || stored === 'medium' || stored === 'long') {
+        return stored;
+      }
+    }
+  } catch {
+    // ignore storage access issues
+  }
+  return 'medium';
+};
 
 export interface GeConversionLogEntry {
   id: string;
@@ -985,11 +1261,16 @@ const UnitConversionSparkline: React.FC<UnitConversionSparklineProps> = ({
     linePath,
     areaPath,
     metricCount,
-    imperialCount
+    imperialCount,
+    metricPct,
+    imperialPct
   } = useMemo(() => {
     const recent = [...entries.slice(0, 5)].reverse();
     const mCount = recent.filter((e) => e.toUnit === 'metric').length;
     const iCount = recent.filter((e) => e.toUnit === 'imperial').length;
+    const total = mCount + iCount;
+    const mPct = total > 0 ? Math.round((mCount / total) * 100) : 0;
+    const iPct = total > 0 ? 100 - mPct : 0;
 
     if (recent.length === 0) {
       return {
@@ -997,7 +1278,9 @@ const UnitConversionSparkline: React.FC<UnitConversionSparklineProps> = ({
         linePath: '',
         areaPath: '',
         metricCount: 0,
-        imperialCount: 0
+        imperialCount: 0,
+        metricPct: 0,
+        imperialPct: 0
       };
     }
 
@@ -1035,7 +1318,9 @@ const UnitConversionSparkline: React.FC<UnitConversionSparklineProps> = ({
       linePath: mapped.length > 1 ? lineGenerator(mapped) || '' : '',
       areaPath: mapped.length > 1 ? areaGenerator(mapped) || '' : '',
       metricCount: mCount,
-      imperialCount: iCount
+      imperialCount: iCount,
+      metricPct: mPct,
+      imperialPct: iPct
     };
   }, [entries]);
 
@@ -1046,8 +1331,8 @@ const UnitConversionSparkline: React.FC<UnitConversionSparklineProps> = ({
       data-testid="ge-quick-units-sparkline"
       title={
         isAr
-          ? `اتجاه آخر 5 تحويلات: متري (${metricCount}) مقابل إمبراطوري (${imperialCount})`
-          : `Last 5 conversion switches trend: Metric (${metricCount}) vs Imperial (${imperialCount})`
+          ? `اتجاه آخر 5 تحويلات: متري ${metricCount} (${metricPct}%) مقابل إمبراطوري ${imperialCount} (${imperialPct}%)`
+          : `Last 5 conversion switches: Metric ${metricCount} (${metricPct}%) vs Imperial ${imperialCount} (${imperialPct}%)`
       }
       className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-white/75 dark:bg-slate-900/75 border border-slate-200 dark:border-slate-800 text-[10px] font-mono"
     >
@@ -1065,8 +1350,8 @@ const UnitConversionSparkline: React.FC<UnitConversionSparklineProps> = ({
         role="img"
         aria-label={
           isAr
-            ? `مخطط خطي لتكرار التحويلات: ${metricCount} متري و ${imperialCount} إمبراطوري`
-            : `Conversion trend sparkline: ${metricCount} Metric and ${imperialCount} Imperial switches`
+            ? `مخطط خطي لتكرار التحويلات: متري ${metricCount} (${metricPct}%) وإمبراطوري ${imperialCount} (${imperialPct}%)`
+            : `Conversion trend sparkline: Metric ${metricCount} (${metricPct}%) and Imperial ${imperialCount} (${imperialPct}%)`
         }
         className="overflow-visible shrink-0"
       >
@@ -1128,6 +1413,21 @@ const UnitConversionSparkline: React.FC<UnitConversionSparklineProps> = ({
           {isAr ? `إ:${imperialCount}` : `I:${imperialCount}`}
         </span>
       </span>
+      <span className="text-slate-400 dark:text-slate-600" aria-hidden="true">
+        ·
+      </span>
+      <span
+        data-testid="ge-quick-units-sparkline-usage"
+        className="flex items-center gap-1 font-bold tabular-nums whitespace-nowrap"
+      >
+        <span className="text-sky-600 dark:text-sky-400">
+          {isAr ? `${metricPct}% متري` : `${metricPct}% Metric`}
+        </span>
+        <span className="text-slate-400">/</span>
+        <span className="text-amber-600 dark:text-amber-400">
+          {isAr ? `${imperialPct}% إمبراطوري` : `${imperialPct}% Imperial`}
+        </span>
+      </span>
     </div>
   );
 };
@@ -1140,6 +1440,7 @@ interface GeRadiographicExposureTimeAppProps {
   initialSource?: GeSourceType;
   initialThicknessMm?: number;
   initialSfdCm?: number;
+  initialPbGhostTrailLength?: GePbGhostTrailLength;
 }
 
 export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeAppProps> = ({
@@ -1149,7 +1450,8 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
   className = '',
   initialSource = 'ir192',
   initialThicknessMm = 12.0,
-  initialSfdCm = 70
+  initialSfdCm = 70,
+  initialPbGhostTrailLength,
 }) => {
   const isAr = language === 'ar';
 
@@ -1337,7 +1639,36 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
   // 4D Time-Based Isotope Decay Animation Overlay State
   const [showBeamOverlay, setShowBeamOverlay] = useState<boolean>(true);
   const [showLeadScreenOverlay, setShowLeadScreenOverlay] = useState<boolean>(true);
-  const [showPbPhotoelectronPaths, setShowPbPhotoelectronPaths] = useState<boolean>(true);
+  const [showPbPhotoelectronPaths, setShowPbPhotoelectronPaths] = useState<boolean>(() =>
+    readInitialPbPhotoelectronPathsState()
+  );
+  useEffect(() => {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(GE_PB_PHOTOELECTRON_PATHS_STORAGE_KEY, String(showPbPhotoelectronPaths));
+      }
+    } catch {
+      // ignore storage write issues
+    }
+  }, [showPbPhotoelectronPaths]);
+  const [pbGhostTrailLength, setPbGhostTrailLength] = useState<GePbGhostTrailLength>(
+    () => initialPbGhostTrailLength ?? readInitialPbGhostTrailLength()
+  );
+  useEffect(() => {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(GE_PB_GHOST_TRAIL_LENGTH_STORAGE_KEY, pbGhostTrailLength);
+      }
+    } catch {
+      // ignore storage write issues
+    }
+  }, [pbGhostTrailLength]);
+  const pbGhostTrailConfig = useMemo(
+    () => getPbGhostTrailAnimationConfig(pbGhostTrailLength),
+    [pbGhostTrailLength]
+  );
+  const [hasInteractedWithPbPaths, setHasInteractedWithPbPaths] = useState<boolean>(false);
+  const [showPbPhysicsTooltip, setShowPbPhysicsTooltip] = useState<boolean>(false);
   const [showWeldProfileOverlay, setShowWeldProfileOverlay] = useState<boolean>(true);
   const [is4dViewActive, setIs4dViewActive] = useState<boolean>(false);
   const [is4dPlaying, setIs4dPlaying] = useState<boolean>(false);
@@ -1694,6 +2025,7 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
     setShowBeamOverlay(true);
     setShowLeadScreenOverlay(true);
     setShowPbPhotoelectronPaths(true);
+    setPbGhostTrailLength('medium');
     setShowWeldProfileOverlay(true);
     setIs4dPlaying(false);
 
@@ -4147,29 +4479,191 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                       {showLeadScreenOverlay ? (isAr ? 'ظاهر' : 'ON') : isAr ? 'مخفي' : 'OFF'}
                     </span>
                   </button>
-                  <button
-                    type="button"
-                    data-testid="ge-beam-toggle-pb-photoelectron-paths"
-                    data-layer-active={showPbPhotoelectronPaths ? 'true' : 'false'}
-                    aria-pressed={showPbPhotoelectronPaths}
-                    onClick={() => setShowPbPhotoelectronPaths((prev) => !prev)}
-                    title={
-                      isAr
-                        ? 'إظهار أو إخفاء مسارات الفوتوإلكترونات الثانوية (e⁻) المتجهة من شاشات الرصاص إلى مستوى الفيلم'
-                        : 'Toggle secondary photoelectron (e⁻) intensification vector paths from Pb screens to the film plane'
-                    }
-                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono font-bold transition-colors cursor-pointer ${
-                      showPbPhotoelectronPaths
-                        ? 'bg-teal-500/15 border-teal-500/60 text-teal-700 dark:text-teal-300 hover:bg-teal-500/25'
-                        : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-                    } ${!showLeadScreenOverlay ? 'opacity-55' : ''}`}
-                  >
-                    <Zap className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
-                    <span>{isAr ? 'مسارات e⁻ للرصاص' : 'Pb e⁻ Paths'}</span>
-                    <span className="px-1 py-0.5 rounded bg-slate-900/10 dark:bg-white/10 text-[9px] uppercase">
-                      {showPbPhotoelectronPaths ? (isAr ? 'ظاهر' : 'ON') : isAr ? 'مخفي' : 'OFF'}
-                    </span>
-                  </button>
+                  <div className="relative inline-flex items-center gap-1 group/pb-tip">
+                    <motion.button
+                      id="ge-beam-toggle-pb-photoelectron-paths"
+                      type="button"
+                      data-testid="ge-beam-toggle-pb-photoelectron-paths"
+                      data-layer-active={showPbPhotoelectronPaths ? 'true' : 'false'}
+                      data-pb-screens-active={hasLeadScreens ? 'true' : 'false'}
+                      aria-pressed={showPbPhotoelectronPaths}
+                      aria-describedby="ge-pb-photoelectron-physics-tooltip"
+                      whileTap={{ scale: 0.94 }}
+                      animate={{ scale: showPbPhotoelectronPaths ? 1 : 0.97 }}
+                      transition={{ duration: 0.2, ease: 'easeOut' }}
+                      onClick={() => {
+                        setHasInteractedWithPbPaths(true);
+                        setShowPbPhotoelectronPaths((prev) => {
+                          const next = !prev;
+                          if (next && !showLeadScreenOverlay) {
+                            setShowLeadScreenOverlay(true);
+                          }
+                          return next;
+                        });
+                      }}
+                      title={
+                        isAr
+                          ? 'إظهار أو إخفاء مسارات الفوتوإلكترونات الثانوية (e⁻) المتجهة من شاشات الرصاص إلى مستوى الفيلم لتوضيح آلية التقوية'
+                          : 'Toggle secondary photoelectron (e⁻) intensification vector paths from Pb screens to the film plane'
+                      }
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono font-bold transition-all duration-200 cursor-pointer ${
+                        showPbPhotoelectronPaths
+                          ? 'bg-teal-500/15 border-teal-500/60 text-teal-700 dark:text-teal-300 shadow-sm hover:bg-teal-500/25'
+                          : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                      } ${!showLeadScreenOverlay ? 'opacity-55' : ''}`}
+                    >
+                      <Zap
+                        className={`w-3.5 h-3.5 shrink-0 transition-transform duration-200 ${
+                          showPbPhotoelectronPaths ? 'scale-105 text-teal-500' : 'scale-95 opacity-70'
+                        }`}
+                        aria-hidden="true"
+                      />
+                      <span>{isAr ? 'مسارات e⁻ للرصاص' : 'Pb e⁻ Paths'}</span>
+                      <motion.span
+                        key={showPbPhotoelectronPaths ? 'on' : 'off'}
+                        initial={{ opacity: 0, scale: 0.78 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.18, ease: 'easeOut' }}
+                        className="px-1 py-0.5 rounded bg-slate-900/10 dark:bg-white/10 text-[9px] uppercase"
+                      >
+                        {showPbPhotoelectronPaths ? (isAr ? 'ظاهر' : 'ON') : isAr ? 'مخفي' : 'OFF'}
+                      </motion.span>
+                    </motion.button>
+
+                    <div
+                      role="group"
+                      data-testid="ge-pb-ghost-trail-length-toggle"
+                      data-trail-length={pbGhostTrailLength}
+                      aria-label={isAr ? 'طول أثر الشبح للإلكترونات' : 'Photoelectron ghost trail length'}
+                      className={`inline-flex items-center rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-0.5 transition-opacity ${
+                        showPbPhotoelectronPaths && hasLeadScreens ? 'opacity-100' : 'opacity-65'
+                      }`}
+                    >
+                      {(['short', 'medium', 'long'] as const).map((lenOpt) => {
+                        const cfg = GE_PB_GHOST_TRAIL_CONFIGS[lenOpt];
+                        const isSelected = pbGhostTrailLength === lenOpt;
+                        return (
+                          <button
+                            key={lenOpt}
+                            id={`ge-pb-ghost-trail-length-${lenOpt}`}
+                            type="button"
+                            data-testid={`ge-pb-ghost-trail-length-${lenOpt}`}
+                            data-trail-length-option={lenOpt}
+                            aria-pressed={isSelected}
+                            onClick={() => setPbGhostTrailLength(lenOpt)}
+                            title={
+                              isAr
+                                ? `طول الأثر الضوئي المتبقي: ${cfg.labelAr} (${cfg.residual.reachFactor}×)`
+                                : `Ghost trail wake length: ${cfg.labelEn} (${cfg.residual.reachFactor}× residual reach)`
+                            }
+                            className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono font-bold transition-all cursor-pointer ${
+                              isSelected
+                                ? 'bg-teal-500/20 text-teal-700 dark:text-teal-200 border border-teal-500/50 shadow-xs'
+                                : 'text-slate-500 dark:text-slate-400 border border-transparent hover:text-slate-900 dark:hover:text-slate-200'
+                            }`}
+                          >
+                            {isAr ? cfg.labelAr : cfg.labelEn}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <button
+                      type="button"
+                      data-testid="ge-pb-photoelectron-info-btn"
+                      aria-label={
+                        isAr
+                          ? 'شرح فيزياء تقوية الإلكترونات الثانوية وتحسين تباين الفيلم'
+                          : 'Explain secondary photoelectron intensification physics and film contrast gain'
+                      }
+                      aria-expanded={showPbPhysicsTooltip}
+                      aria-controls="ge-pb-photoelectron-physics-tooltip"
+                      onClick={() => setShowPbPhysicsTooltip((prev) => !prev)}
+                      onBlur={() => setShowPbPhysicsTooltip(false)}
+                      className={`inline-flex items-center justify-center p-1.5 rounded-lg border transition-colors cursor-help ${
+                        showPbPhysicsTooltip
+                          ? 'bg-teal-500/20 border-teal-500/60 text-teal-600 dark:text-teal-300'
+                          : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-300 hover:border-teal-500/50'
+                      }`}
+                    >
+                      <Info className="w-3.5 h-3.5" aria-hidden="true" />
+                    </button>
+
+                    <div
+                      id="ge-pb-photoelectron-physics-tooltip"
+                      role="tooltip"
+                      data-testid="ge-pb-photoelectron-physics-tooltip"
+                      data-open={showPbPhysicsTooltip ? 'true' : 'false'}
+                      className={`pointer-events-none absolute top-full mt-2 ${
+                        isAr ? 'left-0' : 'right-0'
+                      } z-40 w-80 sm:w-96 rounded-xl bg-slate-950 text-slate-100 border border-teal-500/40 p-3.5 text-[11px] leading-relaxed shadow-2xl transition-all duration-150 ${
+                        showPbPhysicsTooltip
+                          ? 'opacity-100 visible translate-y-0'
+                          : 'opacity-0 invisible translate-y-1 group-hover/pb-tip:opacity-100 group-hover/pb-tip:visible group-hover/pb-tip:translate-y-0 group-focus-within/pb-tip:opacity-100 group-focus-within/pb-tip:visible group-focus-within/pb-tip:translate-y-0'
+                      }`}
+                    >
+                      <div className="font-bold text-teal-300 mb-1.5 flex items-center gap-1.5">
+                        <Zap className="w-3.5 h-3.5 shrink-0 text-teal-400" aria-hidden="true" />
+                        <span>
+                          {isAr
+                            ? 'فيزياء تقوية الفوتوإلكترونات الثانوية (Pb e⁻) وتباين الفيلم'
+                            : 'Secondary Photoelectron (Pb e⁻) Intensification & Contrast'}
+                        </span>
+                      </div>
+                      <p className="text-slate-300 mb-2">
+                        {isAr
+                          ? 'تمتص رقائق الرصاص (Z = 82) فوتونات الجاما والإكس راي عبر التأثير الكهروضوئي، وتطلق إلكترونات ثانوية (e⁻) عالية الكفاءة داخل مستحلب الفيلم، مما يضاعف سرعة الفيلم (~2× إلى 3× عامل تقوية) ويقلص زمن التعريض.'
+                          : 'High-Z Lead foils (Z = 82) absorb X/Gamma photons via the photoelectric effect and emit localized secondary electrons (e⁻) directly into the silver halide emulsion, amplifying photographic response (~2×–3× Intensification Factor) and cutting exposure time.'}
+                      </p>
+                      <p className="text-slate-300 mb-2.5">
+                        {isAr
+                          ? 'تعزيز التباين: تفلتر الرقاقة الأمامية الإشعاع المشتت منخفض الطاقة وتسمح للفوتونات الأولية فقط بالمساهمة في تكوين الصورة، بينما تحجب الرقاقة الخلفية التشتت الخلفي (Backscatter)، مما يرفع تباين الفيلم (ΔD) وحساسية سلك IQI.'
+                          : 'Contrast Gain: The front Pb screen selectively filters low-energy forward scatter while primary photons drive dense localized e⁻ tracks; the rear Pb foil absorbs backscatter—sharpening film contrast (ΔD) and IQI wire sensitivity.'}
+                      </p>
+                      <div className="pt-2 border-t border-slate-800 space-y-1 font-mono text-[10px]">
+                        <div className="flex items-center gap-2 text-amber-200">
+                          <span className="inline-block w-5 h-1 rounded-full bg-gradient-to-r from-yellow-300 via-lime-400 to-teal-400 shrink-0" />
+                          <span>
+                            {isAr
+                              ? 'تدرج الطاقة: أصفر دافئ (Pb) ← فيروزي بارد (تبدّد بالفيلم)'
+                              : 'Energy dissipation: Warm Yellow (Pb) → Cool Teal (Film)'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-emerald-300">
+                          <span className="inline-block w-3.5 h-0.5 bg-gradient-to-r from-yellow-300 to-teal-400 shrink-0" />
+                          <span>
+                            {isAr
+                              ? 'Front Pb → Film: فوتوإلكترونات أمامية + فلترة التشتت'
+                              : 'Front Pb → Film: Forward e⁻ emission + scatter filtration'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-teal-300">
+                          <span className="inline-block w-3.5 h-0.5 bg-gradient-to-r from-yellow-300 to-teal-400 shrink-0" />
+                          <span>
+                            {isAr
+                              ? 'Back Pb → Film: إلكترونات مرتدة + حجب التشتت الخلفي'
+                              : 'Back Pb → Film: Backscattered e⁻ + backscatter shielding'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-cyan-300">
+                          <span className="inline-block w-3.5 h-0.5 bg-gradient-to-r from-yellow-300 to-teal-400 shrink-0" />
+                          <span>
+                            {isAr
+                              ? 'Interleaf Pb (Dual): تقوية ثنائية الاتجاه للفيلم المزدوج'
+                              : 'Interleaf Pb (Dual): Bidirectional e⁻ boost for dual films'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-300">
+                          <span className="inline-block w-3.5 h-0.5 bg-teal-400/50 blur-[1px] shrink-0" />
+                          <span>
+                            {isAr
+                              ? 'أثر الشبح (Ghost Trail): قصير / متوسط / طويل لتبدّد الطاقة'
+                              : 'Ghost Trail Wake: Short / Medium / Long residual persistence'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
                   I(x,t) = I₀(0)·0.5^(t/T½)·0.5^(x_eq/HVL) · {selectedIsotope.chemicalSymbol} (HVL{' '}
@@ -4563,6 +5057,67 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                     <stop offset="100%" stopColor="#38bdf8" stopOpacity="0.04" />
                   </linearGradient>
 
+                  {/* Directional Pb → Film Photoelectron Energy Dissipation Gradients (Warm Yellow at Pb → Cool Teal at Film) */}
+                  {(() => {
+                    const gFilm1X = filmPlaneX + (hasLeadScreens ? 8 : 0);
+                    const gFilm1TargetX = gFilm1X + 4.5;
+                    const gFilm2X = filmPlaneX + (hasLeadScreens ? (hasInterleafScreen ? 24 : 19) : hasInterleafScreen ? 16 : 11);
+                    const gRearFilmTargetX = calcResult.isMultiFilm ? gFilm2X + 4 : gFilm1TargetX;
+                    const gBackPbInnerX = filmPlaneX + (calcResult.isMultiFilm ? (hasInterleafScreen ? 34 : 29) : 19);
+                    const gInterleafX = filmPlaneX + (hasLeadScreens ? 19 : 11);
+                    const stopNodes = (
+                      <>
+                        <stop offset="0%" stopColor="#fde047" className="rt-pb-energy-stop-origin" />
+                        <stop offset="48%" stopColor="#a3e635" className="rt-pb-energy-stop-mid" />
+                        <stop offset="100%" stopColor="#14b8a6" className="rt-pb-energy-stop-tip" />
+                      </>
+                    );
+                    return (
+                      <>
+                        <linearGradient
+                          id="gePbElectronDissipationFront"
+                          gradientUnits="userSpaceOnUse"
+                          x1={filmPlaneX + 6}
+                          y1="0"
+                          x2={gFilm1TargetX}
+                          y2="0"
+                        >
+                          {stopNodes}
+                        </linearGradient>
+                        <linearGradient
+                          id="gePbElectronDissipationBack"
+                          gradientUnits="userSpaceOnUse"
+                          x1={gBackPbInnerX}
+                          y1="0"
+                          x2={gRearFilmTargetX}
+                          y2="0"
+                        >
+                          {stopNodes}
+                        </linearGradient>
+                        <linearGradient
+                          id="gePbElectronDissipationInterleafLeft"
+                          gradientUnits="userSpaceOnUse"
+                          x1={gInterleafX}
+                          y1="0"
+                          x2={gFilm1X + 5.5}
+                          y2="0"
+                        >
+                          {stopNodes}
+                        </linearGradient>
+                        <linearGradient
+                          id="gePbElectronDissipationInterleafRight"
+                          gradientUnits="userSpaceOnUse"
+                          x1={gInterleafX + 3.5}
+                          y1="0"
+                          x2={gFilm2X + 3.5}
+                          y2="0"
+                        >
+                          {stopNodes}
+                        </linearGradient>
+                      </>
+                    );
+                  })()}
+
                   {/* Arrowhead marker for secondary photoelectron (e⁻) intensification vectors */}
                   <marker
                     id="gePbElectronArrow"
@@ -4573,7 +5128,7 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                     markerHeight="4.2"
                     orient="auto"
                   >
-                    <path d="M 0 1 L 7 4 L 0 7 z" fill="#34d399" />
+                    <path d="M 0 1 L 7 4 L 0 7 z" fill="#14b8a6" className="rt-pb-energy-arrow-tip" />
                   </marker>
                 </defs>
 
@@ -5105,110 +5660,423 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                         strokeDasharray={hasLeadScreens ? undefined : '3 2'}
                         opacity={hasLeadScreens ? 0.92 : 0.55}
                       />
-                      {showPbPhotoelectronPaths && (hasLeadScreens || (calcResult.isMultiFilm && hasInterleafScreen)) && (() => {
-                        const film1X = filmPlaneX + (hasLeadScreens ? 8 : 0);
-                        const film1TargetX = film1X + 4.5;
-                        const film2X = filmPlaneX + (hasLeadScreens ? (hasInterleafScreen ? 24 : 19) : hasInterleafScreen ? 16 : 11);
-                        const rearFilmTargetX = calcResult.isMultiFilm ? film2X + 4 : film1TargetX;
-                        const backPbInnerX = filmPlaneX + (calcResult.isMultiFilm ? (hasInterleafScreen ? 34 : 29) : 19);
-                        const interleafX = filmPlaneX + (hasLeadScreens ? 19 : 11);
+                      <AnimatePresence initial={hasInteractedWithPbPaths} mode="sync">
+                        {showPbPhotoelectronPaths && (hasLeadScreens || (calcResult.isMultiFilm && hasInterleafScreen)) && (() => {
+                          const film1X = filmPlaneX + (hasLeadScreens ? 8 : 0);
+                          const film1TargetX = film1X + 4.5;
+                          const film2X = filmPlaneX + (hasLeadScreens ? (hasInterleafScreen ? 24 : 19) : hasInterleafScreen ? 16 : 11);
+                          const rearFilmTargetX = calcResult.isMultiFilm ? film2X + 4 : film1TargetX;
+                          const backPbInnerX = filmPlaneX + (calcResult.isMultiFilm ? (hasInterleafScreen ? 34 : 29) : 19);
+                          const interleafX = filmPlaneX + (hasLeadScreens ? 19 : 11);
+                          const overlayWidth = calcResult.isMultiFilm ? (hasInterleafScreen ? 52 : 47) : 37;
 
-                        return (
-                          <g
-                            data-testid="ge-pb-photoelectron-paths"
-                            data-front-pb={hasLeadScreens ? 'true' : 'false'}
-                            data-back-pb={hasLeadScreens ? 'true' : 'false'}
-                            data-interleaf-pb={calcResult.isMultiFilm && hasInterleafScreen ? 'true' : 'false'}
-                            pointerEvents="none"
+                          return (
+                            <motion.g
+                              key="ge-pb-photoelectron-paths"
+                              data-testid="ge-pb-photoelectron-paths"
+                              data-animated-transition="stagger-collapse"
+                              data-entrance-effect="fade-outward-scale"
+                              data-ghost-trail-enabled="true"
+                              data-ghost-trail-length={pbGhostTrailLength}
+                              data-front-pb={hasLeadScreens ? 'true' : 'false'}
+                              data-back-pb={hasLeadScreens ? 'true' : 'false'}
+                              data-interleaf-pb={calcResult.isMultiFilm && hasInterleafScreen ? 'true' : 'false'}
+                              pointerEvents="none"
+                              style={{ transformOrigin: `${filmPlaneX + 16}px ${sourceCenterY}px` }}
+                              initial={{ opacity: 0, scale: 0.92 }}
+                              animate={{
+                                opacity: [0, 1],
+                                scale: [0.92, 1.03, 1],
+                                transition: {
+                                  opacity: { duration: 0.2, ease: 'easeOut' },
+                                  scale: { duration: 0.3, ease: [0.16, 1, 0.3, 1], times: [0, 0.6, 1] },
+                                },
+                              }}
+                              exit={{ opacity: 0, scale: 0.94, transition: { duration: 0.14, ease: 'easeIn' } }}
+                            >
+                              {hasLeadScreens && (
+                                <>
+                                  {/* Forward-scattered secondary photoelectron vectors from Front Pb to Film 1 plane */}
+                                  {[-50, -25, 0, 25, 50].map((dyOff, idx) => {
+                                    const originX = filmPlaneX + 6;
+                                    const originY = sourceCenterY + dyOff;
+                                    const targetY = sourceCenterY + dyOff - (dyOff === 0 ? 0 : Math.sign(dyOff) * 3);
+                                    const enterDelay = idx * 0.035;
+                                    return (
+                                      <g key={`front-pb-vec-${idx}`}>
+                                        <motion.circle
+                                          data-origin-dot="front_pb"
+                                          cx={filmPlaneX + 5.5}
+                                          cy={originY}
+                                          r="1.4"
+                                          fill="#fde047"
+                                          className="rt-pb-energy-origin-spark"
+                                          style={{ transformOrigin: `${filmPlaneX + 5.5}px ${originY}px` }}
+                                          initial={{ scale: 0, opacity: 0 }}
+                                          animate={{
+                                            scale: [0, 1.55, 1],
+                                            opacity: [0, 1, 0.95],
+                                            transition: {
+                                              duration: 0.26,
+                                              delay: enterDelay,
+                                              ease: [0.16, 1, 0.3, 1],
+                                              times: [0, 0.52, 1],
+                                            },
+                                          }}
+                                          exit={{
+                                            scale: 0,
+                                            opacity: 0,
+                                            transition: { duration: 0.12, ease: 'easeIn' },
+                                          }}
+                                        />
+                                        {/* Blurred residual energy ghost trails lagging behind Front Pb photoelectron */}
+                                        <PbGhostTrailLines
+                                          origin="front_pb"
+                                          originX={originX}
+                                          originY={originY}
+                                          targetX={film1TargetX}
+                                          targetY={targetY}
+                                          enterDelay={enterDelay}
+                                          gradientId="gePbElectronDissipationFront"
+                                          baseResidualWidth={2.9}
+                                          basePrimaryWidth={2.15}
+                                          originAnchorX={0}
+                                          opacityScale={1}
+                                          config={pbGhostTrailConfig}
+                                        />
+                                        <motion.line
+                                          data-vector-origin="front_pb"
+                                          data-entrance-effect="fade-outward-scale"
+                                          data-color-pulse="yellow-to-teal"
+                                          data-stagger-delay={enterDelay.toFixed(3)}
+                                          data-origin-x={originX}
+                                          data-origin-y={originY}
+                                          x1={originX}
+                                          y1={originY}
+                                          stroke="url(#gePbElectronDissipationFront)"
+                                          strokeWidth="1.45"
+                                          strokeDasharray="2.5 1.5"
+                                          markerEnd="url(#gePbElectronArrow)"
+                                          className="rt-pb-electron-vector"
+                                          style={{ originX: 0, originY: 0.5 }}
+                                          initial={{ x2: originX, y2: originY, scale: 0.08, opacity: 0 }}
+                                          animate={{
+                                            x2: film1TargetX,
+                                            y2: targetY,
+                                            scale: [0.08, 1.14, 1],
+                                            opacity: [0, 1, 0.95],
+                                            transition: {
+                                              x2: { duration: 0.22, delay: enterDelay, ease: [0.16, 1, 0.3, 1] },
+                                              y2: { duration: 0.22, delay: enterDelay, ease: [0.16, 1, 0.3, 1] },
+                                              scale: { duration: 0.28, delay: enterDelay, ease: [0.16, 1, 0.3, 1], times: [0, 0.62, 1] },
+                                              opacity: { duration: 0.26, delay: enterDelay, ease: 'easeOut', times: [0, 0.55, 1] },
+                                            },
+                                          }}
+                                          exit={{
+                                            x2: originX,
+                                            y2: originY,
+                                            scale: 0.05,
+                                            opacity: 0,
+                                            transition: { duration: 0.12, ease: 'easeIn' },
+                                          }}
+                                        />
+                                      </g>
+                                    );
+                                  })}
+                                  {/* Backscattered secondary photoelectron vectors from Back Pb to rear Film plane */}
+                                  {[-50, -25, 0, 25, 50].map((dyOff, idx) => {
+                                    const originX = backPbInnerX;
+                                    const originY = sourceCenterY + dyOff;
+                                    const targetY = sourceCenterY + dyOff - (dyOff === 0 ? 0 : Math.sign(dyOff) * 3);
+                                    const enterDelay = 0.06 + idx * 0.035;
+                                    return (
+                                      <g key={`back-pb-vec-${idx}`}>
+                                        <motion.circle
+                                          data-origin-dot="back_pb"
+                                          cx={backPbInnerX + 0.5}
+                                          cy={originY}
+                                          r="1.4"
+                                          fill="#fde047"
+                                          className="rt-pb-energy-origin-spark"
+                                          style={{ transformOrigin: `${backPbInnerX + 0.5}px ${originY}px` }}
+                                          initial={{ scale: 0, opacity: 0 }}
+                                          animate={{
+                                            scale: [0, 1.55, 1],
+                                            opacity: [0, 1, 0.92],
+                                            transition: {
+                                              duration: 0.26,
+                                              delay: enterDelay,
+                                              ease: [0.16, 1, 0.3, 1],
+                                              times: [0, 0.52, 1],
+                                            },
+                                          }}
+                                          exit={{
+                                            scale: 0,
+                                            opacity: 0,
+                                            transition: { duration: 0.12, ease: 'easeIn' },
+                                          }}
+                                        />
+                                        {/* Blurred residual energy ghost trails lagging behind Back Pb photoelectron */}
+                                        <PbGhostTrailLines
+                                          origin="back_pb"
+                                          originX={originX}
+                                          originY={originY}
+                                          targetX={rearFilmTargetX}
+                                          targetY={targetY}
+                                          enterDelay={enterDelay}
+                                          gradientId="gePbElectronDissipationBack"
+                                          baseResidualWidth={2.9}
+                                          basePrimaryWidth={2.15}
+                                          originAnchorX={1}
+                                          opacityScale={0.94}
+                                          config={pbGhostTrailConfig}
+                                        />
+                                        <motion.line
+                                          data-vector-origin="back_pb"
+                                          data-entrance-effect="fade-outward-scale"
+                                          data-color-pulse="yellow-to-teal"
+                                          data-stagger-delay={enterDelay.toFixed(3)}
+                                          data-origin-x={originX}
+                                          data-origin-y={originY}
+                                          x1={originX}
+                                          y1={originY}
+                                          stroke="url(#gePbElectronDissipationBack)"
+                                          strokeWidth="1.45"
+                                          strokeDasharray="2.5 1.5"
+                                          markerEnd="url(#gePbElectronArrow)"
+                                          className="rt-pb-electron-vector"
+                                          style={{ originX: 1, originY: 0.5 }}
+                                          initial={{ x2: originX, y2: originY, scale: 0.08, opacity: 0 }}
+                                          animate={{
+                                            x2: rearFilmTargetX,
+                                            y2: targetY,
+                                            scale: [0.08, 1.14, 1],
+                                            opacity: [0, 1, 0.92],
+                                            transition: {
+                                              x2: { duration: 0.22, delay: enterDelay, ease: [0.16, 1, 0.3, 1] },
+                                              y2: { duration: 0.22, delay: enterDelay, ease: [0.16, 1, 0.3, 1] },
+                                              scale: { duration: 0.28, delay: enterDelay, ease: [0.16, 1, 0.3, 1], times: [0, 0.62, 1] },
+                                              opacity: { duration: 0.26, delay: enterDelay, ease: 'easeOut', times: [0, 0.55, 1] },
+                                            },
+                                          }}
+                                          exit={{
+                                            x2: originX,
+                                            y2: originY,
+                                            scale: 0.05,
+                                            opacity: 0,
+                                            transition: { duration: 0.12, ease: 'easeIn' },
+                                          }}
+                                        />
+                                      </g>
+                                    );
+                                  })}
+                                </>
+                              )}
+                              {calcResult.isMultiFilm && hasInterleafScreen && (
+                                <>
+                                  {/* Bidirectional secondary photoelectron vectors from Interleaf 0.025mm Pb foil into Film 1 & Film 2 */}
+                                  {[-34, 0, 34].map((dyOff, idx) => {
+                                    const originY = sourceCenterY + dyOff;
+                                    const enterDelay = 0.04 + idx * 0.04;
+                                    return (
+                                      <g key={`interleaf-pb-vec-${idx}`}>
+                                        <motion.circle
+                                          data-origin-dot="interleaf_pb"
+                                          cx={interleafX + 1.75}
+                                          cy={originY}
+                                          r="1.25"
+                                          fill="#fde047"
+                                          className="rt-pb-energy-origin-spark"
+                                          style={{ transformOrigin: `${interleafX + 1.75}px ${originY}px` }}
+                                          initial={{ scale: 0, opacity: 0 }}
+                                          animate={{
+                                            scale: [0, 1.5, 1],
+                                            opacity: [0, 1, 0.9],
+                                            transition: {
+                                              duration: 0.25,
+                                              delay: enterDelay,
+                                              ease: [0.16, 1, 0.3, 1],
+                                              times: [0, 0.52, 1],
+                                            },
+                                          }}
+                                          exit={{
+                                            scale: 0,
+                                            opacity: 0,
+                                            transition: { duration: 0.11, ease: 'easeIn' },
+                                          }}
+                                        />
+                                        {/* Blurred residual energy ghost trails lagging behind bidirectional Interleaf Pb vectors */}
+                                        <PbGhostTrailLines
+                                          origin="interleaf_pb"
+                                          originX={interleafX}
+                                          originY={originY}
+                                          targetX={film1X + 5.5}
+                                          targetY={originY}
+                                          enterDelay={enterDelay}
+                                          gradientId="gePbElectronDissipationInterleafLeft"
+                                          baseResidualWidth={2.5}
+                                          basePrimaryWidth={1.9}
+                                          originAnchorX={1}
+                                          opacityScale={0.9}
+                                          config={pbGhostTrailConfig}
+                                        />
+                                        <PbGhostTrailLines
+                                          origin="interleaf_pb"
+                                          originX={interleafX + 3.5}
+                                          originY={originY}
+                                          targetX={film2X + 3.5}
+                                          targetY={originY}
+                                          enterDelay={enterDelay}
+                                          gradientId="gePbElectronDissipationInterleafRight"
+                                          baseResidualWidth={2.5}
+                                          basePrimaryWidth={1.9}
+                                          originAnchorX={0}
+                                          opacityScale={0.9}
+                                          config={pbGhostTrailConfig}
+                                        />
+                                        <motion.line
+                                          data-vector-origin="interleaf_pb"
+                                          data-entrance-effect="fade-outward-scale"
+                                          data-color-pulse="yellow-to-teal"
+                                          data-stagger-delay={enterDelay.toFixed(3)}
+                                          data-origin-x={interleafX}
+                                          data-origin-y={originY}
+                                          x1={interleafX}
+                                          y1={originY}
+                                          stroke="url(#gePbElectronDissipationInterleafLeft)"
+                                          strokeWidth="1.3"
+                                          strokeDasharray="2 1.5"
+                                          markerEnd="url(#gePbElectronArrow)"
+                                          className="rt-pb-electron-vector"
+                                          style={{ originX: 1, originY: 0.5 }}
+                                          initial={{ x2: interleafX, y2: originY, scale: 0.08, opacity: 0 }}
+                                          animate={{
+                                            x2: film1X + 5.5,
+                                            y2: originY,
+                                            scale: [0.08, 1.14, 1],
+                                            opacity: [0, 1, 0.9],
+                                            transition: {
+                                              x2: { duration: 0.2, delay: enterDelay, ease: [0.16, 1, 0.3, 1] },
+                                              y2: { duration: 0.2, delay: enterDelay, ease: [0.16, 1, 0.3, 1] },
+                                              scale: { duration: 0.26, delay: enterDelay, ease: [0.16, 1, 0.3, 1], times: [0, 0.62, 1] },
+                                              opacity: { duration: 0.24, delay: enterDelay, ease: 'easeOut', times: [0, 0.55, 1] },
+                                            },
+                                          }}
+                                          exit={{
+                                            x2: interleafX,
+                                            y2: originY,
+                                            scale: 0.05,
+                                            opacity: 0,
+                                            transition: { duration: 0.11, ease: 'easeIn' },
+                                          }}
+                                        />
+                                        <motion.line
+                                          data-vector-origin="interleaf_pb"
+                                          data-entrance-effect="fade-outward-scale"
+                                          data-color-pulse="yellow-to-teal"
+                                          data-stagger-delay={enterDelay.toFixed(3)}
+                                          data-origin-x={interleafX + 3.5}
+                                          data-origin-y={originY}
+                                          x1={interleafX + 3.5}
+                                          y1={originY}
+                                          stroke="url(#gePbElectronDissipationInterleafRight)"
+                                          strokeWidth="1.3"
+                                          strokeDasharray="2 1.5"
+                                          markerEnd="url(#gePbElectronArrow)"
+                                          className="rt-pb-electron-vector"
+                                          style={{ originX: 0, originY: 0.5 }}
+                                          initial={{ x2: interleafX + 3.5, y2: originY, scale: 0.08, opacity: 0 }}
+                                          animate={{
+                                            x2: film2X + 3.5,
+                                            y2: originY,
+                                            scale: [0.08, 1.14, 1],
+                                            opacity: [0, 1, 0.9],
+                                            transition: {
+                                              x2: { duration: 0.2, delay: enterDelay, ease: [0.16, 1, 0.3, 1] },
+                                              y2: { duration: 0.2, delay: enterDelay, ease: [0.16, 1, 0.3, 1] },
+                                              scale: { duration: 0.26, delay: enterDelay, ease: [0.16, 1, 0.3, 1], times: [0, 0.62, 1] },
+                                              opacity: { duration: 0.24, delay: enterDelay, ease: 'easeOut', times: [0, 0.55, 1] },
+                                            },
+                                          }}
+                                          exit={{
+                                            x2: interleafX + 3.5,
+                                            y2: originY,
+                                            scale: 0.05,
+                                            opacity: 0,
+                                            transition: { duration: 0.11, ease: 'easeIn' },
+                                          }}
+                                        />
+                                      </g>
+                                    );
+                                  })}
+                                </>
+                              )}
+                              {/* Educational Photoelectron Direction & Gain Callout Pill */}
+                              <motion.g
+                                data-testid="ge-pb-photoelectron-legend"
+                                style={{ transformOrigin: `${filmPlaneX + 16}px ${plotBottom + 9}px` }}
+                                initial={{ opacity: 0, scale: 0.85 }}
+                                animate={{
+                                  opacity: [0, 1],
+                                  scale: [0.85, 1.05, 1],
+                                  transition: {
+                                    opacity: { duration: 0.2, delay: 0.1, ease: 'easeOut' },
+                                    scale: { duration: 0.26, delay: 0.1, ease: [0.16, 1, 0.3, 1], times: [0, 0.6, 1] },
+                                  },
+                                }}
+                                exit={{
+                                  opacity: 0,
+                                  scale: 0.88,
+                                  transition: { duration: 0.11, ease: 'easeIn' },
+                                }}
+                              >
+                                <rect
+                                  x={filmPlaneX - 10}
+                                  y={plotBottom + 2}
+                                  width={Math.max(58, overlayWidth + 10)}
+                                  height="14"
+                                  rx="3"
+                                  fill="#042f2e"
+                                  stroke="#14b8a6"
+                                  strokeWidth="0.8"
+                                />
+                                <text
+                                  x={filmPlaneX - 10 + Math.max(58, overlayWidth + 10) / 2}
+                                  y={plotBottom + 11.5}
+                                  fill="#5eead4"
+                                  fontSize="6.8"
+                                  fontWeight="bold"
+                                  fontFamily="monospace"
+                                  textAnchor="middle"
+                                >
+                                  {calcResult.isMultiFilm && hasInterleafScreen
+                                    ? 'Pb →e⁻← Film (Dual)'
+                                    : 'Pb +e⁻ → Film'}
+                                </text>
+                              </motion.g>
+                            </motion.g>
+                          );
+                        })()}
+                        {showPbPhotoelectronPaths && !hasLeadScreens && !(calcResult.isMultiFilm && hasInterleafScreen) && (
+                          <motion.text
+                            key="ge-pb-photoelectron-disabled-note"
+                            data-testid="ge-pb-photoelectron-disabled-note"
+                            x={filmPlaneX + 12}
+                            y={plotBottom + 11}
+                            fill="#94a3b8"
+                            fontSize="6.5"
+                            fontFamily="monospace"
+                            textAnchor="middle"
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            transition={{ duration: 0.2, ease: 'easeOut' }}
+                            style={{ transformOrigin: `${filmPlaneX + 12}px ${plotBottom + 11}px` }}
                           >
-                            {hasLeadScreens && (
-                              <>
-                                {/* Forward-scattered secondary photoelectron vectors from Front Pb to Film 1 plane */}
-                                {[-50, -25, 0, 25, 50].map((dyOff, idx) => (
-                                  <g key={`front-pb-vec-${idx}`}>
-                                    <circle
-                                      cx={filmPlaneX + 5.5}
-                                      cy={sourceCenterY + dyOff}
-                                      r="1.3"
-                                      fill="#6ee7b7"
-                                      opacity="0.95"
-                                    />
-                                    <line
-                                      data-vector-origin="front_pb"
-                                      x1={filmPlaneX + 6}
-                                      y1={sourceCenterY + dyOff}
-                                      x2={film1TargetX}
-                                      y2={sourceCenterY + dyOff - (dyOff === 0 ? 0 : Math.sign(dyOff) * 3)}
-                                      stroke="#34d399"
-                                      strokeWidth="1.25"
-                                      strokeDasharray="2.5 1.5"
-                                      markerEnd="url(#gePbElectronArrow)"
-                                      opacity="0.95"
-                                    />
-                                  </g>
-                                ))}
-                                {/* Backscattered secondary photoelectron vectors from Back Pb to rear Film plane */}
-                                {[-50, -25, 0, 25, 50].map((dyOff, idx) => (
-                                  <g key={`back-pb-vec-${idx}`}>
-                                    <circle
-                                      cx={backPbInnerX + 0.5}
-                                      cy={sourceCenterY + dyOff}
-                                      r="1.3"
-                                      fill="#5eead4"
-                                      opacity="0.92"
-                                    />
-                                    <line
-                                      data-vector-origin="back_pb"
-                                      x1={backPbInnerX}
-                                      y1={sourceCenterY + dyOff}
-                                      x2={rearFilmTargetX}
-                                      y2={sourceCenterY + dyOff - (dyOff === 0 ? 0 : Math.sign(dyOff) * 3)}
-                                      stroke="#2dd4bf"
-                                      strokeWidth="1.25"
-                                      strokeDasharray="2.5 1.5"
-                                      markerEnd="url(#gePbElectronArrow)"
-                                      opacity="0.92"
-                                    />
-                                  </g>
-                                ))}
-                              </>
-                            )}
-                            {calcResult.isMultiFilm && hasInterleafScreen && (
-                              <>
-                                {/* Bidirectional secondary photoelectron vectors from Interleaf 0.025mm Pb foil into Film 1 & Film 2 */}
-                                {[-34, 0, 34].map((dyOff, idx) => (
-                                  <g key={`interleaf-pb-vec-${idx}`}>
-                                    <line
-                                      data-vector-origin="interleaf_pb"
-                                      x1={interleafX}
-                                      y1={sourceCenterY + dyOff}
-                                      x2={film1X + 5.5}
-                                      y2={sourceCenterY + dyOff}
-                                      stroke="#67e8f9"
-                                      strokeWidth="1.1"
-                                      strokeDasharray="2 1.5"
-                                      markerEnd="url(#gePbElectronArrow)"
-                                      opacity="0.9"
-                                    />
-                                    <line
-                                      data-vector-origin="interleaf_pb"
-                                      x1={interleafX + 3.5}
-                                      y1={sourceCenterY + dyOff}
-                                      x2={film2X + 3.5}
-                                      y2={sourceCenterY + dyOff}
-                                      stroke="#67e8f9"
-                                      strokeWidth="1.1"
-                                      strokeDasharray="2 1.5"
-                                      markerEnd="url(#gePbElectronArrow)"
-                                      opacity="0.9"
-                                    />
-                                  </g>
-                                ))}
-                              </>
-                            )}
-                          </g>
-                        );
-                      })()}
+                            {isAr ? 'فعّل Pb لإطلاق e⁻' : 'Pb Off (No e⁻)'}
+                          </motion.text>
+                        )}
+                      </AnimatePresence>
                       <rect
                         x={filmPlaneX - 8}
                         y={plotTop - 13}

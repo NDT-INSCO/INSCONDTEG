@@ -15,11 +15,12 @@ import path from 'node:path';
 import express from 'express';
 import { createAiGateway } from '../server/ai/gateway.js';
 
-// The corpus is read from `edb/` at request time. The build copies `public/edb`
-// into `dist/edb`, which is what `includeFiles` bundles; the other two are for a local
-// run of this function, where the sources are still in place.
+// The corpus is read from `edb/` at request time. `includeFiles` bundles `public/edb`,
+// and `dist` stays first for a local run of the built app. Nothing here guesses: when
+// neither directory exists the status route reports `retrieval.ready: false` and the
+// tutor declines instead of inventing an answer.
 const edbRoot =
-  ['dist', 'public', '.'].map(dir => path.join(process.cwd(), dir)).find(dir => existsSync(path.join(dir, 'edb'))) ??
+  ['public', 'dist', '.'].map(dir => path.join(process.cwd(), dir)).find(dir => existsSync(path.join(dir, 'edb'))) ??
   process.cwd();
 
 const app = express();

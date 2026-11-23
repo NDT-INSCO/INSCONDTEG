@@ -55,3 +55,12 @@ test('a key Google rejects is named as such, not as an unreachable model', () =>
   assert.match(ar, /مفتاح/);
   assert.doesNotMatch(ar, /تعذّر الوصول/);
 });
+
+test('the provider sentence is found inside an SDK wrapper', () => {
+  const wrapped = new Error(
+    '400 API error occurred: {"httpMeta":{"response":{}},"error":{"code":400,' +
+      '"message":"API key not valid. Please pass a valid API key.","status":"INVALID_ARGUMENT"}}'
+  );
+  assert.equal(classifyUpstreamError(wrapped), 'key_rejected');
+  assert.equal(sanitiseUpstreamDetail(wrapped), 'API key not valid. Please pass a valid API key.');
+});

@@ -252,14 +252,21 @@ export interface UpstreamDetail {
  * Shorten a provider message to something safe to show: no `key=…`, no `AIza…`,
  * no newlines, and at most 200 characters.
  */
-export function sanitiseUpstreamDetail(error: unknown): string {
+/** Google's own wording, when the SDK wrapped it inside a JSON blob. */
+export function providerMessage(error: unknown): string {
   const raw = error instanceof Error ? error.message : String(error ?? '');
-  return raw
+  const match = raw.match(/"message"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+  return (match ? match[1] : raw).replace(/\\"/g, '"').replace(/\\n/g, ' ');
+}
+
+export function sanitiseUpstreamDetail(error: unknown): string {
+  const raw = providerMessage(error)
     .replace(/\bkey=[^&\s"']+/gi, 'key=***')
     .replace(/AIza[0-9A-Za-z_-]{10,}/g, 'AIza***')
     .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, 200);
+    .trim();
+  // Both ends matter: an SDK wrapper puts its noise first and Google's sentence last.
+  return raw.length <= 200 ? raw : `${raw.slice(0, 120)} … ${raw.slice(-70)}`;
 }
 
 export type TutorStreamEvent =

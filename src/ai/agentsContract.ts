@@ -9,15 +9,15 @@
 
 export const AGENT_MODELS = {
   /**
-   * Measured on production, not by release date: `gemini-4-hydrogen` answered 503 high
-   * demand every time it was asked, and it was first in this chain — so every copilot
-   * request spent its opening seconds on a model that was never going to answer.
-   * It stays in the chain, at the back, where a busy model belongs.
+   * Measured on production: `gemini-3.5-flash-lite` answered in 652ms while every `flash`
+   * hung and was aborted, and `gemini-4-hydrogen` returned 503 high demand every time it
+   * was asked. Quota is per model, so the model with headroom leads and the busy one
+   * sits at the back.
    */
-  primary: 'gemini-3.8-flash',
-  fallback: 'gemini-3.6-flash',
+  primary: 'gemini-3.5-flash-lite',
+  fallback: 'gemini-3.8-flash',
   /** Walked when a model is busy or rate-limited, not only when an id is missing. */
-  fallbacks: ['gemini-3.5-flash-lite', 'gemini-4-hydrogen'] as const,
+  fallbacks: ['gemini-3.6-flash', 'gemini-4-hydrogen'] as const,
 } as const;
 
 export const AGENT_ENDPOINTS = {

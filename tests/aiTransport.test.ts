@@ -403,6 +403,7 @@ test('one slow model does not consume the whole request budget', async () => {
 
   assert.deepEqual(parts, ['Answered by the second model.']);
   assert.match(logs.join('\n'), /ran out of time; trying the next model/);
+  assert.doesNotMatch(logs.join('\n'), /every model was busy/, 'a timeout is not a reason to walk the chain again');
   assert.deepEqual(attempts[0], { model: 'gemini-3.8-flash', signal: 'upstream_error' });
 });
 

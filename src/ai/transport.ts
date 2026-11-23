@@ -127,7 +127,7 @@ const CHAIN_BACKOFF_MS = 1500;
  * model that hangs consumes all of it and the reader gets a timeout even though three
  * other models were never asked.
  */
-export const PER_MODEL_TIMEOUT_MS = 12000;
+export const PER_MODEL_TIMEOUT_MS = 18000;
 
 async function* runChain<T>(
   models: string[],
@@ -140,7 +140,8 @@ async function* runChain<T>(
   let lastError: unknown = null;
 
   for (let pass = 1; pass <= CHAIN_PASSES; pass++) {
-    let sawTransient = false;
+    /** A model refused for capacity: worth a second walk. */
+    let sawBusy = false;
 
     for (const model of models) {
       let yielded = false;
@@ -158,8 +159,8 @@ async function* runChain<T>(
         lastError = error;
         if (signal.aborted) return;
         if (budget.signal.aborted) {
-          // This model alone ran out of time; the next one may still answer.
-          sawTransient = true;
+          // This model alone ran out of time; the next one may still answer, but a
+          // second walk of the whole chain would only spend the request budget again.
           attempts?.push({ model, signal: 'upstream_error' });
           log(`[ai] ${model} ran out of time; trying the next model`);
           continue;
@@ -179,7 +180,7 @@ async function* runChain<T>(
         }
         if (kind === 'rate_limited' || kind === 'model_busy') {
           // Busy is about one model, not about the tutor: the next model may answer now.
-          sawTransient = true;
+          sawBusy = true;
           log(`[ai] ${model} is ${kind === 'model_busy' ? 'busy' : 'rate limited'}; trying the next model`);
           continue;
         }
@@ -191,7 +192,7 @@ async function* runChain<T>(
       }
     }
 
-    if (!sawTransient || pass === CHAIN_PASSES) break;
+    if (!sawBusy || pass === CHAIN_PASSES) break;
     log('[ai] every model was busy; waiting once and walking the chain again');
     await sleep(CHAIN_BACKOFF_MS, signal);
     if (signal.aborted) return;

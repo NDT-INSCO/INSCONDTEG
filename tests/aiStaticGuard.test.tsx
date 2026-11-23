@@ -25,10 +25,10 @@ Object.assign(globalThis, {
 });
 dom.window.scrollTo = () => {};
 
-test('static build: agents refuse with not_configured and the contract names real models', async () => {
-  const { askUserCopilot, runSiteManagerAgent, runCommunityAssist, agentUrl, AgentApiError } =
-    await import('../src/ai/agentsClient');
+test('static build: the agents call the hosted gateway, never a relative path', async () => {
+  const { askUserCopilot, agentUrl } = await import('../src/ai/agentsClient');
   const { AGENT_MODELS } = await import('../src/ai/agentsContract');
+  const { HOSTED_GATEWAY_URL } = await import('../src/ai/pagesGateway');
 
   const chain = [AGENT_MODELS.primary, AGENT_MODELS.fallback, ...AGENT_MODELS.fallbacks];
 
@@ -39,59 +39,37 @@ test('static build: agents refuse with not_configured and the contract names rea
   assert.equal(chain[chain.length - 1], 'gemini-4-hydrogen');
   assert.equal(new Set(chain).size, chain.length, 'the chain must not repeat a model');
 
-  // The static build must never reach the network with a relative URL.
+  // A static build has no server of its own, so every call must be absolute and go to the
+  // deployment that holds the key. This used to be a refusal; now it is a real call.
+  assert.equal(agentUrl('/api/ai/agent/user-copilot'), `${HOSTED_GATEWAY_URL}/api/ai/agent/user-copilot`);
+
   const before = globalThis.fetch;
-  let fetchCalls = 0;
-  globalThis.fetch = (async () => {
-    fetchCalls += 1;
-    return new Response('{}', { status: 200 });
+  const calls: string[] = [];
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    calls.push(String(input));
+    // The gateway answers 503 when it has no key; the client must pass that through, not
+    // invent a reply of its own.
+    return new Response(JSON.stringify({ error: { code: 'not_configured', message: 'no key' } }), {
+      status: 503,
+      headers: { 'content-type': 'application/json' },
+    });
   }) as typeof fetch;
   try {
     await assert.rejects(
       askUserCopilot({ message: 'hello', history: [], language: 'ar', mode: 'assistant' }),
-      (error: AgentApiError) => {
-        assert.equal(error.code, 'not_configured');
-        assert.equal(error.status, 503);
-        assert.match(error.message, /INSCO AI gateway/);
-        return true;
-      }
-    );
-
-    await assert.rejects(
-      runSiteManagerAgent({
-        instruction: 'audit',
-        language: 'ar',
-        mode: 'executive_audit',
-        telemetry: {
-          totalRequests: 0, newRequests: 0, urgentRequests: 0, totalCompanies: 0,
-          activeTestingCompanies: 0, pendingAccounts: 0, geofenceAlertCount: 0,
-          recentGeofenceAlerts: [], communityPostsCount: 0, communityMembersCount: 0,
-          opportunitiesCount: 0, recentPosts: [],
-        },
-      }),
-      (error: AgentApiError) => {
-        assert.equal(error.code, 'not_configured');
-        return true;
-      }
-    );
-
-    await assert.rejects(
-      runCommunityAssist({ action: 'enhance_post', language: 'ar', ndtMethod: 'RT', body: 'فحص' }),
-      (error: AgentApiError) => {
-        assert.equal(error.code, 'not_configured');
+      (error: { code?: string }) => {
+        assert.equal(error.code, 'not_configured', 'the gateway\'s own reason survives');
         return true;
       }
     );
   } finally {
     globalThis.fetch = before;
   }
-  assert.equal(fetchCalls, 0, 'static build must never hit the network');
-
-  // URL helper stays relative when the gateway is not configured (see client.ts).
-  assert.match(agentUrl('/api/ai/agent/user-copilot'), /^\/api\/ai\/agent\/user-copilot$/);
+  assert.equal(calls.length, 1, 'the question reaches the gateway');
+  assert.ok(calls[0].startsWith(HOSTED_GATEWAY_URL), `expected the hosted gateway, got ${calls[0]}`);
 });
 
-test('static build: the dock explains itself instead of faking', async () => {
+test('static build: the dock no longer pretends there is no gateway', async () => {
   const { render, fireEvent, cleanup } = await import('@testing-library/react');
   const React = await import('react');
   const { InscoDualAiDock } = await import('../src/components/ai/InscoDualAiDock');
@@ -106,7 +84,8 @@ test('static build: the dock explains itself instead of faking', async () => {
     })
   );
   fireEvent.click(ui.getByTestId('insco-dual-ai-launcher'));
-  assert.ok(ui.getByTestId('ai-gateway-unavailable'));
-  assert.match(ui.getByTestId('ai-gateway-unavailable').textContent, /static/i);
+  // A gateway is configured for this build, so the "no gateway here" notice would be a lie.
+  assert.equal(ui.queryByTestId('ai-gateway-unavailable'), null);
+  assert.ok(ui.getByTestId('insco-dual-ai-drawer'));
   cleanup();
 });

@@ -46,6 +46,7 @@ import {
   UpstreamSignal,
 } from '../../src/ai/contract.js';
 import type { SearchHit } from '../../src/ai/search.js';
+import { HOSTED_GATEWAY_URL, PAGES_SITE_ORIGIN } from '../../src/ai/pagesGateway.js';
 import { buildTutorLibrary, type TutorLibrary } from '../tutor/library.js';
 import {
   ChainAttempt,
@@ -78,8 +79,50 @@ export function isTutorConfigured(env: NodeJS.ProcessEnv): boolean {
   return readAiEnv(env).configured;
 }
 
+/**
+ * Cross-origin access, deliberately narrow.
+ *
+ * The static GitHub Pages build has to call this gateway from another origin, and a JSON
+ * POST is not a "simple" request — the browser sends a preflight first. Answering it is the
+ * difference between "the AI works" and "the AI works on Vercel only".
+ *
+ * Nothing secret travels in the other direction: the key stays on this server, the CORS
+ * grant only lets a page the project owns read answers, and per-IP limits are unchanged.
+ */
+const ALLOWED_ORIGINS = [PAGES_SITE_ORIGIN, HOSTED_GATEWAY_URL];
+
+function allowedOrigin(origin: string | undefined): string | null {
+  if (!origin) return null;
+  const extra = (process.env.AI_ALLOWED_ORIGINS ?? '')
+    .split(',')
+    .map(value => value.trim())
+    .filter(Boolean);
+  if (ALLOWED_ORIGINS.includes(origin) || extra.includes(origin)) return origin;
+  // Preview deployments of this project, and the local dev servers.
+  if (/^https:\/\/inscondteg-[a-z0-9-]+-ndt-insco\.vercel\.app$/i.test(origin)) return origin;
+  if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)) return origin;
+  return null;
+}
+
 export function createAiGateway(edbRoot: string): express.Router {
   const router = express.Router();
+
+  router.use((req, res, next) => {
+    // `Vary` matters: without it a CDN may hand a Pages response to a Vercel caller.
+    res.setHeader('Vary', 'Origin');
+    const origin = allowedOrigin(req.headers.origin);
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
+      res.setHeader('Access-Control-Max-Age', '600');
+    }
+    if (req.method === 'OPTIONS') {
+      res.status(origin ? 204 : 403).end();
+      return;
+    }
+    next();
+  });
 
   // A static import on purpose. This used to be `await import('../tutor/reviewedLibrary.js')`,
   // which `tsx` resolves but a bundled serverless runtime does not: the request died with

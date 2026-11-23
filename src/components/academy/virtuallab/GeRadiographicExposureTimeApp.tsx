@@ -62,7 +62,9 @@ import {
 } from '../../../utils/geExposureTimeEngine';
 import {
   generateGeRadiographicExposurePdf,
-  GeRadiographicPdfReportData
+  generateGeConversionLogPdf,
+  GeRadiographicPdfReportData,
+  GeConversionLogPdfReportData
 } from '../../../utils/geRadiographicExposurePdfGenerator';
 import { IsotopeDecayCurveChart } from './IsotopeDecayCurveChart';
 
@@ -1675,6 +1677,11 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
   const [playbackSpeed4d, setPlaybackSpeed4d] = useState<0.5 | 1 | 2>(1);
   const [dayOffset4d, setDayOffset4d] = useState<number>(30);
 
+  // Real-Time Primary Exposure 4D Isotope Decay Playback State
+  const [isRealtime4dPlaying, setIsRealtime4dPlaying] = useState<boolean>(false);
+  const [realtime4dSpeed, setRealtime4dSpeed] = useState<0.5 | 1 | 2>(1);
+  const [realtime4dHorizonHalfLives, setRealtime4dHorizonHalfLives] = useState<2 | 3 | 5>(3);
+
   // Audio tone helper
   const playBeep = (freq: number = 880, durationMs: number = 180) => {
     if (!soundEnabled) return;
@@ -1782,6 +1789,110 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
     [exposureInput, beamDecayProfile, dayOffset4d]
   );
 
+  const realtime4dSnapshot = useMemo(() => {
+    const isotopeSpec = GE_ISOTOPES[sourceType];
+    const isGamma = isotopeSpec.category === 'gamma' && isotopeSpec.halfLifeDays > 0;
+    const halfLifeDays = isGamma ? isotopeSpec.halfLifeDays : 365;
+    const maxDays = isGamma ? Math.max(2, Math.round(halfLifeDays * realtime4dHorizonHalfLives)) : 180;
+    const currentDay = Math.max(0, Math.min(maxDays, calcResult.decayDaysElapsed));
+    const baseCalib = Number.isNaN(new Date(`${initialCalibrationDate}T00:00:00Z`).getTime())
+      ? '2026-10-06'
+      : initialCalibrationDate;
+    const day0Res = calculateGeRadiographicExposure({
+      ...exposureInput,
+      initialCalibrationDate: baseCalib,
+      measurementDate: baseCalib
+    });
+    const exposureMultiplier = Number(
+      (calcResult.calculatedTotalSeconds / Math.max(0.01, day0Res.calculatedTotalSeconds)).toFixed(2)
+    );
+    const percentRemaining = isGamma ? Number((calcResult.decayFractionRemaining * 100).toFixed(1)) : 100;
+    const halfLivesElapsed = isGamma ? Number((currentDay / halfLifeDays).toFixed(2)) : 0;
+
+    // Mini exponential 4D waveform geometry (220x32 SVG)
+    const w = 220;
+    const h = 32;
+    const padX = 4;
+    const padY = 4;
+    const innerW = w - padX * 2;
+    const innerH = h - padY * 2;
+    const curvePts: string[] = [];
+    for (let i = 0; i <= 32; i++) {
+      const fracX = i / 32;
+      const d = fracX * maxDays;
+      const yFrac = isGamma ? Math.pow(0.5, d / halfLifeDays) : 1;
+      const px = padX + fracX * innerW;
+      const py = padY + (1 - yFrac) * innerH;
+      curvePts.push(`${i === 0 ? 'M' : 'L'} ${px.toFixed(1)} ${py.toFixed(1)}`);
+    }
+    const markerFracX = maxDays > 0 ? Math.max(0, Math.min(1, currentDay / maxDays)) : 0;
+    const markerFracY = isGamma ? Math.pow(0.5, currentDay / halfLifeDays) : 1;
+    const markerX = Number((padX + markerFracX * innerW).toFixed(1));
+    const markerY = Number((padY + (1 - markerFracY) * innerH).toFixed(1));
+
+    return {
+      isGamma,
+      halfLifeDays,
+      maxDays,
+      currentDay,
+      baseCalib,
+      day0Seconds: day0Res.calculatedTotalSeconds,
+      exposureMultiplier,
+      percentRemaining,
+      halfLivesElapsed,
+      sparklinePath: curvePts.join(' '),
+      markerX,
+      markerY
+    };
+  }, [
+    sourceType,
+    realtime4dHorizonHalfLives,
+    calcResult.decayDaysElapsed,
+    calcResult.calculatedTotalSeconds,
+    calcResult.decayFractionRemaining,
+    initialCalibrationDate,
+    exposureInput
+  ]);
+
+  const handleRealtime4dDayChange = (targetDay: number) => {
+    const clamped = Math.max(0, Math.min(realtime4dSnapshot.maxDays, Math.round(targetDay)));
+    setMeasurementDate(addDaysIsoDate(realtime4dSnapshot.baseCalib, clamped));
+  };
+
+  // Stop real-time 4D playback if source switches to non-decaying X-ray tube
+  useEffect(() => {
+    if (!realtime4dSnapshot.isGamma && isRealtime4dPlaying) {
+      setIsRealtime4dPlaying(false);
+    }
+  }, [realtime4dSnapshot.isGamma, isRealtime4dPlaying]);
+
+  // Real-time 4D Isotope Decay Auto-Playback Loop (directly drives measurementDate & calcResult)
+  useEffect(() => {
+    if (!isRealtime4dPlaying || !realtime4dSnapshot.isGamma) return;
+    const maxDays = realtime4dSnapshot.maxDays;
+    const baseCalib = realtime4dSnapshot.baseCalib;
+    const baseMs = new Date(`${baseCalib}T00:00:00Z`).getTime();
+    const stepDays = Math.max(1, Math.round((maxDays / 60) * realtime4dSpeed));
+    const timer = setInterval(() => {
+      setMeasurementDate((prevDate) => {
+        const parsedMs = new Date(`${prevDate}T00:00:00Z`).getTime();
+        const prevDays = Number.isNaN(parsedMs) ? 0 : Math.max(0, Math.round((parsedMs - baseMs) / 86400000));
+        const nextDays = prevDays + stepDays > maxDays ? 0 : prevDays + stepDays;
+        return addDaysIsoDate(baseCalib, nextDays);
+      });
+    }, 180);
+    if (typeof (timer as { unref?: () => void }).unref === 'function') {
+      (timer as { unref: () => void }).unref();
+    }
+    return () => clearInterval(timer);
+  }, [
+    isRealtime4dPlaying,
+    realtime4dSnapshot.isGamma,
+    realtime4dSnapshot.maxDays,
+    realtime4dSnapshot.baseCalib,
+    realtime4dSpeed
+  ]);
+
   // Clamp 4D offset when isotope horizon shrinks
   useEffect(() => {
     if (dayOffset4d > shift4d.maxHorizonDays) {
@@ -1870,10 +1981,12 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
   const [resetConfirmed, setResetConfirmed] = useState<boolean>(false);
   const [unitsResetConfirmed, setUnitsResetConfirmed] = useState<boolean>(false);
   const [csvExportedConfirmed, setCsvExportedConfirmed] = useState<boolean>(false);
+  const [conversionPdfExportedConfirmed, setConversionPdfExportedConfirmed] = useState<boolean>(false);
   const [copiedUnitsConfirmed, setCopiedUnitsConfirmed] = useState<boolean>(false);
   const [unitTransitionPulse, setUnitTransitionPulse] = useState<boolean>(false);
   const unitsResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const csvExportTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const conversionPdfExportTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const copyUnitsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const unitTransitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevUnitSystemRef = useRef<GeUnitSystem>(unitSystem);
@@ -1896,6 +2009,9 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
       }
       if (csvExportTimeoutRef.current) {
         clearTimeout(csvExportTimeoutRef.current);
+      }
+      if (conversionPdfExportTimeoutRef.current) {
+        clearTimeout(conversionPdfExportTimeoutRef.current);
       }
       if (copyUnitsTimeoutRef.current) {
         clearTimeout(copyUnitsTimeoutRef.current);
@@ -2028,6 +2144,8 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
     setPbGhostTrailLength('medium');
     setShowWeldProfileOverlay(true);
     setIs4dPlaying(false);
+    setIsRealtime4dPlaying(false);
+    setRealtime4dHorizonHalfLives(3);
 
     setResetConfirmed(true);
     setTimeout(() => setResetConfirmed(false), 2000);
@@ -2302,6 +2420,90 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
     }
   };
 
+  // Unit Conversion Log Structured PDF Export Handler
+  const handleExportConversionLogPdf = () => {
+    if (conversionLog.length === 0) return;
+
+    try {
+      const reportNumber = `RT-CONV-${Math.floor(100000 + Math.random() * 900000)}`;
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      const pdfData: GeConversionLogPdfReportData = {
+        reportNumber,
+        reportDate: measurementDate || todayStr,
+        clientName: 'INSCO NDT Industrial Operations',
+        projectFacility: 'Field Radiographic Testing Station',
+        weldJointId: 'W-01 (ASME Sec V Circumferential Butt)',
+        leadRadiographer: 'Certified RT Inspector',
+        radiographerLevel: 'Level II',
+        inspectorCertNumber: 'INSCO-RT-ISO9712-4421',
+
+        sourceType,
+        isotopeSpec: selectedIsotope,
+        initialActivityCi,
+        initialCalibrationDate,
+        measurementDate,
+        decayDaysElapsed: calcResult.decayDaysElapsed,
+        currentLiveActivityCi: calcResult.currentLiveActivityCi,
+        tubeKv: sourceType.startsWith('xray') ? tubeKv : undefined,
+        tubeMa: sourceType.startsWith('xray') ? tubeMa : undefined,
+
+        materialSpec: selectedMaterial,
+        nominalThicknessMm: materialThicknessMm,
+        weldReinforcementMm,
+        pipeOuterDiameterMm: technique.includes('dw') || technique === 'swsi_panoramic' ? pipeOuterDiameterMm : undefined,
+        techniqueSpec: selectedTechnique,
+        sfdCm,
+
+        filmLoadingMode,
+        primaryFilmSpec: calcResult.primaryFilmSpec,
+        secondaryFilmSpec: calcResult.secondaryFilmSpec,
+        hasInterleafLeadScreen: calcResult.hasInterleafLeadScreen,
+        wideLatitudeGoverning: wideLatitudeGov,
+        hasLeadScreens,
+        hasCollimator,
+        targetOpticalDensity,
+
+        calculatedExposureSeconds: calcResult.calculatedTotalSeconds,
+        formattedExposureDuration: calcResult.formattedDuration,
+        exposureInCurieMinutes: calcResult.exposureInCurieMinutes,
+        effectiveSteelThicknessMm: calcResult.effectiveSteelThicknessMm,
+        halfValueLayersCount: calcResult.halfValueLayersCount,
+        attenuationFactor: calcResult.attenuationFactor,
+        calculatedUgMm: calcResult.calculatedUgMm,
+        maxAllowedUgMm: calcResult.maxAllowedUgMm,
+        passesAsmeUg: calcResult.passesAsmeUg,
+        essentialWireIdentity: calcResult.essentialWireIdentity,
+        essentialWireDiameterMm: calcResult.essentialWireDiameterMm,
+        iqiSetDesignation: calcResult.iqiSetDesignation,
+        controlledAreaPerimeter2mR_Meters: calcResult.controlledAreaPerimeter2mR_Meters,
+        publicBarricadePerimeter075mR_Meters: calcResult.publicBarricadePerimeter075mR_Meters,
+
+        isMultiFilm: calcResult.isMultiFilm,
+        film1PredictedDensity: calcResult.film1PredictedDensity,
+        film2PredictedDensity: calcResult.film2PredictedDensity,
+        compositeSuperimposedDensity: calcResult.compositeSuperimposedDensity,
+        multiFilmTimeFactor: calcResult.multiFilmTimeFactor,
+        speedRatioDescription: calcResult.speedRatioDescription,
+
+        activeUnitSystem: unitSystem,
+        conversionEntries: conversionLog,
+      };
+
+      const doc = generateGeConversionLogPdf(pdfData);
+      const fileName = `ge-conversion-log-${todayStr}.pdf`;
+      doc.save(fileName);
+
+      setConversionPdfExportedConfirmed(true);
+      if (conversionPdfExportTimeoutRef.current) {
+        clearTimeout(conversionPdfExportTimeoutRef.current);
+      }
+      conversionPdfExportTimeoutRef.current = setTimeout(() => setConversionPdfExportedConfirmed(false), 2000);
+    } catch (err) {
+      console.error('Failed to export conversion log PDF report', err);
+    }
+  };
+
   return (
     <div
       dir={isAr ? 'rtl' : 'ltr'}
@@ -2414,16 +2616,36 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                   </div>
                   <div className="flex items-center gap-1.5">
                     {conversionLog.length > 0 && (
-                      <button
-                        type="button"
-                        data-testid="ge-conversion-log-clear-btn"
-                        onClick={handleClearConversionLog}
-                        className="px-2 py-1 rounded-lg text-[10px] text-red-500 hover:bg-red-500/10 transition flex items-center gap-1 cursor-pointer"
-                        title={isAr ? 'مسح السجل' : 'Clear Conversion Log'}
-                      >
-                        <Trash2 className="w-3 h-3" />
-                        <span>{isAr ? 'مسح' : 'Clear'}</span>
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          data-testid="ge-conversion-log-export-pdf-btn"
+                          onClick={handleExportConversionLogPdf}
+                          className={`px-2 py-1 rounded-lg text-[10px] font-bold transition flex items-center gap-1 cursor-pointer ${
+                            conversionPdfExportedConfirmed
+                              ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                              : 'text-amber-600 dark:text-amber-400 hover:bg-amber-500/10'
+                          }`}
+                          title={isAr ? 'تصدير السجل كملف PDF منسق' : 'Export conversion log as structured PDF report'}
+                        >
+                          <FileText className="w-3 h-3 shrink-0" aria-hidden="true" />
+                          <span>
+                            {conversionPdfExportedConfirmed
+                              ? (isAr ? 'تم التصدير' : 'PDF Exported')
+                              : (isAr ? 'تصدير PDF' : 'Export PDF')}
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          data-testid="ge-conversion-log-clear-btn"
+                          onClick={handleClearConversionLog}
+                          className="px-2 py-1 rounded-lg text-[10px] text-red-500 hover:bg-red-500/10 transition flex items-center gap-1 cursor-pointer"
+                          title={isAr ? 'مسح السجل' : 'Clear Conversion Log'}
+                        >
+                          <Trash2 className="w-3 h-3 shrink-0" aria-hidden="true" />
+                          <span>{isAr ? 'مسح' : 'Clear'}</span>
+                        </button>
+                      </>
                     )}
                     <button
                       type="button"
@@ -3007,6 +3229,263 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
             </span>
           </div>
         </div>
+
+        {/* Real-Time 4D Isotope Activity Decay Automated Playback Slider */}
+        <div
+          data-testid="ge-decay-4d-playback-panel"
+          className="relative z-10 rounded-2xl border border-slate-300/70 dark:border-slate-700/80 bg-white/85 dark:bg-slate-950/85 p-3.5 sm:p-4 space-y-3"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2.5">
+            <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
+              <Activity className="w-4 h-4 text-amber-500 shrink-0" aria-hidden="true" />
+              <span className="font-bold text-slate-900 dark:text-slate-100">
+                {isAr
+                  ? 'محاكي التمرير التلقائي لتحلل النظير 4D (تحديث لحظي لزمن التعريض)'
+                  : '4D Isotope Activity Decay Playback (Real-Time Exposure Sync)'}
+              </span>
+              <span aria-hidden="true" className="text-slate-400">·</span>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                {realtime4dSnapshot.isGamma
+                  ? `T½ = ${realtime4dSnapshot.halfLifeDays}d · ${measurementDate}`
+                  : isAr
+                    ? 'X-Ray بجهد ثابت (بدون اضمحلال)'
+                    : 'Constant-Potential X-Ray (No Decay)'}
+              </span>
+            </div>
+
+            {realtime4dSnapshot.isGamma && (
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  data-testid="ge-decay-4d-play-btn"
+                  aria-pressed={isRealtime4dPlaying}
+                  onClick={() => setIsRealtime4dPlaying((prev) => !prev)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                    isRealtime4dPlaying
+                      ? 'bg-amber-500 text-slate-950 hover:bg-amber-400 shadow-sm'
+                      : 'bg-sky-600 text-white hover:bg-sky-500 shadow-sm'
+                  }`}
+                >
+                  {isRealtime4dPlaying ? (
+                    <Pause className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                  ) : (
+                    <Play className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                  )}
+                  <span>
+                    {isRealtime4dPlaying
+                      ? isAr
+                        ? 'إيقاف 4D'
+                        : 'Pause Decay'
+                      : isAr
+                        ? 'تشغيل 4D تلقائي'
+                        : 'Play Decay'}
+                  </span>
+                </button>
+
+                <div
+                  role="group"
+                  aria-label={isAr ? 'سرعة محاكاة 4D' : '4D Playback Speed'}
+                  className="inline-flex items-center rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden text-[11px] font-mono"
+                >
+                  {([0.5, 1, 2] as const).map((spd) => (
+                    <button
+                      key={spd}
+                      type="button"
+                      data-testid={`ge-decay-4d-speed-${spd}`}
+                      onClick={() => setRealtime4dSpeed(spd)}
+                      className={`px-2 py-1 font-bold transition cursor-pointer ${
+                        realtime4dSpeed === spd
+                          ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300'
+                          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      {spd}x
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  data-testid="ge-decay-4d-reset-btn"
+                  onClick={() => {
+                    setIsRealtime4dPlaying(false);
+                    handleRealtime4dDayChange(0);
+                  }}
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                >
+                  <RotateCcw className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                  <span>{isAr ? 'تصفير t₀' : 'Reset t₀'}</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {realtime4dSnapshot.isGamma ? (
+            <>
+              {/* Live 4D Decay Curve Visualization + Real-Time Activity/Exposure Telemetry */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-center">
+                <div className="lg:col-span-5 flex items-center gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-900/90 px-3 py-2">
+                  <svg
+                    viewBox="0 0 220 32"
+                    className="w-44 sm:w-52 h-8 shrink-0"
+                    aria-hidden="true"
+                  >
+                    <line x1="4" x2="216" y1="28" y2="28" stroke="#475569" strokeOpacity="0.35" strokeWidth="1" />
+                    <path
+                      d={realtime4dSnapshot.sparklinePath}
+                      fill="none"
+                      stroke="#f59e0b"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    />
+                    <line
+                      x1={realtime4dSnapshot.markerX}
+                      x2={realtime4dSnapshot.markerX}
+                      y1="2"
+                      y2="30"
+                      stroke="#0ea5e9"
+                      strokeWidth="1.25"
+                      strokeDasharray="2 2"
+                    />
+                    <circle
+                      cx={realtime4dSnapshot.markerX}
+                      cy={realtime4dSnapshot.markerY}
+                      r="3.5"
+                      fill="#0ea5e9"
+                      stroke="#ffffff"
+                      strokeWidth="1.25"
+                    />
+                  </svg>
+
+                  <div className="flex-1 min-w-0 space-y-1 font-mono tabular-nums">
+                    <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400">
+                      <span>A(t) / A₀</span>
+                      <span className="font-bold text-amber-600 dark:text-amber-400">
+                        {realtime4dSnapshot.percentRemaining.toFixed(1)}%
+                      </span>
+                    </div>
+                    <svg
+                      viewBox="0 0 100 6"
+                      data-testid="ge-decay-4d-activity-bar"
+                      className="w-full h-1.5 rounded-full overflow-hidden"
+                      aria-hidden="true"
+                    >
+                      <rect x="0" y="0" width="100" height="6" rx="3" fill="#1e293b" fillOpacity="0.25" />
+                      <rect
+                        x="0"
+                        y="0"
+                        width={Math.max(2, Math.min(100, realtime4dSnapshot.percentRemaining))}
+                        height="6"
+                        rx="3"
+                        fill={realtime4dSnapshot.percentRemaining <= 25 ? '#ef4444' : '#f59e0b'}
+                      />
+                    </svg>
+                  </div>
+                </div>
+
+                <div
+                  data-testid="ge-decay-4d-activity-readout"
+                  className="lg:col-span-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-900/90 px-3 py-2 text-xs font-mono tabular-nums flex items-center justify-between gap-2"
+                >
+                  <div>
+                    <span className="block text-[10px] text-slate-500 dark:text-slate-400">
+                      {isAr ? 'النشاط عند الزمن t' : 'Live Activity A(t)'}
+                    </span>
+                    <strong className="text-amber-600 dark:text-amber-400">
+                      {calcResult.currentLiveActivityCi} Ci / {initialActivityCi} Ci
+                    </strong>
+                  </div>
+                  <div className="text-end">
+                    <span className="block text-[10px] text-slate-500 dark:text-slate-400">
+                      t = +{realtime4dSnapshot.currentDay}d
+                    </span>
+                    <strong className="text-sky-600 dark:text-sky-400">
+                      {realtime4dSnapshot.halfLivesElapsed.toFixed(2)} T½
+                    </strong>
+                  </div>
+                </div>
+
+                <div
+                  data-testid="ge-decay-4d-multiplier-readout"
+                  className="lg:col-span-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-900/90 px-3 py-2 text-xs font-mono tabular-nums flex items-center justify-between gap-2"
+                >
+                  <div>
+                    <span className="block text-[10px] text-slate-500 dark:text-slate-400">
+                      {isAr ? 'معامل الزمن المحسوب' : 'Live Exposure Sync'}
+                    </span>
+                    <strong className="text-emerald-600 dark:text-emerald-400">
+                      ×{realtime4dSnapshot.exposureMultiplier.toFixed(2)} t₀
+                    </strong>
+                  </div>
+                  <strong className="text-slate-900 dark:text-white">
+                    {calcResult.formattedDuration}
+                  </strong>
+                </div>
+              </div>
+
+              {/* Continuous Real-Time Timeline Slider & Milestone Steps */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <div className="flex-1 flex items-center gap-2.5">
+                  <span className="text-[10px] font-mono text-slate-500 shrink-0 tabular-nums">0d</span>
+                  <input
+                    type="range"
+                    data-testid="ge-decay-4d-slider"
+                    aria-label={isAr ? 'شريط التمرير الزمني لتحلل النظير 4D' : '4D Isotope Activity Decay Playback Slider'}
+                    min={0}
+                    max={realtime4dSnapshot.maxDays}
+                    step={1}
+                    value={realtime4dSnapshot.currentDay}
+                    onChange={(e) => {
+                      setIsRealtime4dPlaying(false);
+                      handleRealtime4dDayChange(Number(e.target.value));
+                    }}
+                    className={`w-full ${unitRangeAccentClass} cursor-pointer`}
+                  />
+                  <span className="text-[10px] font-mono text-slate-500 shrink-0 tabular-nums">
+                    {realtime4dSnapshot.maxDays}d
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-mono">
+                  {[
+                    { id: 't0', label: 't₀ (100%)', days: 0 },
+                    { id: 'half', label: '½ T½ (71%)', days: Math.round(realtime4dSnapshot.halfLifeDays * 0.5) },
+                    { id: '1hl', label: '1×T½ (50%)', days: Math.round(realtime4dSnapshot.halfLifeDays) },
+                    { id: '2hl', label: '2×T½ (25%)', days: Math.round(realtime4dSnapshot.halfLifeDays * 2) }
+                  ].map((step) => (
+                    <button
+                      key={step.id}
+                      type="button"
+                      data-testid={`ge-decay-4d-jump-${step.id}`}
+                      onClick={() => {
+                        setIsRealtime4dPlaying(false);
+                        handleRealtime4dDayChange(step.days);
+                      }}
+                      className={`px-2 py-1 rounded-lg border transition cursor-pointer tabular-nums ${
+                        Math.abs(realtime4dSnapshot.currentDay - step.days) <= 1
+                          ? 'bg-amber-500/20 border-amber-500 text-amber-700 dark:text-amber-300 font-bold'
+                          : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-amber-500/50'
+                      }`}
+                    >
+                      {step.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono text-sky-600 dark:text-sky-400 py-1">
+              <span>
+                {isAr
+                  ? 'أنبوب الأشعة السينية يعمل بجهد مستمر (kV/mA ثابتة — 100% خرج إشعاعي بدون تحلل زمني).'
+                  : 'Constant-Potential X-Ray Tube Generator — 100% steady output (0% radioactive isotope decay).'}
+              </span>
+              <span className="tabular-nums font-bold">
+                {tubeKv} kV · {tubeMa} mA · {calcResult.formattedDuration}
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* -------------------------------------------------------------------
@@ -3349,11 +3828,38 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                   : 'bg-white/70 dark:bg-slate-900/70 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700 hover:bg-sky-500/10 hover:border-sky-500/50 hover:text-sky-600 dark:hover:text-sky-400 cursor-pointer'
             }`}
           >
-            <Download className="w-3.5 h-3.5" aria-hidden="true" />
+            <Download className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
             <span>
               {csvExportedConfirmed
                 ? (isAr ? 'تم تصدير CSV' : 'CSV Exported')
                 : (isAr ? 'تصدير CSV' : 'Export CSV')}
+            </span>
+          </button>
+
+          {/* Export Conversion Log Structured PDF Report Button inside #ge-quick-units-bar */}
+          <button
+            type="button"
+            data-testid="ge-quick-units-export-pdf-btn"
+            onClick={handleExportConversionLogPdf}
+            disabled={conversionLog.length === 0}
+            title={
+              conversionLog.length === 0
+                ? (isAr ? 'بدّل الوحدات أولاً لتصدير تقرير PDF منسق' : 'Switch units at least once to export conversion log PDF report')
+                : (isAr ? 'تصدير سجل التحويلات الحالي كتقرير PDF رسمي منسق' : 'Export current unit conversion log as a structured PDF report')
+            }
+            className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold border transition-colors duration-300 ease-in-out flex items-center gap-1.5 ${
+              conversionLog.length === 0
+                ? 'bg-slate-100 dark:bg-slate-900/40 text-slate-400 dark:text-slate-600 border-slate-200 dark:border-slate-800 cursor-not-allowed opacity-60'
+                : conversionPdfExportedConfirmed
+                  ? 'border-emerald-500/60 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 cursor-pointer'
+                  : 'bg-white/70 dark:bg-slate-900/70 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700 hover:bg-amber-500/10 hover:border-amber-500/50 hover:text-amber-600 dark:hover:text-amber-400 cursor-pointer'
+            }`}
+          >
+            <FileText className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+            <span>
+              {conversionPdfExportedConfirmed
+                ? (isAr ? 'تم تصدير PDF' : 'PDF Exported')
+                : (isAr ? 'تصدير PDF' : 'Export PDF')}
             </span>
           </button>
 
@@ -4535,10 +5041,13 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                       data-testid="ge-pb-ghost-trail-length-toggle"
                       data-trail-length={pbGhostTrailLength}
                       aria-label={isAr ? 'طول أثر الشبح للإلكترونات' : 'Photoelectron ghost trail length'}
-                      className={`inline-flex items-center rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-0.5 transition-opacity ${
-                        showPbPhotoelectronPaths && hasLeadScreens ? 'opacity-100' : 'opacity-65'
+                      className={`inline-flex flex-wrap items-center gap-0.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-0.5 transition-opacity ${
+                        showPbPhotoelectronPaths && hasLeadScreens ? 'opacity-100' : 'opacity-80'
                       }`}
                     >
+                      <span className="px-1.5 text-[10px] font-mono font-bold text-slate-600 dark:text-slate-300 select-none">
+                        {isAr ? 'أثر الشبح:' : 'Ghost Trail:'}
+                      </span>
                       {(['short', 'medium', 'long'] as const).map((lenOpt) => {
                         const cfg = GE_PB_GHOST_TRAIL_CONFIGS[lenOpt];
                         const isSelected = pbGhostTrailLength === lenOpt;
@@ -4549,8 +5058,17 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                             type="button"
                             data-testid={`ge-pb-ghost-trail-length-${lenOpt}`}
                             data-trail-length-option={lenOpt}
+                            data-state={isSelected ? 'active' : 'inactive'}
                             aria-pressed={isSelected}
-                            onClick={() => setPbGhostTrailLength(lenOpt)}
+                            onClick={() => {
+                              setPbGhostTrailLength(lenOpt);
+                              if (!showLeadScreenOverlay) {
+                                setShowLeadScreenOverlay(true);
+                              }
+                              if (!showPbPhotoelectronPaths) {
+                                setShowPbPhotoelectronPaths(true);
+                              }
+                            }}
                             title={
                               isAr
                                 ? `طول الأثر الضوئي المتبقي: ${cfg.labelAr} (${cfg.residual.reachFactor}×)`
@@ -4566,6 +5084,12 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                           </button>
                         );
                       })}
+                      <span
+                        data-testid="ge-pb-ghost-trail-reach-badge"
+                        className="px-1 text-[9px] font-mono font-bold text-teal-600 dark:text-teal-300 tabular-nums"
+                      >
+                        {GE_PB_GHOST_TRAIL_CONFIGS[pbGhostTrailLength].residual.reachFactor}×
+                      </span>
                     </div>
 
                     <button
@@ -6142,8 +6666,17 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
         initialActivityCi={initialActivityCi}
         initialCalibrationDate={initialCalibrationDate}
         measurementDate={measurementDate}
-        onChangeMeasurementDate={setMeasurementDate}
+        onChangeMeasurementDate={(nextDate) => {
+          setIsRealtime4dPlaying(false);
+          setMeasurementDate(nextDate);
+        }}
         language={language}
+        horizonHalfLives={realtime4dHorizonHalfLives}
+        onChangeHorizonHalfLives={setRealtime4dHorizonHalfLives}
+        isPlaybackActive={isRealtime4dPlaying}
+        onTogglePlayback={() => setIsRealtime4dPlaying((prev) => !prev)}
+        playbackSpeed={realtime4dSpeed}
+        onChangePlaybackSpeed={setRealtime4dSpeed}
       />
 
       {/* -------------------------------------------------------------------

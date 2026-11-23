@@ -10,7 +10,10 @@ import {
   GE_ISOTOPES,
   GE_STRUCTURIX_FILMS
 } from '../src/utils/geExposureTimeEngine';
-import { generateGeRadiographicExposurePdf } from '../src/utils/geRadiographicExposurePdfGenerator';
+import {
+  generateGeRadiographicExposurePdf,
+  generateGeConversionLogPdf
+} from '../src/utils/geRadiographicExposurePdfGenerator';
 
 const dom = new JSDOM('<!doctype html><html><body></body></html>', { url: 'https://example.org/-Project-/#academy' });
 Object.assign(globalThis, {
@@ -2249,6 +2252,264 @@ test('GeRadiographicExposureTimeApp toggles photoelectron ghost trail length dyn
   assert.equal(propSession.getByTestId('ge-pb-photoelectron-paths').getAttribute('data-ghost-trail-length'), 'short');
 });
 
+test('GeRadiographicExposureTimeApp real-time 4D isotope decay playback slider visualizes activity decay and updates calculated exposure times automatically', async () => {
+  localStorage.removeItem('ge_app_unit_system');
+  const ui = render(<GeRadiographicExposureTimeApp language="en" />);
 
+  assert.ok(ui.getByTestId('ge-decay-4d-playback-panel'));
+  const slider = ui.getByTestId('ge-decay-4d-slider') as HTMLInputElement;
+  const playBtn = ui.getByTestId('ge-decay-4d-play-btn');
+  const exposureDisplay = ui.getByTestId('ge-calculated-exposure-display');
+  const activityReadout = ui.getByTestId('ge-decay-4d-activity-readout');
+  const multiplierReadout = ui.getByTestId('ge-decay-4d-multiplier-readout');
 
+  // 1. Reset to t0 (100% calibration day)
+  fireEvent.click(ui.getByTestId('ge-decay-4d-reset-btn'));
+  assert.equal(slider.value, '0');
+  assert.ok((activityReadout.textContent || '').includes('45 Ci / 45 Ci'));
+  assert.ok((multiplierReadout.textContent || '').includes('×1.00 t₀'));
+  const t0ExposureText = exposureDisplay.textContent || '';
 
+  // Parse minutes/seconds into seconds helper
+  const parseDisplaySeconds = (txt: string) => {
+    const match = /(\d+)m\s+(\d+)s/.exec(txt);
+    return match ? Number(match[1]) * 60 + Number(match[2]) : 0;
+  };
+  const t0Seconds = parseDisplaySeconds(t0ExposureText);
+  assert.ok(t0Seconds > 0);
+
+  // 2. Scrubbing slider to 1xT1/2 (~74d for Ir-192) halves Ci & doubles calculated exposure time in real time
+  fireEvent.change(slider, { target: { value: '74' } });
+  assert.equal((ui.getByTestId('ge-shot-date-input') as HTMLInputElement).value, '2026-12-19');
+  const hl1Seconds = parseDisplaySeconds(exposureDisplay.textContent || '');
+  assert.ok(
+    hl1Seconds >= t0Seconds * 1.9 && hl1Seconds <= t0Seconds * 2.1,
+    `Expected 1xT1/2 exposure (~2x of ${t0Seconds}s), got ${hl1Seconds}s`
+  );
+  assert.ok((multiplierReadout.textContent || '').includes('×2.00 t₀') || (multiplierReadout.textContent || '').includes('×1.99') || (multiplierReadout.textContent || '').includes('×2.01'));
+  assert.ok((ui.getByTestId('isotope-decay-shot-label').textContent || '').includes('2026-12-19'));
+
+  // 3. Jump to 2xT1/2 (~25% Ci, ~4x exposure)
+  fireEvent.click(ui.getByTestId('ge-decay-4d-jump-2hl'));
+  const hl2Seconds = parseDisplaySeconds(exposureDisplay.textContent || '');
+  assert.ok(hl2Seconds >= t0Seconds * 3.85 && hl2Seconds <= t0Seconds * 4.15);
+
+  // 4. Reset to t0, select 2x speed, and start automated playback -> slider & calculated exposure advance automatically
+  fireEvent.click(ui.getByTestId('ge-decay-4d-reset-btn'));
+  fireEvent.click(ui.getByTestId('ge-decay-4d-speed-2'));
+  assert.equal(playBtn.getAttribute('aria-pressed'), 'false');
+  fireEvent.click(playBtn);
+  assert.equal(playBtn.getAttribute('aria-pressed'), 'true');
+  assert.equal(ui.getByTestId('isotope-decay-play-btn').textContent?.includes('Pause'), true);
+
+  await waitFor(
+    () => {
+      const autoDay = Number((ui.getByTestId('ge-decay-4d-slider') as HTMLInputElement).value);
+      const autoSecs = parseDisplaySeconds(ui.getByTestId('ge-calculated-exposure-display').textContent || '');
+      assert.ok(autoDay > 0, `Expected automated playback day > 0, got ${autoDay}`);
+      assert.ok(autoSecs > t0Seconds, `Expected automated exposure > ${t0Seconds}s, got ${autoSecs}s`);
+    },
+    { timeout: 1500 }
+  );
+
+  // Pause playback via D3 chart synced play/pause toggle
+  fireEvent.click(ui.getByTestId('isotope-decay-play-btn'));
+  assert.equal(playBtn.getAttribute('aria-pressed'), 'false');
+
+  // 5. Switch to constant-potential X-Ray tube -> displays non-decaying mode cleanly
+  fireEvent.change(ui.getByTestId('ge-select-source-type'), { target: { value: 'xray_dir' } });
+  assert.equal(ui.queryByTestId('ge-decay-4d-slider'), null);
+  assert.ok((ui.getByTestId('ge-decay-4d-playback-panel').textContent || '').includes('Constant-Potential X-Ray Tube Generator'));
+});
+
+test('generateGeConversionLogPdf builds structured INSCO-branded PDF report containing radiographic data fields and unit conversion entries', () => {
+  const doc = generateGeConversionLogPdf({
+    reportNumber: 'RT-CONV-TEST-001',
+    reportDate: '2026-11-23',
+    clientName: 'INSCO Test Client',
+    projectFacility: 'Cairo Fabrication Yard',
+    weldJointId: 'WJ-PIPE-04',
+    leadRadiographer: 'Eng. Ahmed Level II',
+    radiographerLevel: 'Level II',
+    inspectorCertNumber: 'INSCO-RT-4421',
+
+    sourceType: 'ir192',
+    isotopeSpec: GE_ISOTOPES.ir192,
+    initialActivityCi: 45,
+    initialCalibrationDate: '2026-10-06',
+    measurementDate: '2026-11-23',
+    decayDaysElapsed: 48,
+    currentLiveActivityCi: 28.7,
+
+    materialSpec: {
+      id: 'carbon_steel',
+      nameEn: 'Carbon Steel (P1)',
+      nameAr: 'الصلب الكربوني',
+      rFactorIr192: 1.0,
+      rFactorSe75: 1.0,
+      rFactorCo60: 1.0,
+      rFactorXray: 1.0,
+      densityGcm3: 7.85
+    },
+    nominalThicknessMm: 18.0,
+    weldReinforcementMm: 2.5,
+    pipeOuterDiameterMm: 114.3,
+    techniqueSpec: {
+      id: 'dwsi_contact',
+      nameEn: 'DWSI Contact (Single Wall Viewing)',
+      nameAr: 'DWSI تلامس',
+      wallsPenetrated: 2,
+      descriptionEn: 'Double Wall Single Image',
+      descriptionAr: 'جدار مزدوج صورة أحادية',
+      defaultReinforcementMm: 2.5
+    },
+    sfdCm: 70,
+
+    filmLoadingMode: 'single',
+    primaryFilmSpec: GE_STRUCTURIX_FILMS.d7,
+    hasInterleafLeadScreen: false,
+    hasLeadScreens: true,
+    hasCollimator: true,
+    targetOpticalDensity: 2.5,
+
+    calculatedExposureSeconds: 135,
+    formattedExposureDuration: '2m 15s',
+    exposureInCurieMinutes: 64.6,
+    effectiveSteelThicknessMm: 38.5,
+    halfValueLayersCount: 3.1,
+    attenuationFactor: 8.5,
+    calculatedUgMm: 0.38,
+    maxAllowedUgMm: 0.51,
+    passesAsmeUg: true,
+    essentialWireIdentity: '#9 (Wire 9)',
+    essentialWireDiameterMm: 0.41,
+    iqiSetDesignation: 'Set B (Wires 6-11)',
+    controlledAreaPerimeter2mR_Meters: 15.8,
+    publicBarricadePerimeter075mR_Meters: 25.9,
+
+    isMultiFilm: false,
+    film1PredictedDensity: 2.5,
+    multiFilmTimeFactor: 1.0,
+
+    activeUnitSystem: 'imperial',
+    conversionEntries: [
+      {
+        id: 'conv-1',
+        timestamp: '10:15:30 AM',
+        fromUnit: 'metric',
+        toUnit: 'imperial',
+        thicknessMm: 18.0,
+        thicknessInches: 0.709,
+        sfdCm: 70,
+        sfdInches: 27.6,
+        sfdFeet: 2.3,
+        sourceType: 'ir192',
+        sourceLabel: 'Ir-192',
+        calculatedTotalSeconds: 135,
+        formattedDuration: '2m 15s'
+      },
+      {
+        id: 'conv-2',
+        timestamp: '10:16:05 AM',
+        fromUnit: 'imperial',
+        toUnit: 'metric',
+        thicknessMm: 12.0,
+        thicknessInches: 0.472,
+        sfdCm: 60,
+        sfdInches: 23.6,
+        sfdFeet: 1.97,
+        sourceType: 'se75',
+        sourceLabel: 'Se-75',
+        calculatedTotalSeconds: 92,
+        formattedDuration: '1m 32s'
+      }
+    ]
+  });
+
+  const pdfBytes = doc.output('arraybuffer');
+  assert.ok(pdfBytes.byteLength > 2000, `Expected PDF buffer length > 2000 bytes, got ${pdfBytes.byteLength}`);
+
+  const pageStream = (doc.internal.pages[1] || []).join('\n');
+  assert.ok(pageStream.includes('INSCO NDT & INSPECTION SERVICES CO.'));
+  assert.ok(pageStream.includes('GE / WAYGATE UNIT CONVERSION LOG & RADIOGRAPHIC AUDIT REPORT'));
+  assert.ok(pageStream.includes('RT-CONV-TEST-001'));
+  assert.ok(pageStream.includes('Cairo Fabrication Yard'));
+  assert.ok(pageStream.includes('WJ-PIPE-04'));
+  assert.ok(pageStream.includes('IMPERIAL \\(in / ft\\)'));
+  assert.ok(pageStream.includes('mm/cm -> in/ft'));
+  assert.ok(pageStream.includes('18 mm / 0.709 in'));
+  assert.ok(pageStream.includes('70 cm / 27.6 in \\(2.3 ft\\)'));
+  assert.ok(pageStream.includes('2m 15s \\(135s\\)'));
+  assert.ok(pageStream.includes('INSCO NDT Quality Management System'));
+});
+
+test('GeRadiographicExposureTimeApp exports the current unit conversion log as a structured PDF report from #ge-quick-units-bar and conversion log panel (EN & AR)', async () => {
+  localStorage.removeItem('ge_app_unit_system');
+  localStorage.removeItem('ge_app_conversion_log');
+  const ui = render(<GeRadiographicExposureTimeApp language="en" />);
+
+  const quickBar = ui.container.querySelector('#ge-quick-units-bar') as HTMLElement;
+  const exportPdfBtn = ui.getByTestId('ge-quick-units-export-pdf-btn') as HTMLButtonElement;
+  assert.ok(quickBar.contains(exportPdfBtn), 'Expected Export PDF button inside #ge-quick-units-bar');
+
+  // Disabled before any conversions are logged
+  assert.equal(exportPdfBtn.disabled, true);
+  assert.ok(exportPdfBtn.textContent?.includes('Export PDF'));
+
+  // Record 2 conversions with distinct thickness values
+  fireEvent.change(ui.getByTestId('ge-thickness-number-input'), { target: { value: '18' } });
+  fireEvent.click(ui.getByTestId('ge-quick-units-switch')); // metric -> imperial
+  fireEvent.click(ui.getByTestId('ge-quick-units-switch')); // imperial -> metric
+
+  assert.equal(exportPdfBtn.disabled, false);
+
+  const fs = await import('node:fs');
+  const todayStr = new Date().toISOString().split('T')[0];
+  const expectedFilename = `ge-conversion-log-${todayStr}.pdf`;
+
+  const removeIfExists = () => {
+    try {
+      if (fs.existsSync(expectedFilename)) {
+        fs.unlinkSync(expectedFilename);
+      }
+    } catch {
+      // ignore cleanup error
+    }
+  };
+
+  removeIfExists();
+
+  try {
+    // 1. Export from #ge-quick-units-bar
+    fireEvent.click(exportPdfBtn);
+    assert.ok(exportPdfBtn.textContent?.includes('PDF Exported'));
+    assert.equal(fs.existsSync(expectedFilename), true, `Expected ${expectedFilename} to be generated`);
+    const firstPdfBuf = fs.readFileSync(expectedFilename);
+    assert.ok(firstPdfBuf.byteLength > 2000, `Expected PDF > 2000 bytes, got ${firstPdfBuf.byteLength}`);
+    assert.ok(firstPdfBuf.subarray(0, 5).toString('utf8') === '%PDF-');
+
+    // 2. Also verify Export PDF button inside conversion log panel header
+    removeIfExists();
+    fireEvent.click(ui.getByTestId('ge-conversion-log-toggle'));
+    const panel = ui.getByTestId('ge-conversion-log-panel');
+    const panelPdfBtn = ui.getByTestId('ge-conversion-log-export-pdf-btn') as HTMLButtonElement;
+    assert.ok(panel.contains(panelPdfBtn), 'Expected Export PDF button inside conversion log panel');
+    fireEvent.click(panelPdfBtn);
+    assert.equal(fs.existsSync(expectedFilename), true, `Expected ${expectedFilename} from conversion log panel`);
+    const secondPdfBuf = fs.readFileSync(expectedFilename);
+    assert.ok(secondPdfBuf.byteLength > 2000);
+
+    // 3. Arabic localization check
+    removeIfExists();
+    cleanup();
+    const uiAr = render(<GeRadiographicExposureTimeApp language="ar" />);
+    const arPdfBtn = uiAr.getByTestId('ge-quick-units-export-pdf-btn') as HTMLButtonElement;
+    assert.equal(arPdfBtn.disabled, false);
+    assert.ok(arPdfBtn.textContent?.includes('تصدير PDF'));
+    fireEvent.click(arPdfBtn);
+    assert.ok(arPdfBtn.textContent?.includes('تم تصدير PDF'));
+    assert.equal(fs.existsSync(expectedFilename), true, `Expected ${expectedFilename} in Arabic mode`);
+  } finally {
+    removeIfExists();
+  }
+});

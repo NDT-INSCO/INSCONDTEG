@@ -57,6 +57,12 @@ export interface TutorAiClient {
   };
 }
 
+/** One model's refusal, kept so a failure can name every model that was tried. */
+export interface ChainAttempt {
+  model: string;
+  signal: ReturnType<typeof classifyUpstreamError>;
+}
+
 export interface StreamOptions {
   prompt: string;
   system: string;
@@ -67,6 +73,8 @@ export interface StreamOptions {
   maxOutputTokens?: number;
   /** Where warnings go. Injected so tests stay quiet. */
   log?: (message: string) => void;
+  /** Filled in as the chain is walked: which model said what. */
+  attempts?: ChainAttempt[];
 }
 
 /** A model id that this key/project cannot use: move to the next one. */
@@ -114,7 +122,8 @@ async function* runChain<T>(
   models: string[],
   signal: AbortSignal,
   open: (model: string) => AsyncIterable<T>,
-  log: (message: string) => void
+  log: (message: string) => void,
+  attempts?: ChainAttempt[]
 ): AsyncGenerator<T, void, unknown> {
   let lastError: unknown = null;
 
@@ -137,6 +146,10 @@ async function* runChain<T>(
         if (yielded) throw error;
 
         const kind = classifyUpstreamError(error);
+        attempts?.push({
+          model,
+          signal: isModelMissing(error) && kind === 'upstream_error' ? 'model_unavailable' : kind,
+        });
         if (kind === 'model_unavailable' || isModelMissing(error)) {
           log(`[ai] model ${model} unavailable, trying next`);
           continue;
@@ -242,7 +255,8 @@ export async function* streamTutorText(
         options.models,
         options.signal,
         model => streamViaInteractions(client, model, options),
-        log
+        log,
+        options.attempts
       );
       return;
     } catch (error) {
@@ -259,6 +273,7 @@ export async function* streamTutorText(
     options.models,
     options.signal,
     model => streamViaLegacyModels(client, model, options),
-    log
+    log,
+    options.attempts
   );
 }

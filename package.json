@@ -53,7 +53,7 @@
     "test:account-rules:emulator": "npx --yes firebase-tools@15.37.0 emulators:exec --project demo-insco-account-privacy --only firestore --config firebase.emulator.json \"npm run test:account-rules\""
   },
   "dependencies": {
-    "@google/genai": "^2.31.0",
+    "@google/genai": "^3.6.1",
     "@libsql/client": "^0.18.0",
     "@simplewebauthn/browser": "^14.0.0",
     "@simplewebauthn/server": "^14.1.0",

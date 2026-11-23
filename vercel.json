@@ -5,17 +5,42 @@
   "buildCommand": "npm run build:vercel",
   "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/api/admin/:path*", "destination": "/api/insco" },
-    { "source": "/api/site/announcement", "destination": "/api/insco" },
-    { "source": "/api/rfq", "destination": "/api/insco" }
+    {
+      "source": "/api/admin/:path*",
+      "destination": "/api/insco"
+    },
+    {
+      "source": "/api/site/announcement",
+      "destination": "/api/insco"
+    },
+    {
+      "source": "/api/rfq",
+      "destination": "/api/insco"
+    },
+    {
+      "source": "/api/ai/:path*",
+      "destination": "/api/ai"
+    }
   ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Robots-Tag", "value": "noindex" },
-        { "key": "Content-Security-Policy", "value": "frame-ancestors 'none'" }
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "frame-ancestors 'none'"
+        }
       ]
     }
-  ]
+  ],
+  "functions": {
+    "api/ai.ts": {
+      "maxDuration": 60,
+      "includeFiles": "**/edb/**"
+    }
+  }
 }

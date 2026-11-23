@@ -101,8 +101,14 @@ const sleep = (ms: number, signal: AbortSignal) =>
     signal.addEventListener('abort', () => { clearTimeout(timer); resolve(); }, { once: true });
   });
 
-/** One retry for a quota blip, and only before the reader has seen a token. */
-const RATE_LIMIT_RETRY_DELAY_MS = 1500;
+/**
+ * How many times the whole chain may be walked, and how long to wait between walks.
+ *
+ * One exhausted pass is not an answer: a model at capacity this second is often free
+ * after a short pause, and the next model in the chain may answer immediately.
+ */
+const CHAIN_PASSES = 2;
+const CHAIN_BACKOFF_MS = 1500;
 
 async function* runChain<T>(
   models: string[],
@@ -111,9 +117,11 @@ async function* runChain<T>(
   log: (message: string) => void
 ): AsyncGenerator<T, void, unknown> {
   let lastError: unknown = null;
-  for (const model of models) {
-    let retried = false;
-    for (;;) {
+
+  for (let pass = 1; pass <= CHAIN_PASSES; pass++) {
+    let sawTransient = false;
+
+    for (const model of models) {
       let yielded = false;
       try {
         for await (const item of open(model)) {
@@ -126,21 +134,30 @@ async function* runChain<T>(
         if (signal.aborted) return;
         // A model that emitted text and then failed is never retried: the reader would
         // see the opening twice.
-        if (!yielded && classifyUpstreamError(error) === 'rate_limited' && !retried) {
-          retried = true;
-          log(`[ai] rate limited on ${model}; retrying once`);
-          await sleep(RATE_LIMIT_RETRY_DELAY_MS, signal);
-          if (signal.aborted) return;
+        if (yielded) throw error;
+
+        const kind = classifyUpstreamError(error);
+        if (kind === 'model_unavailable' || isModelMissing(error)) {
+          log(`[ai] model ${model} unavailable, trying next`);
           continue;
         }
-        if (!yielded && isModelMissing(error)) {
-          log(`[ai] model ${model} unavailable, trying next`);
-          break;
+        if (kind === 'rate_limited' || kind === 'model_busy') {
+          // Busy is about one model, not about the tutor: the next model may answer now.
+          sawTransient = true;
+          log(`[ai] ${model} is ${kind === 'model_busy' ? 'busy' : 'rate limited'}; trying the next model`);
+          continue;
         }
+        // A rejected key is never retried — it wastes the reader's time and hides the cause.
         throw error;
       }
     }
+
+    if (!sawTransient || pass === CHAIN_PASSES) break;
+    log('[ai] every model was busy; waiting once and walking the chain again');
+    await sleep(CHAIN_BACKOFF_MS, signal);
+    if (signal.aborted) return;
   }
+
   throw lastError instanceof Error ? lastError : new Error('No model in the chain answered');
 }
 

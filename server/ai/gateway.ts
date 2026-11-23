@@ -206,6 +206,7 @@ const STATUS_CODE: Record<TutorErrorCode, number> = {
   rate_limited: 429,
   budget_exhausted: 429,
   timeout: 504,
+  model_busy: 503,
   key_rejected: 502,
   upstream_error: 502,
 };
@@ -252,7 +253,9 @@ function upstreamFailure(
   // A rejected key and a quota hit both have a precise answer; everything else stays
   // a generic upstream failure.
   const code: TutorErrorCode =
-    signal === 'rate_limited' ? 'rate_limited' : signal === 'key_rejected' ? 'key_rejected' : 'upstream_error';
+    signal === 'rate_limited' || signal === 'model_busy' || signal === 'key_rejected'
+      ? signal
+      : 'upstream_error';
   return { code, signal, detail: safe };
 }
 
@@ -372,7 +375,7 @@ router.get(TUTOR_ENDPOINTS.status, async (_req: Request, res: Response) => {
       ...(libraryFailure ? { error: libraryFailure } : {}),
     },
     transport: API_MODE,
-    ...(API_KEY ? { keyShape: { length: API_KEY.length, looksLikeAiStudioKey: /^AIza[0-9A-Za-z_-]{30,}$/.test(API_KEY) } } : {}),
+    ...(API_KEY ? { keyShape: { length: API_KEY.length, looksLikeAiStudioKey: /^(AIza[0-9A-Za-z_-]{30,}|AQ\.[0-9A-Za-z_.-]{20,})$/.test(API_KEY) } } : {}),
     ...(lastUpstream ? { lastUpstream } : {}),
   };
   res.setHeader('Cache-Control', 'no-store');

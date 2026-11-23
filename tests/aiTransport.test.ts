@@ -34,6 +34,8 @@ function fakeClient(options: {
   interactionError?: Error;
   /** Thrown by the first `interactions.create` only — for the rate-limit retry. */
   interactionErrorOnce?: Error;
+  /** Fail this many calls with Google's 503 "high demand", then answer. */
+  busyCount?: number;
   legacyChunks?: string[];
   legacyError?: Error;
   onInteraction?: () => void;
@@ -50,6 +52,12 @@ function fakeClient(options: {
         interactions.push({ params, options: requestOptions });
         options.onInteraction?.();
         if (options.interactionError) throw options.interactionError;
+        if (options.busyCount && options.busyCount > 0) {
+          options.busyCount -= 1;
+          throw new Error(
+            '503 UNAVAILABLE: This model is currently experiencing high demand. Spikes in demand are usually temporary.'
+          );
+        }
         if (options.interactionErrorOnce) {
           const once = options.interactionErrorOnce;
           options.interactionErrorOnce = undefined;
@@ -263,10 +271,12 @@ test('an aborted request stops quietly instead of reporting an upstream error', 
   assert.deepEqual(parts, ['before the abort']);
 });
 
-test('a quota error is retried once on the same model before giving up', async () => {
+test('a busy model hands the question to the next model in the chain', async () => {
   const logs: string[] = [];
   const { client, interactions } = fakeClient({
-    interactionErrorOnce: new Error('429 RESOURCE_EXHAUSTED: Quota exceeded for quota metric'),
+    interactionErrorOnce: new Error(
+      '503 UNAVAILABLE: This model is currently experiencing high demand. Spikes in demand are usually temporary.'
+    ),
     interactionEvents: [{ event_type: 'step.delta', delta: { type: 'text', text: 'The IIW block.' } }],
   });
 
@@ -275,9 +285,26 @@ test('a quota error is retried once on the same model before giving up', async (
   );
 
   assert.deepEqual(parts, ['The IIW block.']);
-  assert.equal(interactions.length, 2, 'a quota blip must be retried, not surfaced to the student');
-  assert.equal(interactions[0].params.model, interactions[1].params.model, 'the retry keeps the model');
-  assert.match(logs.join('\n'), /rate limited on gemini-3\.8-flash; retrying once/);
+  assert.equal(interactions.length, 2, 'a busy model must not end the answer');
+  assert.equal(interactions[0].params.model, 'gemini-3.8-flash');
+  assert.equal(interactions[1].params.model, 'gemini-3.6-flash', 'the fallback answers instead');
+  assert.match(logs.join('\n'), /gemini-3\.8-flash is busy; trying the next model/);
+});
+
+test('when every model is busy the chain waits once, then tries again', async () => {
+  const logs: string[] = [];
+  const { client, interactions } = fakeClient({
+    busyCount: 2,
+    interactionEvents: [{ event_type: 'step.delta', delta: { type: 'text', text: 'Answered on the second pass.' } }],
+  });
+
+  const parts = await collect(
+    streamTutorText(client, { ...base, mode: 'interactions', log: message => logs.push(message) })
+  );
+
+  assert.deepEqual(parts, ['Answered on the second pass.']);
+  assert.equal(interactions.length, 3, 'two models on the first pass, then one answer');
+  assert.match(logs.join('\n'), /every model was busy; waiting once/);
 });
 
 test('a rejected key is never retried and never hidden', async () => {

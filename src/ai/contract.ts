@@ -209,11 +209,19 @@ export interface TutorMeta {
  * key, or move to the next model — so the distinction is made here, from the message
  * the SDK supplies.
  */
-export type UpstreamSignal = 'rate_limited' | 'key_rejected' | 'model_unavailable' | 'upstream_error';
+export type UpstreamSignal =
+  | 'rate_limited'
+  | 'model_busy'
+  | 'key_rejected'
+  | 'model_unavailable'
+  | 'upstream_error';
 
 export function classifyUpstreamError(error: unknown): UpstreamSignal {
   const message = (error instanceof Error ? error.message : String(error ?? '')).toLowerCase();
   if (/429|resource_exhausted|rate limit|quota|too many requests/.test(message)) return 'rate_limited';
+  // Google's "high demand" 503. It is not the key and not a missing model: another
+  // model in the chain can usually answer this second.
+  if (/503|unavailable|high demand|overloaded|spikes in demand/.test(message)) return 'model_busy';
   if (/401|403|api[_ -]?key|unauthenticated|permission_denied|invalid authentication/.test(message)) {
     return 'key_rejected';
   }
@@ -229,6 +237,7 @@ export type TutorErrorCode =
   | 'rate_limited'
   | 'budget_exhausted'
   | 'timeout'
+  | 'model_busy'
   | 'key_rejected'
   | 'upstream_error';
 
@@ -371,6 +380,8 @@ export function failureMessage(code: TutorErrorCode, language: TutorLanguage): s
     rate_limited: 'الحد مؤقت — جرّب بعد دقيقة. وصلنا إلى حدّ استخدام النموذج في هذه اللحظة، والمكتبة والبحث يعملان دون تغيير.',
     budget_exhausted: 'تم الوصول إلى سقف الاستخدام اليومي للمستشار. جرّب غداً أو استخدم البحث في المكتبة.',
     timeout: 'استغرق النموذج وقتاً أطول من المسموح. أعد المحاولة أو اجعل السؤال أقصر.',
+    model_busy:
+      'الخدمة مزدحمة الآن — النموذج عليه ضغط مؤقت، جرّب بعد دقيقة. المكتبة والبحث يعملان دون تغيير.',
     key_rejected:
       'جوجل رفضت مفتاح Gemini الموجود على الخادم (400: API key not valid). المكتبة والبحث يعملان دون تغيير، والأسئلة الحرة تحتاج مفتاحاً جديداً من AI Studio في متغيّرات Vercel.',
     upstream_error: 'تعذّر الوصول إلى النموذج الآن. المكتبة والبحث يعملان دون تغيير.',
@@ -382,6 +393,8 @@ export function failureMessage(code: TutorErrorCode, language: TutorLanguage): s
     rate_limited: 'Temporary limit — try again in a minute. The model reached its usage cap just now; the library and search keep working.',
     budget_exhausted: 'The daily tutor budget is used up. Try tomorrow or use library search.',
     timeout: 'The model took longer than allowed. Retry, or ask a shorter question.',
+    model_busy:
+      'The model is busy right now — a temporary spike in demand. Try again in a minute; the library and search keep working.',
     key_rejected:
       'Google rejected the Gemini key on this server (400: API key not valid). The library and search are unaffected; free-form questions need a new key from AI Studio in the Vercel environment variables.',
     upstream_error: 'The model is unreachable right now. The library and search are unaffected.',

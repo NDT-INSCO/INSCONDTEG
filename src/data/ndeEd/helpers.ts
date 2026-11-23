@@ -1,4 +1,4 @@
-import { NdeEdQuiz, NdeEdText } from './types';
+import { NdeEdQuiz, NdeEdText } from './types.js';
 
 export const t = (ar: string, en: string): NdeEdText => ({ ar, en });
 

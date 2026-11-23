@@ -13,8 +13,8 @@
  * key exists the same interface can be backed by vectors without touching the
  * callers.
  */
-import { buildPhraseIndex, buildSynonymIndex, TermGroup } from './synonyms';
-import { CorpusDocument, CorpusKind, getCorpus } from './corpus';
+import { buildPhraseIndex, buildSynonymIndex, TermGroup } from './synonyms.js';
+import { CorpusDocument, CorpusKind, getCorpus } from './corpus.js';
 
 /* ------------------------------------------------------------------ */
 /* text normalisation                                                  */

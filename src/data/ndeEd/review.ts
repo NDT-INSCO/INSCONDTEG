@@ -1,4 +1,4 @@
-import { NDE_ED_COURSES } from './index';
+import { NDE_ED_COURSES } from './index.js';
 
 /**
  * Technical review register.

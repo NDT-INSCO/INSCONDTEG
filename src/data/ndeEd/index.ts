@@ -1,12 +1,12 @@
-import { NdeEdCourse, NdeEdLesson, NdeEdSource, NdeEdText } from './types';
-import { NDE_ED_SOURCES, NDE_ED_SOURCE_MAP } from './sources';
-import { physicsCourse } from './physics';
-import { vtCourse } from './vt';
-import { ptCourse } from './pt';
-import { mtCourse } from './mt';
-import { utCourse } from './ut';
-import { rtCourse } from './rt';
-import { etCourse } from './et';
+import { NdeEdCourse, NdeEdLesson, NdeEdSource, NdeEdText } from './types.js';
+import { NDE_ED_SOURCES, NDE_ED_SOURCE_MAP } from './sources.js';
+import { physicsCourse } from './physics.js';
+import { vtCourse } from './vt.js';
+import { ptCourse } from './pt.js';
+import { mtCourse } from './mt.js';
+import { utCourse } from './ut.js';
+import { rtCourse } from './rt.js';
+import { etCourse } from './et.js';
 
 export const NDE_ED_COURSES: NdeEdCourse[] = [
   physicsCourse,

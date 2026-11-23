@@ -12,3 +12,4 @@ admin.sqlite*
 release/
 
 .vercel/
+.vercel-sim/

@@ -7,9 +7,9 @@
  *
  * Runs in the browser and in Node (no imports beyond the data modules).
  */
-import { NDT_TEXTBOOKS } from '../data/ndeTextbooksData';
-import { NDE_ED_COURSES } from '../data/ndeEd';
-import type { NdeEdText } from '../data/ndeEd/types';
+import { NDT_TEXTBOOKS } from '../data/ndeTextbooksData.js';
+import { NDE_ED_COURSES } from '../data/ndeEd/index.js';
+import type { NdeEdText } from '../data/ndeEd/types.js';
 
 export type CorpusKind = 'textbook' | 'course' | 'lesson';
 

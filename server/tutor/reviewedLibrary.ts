@@ -1,10 +1,10 @@
-import type { CorpusDocument } from '../../src/ai/corpus';
-import { TUTOR_LIMITS } from '../../src/ai/contract';
-import { buildIndex, retrieveForTutor } from '../../src/ai/search';
-import { checksumForCourse, reviewedCourseIds, type CourseReviewEntry } from '../../src/data/ndeEd/review';
-import { edbContentChecksum } from '../../src/edb/nodeChecksum';
-import type { EdbBlock, EdbLanguage } from '../../src/edb/types';
-import { parseEdb } from '../../src/edb/validate';
+import type { CorpusDocument } from '../../src/ai/corpus.js';
+import { TUTOR_LIMITS } from '../../src/ai/contract.js';
+import { buildIndex, retrieveForTutor } from '../../src/ai/search.js';
+import { checksumForCourse, reviewedCourseIds, type CourseReviewEntry } from '../../src/data/ndeEd/review.js';
+import { edbContentChecksum } from '../../src/edb/nodeChecksum.js';
+import type { EdbBlock, EdbLanguage } from '../../src/edb/types.js';
+import { parseEdb } from '../../src/edb/validate.js';
 
 function passageText(block: EdbBlock, lang: EdbLanguage): string {
   switch (block.type) {

@@ -40,9 +40,10 @@ npm run epub:build # بناء نسخة EPUB (Kindle/Kobo/Apple Books)
 | `certification_center` | `CertificationCenter` (قائم) | `certificationExamService` | `insco_exam_registrations_v1` |
 | `ask_ai` | لوحة المستشار داخل `EducationalAcademy` | `src/ai/*` + بوابة `server.ts` | لا يخزّن |
 
-**المستشار الذكي:** بحث محلي في 132 وثيقة، ثم إجابة مبثوثة من الخادم مع
-استشهادات حقيقية. بلا مفتاح على الخادم يقول ذلك صراحةً ولا يطبع نصاً جاهزاً.
-التفاصيل الكاملة في `documentation/AI_STUDIO_AR.md`.
+**المستشار الذكي:** بحث محلي في 132 وثيقة، ثم إجابة مبثوثة مع استشهادات حقيقية.
+الافتراضي الآن **محرّك المنصة المحلي** (`AI_PROVIDER=local`): كل الوكلاء يجيبون
+بلا مفتاح وبلا شبكة، وكل جملة تحمل معرّف مقطعها، وإن لم يكن السؤال في المكتبة
+قيل ذلك صراحةً. التفاصيل: `documentation/LOCAL_BRAIN_AR.md` و`documentation/AI_STUDIO_AR.md`.
 
 **فصل المسؤوليات:** تقدم المنهج (`curriculumProgress`) منفصل تماماً عن تقدم
 المقررات و EDB والتقييم العملي. لا يكتب أي منها في مفتاح الآخر.
@@ -152,6 +153,7 @@ scripts/
 public/edb/               18 مستنداً مولّداً + index.json
 documentation/
   AI_STUDIO_AR.md         المستشار الذكي: Interactions API والتكلفة والنشر
+  LOCAL_BRAIN_AR.md       عقل المنصة المحلي: استقلال كامل عن أي مزوّد خارجي
   EDB_FORMAT_AR.md        صيغة EDB بالتفصيل
   NDE_ED_REVIEW_AR.md     إجراء المراجعة والتوقيع
   STATUS_AR.md            هذا الملف

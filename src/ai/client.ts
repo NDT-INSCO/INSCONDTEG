@@ -113,9 +113,17 @@ export async function streamTutor(request: TutorRequest, options: StreamOptions 
 
   let response: Response;
   try {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json', Accept: 'text/event-stream' };
+    try {
+      const { auth } = await import('../firebase/config');
+      const idToken = await auth?.currentUser?.getIdToken();
+      if (idToken) headers.Authorization = `Bearer ${idToken}`;
+    } catch {
+      // Public library retrieval stays available if there is no Firebase session.
+    }
     response = await fetch(tutorUrl(TUTOR_ENDPOINTS.tutor), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
+      headers,
       body: JSON.stringify(request),
       signal,
     });

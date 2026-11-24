@@ -69,6 +69,8 @@ export interface AgentCitation {
   title: string;
   section?: string;
   page?: number;
+  sourceType?: 'site-library' | 'private-drive';
+  url?: string;
 }
 
 export type AgentAnswerKind = 'library' | 'rules' | 'editorial' | 'site-data' | 'decline';

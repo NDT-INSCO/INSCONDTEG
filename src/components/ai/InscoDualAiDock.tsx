@@ -492,7 +492,13 @@ export const InscoDualAiDock: React.FC<InscoDualAiDockProps> = ({
                           </span>
                           {turn.citations?.map(citation => (
                             <div key={citation.id} className="text-[10px] text-cyan-300">
-                              {citation.title}{citation.section ? ` — ${citation.section}` : ''}{citation.page ? ` · ${isAr ? 'صفحة ' : 'p. '}${citation.page}` : ''}
+                              {citation.url ? (
+                                <a href={citation.url} target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-cyan-100">
+                                  {citation.title}{citation.section ? ` — ${citation.section}` : ''}{citation.page ? ` · ${isAr ? 'صفحة ' : 'p. '}${citation.page}` : ''}{citation.sourceType === 'private-drive' ? ` · ${isAr ? 'Drive خاص' : 'private Drive'}` : ''}
+                                </a>
+                              ) : (
+                                <>{citation.title}{citation.section ? ` — ${citation.section}` : ''}{citation.page ? ` · ${isAr ? 'صفحة ' : 'p. '}${citation.page}` : ''}</>
+                              )}
                             </div>
                           ))}
                           {!!turn.reasoningSteps?.length && (

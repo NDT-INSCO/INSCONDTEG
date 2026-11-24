@@ -47,9 +47,18 @@ async function postAgentJson<TReq, TRes>(
     return result as TRes;
   }
 
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  try {
+    const { auth } = await import('../firebase/config');
+    const idToken = await auth?.currentUser?.getIdToken();
+    if (idToken) headers.Authorization = `Bearer ${idToken}`;
+  } catch {
+    // Public corpus/rules remain usable when Firebase Auth is absent.
+  }
+
   const res = await fetch(agentUrl(endpoint), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(payload),
     signal,
   });

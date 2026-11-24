@@ -441,6 +441,10 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({
   };
 
   const openCitation = (citation: TutorCitation) => {
+    if (citation.sourceType === 'private-drive' && citation.url) {
+      window.open(citation.url, '_blank', 'noopener,noreferrer');
+      return;
+    }
     if (citation.pageNumber && (citation.kind === 'textbook' || citation.bookId.startsWith('edb-course-'))) {
       setEdbTarget(citation.bookId.startsWith('edb-') ? citation.bookId : `edb-${citation.bookId}`);
       setEdbTargetPage(citation.pageNumber);
@@ -1556,6 +1560,7 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({
                       className="max-w-full truncate rounded-lg border border-[#2a3260] bg-[#0d1028] px-3 py-1.5 text-[11px] text-slate-300 hover:border-amber-400 hover:text-amber-200"
                       title={citation.id}
                     >
+                      {citation.sourceType === 'private-drive' ? (isAr ? 'Drive خاص · ' : 'private Drive · ') : ''}
                       {citation.reviewed === false ? (isAr ? 'غير مُراجَع · ' : 'unreviewed · ') : ''}
                       {isAr ? 'ص' : 'p'}
                       {citation.pageNumber ?? '—'} · {citation.title[language] || citation.title.ar}

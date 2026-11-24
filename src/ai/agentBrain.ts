@@ -6,7 +6,7 @@
  * bilingual corpus with the tutor's unchanged confidence gate, then compose only
  * supported answers. Operational conclusions come from telemetry fields, never guesses.
  */
-import { getCorpus } from './corpus.js';
+import { getCorpus, type CorpusDocument } from './corpus.js';
 import { buildIndex, searchLibrary, type SearchHit } from './search.js';
 import type {
   AgentCitation,
@@ -36,6 +36,8 @@ function docCitation(hit: SearchHit, language: AgentLanguage): AgentCitation {
     title: doc.title[language] || doc.title[language === 'ar' ? 'en' : 'ar'] || doc.bookId,
     ...(doc.section[language] ? { section: doc.section[language] } : {}),
     ...(doc.pageNumber ? { page: doc.pageNumber } : {}),
+    sourceType: doc.id.startsWith('drive:') ? 'private-drive' : 'site-library',
+    ...(doc.sourceUrl ? { url: doc.sourceUrl } : {}),
   };
 }
 
@@ -46,8 +48,9 @@ function snippet(hit: SearchHit, language: AgentLanguage, limit = 500): string {
     || text.trim().slice(0, limit);
 }
 
-function confidentHits(query: string): SearchHit[] {
-  const result = searchLibrary(query, { index: index(), limit: 5, minScore: 4.2 });
+function confidentHits(query: string, privateDocuments: CorpusDocument[] = []): SearchHit[] {
+  const searchIndex = privateDocuments.length ? buildIndex([...getCorpus(), ...privateDocuments]) : index();
+  const result = searchLibrary(query, { index: searchIndex, limit: 5, minScore: 4.2 });
   const hasEngineeringAnchor = /\b(?:NDT|RT|UT|PAUT|TOFD|MT|PT|VT|PWHT|ASME|AWS|ISO|API|ASTM|WPS|PQR|weld|welding|inspection|radiograph|ultrasonic|code|standard|defect)\b|(?:فحص|لحام|اشعة|أشعة|موجات|كود|معيار|عيب|عيوب|معالجة حرارية|تآكل)/i.test(query);
   return result.confident && hasEngineeringAnchor ? result.hits : [];
 }
@@ -73,7 +76,7 @@ function inferCopilotMode(input: UserCopilotRequest): UserCopilotRequest['mode']
   return 'assistant';
 }
 
-function followupQuery(input: UserCopilotRequest): string {
+export function copilotSearchQuery(input: UserCopilotRequest): string {
   const msg = input.message.trim();
   const shortFollowup = msg.length < 90 && (/^(?:وده|وذلك|ده|دي|دا|هذا|هذه|يعني|ليه|ازاي|كيف ذلك|ماذا عن|طب|طيب)(?:\s|$)/i.test(msg) || /^(?:why|how about|what about|and|it|that|this|which|explain|more)\b/i.test(msg));
   const earlierUser = [...input.history].reverse().find(m => m.role === 'user')?.content;
@@ -97,10 +100,10 @@ function navigationAction(message: string, language: AgentLanguage): UserCopilot
   return route ? [{ label: language === 'ar' ? `افتح ${route[1] === 'community' ? 'المجتمع' : route[1] === 'rfq' ? 'طلب عرض السعر' : 'المعامل'}` : `Open ${route[1]}`, actionType: route[3], target: route[1] }] : [];
 }
 
-export function answerCopilot(input: UserCopilotRequest): UserCopilotResponse {
+export function answerCopilot(input: UserCopilotRequest, privateDocuments: CorpusDocument[] = []): UserCopilotResponse {
   const started = Date.now();
   const ar = input.language === 'ar';
-  const query = followupQuery(input);
+  const query = copilotSearchQuery(input);
   const mode = inferCopilotMode(input);
   const citations: AgentCitation[] = [];
   const actions = navigationAction(input.message, input.language);
@@ -153,15 +156,16 @@ export function answerCopilot(input: UserCopilotRequest): UserCopilotResponse {
     kind = 'rules';
     steps.push(ar ? 'جمعت المدخلات اللازمة للاختيار بدل تقديم توصية بلا سياق.' : 'Collected the inputs needed for method selection instead of recommending without context.');
   } else {
-    const hits = confidentHits(query);
+    const hits = confidentHits(query, privateDocuments);
     if (hits.length && isTechnicalQuestion(query)) {
       const top = hits[0];
       citations.push(...hits.slice(0, 1).map(hit => docCitation(hit, input.language)));
+      const isPrivate = top.document.id.startsWith('drive:');
       reply = ar
-        ? `من مكتبة INSCO: «${snippet(top, input.language)}»${citeText(citations, input.language)}\n\nهذه خلاصة مقتبسة من مادة الأكاديمية وليست اعتمادًا فنيًا. عند تطبيقها، راجع النص الأصلي والكود المعتمد للمشروع.`
-        : `From the INSCO library: “${snippet(top, input.language)}”${citeText(citations, input.language)}\n\nThis is an excerpt from academy material, not an approved engineering decision. Check the original source and project-governing code before applying it.`;
+        ? `من ${isPrivate ? 'مكتبة Drive الداخلية' : 'مكتبة INSCO'}: «${snippet(top, input.language)}»${citeText(citations, input.language)}\n\n${isPrivate ? 'هذا مقتطف من كتاب خاص للاستخدام الداخلي، وليس مراجعة هندسية أو تصريحًا بإعادة النشر.' : 'هذه خلاصة مقتبسة من مادة الأكاديمية وليست اعتمادًا فنيًا.'} عند التطبيق، راجع النص الأصلي والكود المعتمد للمشروع.`
+        : `From the ${isPrivate ? 'internal Drive library' : 'INSCO library'}: “${snippet(top, input.language)}”${citeText(citations, input.language)}\n\n${isPrivate ? 'This is an excerpt from a private book for internal use, not engineering review or permission to redistribute.' : 'This is an excerpt from academy material, not an approved engineering decision.'} Check the original source and project-governing code before applying it.`;
       kind = 'library';
-      steps.push(ar ? `حللت السؤال والسياق السابق ثم بحثت في ${getCorpus().length} مادة.` : `Analysed the question and prior context, then searched ${getCorpus().length} site materials.`);
+      steps.push(ar ? `حللت السؤال والسياق السابق ثم بحثت في ${getCorpus().length} مادة منشورة و${privateDocuments.length} مقطعًا خاصًا مصرحًا به.` : `Analysed the question and prior context, then searched ${getCorpus().length} public site materials and ${privateDocuments.length} authorized private passages.`);
       steps.push(ar ? `استخدمت ${hits.length} مقاطع اجتازت حد الثقة الحالي.` : `Used ${hits.length} passages that met the existing confidence threshold.`);
       steps.push(ar ? 'أرفقت المصدر ولم أضف تفسيرًا غير موجود في النص.' : 'Attached the source and added no unsupported interpretation.');
     } else if (isTechnicalQuestion(query)) {
@@ -228,7 +232,7 @@ export function answerSiteManager(input: SiteManagerRequest): SiteManagerRespons
   };
 }
 
-export function answerCommunity(input: CommunityAssistRequest): CommunityAssistResponse {
+export function answerCommunity(input: CommunityAssistRequest, privateDocuments: CorpusDocument[] = []): CommunityAssistResponse {
   const ar = input.language === 'ar';
   const body = clean(input.body);
   const lines = body.split(/(?<=[.!?؟])\s+|\n+/).filter(Boolean);
@@ -258,7 +262,7 @@ export function answerCommunity(input: CommunityAssistRequest): CommunityAssistR
     outputBody = body.replace(/\s*\n\s*/g, '\n\n');
     reply = ar ? 'نظمت التنسيق فقط؛ لم أتحقق من صحة الادعاءات الفنية.' : 'I adjusted formatting only; technical claims have not been verified.';
   } else {
-    const hits = confidentHits(`${input.ndtMethod} ${input.title || ''} ${body}`);
+    const hits = confidentHits(`${input.ndtMethod} ${input.title || ''} ${body}`, privateDocuments);
     if (hits.length) {
       citations.push(docCitation(hits[0], input.language));
       technicalSnippet = snippet(hits[0], input.language);

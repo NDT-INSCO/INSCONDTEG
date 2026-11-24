@@ -23,8 +23,10 @@ export interface SelfAnswerInput {
   language: TutorLanguage;
   /** Retrieved hits (already filtered for confidence by the caller). */
   hits: SearchHit[];
-  /** How many documents the library indexed — reported honestly. */
+  /** How many public/site documents the library indexed — reported honestly. */
   corpusSize: number;
+  /** Confident private Drive passages among the answer hits, not the full index size. */
+  privatePassages?: number;
 }
 
 export interface SelfAnswer {
@@ -60,7 +62,7 @@ function passageLabel(hit: SearchHit, ar: boolean): string {
  * Compose the answer from retrieved hits only. Returns null when there is
  * nothing to answer from — the caller must then serve the honest decline.
  */
-export function composeSelfAnswer({ question, language, hits, corpusSize }: SelfAnswerInput): SelfAnswer | null {
+export function composeSelfAnswer({ question, language, hits, corpusSize, privatePassages = 0 }: SelfAnswerInput): SelfAnswer | null {
   const usable = (hits ?? []).filter(hit => hit && hit.document).slice(0, 1 + MAX_RELATED);
   if (!usable.length || corpusSize <= 0) return null;
 
@@ -100,13 +102,17 @@ export function composeSelfAnswer({ question, language, hits, corpusSize }: Self
   const steps: string[] = ar
     ? [
         `حلل السؤال: ${questionTerms.length} كلمة رئيسية`,
-        `بحث في المكتبة (${corpusSize} وثيقة) — ${usable.length} مقطع طابق`,
+        privatePassages > 0
+          ? `بحثت في مكتبة الموقع (${corpusSize} وثيقة) وفي فهرس Drive الخاص — ${privatePassages} مقطعًا خاصًا طابق`
+          : `بحث في المكتبة (${corpusSize} وثيقة) — ${usable.length} مقطع طابق`,
         `اختر المقطع الأقرب: ${passageLabel(top, ar)}`,
         'صيغ الإجابة من النصوص نفسها — بدون مفتاح نموذج',
       ]
     : [
         `Analysed the question: ${questionTerms.length} core terms`,
-        `Searched the library (${corpusSize} documents) — ${usable.length} passage(s) matched`,
+        privatePassages > 0
+          ? `Searched the site library (${corpusSize} documents) and private Drive index — ${privatePassages} private passage(s) matched`
+          : `Searched the library (${corpusSize} documents) — ${usable.length} passage(s) matched`,
         `Picked the closest passage: ${passageLabel(top, ar)}`,
         'Composed the answer from the texts themselves — no model key',
       ];

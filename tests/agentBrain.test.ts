@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { answerCopilot, answerCommunity, answerSiteManager, resetAgentBrainForTests } from '../src/ai/agentBrain.js';
 import { normaliseCommunityAssistRequest, normaliseSiteManagerRequest, normaliseUserCopilotRequest } from '../src/ai/agentsContract.js';
+import type { CorpusDocument } from '../src/ai/corpus.js';
 
 test('copilot answers technical questions from the site library without a model key', () => {
   resetAgentBrainForTests();
@@ -57,6 +58,25 @@ test('copilot infers a drafting task from the conversation without a model call'
   assert.equal(answer.kind, 'editorial');
   assert.ok(answer.draftPost);
   assert.equal(answer.model, null);
+});
+
+test('authorized private Drive passages become cited agent answers, but are absent from the public fallback', () => {
+  const parsed = normaliseUserCopilotRequest({ message: 'What does ASME B31.3 say about piping weld design pressure?', language: 'en', history: [], mode: 'assistant' });
+  assert.equal(parsed.ok, true);
+  if (!parsed.ok) return;
+  const privateDoc: CorpusDocument = {
+    id: 'drive:private-file#p7c0', kind: 'textbook', bookId: 'private-file', pageNumber: 7,
+    sourceUrl: 'https://drive.google.com/open?id=private-file',
+    title: { ar: 'ASME B31.3.pdf', en: 'ASME B31.3.pdf' },
+    section: { ar: 'Page 7', en: 'Page 7' }, discipline: 'NDT',
+    text: { ar: 'ASME B31.3 piping weld design pressure temperature code applies to piping design pressure.', en: 'ASME B31.3 piping weld design pressure temperature code applies to piping design pressure.' },
+  };
+  const publicOnly = answerCopilot(parsed.value);
+  assert.equal(publicOnly.citations.some(c => c.sourceType === 'private-drive'), false);
+  const authorized = answerCopilot(parsed.value, [privateDoc]);
+  assert.ok(authorized.citations.some(c => c.sourceType === 'private-drive'));
+  assert.match(authorized.citations[0].url || '', /drive.google.com/);
+  assert.equal(authorized.model, null);
 });
 
 test('method-selection requests collect missing context before recommending an NDT method', () => {

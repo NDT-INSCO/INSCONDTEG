@@ -198,6 +198,8 @@ export interface TutorCitation {
    * forget that a citation is a claim about its source.
    */
   reviewed?: boolean;
+  sourceType?: 'site-library' | 'private-drive';
+  url?: string;
 }
 
 export interface TutorMeta {
@@ -210,7 +212,7 @@ export interface TutorMeta {
   /** Milliseconds the answer took, server side. */
   elapsedMs: number;
   /** Which library the citations came from — the reader is told, not left to guess. */
-  source?: 'reviewed' | 'academy' | 'none';
+  source?: 'reviewed' | 'academy' | 'private-drive' | 'mixed' | 'none';
   /**
    * How the answer was produced: a model answer (`model`) or an answer composed
    * from the library itself (`library`). The UI labels the two differently — a

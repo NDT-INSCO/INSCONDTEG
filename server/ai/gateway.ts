@@ -42,9 +42,10 @@ import {
   TutorStatus,
   UpstreamSignal,
 } from '../../src/ai/contract.js';
-import type { SearchHit } from '../../src/ai/search.js';
+import { buildIndex, searchLibrary, type SearchHit } from '../../src/ai/search.js';
 import { composeSelfAnswer } from '../../src/ai/selfAnswer.js';
-import { answerCopilot, answerSiteManager, answerCommunity } from '../../src/ai/agentBrain.js';
+import { answerCopilot, answerSiteManager, answerCommunity, copilotSearchQuery } from '../../src/ai/agentBrain.js';
+import { searchPrivateKnowledge } from './privateKnowledge.js';
 import { buildTutorLibrary, type TutorLibrary } from '../tutor/library.js';
 import {
   ChainAttempt,
@@ -353,7 +354,9 @@ function toCitation(hit: SearchHit, reviewed: boolean): TutorCitation {
     pageNumber: document.pageNumber,
     courseId: document.courseId,
     score: Math.round(hit.score * 100) / 100,
-    reviewed,
+    reviewed: reviewed && !document.id.startsWith('drive:'),
+    sourceType: document.id.startsWith('drive:') ? 'private-drive' : 'site-library',
+    ...(document.sourceUrl ? { url: document.sourceUrl } : {}),
   };
 }
 
@@ -545,14 +548,14 @@ interface TutorPayload {
   prompt: string;
   system: string;
   /** Which library produced the citations — echoed to the reader in `meta`. */
-  source: 'reviewed' | 'academy' | 'none';
+  source: 'reviewed' | 'academy' | 'private-drive' | 'mixed' | 'none';
   /** The retrieved passages behind the citations — kept whole for the library-only path. */
   hits: SearchHit[];
   /** How many documents the library indexed, reported honestly on the library-only path. */
   documents: number;
 }
 
-async function prepare(body: unknown, res: Response): Promise<TutorPayload | null> {
+async function prepare(body: unknown, res: Response, idToken?: string): Promise<TutorPayload | null> {
   const parsed = normaliseTutorRequest(body);
   if (!parsed.ok || !parsed.value) {
     res.status(STATUS_CODE.invalid_request).json({
@@ -563,22 +566,38 @@ async function prepare(body: unknown, res: Response): Promise<TutorPayload | nul
   const library = await loadAiLibrary();
   const request = parsed.value;
   const question = latestQuestion(request);
-  const hits = library.retrieve(question);
+  const hits = [...library.retrieve(question)];
+  const privateDocuments = await searchPrivateKnowledge(question, idToken);
+  if (privateDocuments.length) {
+    const privateIndex = buildIndex(privateDocuments);
+    const privateResult = searchLibrary(question, { index: privateIndex, limit: TUTOR_LIMITS.passages, minScore: TUTOR_LIMITS.minScore });
+    if (privateResult.confident) hits.push(...privateResult.hits);
+  }
+  const uniqueHits = [...new Map(hits.map(hit => [hit.document.id, hit])).values()]
+    .sort((a, b) => b.score - a.score)
+    .slice(0, TUTOR_LIMITS.passages);
   const reviewed = library.source === 'reviewed';
-  const citations = hits.map(hit => toCitation(hit, reviewed));
-  const context = buildContext(hits, request.language);
-  const selfHits = hits.slice(0, TUTOR_LIMITS.passages);
+  const citations = uniqueHits.map(hit => toCitation(hit, reviewed));
+  const context = buildContext(uniqueHits, request.language);
+  const selfHits = uniqueHits;
   const confident = Boolean(context);
   const hint = MODE_HINT[request.mode]?.[request.language] ?? '';
   // The model is told, in the same breath as the passages, that academy material is not
   // reviewed study content — otherwise it would present it as approved reference.
-  const header = reviewed
+  const hasDrive = uniqueHits.some(hit => hit.document.id.startsWith('drive:'));
+  const hasSite = uniqueHits.some(hit => !hit.document.id.startsWith('drive:'));
+  const source: TutorPayload['source'] = hasDrive && hasSite ? 'mixed' : hasDrive ? 'private-drive' : library.source;
+  const header = source === 'reviewed'
     ? request.language === 'ar'
       ? 'مقاطع من مكتبة إنسكو المراجَعة (استخدم معرّفاتها في الاستشهاد):'
       : 'Passages from the reviewed INSCO library (cite these ids):'
-    : request.language === 'ar'
-      ? 'مقاطع من مادة الأكاديمية (غير مُراجَعة — استخدم معرّفاتها في الاستشهاد، ووضّح أن الإجابة استرشادية للتعلّم لا مرجع معتمد):'
-      : 'Passages from the academy corpus (NOT reviewed — cite their ids and say the answer is study guidance, not an approved reference):';
+    : source === 'private-drive' || source === 'mixed'
+      ? request.language === 'ar'
+        ? 'مقاطع من مصادر إنسكو، تشمل كتب Drive خاصة مرخصة للاستخدام الداخلي. اقتبسها كمواد غير معتمدة للتطبيق، وأرفق رقم الصفحة:'
+        : 'Passages from INSCO sources, including private Drive books licensed for internal use. Treat as unreviewed study material, not an approved engineering decision; cite the page:'
+      : request.language === 'ar'
+        ? 'مقاطع من مادة الأكاديمية (غير مُراجَعة — استخدم معرّفاتها في الاستشهاد، ووضّح أن الإجابة استرشادية للتعلّم لا مرجع معتمد):'
+        : 'Passages from the academy corpus (NOT reviewed — cite these ids and say the answer is study guidance, not an approved reference):';
   const prompt = confident
     ? `${header}\n\n${context}\n\n---\n\n${hint}\n\n${
         request.language === 'ar' ? 'السؤال' : 'Question'
@@ -598,7 +617,7 @@ async function prepare(body: unknown, res: Response): Promise<TutorPayload | nul
     confident,
     prompt: history ? `${history}\n\n${prompt}` : prompt,
     system: `${SYSTEM[request.language]}\n\n${hint}`,
-    source: library.source,
+    source,
     hits: selfHits,
     documents: library.documents,
   };
@@ -606,7 +625,7 @@ async function prepare(body: unknown, res: Response): Promise<TutorPayload | nul
 
 async function handleTutor(req: Request, res: Response, streaming: boolean): Promise<void> {
   // Validate first: a malformed body must be a 400 and must not spend quota.
-  const payload = await prepare(req.body, res);
+  const payload = await prepare(req.body, res, bearerToken(req));
   if (!payload) return;
 
   const limit = takeToken(req.ip || req.socket.remoteAddress || 'unknown');
@@ -621,7 +640,9 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
     return;
   }
 
-  if (!ai) {
+  if (!ai || payload.source === 'private-drive' || payload.source === 'mixed') {
+    // Private Drive material is never sent to an external model provider, even if
+    // Gemini happens to be configured. It is composed locally from authorized excerpts.
     // The library is the tutor's own knowledge. It can answer without a model
     // key: the same retrieval the model path uses, composed honestly from the
     // passages — no invented words, no citations the corpus does not hold. A
@@ -632,6 +653,7 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
       language: payload.language,
       hits: payload.hits,
       corpusSize: payload.documents,
+      privatePassages: payload.hits.filter(hit => hit.document.id.startsWith('drive:')).length,
     });
     if (!selfAnswer) {
       // Nothing to answer from: the honest decline, exactly as without a key.
@@ -799,6 +821,12 @@ router.post(TUTOR_ENDPOINTS.legacyTutor, (req, res) => {
 /* Dual AI Agents & INSCO Community Copilot                            */
 /* ------------------------------------------------------------------ */
 
+function bearerToken(req: Request): string | undefined {
+  const authorization = req.header('authorization') || '';
+  const match = /^Bearer\s+([A-Za-z0-9._-]{20,})$/i.exec(authorization);
+  return match?.[1];
+}
+
 function guardAgentRateLimit(req: Request, res: Response, lang: 'ar' | 'en'): boolean {
   const limit = takeToken(req.ip || req.socket.remoteAddress || 'unknown');
   if (!limit.allowed) {
@@ -815,7 +843,7 @@ function guardAgentRateLimit(req: Request, res: Response, lang: 'ar' | 'en'): bo
 }
 
 /** All three agents use the shared on-site corpus and deterministic rules. */
-router.post(AGENT_ENDPOINTS.userCopilot, (req: Request, res: Response) => {
+router.post(AGENT_ENDPOINTS.userCopilot, async (req: Request, res: Response) => {
   const parsed = normaliseUserCopilotRequest(req.body);
   if (!parsed.ok) {
     res.status(400).json({ error: { code: 'invalid_request', message: parsed.error } });
@@ -823,7 +851,8 @@ router.post(AGENT_ENDPOINTS.userCopilot, (req: Request, res: Response) => {
   }
   if (!guardAgentRateLimit(req, res, parsed.value.language)) return;
   res.setHeader('Cache-Control', 'no-store');
-  res.json(answerCopilot(parsed.value));
+  const privateDocuments = await searchPrivateKnowledge(copilotSearchQuery(parsed.value), bearerToken(req));
+  res.json(answerCopilot(parsed.value, privateDocuments));
 });
 
 router.post(AGENT_ENDPOINTS.siteManager, (req: Request, res: Response) => {
@@ -837,7 +866,7 @@ router.post(AGENT_ENDPOINTS.siteManager, (req: Request, res: Response) => {
   res.json(answerSiteManager(parsed.value));
 });
 
-router.post(AGENT_ENDPOINTS.communityAssist, (req: Request, res: Response) => {
+router.post(AGENT_ENDPOINTS.communityAssist, async (req: Request, res: Response) => {
   const parsed = normaliseCommunityAssistRequest(req.body);
   if (!parsed.ok) {
     res.status(400).json({ error: { code: 'invalid_request', message: parsed.error } });
@@ -845,7 +874,10 @@ router.post(AGENT_ENDPOINTS.communityAssist, (req: Request, res: Response) => {
   }
   if (!guardAgentRateLimit(req, res, parsed.value.language)) return;
   res.setHeader('Cache-Control', 'no-store');
-  res.json(answerCommunity(parsed.value));
+  const privateDocuments = parsed.value.action === 'code_check'
+    ? await searchPrivateKnowledge(`${parsed.value.ndtMethod} ${parsed.value.title || ''} ${parsed.value.body}`, bearerToken(req))
+    : [];
+  res.json(answerCommunity(parsed.value, privateDocuments));
 });
 
   return router;

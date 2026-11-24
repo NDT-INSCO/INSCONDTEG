@@ -76,6 +76,16 @@ export const ACADEMY_SECTIONS = [
   'university',
 ] as const;
 
+/** The six sequential learning stations; the Robotic University is a separate destination. */
+export const ACADEMY_JOURNEY_SECTIONS = [
+  'choose',
+  'learn',
+  'practice',
+  'test',
+  'progress',
+  'mentor',
+] as const;
+
 export type AcademySectionId = (typeof ACADEMY_SECTIONS)[number];
 
 /**

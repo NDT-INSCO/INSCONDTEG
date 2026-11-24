@@ -49,6 +49,7 @@ import {
 import { buildIndex, searchLibrary, type SearchHit } from '../../src/ai/search.js';
 import { composeSelfAnswer } from '../../src/ai/selfAnswer.js';
 import { searchPrivateKnowledge } from './privateKnowledge.js';
+import { searchPublicWeb, WebSearchError } from './webResearch.js';
 import { answerCopilot, answerCommunity, copilotSearchQuery } from '../../src/ai/agentBrain.js';
 import { HOSTED_GATEWAY_URL, PAGES_SITE_ORIGIN } from '../../src/ai/pagesGateway.js';
 import {
@@ -747,6 +748,38 @@ router.get('/api/ai/selftest', async (req: Request, res: Response) => {
     confident: Boolean(composed),
     elapsedMs: Date.now() - started,
   });
+});
+
+router.post(AGENT_ENDPOINTS.webSearch, async (req: Request, res: Response) => {
+  const limit = takeToken(req.ip || req.socket.remoteAddress || 'unknown');
+  if (!limit.allowed) {
+    if (limit.failure.retryAfterSeconds) res.setHeader('Retry-After', String(limit.failure.retryAfterSeconds));
+    res.status(429).json({ error: { code: 'rate_limited', message: 'Web search rate limit reached.' } });
+    return;
+  }
+
+  const query = typeof req.body?.query === 'string' ? req.body.query.trim() : '';
+  if (query.length < 3 || query.length > 500) {
+    res.status(400).json({ error: { code: 'invalid_query', message: 'Provide a search query between 3 and 500 characters.' } });
+    return;
+  }
+
+  res.setHeader('Cache-Control', 'no-store');
+  try {
+    const result = await searchPublicWeb(query, {
+      maxResults: typeof req.body?.maxResults === 'number' ? req.body.maxResults : 5,
+    });
+    res.json({ ...result, external: true });
+  } catch (error) {
+    if (error instanceof WebSearchError) {
+      const status = error.code === 'not_configured' ? 503
+        : error.code === 'invalid_query' ? 400
+          : error.code === 'provider_timeout' ? 504 : 502;
+      res.status(status).json({ error: { code: error.code, message: error.message }, external: false });
+      return;
+    }
+    res.status(502).json({ error: { code: 'provider_error', message: 'Web search is temporarily unavailable.' }, external: false });
+  }
 });
 
 router.get(TUTOR_ENDPOINTS.status, async (_req: Request, res: Response) => {

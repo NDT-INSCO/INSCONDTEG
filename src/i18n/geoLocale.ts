@@ -502,3 +502,28 @@ export async function autoDetectAndTranslate(options: AutoTranslateOptions): Pro
 
   return detected;
 }
+
+/** Get last detected locale from cache (sync, no network) — for header display. */
+export function getDetectedLocaleForDisplay(): DetectedLocale | null {
+  try {
+    const cached = readPersistedGeo();
+    if (!cached) return null;
+    const lang = getLanguage(cached.languageCode);
+    if (!lang) return null;
+    return {
+      countryCode: cached.countryCode,
+      countryNameAr: getCountryName(cached.countryCode, 'ar'),
+      countryNameEn: getCountryName(cached.countryCode, 'en'),
+      city: cached.city ?? null,
+      flag: flagFor(cached.countryCode),
+      languageCode: lang.code,
+      languageNameNative: lang.native,
+      languageNameEn: lang.english,
+      method: cached.method,
+      confidence: 'high',
+    };
+  } catch {
+    return null;
+  }
+}
+

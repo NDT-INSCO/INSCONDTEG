@@ -13,8 +13,11 @@ import { SiteAccountProvider, useSiteAccount } from './account/SiteAccountContex
 import { InscoDualAiDock } from './components/ai/InscoDualAiDock';
 import { TranslatorRobot } from './components/TranslatorRobot';
 import { GeoLocaleBanner } from './components/GeoLocaleBanner';
+import { SeoManager } from './components/SeoManager';
+import { HeaderLanguageSelector } from './components/HeaderLanguageSelector';
 import { getRobotTarget } from './i18n/translationStore';
 import { markManualOverride } from './i18n/geoLocale';
+import { reportWebVitals } from './utils/performance';
 import { Language } from './types';
 import { AcademyTab } from './academyTabs';
 import { ADMIN_HASH } from './admin/contract';
@@ -223,6 +226,13 @@ export const App: React.FC = () => {
       /* private mode: language simply resets on reload */
     }
   }, [language, isAr]);
+
+  // Performance vitals in dev
+  useEffect(() => {
+    try {
+      if ((import.meta as unknown as { env?: { DEV?: boolean } })?.env?.DEV) reportWebVitals();
+    } catch { /* ignore */ }
+  }, []);
 
   /* ------------------------------- routing -------------------------------- */
 
@@ -638,6 +648,7 @@ export const App: React.FC = () => {
           <header className="border-b border-violet-500/20 bg-slate-950">
             <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-end gap-2 px-4 pt-2 sm:px-6">
               <GlobalThemeSwitcher language={language} />
+              <HeaderLanguageSelector source={language} onSwitchNativeLanguage={switchLanguage} />
               <button type="button" onClick={() => switchLanguage(isAr ? 'en' : 'ar')} className="rounded-lg border border-slate-700 px-2.5 py-1.5 text-xs font-semibold text-white">
                 {isAr ? 'English' : 'العربية'}
               </button>
@@ -863,12 +874,15 @@ export const App: React.FC = () => {
 
               <GlobalThemeSwitcher language={language} />
 
+              <HeaderLanguageSelector source={language} onSwitchNativeLanguage={switchLanguage} />
+
+              {/* Direct ar/en toggle for quick switch + test compatibility */}
               <button
                 type="button"
                 onClick={() => switchLanguage(isAr ? 'en' : 'ar')}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-700 text-xs text-slate-200 hover:bg-slate-800 transition cursor-pointer"
+                className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-2.5 py-1.5 text-xs text-slate-200 hover:bg-slate-800 transition cursor-pointer"
+                aria-label={isAr ? 'Switch to English' : 'التبديل إلى العربية'}
               >
-                <Globe className="w-3.5 h-3.5" aria-hidden="true" />
                 <span className="font-semibold">{isAr ? 'English' : 'العربية'}</span>
               </button>
             </div>
@@ -1090,6 +1104,7 @@ export const App: React.FC = () => {
       />
     </div>
     )}
+    <SeoManager language={language} portal={portal} routePath={window.location.hash || '#'} />
     {/* Geo-aware auto-translation (IP → country → language): opens the site in the visitor's language, change always optional */}
     <GeoLocaleBanner source={language} onSwitchNativeLanguage={switchLanguage} />
     {/* Universal Translator Robot — every world language, on every portal. */}

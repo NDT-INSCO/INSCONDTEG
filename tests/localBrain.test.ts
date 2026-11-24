@@ -19,16 +19,23 @@ import { getCorpus } from '../src/ai/corpus';
 import { composeTutorAnswer } from '../src/ai/brain/compose';
 import { detectIntent } from '../src/ai/brain/intent';
 import { draftCopilotAnswer } from '../src/ai/brain/agents';
+import { resolveAiProvider } from '../src/ai/brain/index';
 import { searchLibrary } from '../src/ai/search';
 
-// No provider keys at all, and no provider chosen: the default has to be the local brain.
+// Explicit local-only mode: no provider keys and no outbound provider calls.
 delete process.env.GEMINI_API_KEY;
 delete process.env.API_KEY;
 delete process.env.MANUS_API_KEY;
-delete process.env.AI_PROVIDER;
+process.env.AI_PROVIDER = 'local';
 
 const corpus = getCorpus();
 const corpusIds = new Set(corpus.map(document => document.id));
+
+test('an unset provider selects local-first auto mode', () => {
+  assert.equal(resolveAiProvider({}), 'auto');
+  assert.equal(resolveAiProvider({ AI_PROVIDER: 'typo' }), 'auto');
+  assert.equal(resolveAiProvider({ AI_PROVIDER: 'local' }), 'local');
+});
 
 /* ------------------------------------------------------------------ */
 /* the network sentinel                                                */

@@ -4,16 +4,14 @@
  * `AI_PROVIDER` decides which engine serves the four AI surfaces (tutor, copilot, community
  * assist, site manager):
  *
- * - `local`  **(default)** — this module. No network, no key, no quota. Answers are built
- *            from the INSCO library and the platform's own telemetry.
- * - `gemini` — the previous behaviour: Google's models answer.
- * - `manus`  — Manus agent tasks answer (still billed per task).
- * - `auto`   — local first; if the local library has no passage for the question, ask
- *            Gemini, then Manus, when their keys exist.
+ * - `auto` **(default)** — try INSCO's local brain and reviewed knowledge first; use a
+ *            configured provider only when the local answer is not sufficiently grounded.
+ * - `local` — never call external providers, even when keys exist.
+ * - `gemini` — explicitly prefer Google's models.
+ * - `manus` — explicitly prefer Manus tasks (which may incur provider cost).
  *
- * The default changed on purpose. A dependence that is switched on by omission is not a
- * choice, and the requirement here is that the platform's agents keep answering with every
- * outside service removed.
+ * This is a retrieval-and-rules engine, not a fine-tuned neural model. `auto` keeps that
+ * local answer path first, while making external inference an opt-in-by-need fallback.
  */
 export * from './text.js';
 export * from './intent.js';
@@ -25,15 +23,15 @@ export const BRAIN_MODEL = 'insco-local-1';
 
 export type AiProvider = 'local' | 'gemini' | 'manus' | 'auto';
 
-/** Read the provider from the environment; anything unrecognised falls back to `local`. */
+/** Read the provider from the environment; an unset or invalid value uses local-first auto mode. */
 export function resolveAiProvider(env: NodeJS.ProcessEnv | Record<string, string | undefined>): AiProvider {
   const raw = String((env as Record<string, string | undefined>).AI_PROVIDER ?? '')
     .trim()
     .toLowerCase();
   if (raw === 'gemini' || raw === 'manus' || raw === 'auto' || raw === 'local') return raw;
-  return 'local';
+  return 'auto';
 }
 
 export function isLocalProvider(provider: AiProvider): boolean {
-  return provider === 'local';
+  return provider === 'local' || provider === 'auto';
 }

@@ -19,6 +19,7 @@ import express from 'express';
 
 delete process.env.GEMINI_API_KEY;
 delete process.env.API_KEY;
+process.env.AI_PROVIDER = 'local';
 
 const handler = (await import('../api/ai.ts')).default;
 let server: Server;

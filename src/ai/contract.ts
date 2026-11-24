@@ -322,8 +322,12 @@ export interface TutorStatus {
    * service is involved at all".
    */
   provider?: 'local' | 'gemini' | 'manus' | 'auto';
-  /** False when answers are composed on this server without leaving it. */
+  /** True when the selected mode may call an external provider as its primary engine. */
   external?: boolean;
+  /** In auto mode, local retrieval/rules are attempted before any provider call. */
+  localFirst?: boolean;
+  /** Whether a usable external provider key is present for fallback (not proof it is valid). */
+  fallbackAvailable?: boolean;
   /** The local engine's identity and the number of passages it can quote. */
   brain?: { model: string; documents: number };
   /** Why it is off, when it is off. Shown to the reader verbatim. */

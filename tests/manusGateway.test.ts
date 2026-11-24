@@ -337,13 +337,13 @@ test('a missing task_id is a 400, and a rejected key is reported as such', async
   }
 });
 
-test('the copilot answers through Manus when Gemini has no key', async () => {
-  // No GEMINI_API_KEY in this process: without a second engine this endpoint correctly
-  // refuses. With one, the reader still gets an answer — that is the connection.
+test('the copilot answers through Manus when local retrieval has no answer and Gemini has no key', async () => {
+  // Local-first answers ordinary supported requests without a provider. This obscure
+  // free-form question has no INSCO passage, so auto mode may use configured Manus.
   const response = await fetch(`${base}/api/ai/agent/user-copilot`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message: 'اكتب منشوراً عن PAUT', language: 'ar', mode: 'draft_post' }),
+    body: JSON.stringify({ message: 'qwertyuiop ZXQ-997 novel malvidium spectroscopy', language: 'en', mode: 'assistant' }),
   });
   assert.equal(response.status, 200, 'a configured second engine must answer');
   const body = (await response.json()) as { reply: string; model: string; suggestedActions: unknown[] };
@@ -352,22 +352,41 @@ test('the copilot answers through Manus when Gemini has no key', async () => {
   assert.deepEqual(body.suggestedActions, []);
 });
 
-test('the tutor status publishes the second engine too', async () => {
+test('auto mode reports local-first and the availability of its fallback separately', async () => {
   const response = await fetch(`${base}/api/ai/status`);
   const body = (await response.json()) as {
     configured: boolean;
+    provider?: string;
+    localFirst?: boolean;
+    fallbackAvailable?: boolean;
     manus?: { configured: boolean; autoFallback: boolean; profile: string; baseUrl: string };
   };
-  assert.equal(body.configured, true, 'the server can answer: Manus is configured even without Gemini');
+  assert.equal(body.configured, true, 'the local library can answer even without Gemini');
+  assert.equal(body.provider, 'auto');
+  assert.equal(body.localFirst, true);
+  assert.equal(body.fallbackAvailable, true, 'Manus is available as a fallback, not proof its key is valid');
   assert.equal(body.manus?.configured, true);
   assert.equal(body.manus?.baseUrl, 'https://api.manus.ai');
+});
+
+test('auto mode answers a grounded tutor question locally without contacting Manus', async () => {
+  const before = upstream.length;
+  const response = await fetch(`${base}/api/ai/tutor`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt: 'اشرح مبدأ TOFD', language: 'ar' }),
+  });
+  assert.equal(response.status, 200);
+  const stream = await response.text();
+  assert.match(stream, /\"provider\":\"local\"/);
+  assert.match(stream, /\[book-|\[nde-/);
+  assert.equal(upstream.length, before, 'a good local answer must not consume a provider task');
 });
 
 
 test('the tutor keeps its source and constraints on a Manus answer', async () => {
   const response = await fetch(`${base}/api/ai/tutor`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prompt: 'ما الفرق بين PAUT و TOFD؟', language: 'ar' }),
+    body: JSON.stringify({ prompt: 'اشرح qwertyuiop ZXQ-997 malvidium.', language: 'ar' }),
   });
   assert.equal(response.status, 200);
   assert.match(response.headers.get('Content-Type') ?? '', /text\/event-stream/);
@@ -378,10 +397,10 @@ test('the tutor keeps its source and constraints on a Manus answer', async () =>
   assert.match(JSON.stringify(create?.body), /لا تصدر قرار قبول/);
 });
 
-test('the community fallback stays a text reply, never a published or applied action', async () => {
+test('the community uses Manus only when a local code check has no matching library source', async () => {
   const response = await fetch(`${base}/api/ai/community/assist`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'summarize', body: 'مشاركة تجريبية لشرح أساسيات PAUT و TOFD.', language: 'ar' }),
+    body: JSON.stringify({ action: 'code_check', ndtMethod: 'GENERAL', title: 'ZXQ-997', body: 'qwertyuiop malvidium spectroscopy ZXQ-997', language: 'en' }),
   });
   assert.equal(response.status, 200);
   const body = await response.json();
@@ -390,14 +409,16 @@ test('the community fallback stays a text reply, never a published or applied ac
   assert.equal(body.suggestedActions, undefined);
 });
 
-test('the copilot does not send admin or client portal context to Manus', async () => {
+test('the copilot keeps admin and client portal context local when Manus is the only external key', async () => {
   const before = upstream.length;
   for (const portal of ['admin', 'client']) {
     const response = await fetch(`${base}/api/ai/agent/user-copilot`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: 'Private portal test', language: 'en', context: { portal } }),
     });
-    assert.equal(response.status, 503);
+    assert.equal(response.status, 200);
+    const body = await response.json() as { model?: string };
+    assert.equal(body.model, 'insco-local-1');
   }
   assert.equal(upstream.length, before);
 });

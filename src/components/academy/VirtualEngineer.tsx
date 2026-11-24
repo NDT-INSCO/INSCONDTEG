@@ -20,8 +20,8 @@ const simulatorForQuestion = (question: string): string => {
   if (/paut|phased array|مصفوفة/.test(q)) return 'paut_controller';
   if (/dac|دك|منحنى/.test(q)) return 'dac_builder';
   if (/v1|v2|معاير/.test(q)) return 'v1_v2_calibration';
-  if (/\\brt\\b|radiograph|تصوير|أشعة/.test(q)) return 'rt_lab';
-  if (/weld|لحام|\\but\\b|ultrasonic|موجات فوق/.test(q)) return 'weld_simulator';
+  if (/(^|[^a-z])rt([^a-z]|$)|radiograph|تصوير|أشعة/.test(q)) return 'rt_lab';
+  if (/weld|لحام|(^|[^a-z])ut([^a-z]|$)|ultrasonic|موجات فوق/.test(q)) return 'weld_simulator';
   return 'sim_labs_rt';
 };
 

@@ -15,6 +15,7 @@
  */
 
 import type { NdeEdText } from '../data/ndeEd/types.js';
+import type { ManusTaskHint } from './manusContract.js';
 
 /* ------------------------------------------------------------------ */
 /* models                                                              */
@@ -213,14 +214,12 @@ export interface TutorMeta {
   elapsedMs: number;
   /** Which library the citations came from — the reader is told, not left to guess. */
   source?: 'reviewed' | 'academy' | 'private-drive' | 'mixed' | 'none';
-  /**
-   * How the answer was produced: a model answer (`model`) or an answer composed
-   * from the library itself (`library`). The UI labels the two differently — a
-   * library answer must never be presented as model output.
-   */
+  /** How the answer was produced. */
   kind?: 'model' | 'library';
-  /** The steps the answer actually took, in the reader's language; library path only. */
+  /** The steps taken by the deterministic library answer path. */
   steps?: string[];
+  /** Which hosted provider answered, when a model service was used. */
+  provider?: 'gemini' | 'manus';
 }
 
 /**
@@ -268,6 +267,11 @@ export interface TutorFailure {
   code: TutorErrorCode;
   message: string;
   retryAfterSeconds?: number;
+  /**
+   * Set only when the second engine (Manus) picked the question up: its task keeps
+   * running after the request ends, so the reader gets a link instead of a dead end.
+   */
+  manus?: ManusTaskHint;
   /**
    * What the provider actually said, shortened and stripped of anything
    * credential-shaped. A generic sentence cannot be debugged; this can.
@@ -330,6 +334,17 @@ export interface TutorStatus {
    * paste or a stray quote from a key that Google has revoked.
    */
   keyShape?: { length: number; looksLikeAiStudioKey: boolean };
+  /**
+   * The second engine. Reported so a reader can tell "Gemini is rate-limited and Manus
+   * is off" from "Gemini is rate-limited and Manus is answering instead".
+   */
+  manus?: {
+    configured: boolean;
+    autoFallback: boolean;
+    profile: string;
+    baseUrl: string;
+    lastError?: { code: string; at: string };
+  };
   /**
    * `error` is set only when the corpus itself could not be read — never guessed.
    * `source` says which library is answering: reviewed courses, the unreviewed academy

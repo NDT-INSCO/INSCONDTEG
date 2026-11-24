@@ -37,10 +37,36 @@ jobs:
             sleep 20
           done
           echo "::notice title=deployment::serving ${live:-unknown}, expected $sha"
+          if [ "$live" != "$sha" ]; then
+            echo "::error title=Deployment drift::The production URL is not serving this main commit."
+            exit 1
+          fi
+
+          # Check that the same release contains both integrations, without a password
+          # or a billable draft. An empty body cannot create anything even if the gate fails.
+          build_info=$(curl -fsS --max-time 20 "$base/api/site/build-info")
+          manus_info=$(curl -fsS --max-time 20 "$base/api/ai/manus/status")
+          factory_code=$(curl -sS -o /tmp/factory-gate.json -w '%{http_code}' --max-time 20 \
+            -H "Origin: $base" -H 'Content-Type: application/json' -d '{}' "$base/api/admin/factory/draft")
+          if ! jq -e --arg sha "$sha" '.commit == $sha and .hasAdminFactoryRoute == true' <<< "$build_info" > /dev/null \
+            || ! jq -e '(.configured | type) == "boolean"' <<< "$manus_info" > /dev/null \
+            || [ "$factory_code" != "401" ] \
+            || ! jq -e '.error == "signed_out"' /tmp/factory-gate.json > /dev/null; then
+            echo "::error title=Unified release::Expected Factory and Manus on the same commit with a signed-out Factory gate."
+            exit 1
+          fi
+          echo "::notice title=Unified release::Factory + Manus present on $sha; signed-out draft rejected with 401."
 
           code=$(curl -s -o /tmp/status.json -w '%{http_code}' --max-time 30 "$base/api/ai/status" || echo 000)
           body=$(head -c 400 /tmp/status.json | tr -d '\n')
           echo "::notice title=/api/ai/status::$code $body"
+          if [ "$code" != "200" ]; then
+            echo "::error title=/api/ai/status::The AI gateway did not answer 200 on the production URL."
+            exit 1
+          fi
+          # On a push, prove that the unified build and its protection reached production.
+          # Model calls below (including any billable fallback) are manual only.
+          if [ "$GITHUB_EVENT_NAME" != "workflow_dispatch" ]; then exit 0; fi
 
           probe /api/site/announcement
           probe /api/site/build-info
@@ -65,11 +91,6 @@ jobs:
           head -c 500 /tmp/tutor.txt | tr -d '\n'
           echo
           echo "::notice title=/api/ai/tutor::$(head -c 300 /tmp/tutor.txt | tr -d '\n')"
-
-          if [ "$code" != "200" ]; then
-            echo "::error title=/api/ai/status::did not answer 200 — the AI gateway is not deployed on this domain or is failing."
-            exit 1
-          fi
 
           # A stream that carries no text is a failure however the status code read.
           # The taxonomy comes from `/api/ai/status` `lastUpstream`, so a red probe

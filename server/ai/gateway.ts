@@ -51,6 +51,21 @@ import { composeSelfAnswer } from '../../src/ai/selfAnswer.js';
 import { answerCopilot, answerSiteManager, answerCommunity, copilotSearchQuery } from '../../src/ai/agentBrain.js';
 import { searchPrivateKnowledge } from './privateKnowledge.js';
 import { HOSTED_GATEWAY_URL, PAGES_SITE_ORIGIN } from '../../src/ai/pagesGateway.js';
+import {
+  MANUS_BASE_URL,
+  MANUS_ENDPOINTS,
+  MANUS_LIMITS,
+  MANUS_TASK_RECEIPT_HEADER,
+  isTerminalStatus,
+  manusFailureMessage,
+  normaliseManusAsk,
+  type ManusErrorCode,
+  type ManusStatusReport,
+  type ManusTaskHint,
+  type ManusTaskView,
+} from '../../src/ai/manusContract.js';
+import { ManusError, canWaitForManus, createManusClient, type ManusClient } from './manus.js';
+import { createManusTaskReceipts } from './manusReceipts.js';
 import { buildTutorLibrary, type TutorLibrary } from '../tutor/library.js';
 import {
   ChainAttempt,
@@ -118,7 +133,9 @@ export function createAiGateway(edbRoot: string): express.Router {
     if (origin) {
       res.setHeader('Access-Control-Allow-Origin', origin);
       res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization');
+      res.setHeader('Access-Control-Allow-Headers', req.path === MANUS_ENDPOINTS.task
+        ? `Content-Type, Accept, Authorization, ${MANUS_TASK_RECEIPT_HEADER}`
+        : 'Content-Type, Accept, Authorization');
       res.setHeader('Access-Control-Max-Age', '600');
     }
     if (req.method === 'OPTIONS') {
@@ -192,6 +209,17 @@ const ai: GoogleGenAI | null = API_KEY
       }
     })()
   : null;
+
+/**
+ * The second engine.
+ *
+ * It is created unconditionally and reports its own `configured`, exactly like the
+ * Gemini client: "Manus is off" must be a fact `/api/ai/status` can state rather than a
+ * crash at boot.
+ */
+const manus: ManusClient = createManusClient(process.env);
+const taskReceipts = createManusTaskReceipts(process.env);
+const manusFallbackEnabled = manus.configured && manus.autoFallback;
 
 /* ------------------------------------------------------------------ */
 /* rate limiting + budget                                              */
@@ -376,10 +404,79 @@ function isResumable(signal: UpstreamSignal): boolean {
 function failureBody(
   code: TutorErrorCode,
   language: Parameters<typeof failureMessage>[1],
-  upstream: { signal: UpstreamSignal; detail: string }
+  upstream: { signal: UpstreamSignal; detail: string },
+  manusHint?: ManusTaskHint
 ): TutorFailure {
-  return { code, message: failureMessage(code, language), upstream };
+  return {
+    code,
+    message: failureMessage(code, language),
+    upstream,
+    ...(manusHint ? { manus: manusHint } : {}),
+  };
 }
+
+/**
+ * Hand a question to Manus after Gemini could not answer.
+ *
+ * This is the whole point of a second engine: "الحد مؤقت" is a Gemini quota window, and
+ * another provider is not subject to it. The wait is bounded by what is left of the
+ * request, and a task that is still running is *returned*, not thrown away — the reader
+ * gets a link and the answer is still there a minute later.
+ */
+async function manusAnswerFor(
+  prompt: string,
+  language: 'ar' | 'en',
+  remainingMs: number,
+  title: string,
+  signal?: AbortSignal
+): Promise<ManusTaskView | null> {
+  if (signal?.aborted || !canWaitForManus(manus, remainingMs)) return null;
+  const waitMs = Math.min(remainingMs - 1000, MANUS_LIMITS.waitMs);
+  try {
+    const view = await manus.ask({ message: prompt, language, title }, { waitMs, signal });
+    console.warn(`[ai] manus task status=${view.status} elapsed=${view.elapsedMs}ms answer=${view.answer ? 'yes' : 'no'}`);
+    return view;
+  } catch (error) {
+    const code = error instanceof ManusError ? error.code : 'upstream_error';
+    console.error(`[ai] manus fallback failed: ${code}: ${error instanceof Error ? error.message : String(error)}`);
+    return null;
+  }
+}
+
+function completedManusAnswer(view: ManusTaskView | null): view is ManusTaskView & { answer: string } {
+  // A progress message is not the completed answer from the second engine.
+  return view?.status === 'stopped' && Boolean(view.answer);
+}
+
+function manusHint(view: ManusTaskView | null): ManusTaskHint | undefined {
+  return view ? { taskId: view.taskId, ...(view.taskUrl ? { taskUrl: view.taskUrl } : {}) } : undefined;
+}
+
+/** One plain answer, in whichever protocol the caller asked for. */
+function sendPlainAnswer(
+  res: Response,
+  streaming: boolean,
+  text: string,
+  meta: TutorMeta
+): void {
+  res.setHeader('Cache-Control', 'no-store');
+  if (!streaming) {
+    res.json({ text, content: text, meta });
+    return;
+  }
+  res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+  res.end(encodeSse({ type: 'meta', meta }) + encodeSse({ type: 'delta', text }) + encodeSse({ type: 'done' }));
+}
+
+const MANUS_STATUS_CODE: Record<ManusErrorCode, number> = {
+  not_configured: 503,
+  unauthenticated: 502,
+  invalid_request: 400,
+  not_found: 404,
+  rate_limited: 429,
+  timeout: 504,
+  upstream_error: 502,
+};
 
 /* ------------------------------------------------------------------ */
 /* prompt assembly                                                     */
@@ -427,6 +524,24 @@ function toCitation(hit: SearchHit, reviewed: boolean): TutorCitation {
     score: Math.round(hit.score * 100) / 100,
     reviewed,
   };
+}
+
+function bearerToken(req: Request): string | undefined {
+  const authorization = req.header('authorization') || '';
+  const match = /^Bearer\s+([A-Za-z0-9._-]{20,})$/i.exec(authorization);
+  return match?.[1];
+}
+
+async function privateKnowledgeHits(question: string, token?: string): Promise<SearchHit[]> {
+  const documents = await searchPrivateKnowledge(question, token);
+  if (!documents.length) return [];
+  const index = buildIndex(documents);
+  const result = searchLibrary(question, {
+    index,
+    limit: TUTOR_LIMITS.passages,
+    minScore: TUTOR_LIMITS.minScore,
+  });
+  return result.confident ? result.hits : [];
 }
 
 function buildContext(hits: SearchHit[], language: 'ar' | 'en'): string {
@@ -586,8 +701,11 @@ router.get('/api/ai/models', async (_req: Request, res: Response) => {
 router.get(TUTOR_ENDPOINTS.status, async (_req: Request, res: Response) => {
   const library = await loadAiLibrary();
   const status: TutorStatus = {
-    configured: Boolean(ai),
-    reason: ai ? 'ok' : clientInitError ? 'client_init_failed' : 'no_key',
+    // "Can this server answer a question?" — Gemini first, Manus second. Reporting only
+    // the Gemini key would tell the reader the tutor is off while a second engine is
+    // standing by to answer.
+    configured: Boolean(ai) || manusFallbackEnabled,
+    reason: ai || manusFallbackEnabled ? 'ok' : clientInitError ? 'client_init_failed' : 'no_key',
     model: MODEL_CHAIN[0],
     deepModel: TUTOR_MODELS.deep,
     limits: TUTOR_LIMITS,
@@ -603,9 +721,134 @@ router.get(TUTOR_ENDPOINTS.status, async (_req: Request, res: Response) => {
     transport: API_MODE,
     ...(API_KEY ? { keyShape: { length: API_KEY.length, looksLikeAiStudioKey: /^(AIza[0-9A-Za-z_-]{30,}|AQ\.[0-9A-Za-z_.-]{20,})$/.test(API_KEY) } } : {}),
     ...(lastUpstream ? { lastUpstream } : {}),
+    manus: {
+      configured: manus.configured,
+      autoFallback: manus.autoFallback,
+      profile: manus.profile,
+      baseUrl: MANUS_BASE_URL,
+      ...(manus.lastError() ? { lastError: manus.lastError() } : {}),
+    },
   };
   res.setHeader('Cache-Control', 'no-store');
   res.json(status);
+});
+
+/* ------------------------------------------------------------------ */
+/* Manus: the second engine, callable on its own                       */
+/* ------------------------------------------------------------------ */
+
+/*
+ * The tutor and the copilot fall back to Manus automatically when Gemini cannot answer.
+ * These three routes exist for everything else: a page, a script, or another agent that
+ * wants the same engine without going through a Gemini prompt first. All of them are
+ * served by the same gateway, so the GitHub Pages build reaches them over the CORS grant
+ * it already has, and the key stays here.
+ */
+
+router.post(MANUS_ENDPOINTS.ask, async (req: Request, res: Response) => {
+  res.setHeader('Cache-Control', 'no-store');
+  const parsed = normaliseManusAsk(req.body);
+  if (!parsed.ok) {
+    res.status(400).json({ error: { code: 'invalid_request', message: parsed.error } });
+    return;
+  }
+  const input = parsed.value;
+  if (!manus.configured) {
+    res.status(503).json({
+      error: {
+        code: 'not_configured',
+        message: manusFailureMessage('not_configured', input.language),
+        detail: 'Set MANUS_API_KEY on the server hosting /api/ai/manus.',
+      },
+    });
+    return;
+  }
+  const limit = takeToken(req.ip || req.socket.remoteAddress || 'unknown');
+  if (!limit.allowed) {
+    const failure = limit.failure;
+    if (failure.code === 'rate_limited' && failure.retryAfterSeconds) {
+      res.setHeader('Retry-After', String(failure.retryAfterSeconds));
+    }
+    res.status(STATUS_CODE[failure.code]).json({
+      error: { ...failure, message: failureMessage(failure.code, input.language) },
+    });
+    return;
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  res.on('close', () => {
+    if (!res.writableEnded) controller.abort();
+  });
+  try {
+    const view = await manus.ask(input, {
+      waitMs: Math.min(input.waitMs ?? MANUS_LIMITS.waitMs, REQUEST_TIMEOUT_MS - 3000),
+      signal: controller.signal,
+    });
+    const finished = isTerminalStatus(view.status);
+    // 202 is the honest code for "a task exists and is still running": the body carries
+    // everything needed to collect it, so no client has to guess.
+    const taskReceipt = taskReceipts.issue(view.taskId);
+    res.status(finished ? 200 : 202).json({ ...view, ...(taskReceipt ? { taskReceipt } : {}) });
+  } catch (error) {
+    const code: ManusErrorCode = error instanceof ManusError ? error.code : 'upstream_error';
+    console.error(`[ai] manus ask failed: ${code}`);
+    res.status(MANUS_STATUS_CODE[code]).json({
+      error: {
+        code,
+        message: manusFailureMessage(code, input.language),
+      },
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+});
+
+router.get(MANUS_ENDPOINTS.task, async (req: Request, res: Response) => {
+  res.setHeader('Cache-Control', 'no-store');
+  const taskId = typeof req.query.task_id === 'string' ? req.query.task_id.trim() : '';
+  if (!taskId) {
+    res.status(400).json({ error: { code: 'invalid_request', message: 'task_id is required' } });
+    return;
+  }
+  if (!manus.configured) {
+    res.status(503).json({
+      error: { code: 'not_configured', message: manusFailureMessage('not_configured', 'ar') },
+    });
+    return;
+  }
+  if (!taskReceipts.allows(taskId, req.get(MANUS_TASK_RECEIPT_HEADER))) {
+    // Do not ask Manus whether this ID exists unless we issued a receipt for it.
+    res.status(403).json({ error: { code: 'task_receipt_required', message: 'A valid task receipt is required.' } });
+    return;
+  }
+  try {
+    const view = await manus.task(taskId);
+    res.json(view);
+  } catch (error) {
+    const code: ManusErrorCode = error instanceof ManusError ? error.code : 'upstream_error';
+    res.status(MANUS_STATUS_CODE[code]).json({
+      error: { code, message: manusFailureMessage(code, 'ar') },
+    });
+  }
+});
+
+router.get(MANUS_ENDPOINTS.status, async (req: Request, res: Response) => {
+  // `?probe=1` costs one free read and tells a rejected key apart from an unreachable
+  // host — the difference between "paste a new key" and "nothing is wrong with the key".
+  const probeWanted = req.query.probe === '1' || req.query.probe === 'true';
+  const probe = probeWanted && manus.configured ? await manus.probe() : undefined;
+  const lastError = manus.lastError();
+  const report: ManusStatusReport = {
+    configured: manus.configured,
+    autoFallback: manus.autoFallback,
+    profile: manus.profile,
+    baseUrl: MANUS_BASE_URL,
+    ...(probe ? { auth: probe.auth } : {}),
+    ...(lastError ? { lastError } : {}),
+  };
+  res.setHeader('Cache-Control', 'no-store');
+  res.json(report);
 });
 
 interface TutorPayload {
@@ -620,37 +863,6 @@ interface TutorPayload {
   source: 'reviewed' | 'academy' | 'private-drive' | 'mixed' | 'none';
   hits: SearchHit[];
   documents: number;
-}
-
-function guardAgentRateLimit(req: Request, res: Response, lang: 'ar' | 'en'): boolean {
-  const limit = takeToken(req.ip || req.socket.remoteAddress || 'unknown');
-  if (limit.allowed) return true;
-  const failure = limit.failure;
-  if (failure.code === 'rate_limited' && failure.retryAfterSeconds) {
-    res.setHeader('Retry-After', String(failure.retryAfterSeconds));
-  }
-  res.status(STATUS_CODE[failure.code]).json({
-    error: { ...failure, message: failureMessage(failure.code, lang) },
-  });
-  return false;
-}
-
-function bearerToken(req: Request): string | undefined {
-  const authorization = req.header('authorization') || '';
-  const match = /^Bearer\s+([A-Za-z0-9._-]{20,})$/i.exec(authorization);
-  return match?.[1];
-}
-
-async function privateKnowledgeHits(question: string, token?: string): Promise<SearchHit[]> {
-  const documents = await searchPrivateKnowledge(question, token);
-  if (!documents.length) return [];
-  const index = buildIndex(documents);
-  const result = searchLibrary(question, {
-    index,
-    limit: TUTOR_LIMITS.passages,
-    minScore: TUTOR_LIMITS.minScore,
-  });
-  return result.confident ? result.hits : [];
 }
 
 async function prepare(body: unknown, res: Response, idToken?: string): Promise<TutorPayload | null> {
@@ -729,9 +941,7 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
     return;
   }
 
-  if (!ai || payload.source === 'private-drive' || payload.source === 'mixed') {
-    // Private Drive material is never sent to an external model provider. Without a key,
-    // the public library path is likewise composed from retrieved passages only.
+  if (payload.source === 'private-drive' || payload.source === 'mixed' || (!ai && !manusFallbackEnabled)) {
     const selfAnswer = composeSelfAnswer({
       question: payload.question,
       language: payload.language,
@@ -739,36 +949,39 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
       corpusSize: payload.documents,
       privatePassages: payload.hits.filter(hit => hit.document.id.startsWith('drive:')).length,
     });
-    if (!selfAnswer) {
-      const emptyLibrary = payload.source === 'none';
-      const message = payload.language === 'ar'
-        ? emptyLibrary
-          ? 'لا توجد مادة مطابقة في مكتبة الموقع. راجع مراجع الأكاديمية أو اطرح السؤال على مختص مؤهل.'
-          : 'لا توجد مقاطع مطابقة لسؤالك في مادة الأكاديمية. أعد صياغته بمصطلح أدق أو راجع مراجع الأكاديمية.'
-        : emptyLibrary
-          ? 'The site library has no matching material. Consult the academy references or a qualified specialist.'
-          : 'No passage in the academy material matches this question. Rephrase it with a more specific term.';
-      const meta: TutorMeta = { model: null, citations: [], retrieved: 0, confident: false, elapsedMs: 0, source: payload.source };
+    if (selfAnswer) {
+      const meta: TutorMeta = {
+        model: null,
+        citations: payload.citations,
+        retrieved: payload.citations.length,
+        confident: payload.confident,
+        elapsedMs: 0,
+        source: payload.source,
+        kind: 'library',
+        steps: selfAnswer.steps,
+      };
       res.setHeader('Cache-Control', 'no-store');
-      if (!streaming) { res.json({ text: message, content: message, meta }); return; }
-      res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
-      res.end(encodeSse({ type: 'meta', meta }) + encodeSse({ type: 'delta', text: message }) + encodeSse({ type: 'done' }));
+      sendPlainAnswer(res, streaming, selfAnswer.text, meta);
       return;
     }
-    const meta: TutorMeta = {
-      model: null,
-      citations: payload.citations,
-      retrieved: payload.citations.length,
-      confident: payload.confident,
-      elapsedMs: 0,
-      source: payload.source,
-      kind: 'library',
-      steps: selfAnswer.steps,
-    };
-    res.setHeader('Cache-Control', 'no-store');
-    if (!streaming) { res.json({ text: selfAnswer.text, content: selfAnswer.text, meta }); return; }
-    res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
-    res.end(encodeSse({ type: 'meta', meta }) + encodeSse({ type: 'delta', text: selfAnswer.text }) + encodeSse({ type: 'done' }));
+    if (payload.source === 'private-drive' || payload.source === 'mixed' || !ai) {
+      const text = payload.language === 'ar'
+        ? 'لا توجد مقاطع مطابقة كافية في المكتبة للإجابة بأمان.'
+        : 'There are not enough matching library passages to answer safely.';
+      sendPlainAnswer(res, streaming, text, {
+        model: null, citations: [], retrieved: 0, confident: false, elapsedMs: 0,
+        source: payload.source,
+      });
+      return;
+    }
+  }
+
+  if (!ai && !manusFallbackEnabled) {
+    res.status(503).json({ error: {
+      code: 'not_configured',
+      message: failureMessage('not_configured', payload.language),
+      detail: 'Set GEMINI_API_KEY on the server that hosts /api/ai/*.',
+    } });
     return;
   }
 
@@ -807,6 +1020,24 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
     elapsedMs: 0,
     source: payload.source,
   };
+  const fallbackPrompt = `${payload.system}\n\n${payload.prompt}`;
+
+  if (!ai) {
+    try {
+      const fallback = await manusAnswerFor(fallbackPrompt, payload.language, REQUEST_TIMEOUT_MS, 'INSCO tutor', controller.signal);
+      if (completedManusAnswer(fallback)) {
+        sendPlainAnswer(res, streaming, fallback.answer, { ...meta, model: 'manus', provider: 'manus', elapsedMs: fallback.elapsedMs });
+        return;
+      }
+      const code = fallback ? 'timeout' : 'upstream_error';
+      res.status(STATUS_CODE[code]).json({
+        error: { code, message: failureMessage(code, payload.language), ...(fallback ? { manus: manusHint(fallback) } : {}) },
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+    return;
+  }
 
   if (!streaming) {
     const attempts: ChainAttempt[] = [];
@@ -819,9 +1050,31 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
     } catch (error) {
       const { code, signal, detail } = upstreamFailure(error, controller.signal.aborted, attempts);
       console.error(`[ai] Tutor request failed: ${signal}: ${detail}`);
-      res
-        .status(STATUS_CODE[code])
-        .json({ error: failureBody(code, payload.language, { signal, detail }) });
+      // The second engine, on the same question: a Gemini quota window is not the end of
+      // the answer, and the reader should not have to ask twice.
+      const fallback = await manusAnswerFor(
+        fallbackPrompt,
+        payload.language,
+        REQUEST_TIMEOUT_MS - (Date.now() - started),
+        'INSCO tutor',
+        controller.signal
+      );
+      if (completedManusAnswer(fallback)) {
+        res.json({
+          text: fallback.answer,
+          content: fallback.answer,
+          meta: { ...meta, model: 'manus', elapsedMs: fallback.elapsedMs, provider: 'manus' },
+        });
+        return;
+      }
+      res.status(STATUS_CODE[code]).json({
+        error: failureBody(
+          code,
+          payload.language,
+          { signal, detail },
+          manusHint(fallback)
+        ),
+      });
     } finally {
       clearTimeout(timer);
     }
@@ -872,10 +1125,32 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
   } catch (error) {
     const { code, signal, detail } = upstreamFailure(error, controller.signal.aborted, streamAttempts);
     console.error(`[ai] Tutor stream failed: ${signal}: ${detail}`);
-    res.write(
-      encodeSse({ type: 'error', error: failureBody(code, payload.language, { signal, detail }) })
+    // Don't append a new provider's answer to an already-started Gemini answer.
+    const fallback = written ? null : await manusAnswerFor(
+      fallbackPrompt,
+      payload.language,
+      REQUEST_TIMEOUT_MS - (Date.now() - started),
+      'INSCO tutor',
+      controller.signal
     );
-    res.write(encodeSse({ type: 'done' }));
+    if (completedManusAnswer(fallback)) {
+      res.write(encodeSse({ type: 'meta', meta: { ...meta, model: 'manus', provider: 'manus', elapsedMs: fallback.elapsedMs } }));
+      res.write(encodeSse({ type: 'delta', text: fallback.answer }));
+      res.write(encodeSse({ type: 'done' }));
+    } else {
+      res.write(
+        encodeSse({
+          type: 'error',
+          error: failureBody(
+            code,
+            payload.language,
+            { signal, detail },
+            manusHint(fallback)
+          ),
+        })
+      );
+      res.write(encodeSse({ type: 'done' }));
+    }
   } finally {
     clearTimeout(timer);
     res.end();
@@ -992,7 +1267,12 @@ async function generateStructuredAgentJson<T>(params: {
   throw lastError instanceof Error ? lastError : new Error('All agent models failed');
 }
 
-function guardAgentPreconditions(req: Request, res: Response, lang: 'ar' | 'en'): boolean {
+function guardAgentPreconditions(
+  req: Request,
+  res: Response,
+  lang: 'ar' | 'en',
+  options: { allowManus?: boolean } = {}
+): boolean {
   const limit = takeToken(req.ip || req.socket.remoteAddress || 'unknown');
   if (!limit.allowed) {
     const failure = limit.failure;
@@ -1006,6 +1286,9 @@ function guardAgentPreconditions(req: Request, res: Response, lang: 'ar' | 'en')
   }
 
   if (!ai) {
+    // A Manus-only deployment still answers these two agents: the structured prompt goes
+    // to Manus as text and its reply fills the same fields (see the fallbacks below).
+    if (options.allowManus && manusFallbackEnabled) return true;
     res.status(STATUS_CODE.not_configured).json({
       error: {
         code: 'not_configured',
@@ -1018,6 +1301,19 @@ function guardAgentPreconditions(req: Request, res: Response, lang: 'ar' | 'en')
   return true;
 }
 
+function guardAgentRateLimit(req: Request, res: Response, lang: 'ar' | 'en'): boolean {
+  const limit = takeToken(req.ip || req.socket.remoteAddress || 'unknown');
+  if (limit.allowed) return true;
+  const failure = limit.failure;
+  if (failure.code === 'rate_limited' && failure.retryAfterSeconds) {
+    res.setHeader('Retry-After', String(failure.retryAfterSeconds));
+  }
+  res.status(STATUS_CODE[failure.code]).json({
+    error: { ...failure, message: failureMessage(failure.code, lang) },
+  });
+  return false;
+}
+
 router.post(AGENT_ENDPOINTS.userCopilot, async (req: Request, res: Response) => {
   const parsed = normaliseUserCopilotRequest(req.body);
   if (!parsed.ok) {
@@ -1025,6 +1321,37 @@ router.post(AGENT_ENDPOINTS.userCopilot, async (req: Request, res: Response) => 
     return;
   }
   const input = parsed.value;
+  const allowManus = input.context?.portal !== 'admin' && input.context?.portal !== 'client';
+  if (!ai && manusFallbackEnabled) {
+    if (!guardAgentPreconditions(req, res, input.language, { allowManus })) return;
+    const started = Date.now();
+    const prompt = [
+      'You are the INSCO universal NDT/PWHT engineering copilot. Reply in the requested language. Draft only; do not take actions or assert code compliance without a cited source.',
+      `Mode: ${input.mode}`,
+      input.context ? `Context: ${JSON.stringify(input.context)}` : '',
+      input.history.map(turn => `${turn.role}: ${turn.content}`).join('\n'),
+      `Request: ${input.message}`,
+    ].filter(Boolean).join('\n\n');
+    const fallback = await manusAnswerFor(prompt, input.language, REQUEST_TIMEOUT_MS, 'INSCO copilot');
+    if (completedManusAnswer(fallback)) {
+      res.setHeader('Cache-Control', 'no-store');
+      res.json({
+        reply: fallback.answer,
+        suggestedActions: [],
+        model: 'manus',
+        kind: input.mode === 'draft_post' || input.mode === 'improve_post' ? 'editorial' : 'decline',
+        citations: [],
+        reasoningSteps: ['Hosted Manus fallback answered; no private Drive content was sent.'],
+        elapsedMs: Date.now() - started,
+      } satisfies UserCopilotResponse);
+      return;
+    }
+    res.status(STATUS_CODE.upstream_error).json({
+      error: failureBody('upstream_error', input.language, { signal: 'upstream_error', detail: 'Manus task did not complete' }, manusHint(fallback)),
+    });
+    return;
+  }
+  if (allowManus === false && !ai && !guardAgentPreconditions(req, res, input.language, { allowManus: false })) return;
   if (!guardAgentRateLimit(req, res, input.language)) return;
   const privateDocuments = await searchPrivateKnowledge(copilotSearchQuery(input), bearerToken(req));
   res.setHeader('Cache-Control', 'no-store');
@@ -1049,6 +1376,25 @@ router.post(AGENT_ENDPOINTS.communityAssist, async (req: Request, res: Response)
     return;
   }
   const input = parsed.value;
+  if (!ai && manusFallbackEnabled && input.action !== 'code_check') {
+    if (!guardAgentPreconditions(req, res, input.language, { allowManus: true })) return;
+    const started = Date.now();
+    const prompt = `You are the INSCO Community technical editor. Reply in the requested language with a draft only; do not publish, apply, or certify code compliance.\nAction: ${input.action}\nMethod: ${input.ndtMethod}\nTitle: ${input.title || ''}\nBody: ${input.body}`;
+    const fallback = await manusAnswerFor(prompt, input.language, REQUEST_TIMEOUT_MS, 'INSCO community');
+    if (completedManusAnswer(fallback)) {
+      res.setHeader('Cache-Control', 'no-store');
+      res.json({
+        reply: fallback.answer,
+        model: 'manus',
+        kind: 'editorial',
+        citations: [],
+        elapsedMs: Date.now() - started,
+      } satisfies CommunityAssistResponse);
+      return;
+    }
+    res.status(STATUS_CODE.upstream_error).json({ error: failureBody('upstream_error', input.language, { signal: 'upstream_error', detail: 'Manus task did not complete' }, manusHint(fallback)) });
+    return;
+  }
   if (!guardAgentRateLimit(req, res, input.language)) return;
   const privateDocuments = input.action === 'code_check'
     ? await searchPrivateKnowledge(`${input.ndtMethod} ${input.title || ''} ${input.body}`, bearerToken(req))

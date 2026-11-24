@@ -1510,6 +1510,21 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({
             {aiFailure && (
               <p role="alert" className="rounded-xl border border-rose-400/40 bg-rose-500/10 p-4 text-xs leading-6 text-rose-200">
                 {failureMessage(aiFailure.code, language === 'en' ? 'en' : 'ar')}
+                {/* The second engine kept working after this request ended. */}
+                {aiFailure.manus?.taskUrl && (
+                  <>
+                    {' '}
+                    <a
+                      href={aiFailure.manus.taskUrl}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      data-testid="tutor-manus-task"
+                      className="underline font-bold text-amber-300 hover:text-amber-200"
+                    >
+                      {language === 'en' ? 'Follow the Manus task' : 'متابعة المهمة في مانوس'}
+                    </a>
+                  </>
+                )}
               </p>
             )}
 

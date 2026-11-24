@@ -1242,6 +1242,16 @@ export const InscoChatGptWorkspace: React.FC<InscoChatGptWorkspaceProps> = ({
                               {turn.libraryHitsCount} {isAr ? 'مراجع INSCO' : 'INSCO refs'}
                             </span>
                           )}
+                          {turn.model.startsWith('insco-local') && (
+                            // Says out loud what the answer already is: composed here, from
+                            // this site's own library, with no provider and no network.
+                            <span
+                              data-testid={`chatgpt-turn-local-${turn.id}`}
+                              className="px-1.5 py-0.5 rounded bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 font-bold"
+                            >
+                              {isAr ? 'محرّك إنسكو المحلي · بلا مزوّد خارجي' : 'INSCO local engine · no provider'}
+                            </span>
+                          )}
                           <span>
                             {turn.model} {turn.elapsedMs ? `· ${(turn.elapsedMs / 1000).toFixed(1)}s` : ''}
                           </span>

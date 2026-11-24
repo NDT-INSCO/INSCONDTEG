@@ -62,6 +62,14 @@ import {
   type ManusTaskView,
 } from '../../src/ai/manusContract.js';
 import { ManusError, canWaitForManus, createManusClient, type ManusClient } from './manus.js';
+import {
+  BRAIN_MODEL,
+  composeTutorAnswer,
+  draftCommunityAnswer,
+  draftCopilotAnswer,
+  draftSiteManagerAnswer,
+  resolveAiProvider,
+} from '../../src/ai/brain/index.js';
 import { createManusTaskReceipts } from './manusReceipts.js';
 import { buildTutorLibrary, type TutorLibrary } from '../tutor/library.js';
 import {
@@ -181,6 +189,11 @@ const MODEL_CHAIN: string[] = [
 const DAILY_BUDGET = Math.max(1, parseInt(process.env.TUTOR_DAILY_LIMIT || '300', 10));
 const PER_MINUTE = Math.max(1, parseInt(process.env.TUTOR_RATE_PER_MINUTE || '10', 10));
 const PER_DAY = Math.max(1, parseInt(process.env.TUTOR_RATE_PER_DAY || '200', 10));
+// The limits above exist to protect a paid quota. The local engine spends no quota — only
+// CPU on the instance already serving the page — so throttling it as if it were a model
+// would refuse readers for nothing. It keeps a ceiling, for abuse, and nothing more.
+const LOCAL_PER_MINUTE = Math.max(PER_MINUTE, parseInt(process.env.LOCAL_RATE_PER_MINUTE || '45', 10));
+const LOCAL_PER_DAY = Math.max(PER_DAY, parseInt(process.env.LOCAL_RATE_PER_DAY || '5000', 10));
 /**
  * The whole-request budget. The function may run 60s (`maxDuration`), so this leaves room
  * for the tail of a long answer instead of cutting it at 45s and calling it a timeout.
@@ -215,6 +228,16 @@ const ai: GoogleGenAI | null = API_KEY
  * crash at boot.
  */
 const manus: ManusClient = createManusClient(process.env);
+
+/**
+ * Which engine answers: the platform's own brain, or a provider outside it.
+ *
+ * The default is `local`. That is a deliberate inversion of the old behaviour, where the
+ * agents could not answer at all without a Google key and a quota window: a dependence
+ * that is switched on by omission is not a choice.
+ */
+const AI_PROVIDER = resolveAiProvider(process.env);
+const LOCAL_ONLY = AI_PROVIDER === 'local';
 const taskReceipts = createManusTaskReceipts(process.env);
 const manusFallbackEnabled = manus.configured && manus.autoFallback;
 
@@ -247,7 +270,9 @@ function takeToken(ip: string): LimitResult {
     globalCount = 0;
     buckets.clear();
   }
-  if (globalCount >= DAILY_BUDGET) {
+  const perMinute = LOCAL_ONLY ? LOCAL_PER_MINUTE : PER_MINUTE;
+  const perDay = LOCAL_ONLY ? LOCAL_PER_DAY : PER_DAY;
+  if (!LOCAL_ONLY && globalCount >= DAILY_BUDGET) {
     return {
       allowed: false,
       failure: { code: 'budget_exhausted', message: 'Daily tutor budget reached' },
@@ -262,14 +287,14 @@ function takeToken(ip: string): LimitResult {
     bucket.dayStart = now;
     bucket.dayCount = 0;
   }
-  if (bucket.minuteCount >= PER_MINUTE) {
+  if (bucket.minuteCount >= perMinute) {
     buckets.set(ip, bucket);
     return {
       allowed: false,
       failure: { code: 'rate_limited', message: 'Too many requests this minute', retryAfterSeconds: 60 },
     };
   }
-  if (bucket.dayCount >= PER_DAY) {
+  if (bucket.dayCount >= perDay) {
     buckets.set(ip, bucket);
     return {
       allowed: false,
@@ -679,12 +704,16 @@ router.get('/api/ai/models', async (_req: Request, res: Response) => {
 
 router.get(TUTOR_ENDPOINTS.status, async (_req: Request, res: Response) => {
   const library = await loadAiLibrary();
+  // The local brain needs no key but it does need the corpus: without a passage it has
+  // nothing to quote, and `retrieval.ready` is the honest place to say so.
+  const localReady = LOCAL_ONLY && library.documents > 0;
+  const externalReady = Boolean(ai) || manusFallbackEnabled;
   const status: TutorStatus = {
-    // "Can this server answer a question?" — Gemini first, Manus second. Reporting only
-    // the Gemini key would tell the reader the tutor is off while a second engine is
-    // standing by to answer.
-    configured: Boolean(ai) || manusFallbackEnabled,
-    reason: ai || manusFallbackEnabled ? 'ok' : clientInitError ? 'client_init_failed' : 'no_key',
+    configured: LOCAL_ONLY ? localReady : externalReady,
+    reason: LOCAL_ONLY ? (localReady ? 'ok' : 'no_corpus') : externalReady ? 'ok' : clientInitError ? 'client_init_failed' : 'no_key',
+    provider: AI_PROVIDER,
+    external: !LOCAL_ONLY,
+    brain: { model: BRAIN_MODEL, documents: library.documents },
     model: MODEL_CHAIN[0],
     deepModel: TUTOR_MODELS.deep,
     limits: TUTOR_LIMITS,
@@ -834,6 +863,8 @@ interface TutorPayload {
   question: string;
   language: 'ar' | 'en';
   mode: string;
+  /** The passages the local composer reads; the external prompt uses the same ranking. */
+  hits: SearchHit[];
   citations: TutorCitation[];
   confident: boolean;
   prompt: string;
@@ -883,12 +914,63 @@ async function prepare(body: unknown, res: Response): Promise<TutorPayload | nul
     question,
     language: request.language,
     mode: request.mode,
+    hits,
     citations,
     confident,
     prompt: history ? `${history}\n\n${prompt}` : prompt,
     system: `${SYSTEM[request.language]}\n\n${hint}`,
     source: library.source,
   };
+}
+
+/**
+ * Stream a locally composed answer.
+ *
+ * The text already exists when this is called, so the chunking is presentation only: the
+ * reader gets the same progressive rendering they had from a model, without a model. The
+ * chunks break on word boundaries so no Markdown or citation id is split in half.
+ */
+function sendLocalTutorAnswer(
+  res: Response,
+  streaming: boolean,
+  text: string,
+  meta: TutorMeta
+): void {
+  res.setHeader('Cache-Control', 'no-store');
+  if (!streaming) {
+    res.json({ text, content: text, meta });
+    return;
+  }
+  res.status(200);
+  res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders?.();
+  res.write(encodeSse({ type: 'meta', meta }));
+  const chunkSize = 160;
+  for (let index = 0; index < text.length; index += chunkSize) {
+    const slice = text.slice(index, index + chunkSize);
+    const breakAt = slice.lastIndexOf(' ');
+    const chunk = index + chunkSize < text.length && breakAt > 40 ? slice.slice(0, breakAt + 1) : slice;
+    res.write(encodeSse({ type: 'delta', text: chunk }));
+    if (chunk.length < slice.length) index -= slice.length - chunk.length;
+  }
+  res.write(encodeSse({ type: 'done' }));
+  res.end();
+}
+
+/** The sentence a reader gets when the library has nothing for the question. */
+function tutorRefusal(language: 'ar' | 'en', source: TutorPayload['source']): string {
+  const emptyLibrary = source === 'none';
+  if (language === 'ar') {
+    return emptyLibrary
+      ? 'لا توجد مادة مطابقة في مكتبة الموقع. راجع مراجع الأكاديمية أو اطرح السؤال على مختص مؤهل.'
+      : 'لا توجد مقاطع مطابقة لسؤالك في مادة الأكاديمية. أعد صياغته بمصطلح أدق أو راجع مراجع الأكاديمية.';
+  }
+  return emptyLibrary
+    ? 'The site library has no matching material. Consult the academy references or a qualified specialist.'
+    : 'No passage in the academy material matches this question. Rephrase it with a more specific term.';
 }
 
 async function handleTutor(req: Request, res: Response, streaming: boolean): Promise<void> {
@@ -908,6 +990,55 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
     return;
   }
 
+  // The local engine: the answer is composed from the passages `prepare` already ranked.
+  // No key, no upstream, no quota — and no network call that could fail.
+  if (LOCAL_ONLY) {
+    const started = Date.now();
+    if (!payload.confident) {
+      const message = tutorRefusal(payload.language, payload.source);
+      sendLocalTutorAnswer(res, streaming, message, {
+        model: BRAIN_MODEL,
+        citations: [],
+        retrieved: 0,
+        confident: false,
+        elapsedMs: Date.now() - started,
+        source: payload.source,
+        provider: 'local',
+      });
+      return;
+    }
+    const composed = composeTutorAnswer({
+      question: payload.question,
+      hits: payload.hits,
+      language: payload.language,
+      mode: payload.mode as 'explain' | 'compare' | 'code' | 'practice',
+    });
+    if (!composed) {
+      // Retrieval was confident but nothing in the passages could be quoted — say that
+      // instead of presenting a heading as an answer.
+      sendLocalTutorAnswer(res, streaming, tutorRefusal(payload.language, payload.source), {
+        model: BRAIN_MODEL,
+        citations: [],
+        retrieved: payload.citations.length,
+        confident: false,
+        elapsedMs: Date.now() - started,
+        source: payload.source,
+        provider: 'local',
+      });
+      return;
+    }
+    sendLocalTutorAnswer(res, streaming, composed.text, {
+      model: BRAIN_MODEL,
+      citations: payload.citations,
+      retrieved: payload.citations.length,
+      confident: true,
+      elapsedMs: Date.now() - started,
+      source: payload.source,
+      provider: 'local',
+    });
+    return;
+  }
+
   if (!ai && !manusFallbackEnabled) {
     res.status(503).json({ error: {
       code: 'not_configured',
@@ -919,14 +1050,7 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
 
   // Fail closed in both protocols, including the legacy JSON endpoint.
   if (!payload.confident) {
-    const emptyLibrary = payload.source === 'none';
-    const message = payload.language === 'ar'
-      ? emptyLibrary
-        ? 'لا توجد مادة مطابقة في مكتبة الموقع. راجع مراجع الأكاديمية أو اطرح السؤال على مختص مؤهل.'
-        : 'لا توجد مقاطع مطابقة لسؤالك في مادة الأكاديمية. أعد صياغته بمصطلح أدق أو راجع مراجع الأكاديمية.'
-      : emptyLibrary
-        ? 'The site library has no matching material. Consult the academy references or a qualified specialist.'
-        : 'No passage in the academy material matches this question. Rephrase it with a more specific term.';
+    const message = tutorRefusal(payload.language, payload.source);
     const meta = { model: MODEL_CHAIN[0], citations: [], retrieved: 0, confident: false, elapsedMs: 0, source: payload.source };
     res.setHeader('Cache-Control', 'no-store');
     if (!streaming) { res.json({ text: message, content: message, meta }); return; }
@@ -1217,6 +1341,7 @@ function guardAgentPreconditions(
     return false;
   }
 
+  if (LOCAL_ONLY) return true;
   if (!ai) {
     // A Manus-only deployment still answers these two agents: the structured prompt goes
     // to Manus as text and its reply fills the same fields (see the fallbacks below).
@@ -1245,6 +1370,28 @@ router.post(AGENT_ENDPOINTS.userCopilot, async (req: Request, res: Response) => 
   if (!guardAgentPreconditions(req, res, input.language, { allowManus })) return;
 
   const started = Date.now();
+
+  // The local engine answers first: it reads the same library the tutor reads, so the
+  // copilot cannot drift away from what the site actually documents.
+  if (LOCAL_ONLY) {
+    const library = await loadAiLibrary();
+    const local = draftCopilotAnswer({
+      message: input.message,
+      mode: input.mode,
+      language: input.language,
+      context: input.context,
+      hits: library.retrieve(input.message),
+    });
+    res.json({
+      reply: local.reply,
+      suggestedActions: local.suggestedActions.slice(0, 4),
+      ...(local.draftPost ? { draftPost: local.draftPost } : {}),
+      model: BRAIN_MODEL,
+      elapsedMs: Date.now() - started,
+    } satisfies UserCopilotResponse);
+    return;
+  }
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   res.on('close', () => {
@@ -1377,6 +1524,20 @@ router.post(AGENT_ENDPOINTS.siteManager, async (req: Request, res: Response) => 
   if (!guardAgentPreconditions(req, res, input.language)) return;
 
   const started = Date.now();
+
+  // The audit is arithmetic over the snapshot: the same numbers the prompt used to carry,
+  // read directly. Nothing here can invent a request count.
+  if (LOCAL_ONLY) {
+    const local = draftSiteManagerAnswer({
+      instruction: input.instruction,
+      language: input.language,
+      mode: input.mode,
+      telemetry: input.telemetry,
+    });
+    res.json({ ...local, model: BRAIN_MODEL, elapsedMs: Date.now() - started } satisfies SiteManagerResponse);
+    return;
+  }
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   res.on('close', () => {
@@ -1487,6 +1648,17 @@ router.post(AGENT_ENDPOINTS.communityAssist, async (req: Request, res: Response)
   if (!guardAgentPreconditions(req, res, input.language, { allowManus: true })) return;
 
   const started = Date.now();
+
+  if (LOCAL_ONLY) {
+    const library = await loadAiLibrary();
+    const local = draftCommunityAnswer({
+      ...input,
+      hits: library.retrieve(`${input.title ?? ''} ${input.body}`.trim()),
+    });
+    res.json({ ...local, model: BRAIN_MODEL, elapsedMs: Date.now() - started } satisfies CommunityAssistResponse);
+    return;
+  }
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   res.on('close', () => {

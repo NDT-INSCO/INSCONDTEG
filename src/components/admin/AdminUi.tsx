@@ -44,6 +44,7 @@ export function adminError(error: unknown, language: Language): string {
     case 'cookies_blocked': return ar
       ? 'لم يتعرّف الخادم على جلسة الدخول. افتح البوابة في تبويب مستقل وتأكد من السماح بملفات تعريف الارتباط.'
       : 'The server did not recognise your session. Open the portal in its own tab and allow cookies.';
+    case 'session_unrecognised': return ar ? 'تعذّر فتح جلسة الإدارة. حاول تسجيل الدخول مرة أخرى.' : 'Could not open an admin session. Try signing in again.';
     case 'not_configured': return ar ? 'خادم الإدارة غير مهيّأ لتسجيل الدخول. تواصل مع مسؤول تشغيل الموقع.' : 'The admin server is not configured for sign-in. Contact the site operator.';
     case 'origin_not_allowed': return ar ? 'افتح البوابة من عنوانها المعتمد ثم حاول مجددًا.' : 'Open the portal at its configured address and try again.';
     case 'storage_error': return ar ? 'تعذّر الوصول إلى قاعدة بيانات الإدارة. حاول مجددًا بعد قليل.' : 'The admin database is unavailable. Try again shortly.';

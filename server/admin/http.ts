@@ -1,4 +1,5 @@
 import express, { type Request, type RequestHandler, type Response } from 'express';
+import { isAdminToken } from '../../src/admin/contract.js';
 
 export function fail(res: Response, status: number, error: string) {
   res.status(status).json({ error });
@@ -27,5 +28,5 @@ export function readJsonBody(limit = '4kb'): RequestHandler[] {
 export function readTokenCookie(req: Request, name: string): string | undefined {
   const prefix = `${name}=`;
   const value = req.get('cookie')?.split(';').map(pair => pair.trim()).find(pair => pair.startsWith(prefix))?.slice(prefix.length);
-  return value && /^[a-f0-9]{64}$/.test(value) ? value : undefined;
+  return isAdminToken(value) ? value : undefined;
 }

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Check, Eye, LoaderCircle, Megaphone, Save } from 'lucide-react';
-import { adminClient, AdminApiError } from '../../admin/client';
+import { AdminApiError } from '../../admin/client';
+import { useAdminClient } from '../../admin/connection';
 import { NOTICE_LIMIT } from '../../admin/contract';
 import type { Announcement } from '../../admin/contract';
 import type { Language } from '../../types';
@@ -12,6 +13,7 @@ export function AdminAnnouncement({ language, initial, onSessionError, onSaved }
   onSessionError: (error: unknown) => boolean;
   onSaved: (announcement: Announcement) => void;
 }) {
+  const adminClient = useAdminClient();
   const ar = language === 'ar';
   const [draft, setDraft] = useState(initial);
   const [baseline, setBaseline] = useState(initial);

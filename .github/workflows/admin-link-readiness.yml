@@ -6,6 +6,9 @@ on:
   pull_request:
     paths:
       - 'src/admin/public.ts'
+      - 'src/admin/pages.ts'
+      - 'server/admin/**'
+      - 'netlify/**'
       - 'scripts/check-admin-host.ts'
       - '.github/workflows/admin-link-readiness.yml'
   workflow_dispatch:
@@ -27,5 +30,8 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
-      - name: Check the built-in Pages destination without credentials
+      - name: Check the configured Pages destination without credentials
+        env:
+          VITE_ADMIN_PORTAL_URL: ${{ vars.VITE_ADMIN_PORTAL_URL }}
+          VITE_PAGES_ADMIN_API_URL: ${{ vars.VITE_PAGES_ADMIN_API_URL }}
         run: npm run admin:check -- --pages-default

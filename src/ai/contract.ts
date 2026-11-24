@@ -15,6 +15,7 @@
  */
 
 import type { NdeEdText } from '../data/ndeEd/types.js';
+import type { ManusTaskHint } from './manusContract.js';
 
 /* ------------------------------------------------------------------ */
 /* models                                                              */
@@ -210,6 +211,12 @@ export interface TutorMeta {
   elapsedMs: number;
   /** Which library the citations came from — the reader is told, not left to guess. */
   source?: 'reviewed' | 'academy' | 'none';
+  /**
+   * Which engine answered. `manus` means the Gemini chain could not answer and the
+   * second engine did — the reader deserves to know the answer is not from the tutor
+   * model, and the operator needs it to read the telemetry honestly.
+   */
+  provider?: 'local' | 'gemini' | 'manus';
 }
 
 /**
@@ -258,6 +265,11 @@ export interface TutorFailure {
   message: string;
   retryAfterSeconds?: number;
   /**
+   * Set only when the second engine (Manus) picked the question up: its task keeps
+   * running after the request ends, so the reader gets a link instead of a dead end.
+   */
+  manus?: ManusTaskHint;
+  /**
    * What the provider actually said, shortened and stripped of anything
    * credential-shaped. A generic sentence cannot be debugged; this can.
    */
@@ -298,8 +310,18 @@ export type TutorStreamEvent =
 
 export interface TutorStatus {
   configured: boolean;
+  /**
+   * Which engine is serving the tutor: the platform's own local brain, or a provider
+   * outside it. Published so a reader can tell "the model is busy" from "no outside
+   * service is involved at all".
+   */
+  provider?: 'local' | 'gemini' | 'manus' | 'auto';
+  /** False when answers are composed on this server without leaving it. */
+  external?: boolean;
+  /** The local engine's identity and the number of passages it can quote. */
+  brain?: { model: string; documents: number };
   /** Why it is off, when it is off. Shown to the reader verbatim. */
-  reason: 'no_key' | 'client_init_failed' | 'unreachable' | 'ok';
+  reason: 'no_key' | 'client_init_failed' | 'unreachable' | 'no_corpus' | 'ok';
   model: string;
   deepModel: string;
   limits: typeof TUTOR_LIMITS;
@@ -319,6 +341,17 @@ export interface TutorStatus {
    * paste or a stray quote from a key that Google has revoked.
    */
   keyShape?: { length: number; looksLikeAiStudioKey: boolean };
+  /**
+   * The second engine. Reported so a reader can tell "Gemini is rate-limited and Manus
+   * is off" from "Gemini is rate-limited and Manus is answering instead".
+   */
+  manus?: {
+    configured: boolean;
+    autoFallback: boolean;
+    profile: string;
+    baseUrl: string;
+    lastError?: { code: string; at: string };
+  };
   /**
    * `error` is set only when the corpus itself could not be read — never guessed.
    * `source` says which library is answering: reviewed courses, the unreviewed academy

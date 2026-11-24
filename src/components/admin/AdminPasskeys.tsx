@@ -1,12 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Fingerprint, KeyRound, LoaderCircle, Plus, RotateCw, Trash2 } from 'lucide-react';
-import { adminClient, AdminApiError } from '../../admin/client';
+import { AdminApiError } from '../../admin/client';
+import { useAdminClient } from '../../admin/connection';
 import { PASSKEY_LABEL_LIMIT, PASSKEY_LIMIT, type PasskeySettings, type PasskeySummary } from '../../admin/contract';
 import { enrollPasskey, passkeyBrowser } from '../../admin/passkeyClient';
 import type { Language } from '../../types';
 import { AdminLoading, AdminMessage, PasskeyNewTab, adminError, numberText, shortDate } from './AdminUi';
 
 export function AdminPasskeys({ language, onSessionError }: { language: Language; onSessionError: (error: unknown) => boolean }) {
+  const adminClient = useAdminClient();
   const ar = language === 'ar';
   const [settings, setSettings] = useState<PasskeySettings | null>(null);
   const [loadError, setLoadError] = useState<unknown>(null);
@@ -28,7 +30,7 @@ export function AdminPasskeys({ language, onSessionError }: { language: Language
       if (!controller.signal.aborted && !onSessionError(cause)) setLoadError(cause);
     });
     return () => controller.abort();
-  }, [onSessionError, reload]);
+  }, [adminClient, onSessionError, reload]);
 
   useEffect(() => () => operation.current?.abort(), []);
 
@@ -60,7 +62,7 @@ export function AdminPasskeys({ language, onSessionError }: { language: Language
     if (!settings?.canManage || settings.items.length >= PASSKEY_LIMIT || device !== 'ready') return;
     setConfirmId(null);
     void perform('add', async signal => {
-      const item = await enrollPasskey(label.trim() || (ar ? 'جهازي' : 'My device'), signal);
+      const item = await enrollPasskey(adminClient, label.trim() || (ar ? 'جهازي' : 'My device'), signal);
       if (signal.aborted) return;
       setSettings(current => current && { ...current, items: [item, ...current.items] });
       setLabel('');

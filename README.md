@@ -53,8 +53,9 @@ npm run build && npm run site:check
 إعلان باللغتين في الصفحة الرئيسية.
 
 اضبط `ADMIN_PASSWORD` على الخادم وحده؛ لا توجد كلمة مرور افتراضية. مفتاح الموقع الرسمي
-على GitHub Pages يفتح [بوابة الإدارة على Vercel](https://inscondteg.vercel.app/#admin)
-في تبويب مستقل؛ تسجيل الدخول لا يحدث على Pages. لتحديد عنوان مختلف استخدم `VITE_ADMIN_PORTAL_URL`.
+على GitHub Pages يحتفظ بـ[رابط الإدارة الحالي](https://inscondteg.vercel.app/#admin)
+إلى أن يتم تهيئة خادم Production. يدعم [وضع الإدارة داخل GitHub Pages](documentation/DEPLOY_PAGES_ADMIN_AR.md)
+تسجيل الدخول واللوحة كاملةً على `#admin` دون تحويل، مع Netlify Functions وقاعدة الإدارة الحالية.
 لتشغيل الإدارة بدون اشتراك مدفوع، يدعم المشروع **Netlify Free + Turso Free (libSQL)**
 ضمن حدود الباقتين. ويمكن أيضًا استخدام خادم Node بقرص دائم أو Vercel بخطة مناسبة.
 انظر [دليل إعداد البوابة والنشر بالعربي](documentation/ADMIN_AR.md) للروابط والمتغيرات

@@ -13,6 +13,7 @@ jobs:
       VITE_AI_BASE_URL: ${{ vars.VITE_AI_BASE_URL }}
       VITE_RFQ_ENDPOINT: ${{ vars.VITE_RFQ_ENDPOINT }}
       VITE_ADMIN_PORTAL_URL: ${{ vars.VITE_ADMIN_PORTAL_URL }}
+      VITE_PAGES_ADMIN_API_URL: ${{ vars.VITE_PAGES_ADMIN_API_URL }}
     steps:
       - uses: actions/checkout@v4
 
@@ -39,7 +40,7 @@ jobs:
         run: |
           # GitHub exposes unset variables as empty strings. Leave optional
           # URLs out of the Vite environment just as a default local build does.
-          for name in VITE_AI_BASE_URL VITE_RFQ_ENDPOINT VITE_ADMIN_PORTAL_URL; do
+          for name in VITE_AI_BASE_URL VITE_RFQ_ENDPOINT VITE_ADMIN_PORTAL_URL VITE_PAGES_ADMIN_API_URL; do
             if [[ -z "${!name:-}" ]]; then unset "$name"; fi
           done
           npm run build

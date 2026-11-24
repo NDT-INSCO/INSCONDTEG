@@ -18,10 +18,8 @@ on:
         description: Deployment to test
         required: false
         default: https://inscondteg.vercel.app
-  # Every push to every branch would mean six model calls per commit, on the same
-  # free-tier quota this file exists to measure. Main is where the answer matters.
-  push:
-    branches: [main]
+  # Real questions can fall back to a billable Manus task. Keep them opt-in;
+  # ai-probe.yml checks the production release without creating tasks on every push.
 
 jobs:
   live:
@@ -87,6 +85,23 @@ jobs:
             -H 'Access-Control-Request-Method: POST' \
             "$BASE/api/ai/tutor")
           echo "::notice title=cors foreign origin::http=$foreign"
+
+      - name: Is the second engine connected?
+        run: |
+          set -u
+          # Manus is the fallback when Gemini is rate-limited. Two facts are worth
+          # publishing: whether a key is configured, and whether it authenticates — the
+          # probe reads an id that cannot exist, so it costs no credits.
+          status=$(curl -s --max-time 25 "$BASE/api/ai/manus/status?probe=1&cachebust=$GITHUB_SHA" | tr -d '\n')
+          echo "::notice title=manus status::$(printf '%s' "$status" | cut -c1-260)"
+          auth=$(printf '%s' "$status" | sed -n 's/.*"auth":"\([a-z_]*\)".*/\1/p')
+          echo "::notice title=manus auth::${auth:-not-probed}"
+          # The empty body is a 400: the route exists and validates before it spends
+          # anything. A 404 here would mean the route never reached production.
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST --max-time 20 \
+            -H 'Content-Type: application/json' -d '{}' "$BASE/api/ai/manus")
+          echo "::notice title=manus route::http=$code (400 = deployed and validating)"
+          echo "::notice title=ai engines::$(curl -s --max-time 20 "$BASE/api/ai/status?cachebust=$GITHUB_SHA" | sed -n 's/.*\(\"manus\":{[^}]*}\).*/\1/p' | cut -c1-260)"
 
       - name: Publish what the reader would see
         run: |

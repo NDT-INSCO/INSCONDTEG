@@ -2,14 +2,16 @@ import React from 'react';
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, test } from 'node:test';
 import { JSDOM } from 'jsdom';
-import { adminClient, AdminApiError } from '../src/admin/client';
-import type { DashboardData } from '../src/admin/contract';
+import { adminClient, AdminApiError, createAdminClient } from '../src/admin/client';
+import { PAGES_ADMIN_API, type DashboardData } from '../src/admin/contract';
+import { approvedPagesAdminOrigin, INSCO_PAGES_ADMIN_API_URL, pagesAdminOrigin } from '../src/admin/pages';
 import { adminPortalLink, externalAdminLink, readPublicAnnouncement } from '../src/admin/public';
 
 const HOSTED = 'https://admin.insco.test/';
 const PAGES = 'https://ndt-insco.github.io/INSCONDTEG/';
 const UNLINKED_PAGES = 'https://fork-of-insco.github.io/INSCONDTEG/';
 const VERCEL_ADMIN = 'https://inscondteg.vercel.app/#admin';
+const configuredPages = approvedPagesAdminOrigin(INSCO_PAGES_ADMIN_API_URL);
 const dom = new JSDOM('<!doctype html><html lang="ar"><body></body></html>', {
   url: HOSTED, pretendToBeVisual: true,
 });
@@ -80,17 +82,17 @@ test('a direct footer link shows the only admin key beside the prominent English
   assert.equal(ui.queryByRole('dialog'), null, 'the first-visit chooser must not cover the footer');
 });
 
-test('the official Pages footer key opens the hosted admin in a separate, isolated tab', () => {
+test('the official Pages footer opens in place when configured and otherwise isolates the fallback tab', () => {
   dom.reconfigure({ url: `${PAGES}#company-footer` });
   const ui = render(<App />);
   const footer = within(ui.container.querySelector('#company-footer')!);
   const key = footer.getByRole('link', { name: 'بوابة الإدارة' });
-  assert.equal(key.getAttribute('href'), VERCEL_ADMIN);
-  assert.equal(key.getAttribute('target'), '_blank');
-  assert.equal(key.getAttribute('rel'), 'noopener noreferrer');
+  assert.equal(key.getAttribute('href'), configuredPages ? '#admin' : VERCEL_ADMIN);
+  assert.equal(key.getAttribute('target'), configuredPages ? null : '_blank');
+  assert.equal(key.getAttribute('rel'), configuredPages ? null : 'noopener noreferrer');
 });
 
-test('a saved #admin bookmark offers the hosted portal, not a form or cross-origin API request', async () => {
+test('a saved #admin bookmark uses only the configured transport, with no password form before readiness', async () => {
   dom.reconfigure({ url: `${PAGES}#admin` });
   localStorage.removeItem('insco_portal_choice_v1');
   const requests: string[] = [];
@@ -99,17 +101,23 @@ test('a saved #admin bookmark offers the hosted portal, not a form or cross-orig
     return signedOut();
   };
   const ui = render(<App />);
-  const link = await ui.findByRole('link', { name: 'فتح بوابة الإدارة' });
-  assert.equal(link.getAttribute('href'), VERCEL_ADMIN);
-  assert.equal(link.getAttribute('target'), '_blank');
-  assert.equal(link.getAttribute('rel'), 'noopener noreferrer');
-  assert.equal(ui.queryByLabelText('كلمة المرور', { exact: true }), null);
+  if (configuredPages) {
+    await ui.findByLabelText('كلمة المرور', { exact: true });
+    assert.equal(ui.queryByRole('link', { name: 'فتح بوابة الإدارة' }), null);
+    assert.deepEqual(requests, [`${configuredPages}${PAGES_ADMIN_API}/dashboard`]);
+  } else {
+    const link = await ui.findByRole('link', { name: 'فتح بوابة الإدارة' });
+    assert.equal(link.getAttribute('href'), VERCEL_ADMIN);
+    assert.equal(link.getAttribute('target'), '_blank');
+    assert.equal(link.getAttribute('rel'), 'noopener noreferrer');
+    assert.equal(ui.queryByLabelText('كلمة المرور', { exact: true }), null);
+  }
   assert.equal(ui.queryByRole('button', { name: 'مصنع البرمجيات' }), null);
   const signal = new AbortController().signal;
   assert.equal(await readPublicAnnouncement(signal), null);
   await assert.rejects(adminClient.factoryDraft({ task: 'inbox', output: 'block', trigger: 'manual', locale: 'ar', language: 'Python',
     brief: 'مسودة للمراجعة', cells: ['input', 'draft'], includeSnapshot: false }, signal), (error: unknown) => error instanceof AdminApiError && error.code === 'not_configured');
-  assert.deepEqual(requests, []);
+  assert.deepEqual(requests, configuredPages ? [`${configuredPages}${PAGES_ADMIN_API}/dashboard`, `${configuredPages}/api/site/announcement`] : []);
 });
 
 test('an unlinked Pages fork shows why sign-in is unavailable without trying the admin API', async () => {
@@ -224,8 +232,8 @@ test('a compatible device can choose the Arabic passkey button and still use the
 
 test('the built-in admin destination is scoped to the official Pages path and supports an explicit override', () => {
   const official = new URL(PAGES);
-  assert.equal(adminPortalLink('', official), VERCEL_ADMIN);
-  assert.equal(adminPortalLink('', new URL('/INSCONDTEG', official)), VERCEL_ADMIN);
+  assert.equal(adminPortalLink('', official, 'off'), VERCEL_ADMIN);
+  assert.equal(adminPortalLink('', new URL('/INSCONDTEG', official), 'off'), VERCEL_ADMIN);
   for (const other of [UNLINKED_PAGES, HOSTED, VERCEL_ADMIN, 'https://ndt-insco.github.io/INSCONDTEG-test/']) {
     assert.equal(adminPortalLink('', new URL(other)), null, other);
   }
@@ -415,4 +423,91 @@ test('leaving the factory tab cancels an in-flight draft and retains the brief',
   assert.equal((ui.getByLabelText('Task objective') as HTMLTextAreaElement).value, 'Keep this working brief');
   assert.equal((ui.getByRole('button', { name: 'Draft with AI' }) as HTMLButtonElement).disabled, false);
   assert.equal(ui.queryByText('Stale reply'), null);
+});
+
+const PAGES_BACKEND = 'https://insco-admin.netlify.app';
+
+test('the opt-in Pages build replaces only the official link with the local admin workspace', () => {
+  const official = new URL(PAGES);
+  assert.equal(approvedPagesAdminOrigin(`${PAGES_BACKEND}/`), PAGES_BACKEND);
+  assert.equal(pagesAdminOrigin(PAGES_BACKEND, official, ''), PAGES_BACKEND);
+  assert.equal(adminPortalLink('', official, PAGES_BACKEND), null);
+  assert.equal(adminPortalLink('', official, 'off'), VERCEL_ADMIN);
+  assert.equal(adminPortalLink('https://approved.example/', official, PAGES_BACKEND), 'https://approved.example/#admin');
+  assert.equal(pagesAdminOrigin(PAGES_BACKEND, official, 'off'), null);
+  for (const other of [UNLINKED_PAGES, HOSTED, 'https://ndt-insco.github.io/INSCONDTEG-test/']) {
+    assert.equal(pagesAdminOrigin(PAGES_BACKEND, new URL(other), ''), null);
+  }
+  for (const unsafe of ['http://insco-admin.netlify.app', `${PAGES_BACKEND}/other`, `${PAGES_BACKEND}?q=test`,
+    `${PAGES_BACKEND}#admin`, 'https://a:b@insco-admin.netlify.app', 'https://deploy-preview-1--insco-admin.netlify.app',
+    'https://inscondteg.vercel.app', 'https://ndt-insco.github.io', 'https://127.0.0.1', 'https://localhost']) {
+    assert.equal(approvedPagesAdminOrigin(unsafe), null, unsafe);
+    assert.equal(adminPortalLink('', official, unsafe), VERCEL_ADMIN);
+  }
+});
+
+test('the Pages client scopes the credential to one instance and never follows redirects or stores it', async () => {
+  dom.reconfigure({ url: `${PAGES}#admin` });
+  const pagesClient = createAdminClient(PAGES_BACKEND);
+  const otherTab = createAdminClient(PAGES_BACKEND);
+  const token = '3a'.repeat(32);
+  const signal = new AbortController().signal;
+  const checked: string[] = [];
+  globalThis.fetch = async (input, init) => {
+    const path = String(input);
+    assert.ok(path.startsWith(PAGES_BACKEND + PAGES_ADMIN_API + '/'));
+    assert.ok(!path.includes(token));
+    assert.equal(init?.credentials, 'omit');
+    assert.equal(init?.redirect, 'error');
+    assert.equal(init?.referrerPolicy, 'no-referrer');
+    assert.equal(init?.cache, 'no-store');
+    const auth = new Headers(init?.headers).get('authorization');
+    checked.push(path);
+    if (path.endsWith('/login')) {
+      assert.equal(auth, null);
+      assert.deepEqual(JSON.parse(String(init?.body)), { password: testPassword });
+      return adminJson({ token });
+    }
+    if (path.endsWith('/logout')) {
+      assert.equal(auth, `Bearer ${token}`);
+      return noContent();
+    }
+    return auth === `Bearer ${token}` ? adminJson(dashboard()) : signedOut();
+  };
+  await assert.rejects(pagesClient.dashboard(), { code: 'signed_out' });
+  await pagesClient.login(testPassword, signal);
+  await pagesClient.dashboard();
+  await assert.rejects(otherTab.dashboard(), { code: 'signed_out' });
+  assert.deepEqual(Object.values(localStorage), ['company']);
+  assert.deepEqual(Object.values(window.sessionStorage), []);
+  assert.equal(document.cookie, '');
+  await pagesClient.logout();
+  await assert.rejects(pagesClient.dashboard(), { code: 'signed_out' });
+  dom.reconfigure({ url: `${UNLINKED_PAGES}#admin` });
+  await assert.rejects(pagesClient.login(testPassword, signal), { code: 'not_configured' });
+  dom.reconfigure({ url: `${PAGES}#admin`, windowTop: new JSDOM('').window });
+  try { await assert.rejects(pagesClient.login(testPassword, signal), { code: 'not_configured' }); }
+  finally { dom.reconfigure({ windowTop: dom.window }); }
+  assert.equal(checked.length, 6);
+});
+
+test('invalid or cancelled Pages sign-in responses cannot start a session', async () => {
+  dom.reconfigure({ url: `${PAGES}#admin` });
+  const client = createAdminClient(PAGES_BACKEND);
+  const signal = new AbortController().signal;
+  for (const payload of [{}, { token: 7 }, { token: 'abc' }]) {
+    globalThis.fetch = async () => adminJson(payload);
+    await assert.rejects(client.login(testPassword, signal), { code: 'invalid_response' });
+  }
+  let finish!: (response: Response) => void;
+  globalThis.fetch = async () => new Promise(resolve => { finish = resolve; });
+  const pending = client.login(testPassword, signal);
+  client.clearSession();
+  finish(adminJson({ token: 'ab'.repeat(32) }));
+  await assert.rejects(pending, { name: 'AbortError' });
+  globalThis.fetch = async (_input, init) => {
+    assert.equal(new Headers(init?.headers).has('authorization'), false);
+    return signedOut();
+  };
+  await assert.rejects(client.dashboard(), { code: 'signed_out' });
 });

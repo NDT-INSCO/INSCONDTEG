@@ -526,4 +526,3 @@ export function getDetectedLocaleForDisplay(): DetectedLocale | null {
     return null;
   }
 }
-

@@ -35,6 +35,19 @@ test('reviewed citations keep their own wording', () => {
   assert.match(en.heading, /reviewed passages/i);
 });
 
+test('private Drive citations carry a clear internal-use warning in both languages', () => {
+  const ar = citationCopy('private-drive', true);
+  assert.equal(ar.tone, 'academy');
+  assert.match(ar.heading, /Drive الخاصة/);
+  assert.match(ar.note, /لا تُعد مراجعة فنية/);
+  assert.match(ar.note, /إعادة النشر/);
+
+  const mixed = citationCopy('mixed', false);
+  assert.equal(mixed.tone, 'academy');
+  assert.match(mixed.heading, /Mixed sources/);
+  assert.match(mixed.note, /not engineering review/);
+});
+
 test('an unknown source is never presented as reviewed', () => {
   for (const source of [undefined, 'none'] as const) {
     const copy = citationCopy(source, false);

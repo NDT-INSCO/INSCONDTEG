@@ -162,8 +162,12 @@ test('skills on a card must be catalogue-shaped, and a cleared list is allowed',
 
   const ref = doc(endorser, 'community_workspaces', 'rep-endorser');
   await setDoc(ref, card('ut,paut'));
-  await setDoc(ref, card(''));
-  await deny(setDoc(ref, card('UT, paut')));
+  // Editing the list goes through updateDoc (as the production service does): the
+  // card's `createdAt` must survive an edit, so a full-card setDoc here would be
+  // refused by the update rule for the wrong reason (date immutability, not skills).
+  await updateDoc(ref, { skills: '', updatedAt: serverTimestamp() });
+  // A non-catalogue id is refused for the skills check, not for anything else.
+  await deny(updateDoc(ref, { skills: 'UT, paut', updatedAt: serverTimestamp() }));
   const many = Array.from({ length: 21 }, (_, index) => `skill_${index}`).join(',');
-  await deny(setDoc(ref, card(many)));
+  await deny(updateDoc(ref, { skills: many, updatedAt: serverTimestamp() }));
 });

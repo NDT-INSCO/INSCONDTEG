@@ -1,7 +1,6 @@
 /**
- * Static GitHub Pages build honesty checks for the Dual AI agents:
- * no gateway may be faked — the client refuses with `not_configured`, the
- * contract names the measured chain, and the dock banner explains itself.
+ * Static GitHub Pages checks: the local agent brain answers without a gateway
+ * or external key, and the dock explains that path honestly.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -25,51 +24,43 @@ Object.assign(globalThis, {
 });
 dom.window.scrollTo = () => {};
 
-test('static build: the agents call the hosted gateway, never a relative path', async () => {
-  const { askUserCopilot, agentUrl } = await import('../src/ai/agentsClient');
-  const { AGENT_MODELS } = await import('../src/ai/agentsContract');
-  const { HOSTED_GATEWAY_URL } = await import('../src/ai/pagesGateway');
-
-  const chain = [AGENT_MODELS.primary, AGENT_MODELS.fallback, ...AGENT_MODELS.fallbacks];
-
-  // The busy model must never lead — it is the one model that always answers 503.
-  assert.notEqual(AGENT_MODELS.primary, 'gemini-4-hydrogen');
-  // The measured chain leads with the model that answers and puts the busy one last.
-  assert.equal(chain[0], 'gemini-3.5-flash-lite');
-  assert.equal(chain[chain.length - 1], 'gemini-4-hydrogen');
-  assert.equal(new Set(chain).size, chain.length, 'the chain must not repeat a model');
-
-  // A static build has no server of its own, so every call must be absolute and go to the
-  // deployment that holds the key. This used to be a refusal; now it is a real call.
-  assert.equal(agentUrl('/api/ai/agent/user-copilot'), `${HOSTED_GATEWAY_URL}/api/ai/agent/user-copilot`);
-
+test('static build: every agent uses the local brain without a gateway or model key', async () => {
+  const { askUserCopilot, runSiteManagerAgent, runCommunityAssist, agentUrl } =
+    await import('../src/ai/agentsClient');
   const before = globalThis.fetch;
-  const calls: string[] = [];
-  globalThis.fetch = (async (input: RequestInfo | URL) => {
-    calls.push(String(input));
-    // The gateway answers 503 when it has no key; the client must pass that through, not
-    // invent a reply of its own.
-    return new Response(JSON.stringify({ error: { code: 'not_configured', message: 'no key' } }), {
-      status: 503,
-      headers: { 'content-type': 'application/json' },
-    });
+  let fetchCalls = 0;
+  globalThis.fetch = (async () => {
+    fetchCalls += 1;
+    return new Response('{}', { status: 200 });
   }) as typeof fetch;
   try {
-    await assert.rejects(
-      askUserCopilot({ message: 'hello', history: [], language: 'ar', mode: 'assistant' }),
-      (error: { code?: string }) => {
-        assert.equal(error.code, 'not_configured', 'the gateway\'s own reason survives');
-        return true;
-      }
-    );
+    const copilot = await askUserCopilot({ message: 'ما الفرق بين PAUT و TOFD؟', history: [], language: 'ar', mode: 'assistant' });
+    assert.equal(copilot.model, null);
+    assert.ok(copilot.kind === 'library' || copilot.kind === 'decline');
+
+    const manager = await runSiteManagerAgent({
+      instruction: 'audit', language: 'ar', mode: 'executive_audit',
+      telemetry: {
+        totalRequests: 0, newRequests: 0, urgentRequests: 0, totalCompanies: 0,
+        activeTestingCompanies: 0, pendingAccounts: 0, geofenceAlertCount: 0,
+        recentGeofenceAlerts: [], communityPostsCount: 0, communityMembersCount: 0,
+        opportunitiesCount: 0, recentPosts: [],
+      },
+    });
+    assert.equal(manager.model, null);
+    assert.equal(manager.kind, 'site-data');
+
+    const community = await runCommunityAssist({ action: 'enhance_post', language: 'ar', ndtMethod: 'RT', body: 'فحص' });
+    assert.equal(community.model, null);
+    assert.equal(community.kind, 'editorial');
   } finally {
     globalThis.fetch = before;
   }
-  assert.equal(calls.length, 1, 'the question reaches the gateway');
-  assert.ok(calls[0].startsWith(HOSTED_GATEWAY_URL), `expected the hosted gateway, got ${calls[0]}`);
+  assert.equal(fetchCalls, 0, 'static build must never hit the network for agent answers');
+  assert.match(agentUrl('/api/ai/agent/user-copilot'), /^\/api\/ai\/agent\/user-copilot$/);
 });
 
-test('static build: the dock no longer pretends there is no gateway', async () => {
+test('static build: the dock explains itself instead of faking', async () => {
   const { render, fireEvent, cleanup } = await import('@testing-library/react');
   const React = await import('react');
   const { InscoDualAiDock } = await import('../src/components/ai/InscoDualAiDock');
@@ -84,8 +75,7 @@ test('static build: the dock no longer pretends there is no gateway', async () =
     })
   );
   fireEvent.click(ui.getByTestId('insco-dual-ai-launcher'));
-  // A gateway is configured for this build, so the "no gateway here" notice would be a lie.
-  assert.equal(ui.queryByTestId('ai-gateway-unavailable'), null);
-  assert.ok(ui.getByTestId('insco-dual-ai-drawer'));
+  assert.ok(ui.getByTestId('ai-local-brain'));
+  assert.match(ui.getByTestId('ai-local-brain').textContent, /without a key/i);
   cleanup();
 });

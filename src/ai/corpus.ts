@@ -19,6 +19,8 @@ export interface CorpusDocument {
   kind: CorpusKind;
   /** Textbook or course id, used for deep links. */
   bookId: string;
+  /** Private external reference URL (server-only corpora); never used to fetch content. */
+  sourceUrl?: string;
   courseId?: string;
   pageNumber?: number;
   lessonId?: string;

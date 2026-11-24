@@ -23,10 +23,15 @@ service cloud.firestore {
     }
 
     function isVerifiedUser() {
+      // Keys are checked before they are read — a token without them errors out
+      // the whole rule. (A phone-verified token may not carry `email_verified`.)
       return isSignedIn() && (
-        request.auth.token.email_verified == true
+        ('email_verified' in request.auth.token
+          && request.auth.token.email_verified == true)
         || (
-          request.auth.token.firebase.sign_in_provider == 'phone'
+          'firebase' in request.auth.token
+          && 'phone_number' in request.auth.token
+          && request.auth.token.firebase.sign_in_provider == 'phone'
           && request.auth.token.phone_number is string
           && request.auth.token.phone_number.size() >= 5
         )
@@ -48,6 +53,8 @@ service cloud.firestore {
     // Zero-lookup admin check (strictly requires verified email, never phone auth)
     function isAdminEmail() {
       return isSignedIn()
+        && 'email' in request.auth.token
+        && 'email_verified' in request.auth.token
         && request.auth.token.email_verified == true
         && request.auth.token.email == 'inscondtco@gmail.com';
     }
@@ -566,7 +573,8 @@ service cloud.firestore {
     // append-only reason and case ID, short server-timed authorization.
     // -------------------------------------------------------------------------
     function isAccountReviewer() {
-      return isSignedIn() && request.auth.token.email_verified == true
+      return isSignedIn() && 'email_verified' in request.auth.token
+        && request.auth.token.email_verified == true
         && get(/databases/$(database)/documents/account_reviewers/$(request.auth.uid)).data.enabled == true;
     }
 
@@ -600,7 +608,8 @@ service cloud.firestore {
 
     // Membership is assigned/revoked only by a trusted operator using IAM.
     match /account_reviewers/{reviewerUid} {
-      allow get: if isOwner(reviewerUid) && request.auth.token.email_verified == true;
+      allow get: if isOwner(reviewerUid) && 'email_verified' in request.auth.token
+        && request.auth.token.email_verified == true;
     }
 
     match /account_review_audit/{auditId} {
@@ -678,23 +687,19 @@ service cloud.firestore {
         && incoming().createdAt == request.time
         && incoming().updatedAt == request.time;
 
+      // The validator is evaluated once — the two `isValidCommunityWorkspace`
+      // calls that used to sit in the two branches pushed this rule over the
+      // emulator's 1000-expression cap, so no workspace update could ever
+      // succeed. Both branches require the same shape; only the writer differs.
       allow update: if isVerifiedUser()
         && isValidId(userId)
+        && isValidCommunityWorkspace(incoming(), userId)
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
         && (
-          (
-            isOwner(userId)
-            && isValidCommunityWorkspace(incoming(), userId)
-            && incoming().uid == existing().uid
-            && incoming().createdAt == existing().createdAt
-            && incoming().updatedAt == request.time
-          )
-          || (
-            isValidCommunityWorkspace(incoming(), userId)
-            && incoming().uid == existing().uid
-            && incoming().createdAt == existing().createdAt
-            && incoming().updatedAt == request.time
-            && incoming().diff(existing()).affectedKeys().hasOnly(['endorsementsCount', 'updatedAt'])
-          )
+          isOwner(userId)
+          || incoming().diff(existing()).affectedKeys().hasOnly(['endorsementsCount', 'updatedAt'])
         );
 
       allow delete: if isValidId(userId) && (isOwner(userId) || isAdmin());

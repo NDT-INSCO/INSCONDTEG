@@ -14,11 +14,22 @@ export type CitationSource = NonNullable<TutorMeta['source']>;
 export interface CitationCopy {
   heading: string;
   note: string;
-  /** `academy` is rendered in warning colour; `reviewed` stays neutral. */
+  /** Unreviewed/private sources are rendered in warning colour. */
   tone: 'reviewed' | 'academy';
 }
 
 export function citationCopy(source: CitationSource | undefined, isAr: boolean): CitationCopy {
+  if (source === 'private-drive' || source === 'mixed') {
+    return {
+      heading: source === 'private-drive'
+        ? (isAr ? 'مقاطع من مكتبة Drive الخاصة' : 'Passages from the private Drive library')
+        : (isAr ? 'مصادر متعددة — تتضمن مكتبة Drive الخاصة' : 'Mixed sources — includes private Drive library'),
+      note: isAr
+        ? 'مقتطفات الكتب الخاصة لا تُعد مراجعة فنية أو تصريحًا بإعادة النشر. تحقّق من إصدار المصدر الأصلي وشروط ترخيصه.'
+        : 'Private-book excerpts are not engineering review or permission to redistribute. Verify the original edition and its licence terms.',
+      tone: 'academy',
+    };
+  }
   if (source === 'academy') {
     return {
       heading: isAr ? 'مقاطع من مادة الأكاديمية — غير مُراجَعة' : 'Passages from the academy corpus — NOT reviewed',

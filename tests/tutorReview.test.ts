@@ -47,6 +47,9 @@ async function launchTutor(t: TestContext, configured: boolean, env: Record<stri
       NODE_ENV: 'production',
       PORT: '0',
       GEMINI_API_KEY: configured ? 'isolated-test-no-network' : '',
+      // This file tests the *external* path: the local engine is the default in
+      // production, so it has to be named explicitly here or the upstream is never called.
+      AI_PROVIDER: 'gemini',
       ...env,
     },
     silent: true,

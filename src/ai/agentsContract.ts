@@ -88,9 +88,9 @@ export interface UserCopilotResponse {
   draftPost?: CopilotDraftPost;
   /** null means no external model/API key was used. */
   model: string | null;
-  kind: AgentAnswerKind;
-  citations: AgentCitation[];
-  reasoningSteps: string[];
+  kind?: AgentAnswerKind;
+  citations?: AgentCitation[];
+  reasoningSteps?: string[];
   elapsedMs: number;
 }
 
@@ -245,8 +245,8 @@ export interface SiteManagerResponse {
     ndtMethod: string;
   };
   model: string | null;
-  kind: AgentAnswerKind;
-  reasoningSteps: string[];
+  kind?: AgentAnswerKind;
+  reasoningSteps?: string[];
   elapsedMs: number;
 }
 
@@ -360,8 +360,8 @@ export interface CommunityAssistResponse {
   tags?: string[];
   technicalSnippet?: string;
   model: string | null;
-  kind: AgentAnswerKind;
-  citations: AgentCitation[];
+  kind?: AgentAnswerKind;
+  citations?: AgentCitation[];
   elapsedMs: number;
 }
 

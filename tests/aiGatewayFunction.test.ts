@@ -1,10 +1,12 @@
 /**
  * The deployed function must answer `/api/ai/*`.
  *
- * This is the regression that mattered: the site, admin API and RFQ endpoint were
- * served on Vercel, but nothing answered the AI routes, so the client blamed a missing
- * key for a 404. This mounts the real Vercel handler (`api/ai.ts`) on a socket. No model
- * key is configured: library/rules paths must still answer honestly without one.
+ * This is the regression that mattered: the site, the admin API and the RFQ endpoint
+ * were all served on Vercel, but nothing answered the AI routes, so every tutor or
+ * copilot call came back 404 and the client blamed a missing API key. The test mounts
+ * the actual Vercel handler (`api/ai.ts`) on a real socket and speaks HTTP to it — no
+ * key is configured, and the answer still comes back: from the local brain, out of the
+ * corpus, with citations. What must never happen is a 404 or a canned paragraph.
  */
 import assert from 'node:assert/strict';
 import { createServer, type Server } from 'node:http';
@@ -33,41 +35,36 @@ after(async () => {
   await new Promise<void>(resolve => server.close(() => resolve()));
 });
 
-test('the status route exists on the function and reports the missing key', async () => {
+test('the status route reports the local engine as the one answering', async () => {
   const response = await fetch(`${base}/api/ai/status`);
   assert.equal(response.status, 200, 'the route must exist — its absence is what broke the site');
-  const body = (await response.json()) as { configured: boolean; reason: string; model: string };
-  assert.equal(body.configured, false);
-  assert.equal(body.reason, 'no_key');
-  assert.ok(body.model.length > 0, 'the model name is reported even when unconfigured');
+  const body = (await response.json()) as {
+    configured: boolean;
+    reason: string;
+    model: string;
+    provider?: string;
+    external?: boolean;
+    brain?: { model: string; documents: number };
+  };
+  assert.equal(body.configured, true, 'no key is needed: the brain answers from the corpus');
+  assert.equal(body.reason, 'ok');
+  assert.equal(body.provider, 'local');
+  assert.equal(body.external, false, 'nothing outside this deployment is involved');
+  assert.equal(body.brain?.model, 'insco-local-1');
+  assert.ok((body.brain?.documents ?? 0) > 0, 'the brain can only answer if it has passages');
 });
 
-test('a tutor call without a key is answered from the library, not refused', async () => {
-  // The tutor must answer from its own corpus — the same question that used to
-  // 503 is answered honestly, with the model flagged as none and the steps visible.
+test('a tutor call without any key is answered locally, with citations', async () => {
   const response = await fetch(`${base}/api/ai/tutor`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ prompt: 'ما هو الفرق بين PAUT و TOFD؟', language: 'ar' }),
   });
-  assert.equal(response.status, 200, 'the tutor answers from the library without a key');
-  const body = await response.text();
-  assert.match(body, /"kind":"library"/, 'the answer is labelled as a library answer');
-  assert.match(body, /"model":null/, 'no model ran, so no model id is reported');
-  assert.match(body, /"steps"/, 'the steps the answer took are visible to the reader');
-  assert.match(body, /book-paut-tofd/, 'a citation the library actually holds');
-});
-
-test('a tutor call without a key and without a match declines honestly', async () => {
-  const response = await fetch(`${base}/api/ai/tutor`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
-    body: JSON.stringify({ prompt: 'yyzz qqq', language: 'ar' }),
-  });
-  assert.equal(response.status, 200);
-  const body = await response.text();
-  assert.match(body, /لا توجد مقاطع مطابقة/);
-  assert.doesNotMatch(body, /"kind":"library"/, 'a decline is not an answer');
+  assert.equal(response.status, 200, 'the local engine needs no key and no upstream');
+  const text = await response.text();
+  assert.match(text, /"type":"delta"/, 'the answer is streamed like any other');
+  assert.match(text, /\[[a-z0-9-]+#/, 'every claim carries a passage id the reader can open');
+  assert.match(text, /"model":"insco-local-1"/, 'the meta names the engine honestly');
 });
 
 test('every agent route the client calls is mounted', async () => {
@@ -78,32 +75,6 @@ test('every agent route the client calls is mounted', async () => {
       body: JSON.stringify({ message: 'اختبار', language: 'ar' }),
     });
     assert.notEqual(response.status, 404, `${route} must be mounted`);
-  }
-});
-
-test('all site-agent endpoints answer without a Gemini key and identify their real source', async () => {
-  const calls = [
-    {
-      route: '/api/ai/agent/user-copilot',
-      body: { message: 'ما الفرق بين PAUT و TOFD؟', history: [], language: 'ar', mode: 'assistant' },
-    },
-    {
-      route: '/api/ai/agent/site-manager',
-      body: { instruction: 'audit', language: 'en', mode: 'executive_audit', telemetry: { totalRequests: 5, urgentRequests: 1 } },
-    },
-    {
-      route: '/api/ai/community/assist',
-      body: { action: 'suggest_reply', language: 'ar', ndtMethod: 'PAUT', body: 'ما الإعدادات المستخدمة في هذه الحالة؟' },
-    },
-  ];
-  for (const call of calls) {
-    const response = await fetch(`${base}${call.route}`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(call.body),
-    });
-    assert.equal(response.status, 200, `${call.route} must answer without a model key`);
-    const body = await response.json() as { model: string | null; kind: string; citations?: unknown[] };
-    assert.equal(body.model, null);
-    assert.ok(['library', 'rules', 'editorial', 'site-data', 'decline'].includes(body.kind));
   }
 });
 

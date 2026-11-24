@@ -199,12 +199,12 @@ export interface TutorCitation {
    * forget that a citation is a claim about its source.
    */
   reviewed?: boolean;
-  sourceType?: 'site-library' | 'private-drive';
+  /** Distinguishes licensed private Drive sources from the public site library. */
+  sourceType?: 'private-drive' | 'site-library';
   url?: string;
 }
 
 export interface TutorMeta {
-  /** Which model answered, or null when no model ran (the library-only path). */
   model: string | null;
   citations: TutorCitation[];
   retrieved: number;
@@ -214,12 +214,15 @@ export interface TutorMeta {
   elapsedMs: number;
   /** Which library the citations came from — the reader is told, not left to guess. */
   source?: 'reviewed' | 'academy' | 'private-drive' | 'mixed' | 'none';
-  /** How the answer was produced. */
+  /**
+   * Which engine answered. `manus` means the Gemini chain could not answer and the
+   * second engine did — the reader deserves to know the answer is not from the tutor
+   * model, and the operator needs it to read the telemetry honestly.
+   */
+  provider?: 'local' | 'gemini' | 'manus';
+  /** The answer came from deterministic library composition rather than a model. */
   kind?: 'model' | 'library';
-  /** The steps taken by the deterministic library answer path. */
   steps?: string[];
-  /** Which hosted provider answered, when a model service was used. */
-  provider?: 'gemini' | 'manus';
 }
 
 /**
@@ -313,8 +316,18 @@ export type TutorStreamEvent =
 
 export interface TutorStatus {
   configured: boolean;
+  /**
+   * Which engine is serving the tutor: the platform's own local brain, or a provider
+   * outside it. Published so a reader can tell "the model is busy" from "no outside
+   * service is involved at all".
+   */
+  provider?: 'local' | 'gemini' | 'manus' | 'auto';
+  /** False when answers are composed on this server without leaving it. */
+  external?: boolean;
+  /** The local engine's identity and the number of passages it can quote. */
+  brain?: { model: string; documents: number };
   /** Why it is off, when it is off. Shown to the reader verbatim. */
-  reason: 'no_key' | 'client_init_failed' | 'unreachable' | 'ok';
+  reason: 'no_key' | 'client_init_failed' | 'unreachable' | 'no_corpus' | 'ok';
   model: string;
   deepModel: string;
   limits: typeof TUTOR_LIMITS;
@@ -353,7 +366,7 @@ export interface TutorStatus {
   retrieval: {
     documents: number;
     ready: boolean;
-    source?: 'reviewed' | 'academy' | 'none';
+    source?: 'reviewed' | 'academy' | 'private-drive' | 'mixed' | 'none';
     /** How many of those documents came from the reviewed course corpus. */
     reviewed?: number;
     error?: string;

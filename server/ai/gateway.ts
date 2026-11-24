@@ -48,8 +48,8 @@ import {
 } from '../../src/ai/contract.js';
 import { buildIndex, searchLibrary, type SearchHit } from '../../src/ai/search.js';
 import { composeSelfAnswer } from '../../src/ai/selfAnswer.js';
-import { answerCopilot, answerSiteManager, answerCommunity, copilotSearchQuery } from '../../src/ai/agentBrain.js';
 import { searchPrivateKnowledge } from './privateKnowledge.js';
+import { answerCopilot, answerCommunity, copilotSearchQuery } from '../../src/ai/agentBrain.js';
 import { HOSTED_GATEWAY_URL, PAGES_SITE_ORIGIN } from '../../src/ai/pagesGateway.js';
 import {
   MANUS_BASE_URL,
@@ -65,6 +65,14 @@ import {
   type ManusTaskView,
 } from '../../src/ai/manusContract.js';
 import { ManusError, canWaitForManus, createManusClient, type ManusClient } from './manus.js';
+import {
+  BRAIN_MODEL,
+  composeTutorAnswer,
+  draftCommunityAnswer,
+  draftCopilotAnswer,
+  draftSiteManagerAnswer,
+  resolveAiProvider,
+} from '../../src/ai/brain/index.js';
 import { createManusTaskReceipts } from './manusReceipts.js';
 import { buildTutorLibrary, type TutorLibrary } from '../tutor/library.js';
 import {
@@ -134,8 +142,8 @@ export function createAiGateway(edbRoot: string): express.Router {
       res.setHeader('Access-Control-Allow-Origin', origin);
       res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
       res.setHeader('Access-Control-Allow-Headers', req.path === MANUS_ENDPOINTS.task
-        ? `Content-Type, Accept, Authorization, ${MANUS_TASK_RECEIPT_HEADER}`
-        : 'Content-Type, Accept, Authorization');
+        ? `Content-Type, Accept, ${MANUS_TASK_RECEIPT_HEADER}`
+        : 'Content-Type, Accept');
       res.setHeader('Access-Control-Max-Age', '600');
     }
     if (req.method === 'OPTIONS') {
@@ -184,6 +192,12 @@ const MODEL_CHAIN: string[] = [
 const DAILY_BUDGET = Math.max(1, parseInt(process.env.TUTOR_DAILY_LIMIT || '300', 10));
 const PER_MINUTE = Math.max(1, parseInt(process.env.TUTOR_RATE_PER_MINUTE || '10', 10));
 const PER_DAY = Math.max(1, parseInt(process.env.TUTOR_RATE_PER_DAY || '200', 10));
+// The limits above exist to protect a paid quota. The local engine spends no quota — only
+// CPU on the instance already serving the page — so throttling it as if it were a model
+// would refuse readers for nothing. It keeps a ceiling, for abuse, and nothing more.
+const LOCAL_PASSAGES = Math.max(5, parseInt(process.env.LOCAL_PASSAGES || '9', 10));
+const LOCAL_PER_MINUTE = Math.max(PER_MINUTE, parseInt(process.env.LOCAL_RATE_PER_MINUTE || '45', 10));
+const LOCAL_PER_DAY = Math.max(PER_DAY, parseInt(process.env.LOCAL_RATE_PER_DAY || '5000', 10));
 /**
  * The whole-request budget. The function may run 60s (`maxDuration`), so this leaves room
  * for the tail of a long answer instead of cutting it at 45s and calling it a timeout.
@@ -218,6 +232,16 @@ const ai: GoogleGenAI | null = API_KEY
  * crash at boot.
  */
 const manus: ManusClient = createManusClient(process.env);
+
+/**
+ * Which engine answers: the platform's own brain, or a provider outside it.
+ *
+ * The default is `local`. That is a deliberate inversion of the old behaviour, where the
+ * agents could not answer at all without a Google key and a quota window: a dependence
+ * that is switched on by omission is not a choice.
+ */
+const AI_PROVIDER = resolveAiProvider(process.env);
+const LOCAL_ONLY = AI_PROVIDER === 'local';
 const taskReceipts = createManusTaskReceipts(process.env);
 const manusFallbackEnabled = manus.configured && manus.autoFallback;
 
@@ -250,7 +274,9 @@ function takeToken(ip: string): LimitResult {
     globalCount = 0;
     buckets.clear();
   }
-  if (globalCount >= DAILY_BUDGET) {
+  const perMinute = LOCAL_ONLY ? LOCAL_PER_MINUTE : PER_MINUTE;
+  const perDay = LOCAL_ONLY ? LOCAL_PER_DAY : PER_DAY;
+  if (!LOCAL_ONLY && globalCount >= DAILY_BUDGET) {
     return {
       allowed: false,
       failure: { code: 'budget_exhausted', message: 'Daily tutor budget reached' },
@@ -265,14 +291,14 @@ function takeToken(ip: string): LimitResult {
     bucket.dayStart = now;
     bucket.dayCount = 0;
   }
-  if (bucket.minuteCount >= PER_MINUTE) {
+  if (bucket.minuteCount >= perMinute) {
     buckets.set(ip, bucket);
     return {
       allowed: false,
       failure: { code: 'rate_limited', message: 'Too many requests this minute', retryAfterSeconds: 60 },
     };
   }
-  if (bucket.dayCount >= PER_DAY) {
+  if (bucket.dayCount >= perDay) {
     buckets.set(ip, bucket);
     return {
       allowed: false,
@@ -526,24 +552,6 @@ function toCitation(hit: SearchHit, reviewed: boolean): TutorCitation {
   };
 }
 
-function bearerToken(req: Request): string | undefined {
-  const authorization = req.header('authorization') || '';
-  const match = /^Bearer\s+([A-Za-z0-9._-]{20,})$/i.exec(authorization);
-  return match?.[1];
-}
-
-async function privateKnowledgeHits(question: string, token?: string): Promise<SearchHit[]> {
-  const documents = await searchPrivateKnowledge(question, token);
-  if (!documents.length) return [];
-  const index = buildIndex(documents);
-  const result = searchLibrary(question, {
-    index,
-    limit: TUTOR_LIMITS.passages,
-    minScore: TUTOR_LIMITS.minScore,
-  });
-  return result.confident ? result.hits : [];
-}
-
 function buildContext(hits: SearchHit[], language: 'ar' | 'en'): string {
   const blocks: string[] = [];
   let budget = TUTOR_LIMITS.contextChars;
@@ -698,14 +706,61 @@ router.get('/api/ai/models', async (_req: Request, res: Response) => {
   }
 });
 
+/**
+ * A self-test anyone can run from a browser address bar.
+ *
+ * The claim this deployment now makes — "the agents answer with no outside AI" — is only
+ * worth as much as the ability to check it. A POST-only tutor cannot be checked by typing
+ * a URL, so here is a GET that composes an answer from the corpus and returns it with the
+ * passages it used and the engine's name. It never calls a provider, in any mode, and it
+ * names whatever mode the deployment is in so nobody has to guess.
+ */
+router.get('/api/ai/selftest', async (req: Request, res: Response) => {
+  const question =
+    typeof req.query.q === 'string' && req.query.q.trim()
+      ? req.query.q.trim().slice(0, 300)
+      : 'ما الفرق بين PAUT و TOFD؟';
+  const language = req.query.lang === 'en' ? 'en' : 'ar';
+  const wanted = String(req.query.mode ?? 'compare');
+  const mode = (['explain', 'compare', 'code', 'practice'].includes(wanted) ? wanted : 'compare') as
+    | 'explain'
+    | 'compare'
+    | 'code'
+    | 'practice';
+  const started = Date.now();
+  const library = await loadAiLibrary();
+  const hits = library.retrieve(question);
+  const composed = composeTutorAnswer({ question, hits, language, mode });
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({
+    engine: BRAIN_MODEL,
+    provider: AI_PROVIDER,
+    external: !LOCAL_ONLY,
+    documents: library.documents,
+    source: library.source,
+    question,
+    language,
+    mode,
+    answer: composed?.text ?? tutorRefusal(language, library.source),
+    usedIds: composed?.usedIds ?? [],
+    retrieved: hits.length,
+    confident: Boolean(composed),
+    elapsedMs: Date.now() - started,
+  });
+});
+
 router.get(TUTOR_ENDPOINTS.status, async (_req: Request, res: Response) => {
   const library = await loadAiLibrary();
+  // The local brain needs no key but it does need the corpus: without a passage it has
+  // nothing to quote, and `retrieval.ready` is the honest place to say so.
+  const localReady = LOCAL_ONLY && library.documents > 0;
+  const externalReady = Boolean(ai) || manusFallbackEnabled;
   const status: TutorStatus = {
-    // "Can this server answer a question?" — Gemini first, Manus second. Reporting only
-    // the Gemini key would tell the reader the tutor is off while a second engine is
-    // standing by to answer.
-    configured: Boolean(ai) || manusFallbackEnabled,
-    reason: ai || manusFallbackEnabled ? 'ok' : clientInitError ? 'client_init_failed' : 'no_key',
+    configured: LOCAL_ONLY ? localReady : externalReady,
+    reason: LOCAL_ONLY ? (localReady ? 'ok' : 'no_corpus') : externalReady ? 'ok' : clientInitError ? 'client_init_failed' : 'no_key',
+    provider: AI_PROVIDER,
+    external: !LOCAL_ONLY,
+    brain: { model: BRAIN_MODEL, documents: library.documents },
     model: MODEL_CHAIN[0],
     deepModel: TUTOR_MODELS.deep,
     limits: TUTOR_LIMITS,
@@ -855,14 +910,27 @@ interface TutorPayload {
   question: string;
   language: 'ar' | 'en';
   mode: string;
+  /** The passages the local composer reads; the external prompt uses the same ranking. */
+  hits: SearchHit[];
   citations: TutorCitation[];
   confident: boolean;
   prompt: string;
   system: string;
   /** Which library produced the citations — echoed to the reader in `meta`. */
   source: 'reviewed' | 'academy' | 'private-drive' | 'mixed' | 'none';
-  hits: SearchHit[];
   documents: number;
+}
+
+function bearerToken(req: Request): string | undefined {
+  const match = /^Bearer\s+([A-Za-z0-9._-]{20,})$/i.exec(req.header('authorization') || '');
+  return match?.[1];
+}
+
+async function privateKnowledgeHits(question: string, token?: string): Promise<SearchHit[]> {
+  const documents = await searchPrivateKnowledge(question, token);
+  if (!documents.length) return [];
+  const result = searchLibrary(question, { index: buildIndex(documents), limit: TUTOR_LIMITS.passages, minScore: TUTOR_LIMITS.minScore });
+  return result.confident ? result.hits : [];
 }
 
 async function prepare(body: unknown, res: Response, idToken?: string): Promise<TutorPayload | null> {
@@ -876,13 +944,15 @@ async function prepare(body: unknown, res: Response, idToken?: string): Promise<
   const library = await loadAiLibrary();
   const request = parsed.value;
   const question = latestQuestion(request);
-  const publicHits = library.retrieve(question);
+  // The composer reads more passages than a model prompt would: it must find a sentence
+  // about each method being compared, not merely the five best-scoring ones.
+  const publicHits = library.retrieve(question, LOCAL_ONLY ? LOCAL_PASSAGES : undefined);
   const privateHits = await privateKnowledgeHits(question, idToken);
   const hits = [...publicHits, ...privateHits].sort((a, b) => b.score - a.score).slice(0, TUTOR_LIMITS.passages);
   const reviewed = library.source === 'reviewed';
   const citations = hits.map(hit => ({
     ...toCitation(hit, reviewed && !hit.document.id.startsWith('drive:')),
-    ...(hit.document.id.startsWith('drive:') ? { sourceType: 'private-drive' as const } : { sourceType: 'site-library' as const }),
+    sourceType: hit.document.id.startsWith('drive:') ? 'private-drive' as const : 'site-library' as const,
   }));
   const source: TutorPayload['source'] = privateHits.length
     ? (publicHits.length ? 'mixed' : 'private-drive')
@@ -914,14 +984,64 @@ async function prepare(body: unknown, res: Response, idToken?: string): Promise<
     question,
     language: request.language,
     mode: request.mode,
+    hits,
     citations,
     confident,
     prompt: history ? `${history}\n\n${prompt}` : prompt,
     system: `${SYSTEM[request.language]}\n\n${hint}`,
     source,
-    hits,
     documents: library.documents + privateHits.length,
   };
+}
+
+/**
+ * Stream a locally composed answer.
+ *
+ * The text already exists when this is called, so the chunking is presentation only: the
+ * reader gets the same progressive rendering they had from a model, without a model. The
+ * chunks break on word boundaries so no Markdown or citation id is split in half.
+ */
+function sendLocalTutorAnswer(
+  res: Response,
+  streaming: boolean,
+  text: string,
+  meta: TutorMeta
+): void {
+  res.setHeader('Cache-Control', 'no-store');
+  if (!streaming) {
+    res.json({ text, content: text, meta });
+    return;
+  }
+  res.status(200);
+  res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders?.();
+  res.write(encodeSse({ type: 'meta', meta }));
+  const chunkSize = 160;
+  for (let index = 0; index < text.length; index += chunkSize) {
+    const slice = text.slice(index, index + chunkSize);
+    const breakAt = slice.lastIndexOf(' ');
+    const chunk = index + chunkSize < text.length && breakAt > 40 ? slice.slice(0, breakAt + 1) : slice;
+    res.write(encodeSse({ type: 'delta', text: chunk }));
+    if (chunk.length < slice.length) index -= slice.length - chunk.length;
+  }
+  res.write(encodeSse({ type: 'done' }));
+  res.end();
+}
+
+/** The sentence a reader gets when the library has nothing for the question. */
+function tutorRefusal(language: 'ar' | 'en', source: TutorPayload['source']): string {
+  const emptyLibrary = source === 'none';
+  if (language === 'ar') {
+    return emptyLibrary
+      ? 'لا توجد مادة مطابقة في مكتبة الموقع. راجع مراجع الأكاديمية أو اطرح السؤال على مختص مؤهل.'
+      : 'لا توجد مقاطع مطابقة لسؤالك في مادة الأكاديمية. أعد صياغته بمصطلح أدق أو راجع مراجع الأكاديمية.';
+  }
+  return emptyLibrary
+    ? 'The site library has no matching material. Consult the academy references or a qualified specialist.'
+    : 'No passage in the academy material matches this question. Rephrase it with a more specific term.';
 }
 
 async function handleTutor(req: Request, res: Response, streaming: boolean): Promise<void> {
@@ -941,39 +1061,78 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
     return;
   }
 
-  if (payload.source === 'private-drive' || payload.source === 'mixed' || (!ai && !manusFallbackEnabled)) {
-    const selfAnswer = composeSelfAnswer({
+  // Licensed/private Drive passages stay on this server: when present, answer from the
+  // retrieved library locally and never forward their text to Gemini or Manus.
+  if (payload.source === 'private-drive' || payload.source === 'mixed') {
+    const local = composeSelfAnswer({
       question: payload.question,
       language: payload.language,
       hits: payload.hits,
       corpusSize: payload.documents,
       privatePassages: payload.hits.filter(hit => hit.document.id.startsWith('drive:')).length,
     });
-    if (selfAnswer) {
-      const meta: TutorMeta = {
-        model: null,
-        citations: payload.citations,
-        retrieved: payload.citations.length,
-        confident: payload.confident,
-        elapsedMs: 0,
-        source: payload.source,
-        kind: 'library',
-        steps: selfAnswer.steps,
-      };
-      res.setHeader('Cache-Control', 'no-store');
-      sendPlainAnswer(res, streaming, selfAnswer.text, meta);
-      return;
-    }
-    if (payload.source === 'private-drive' || payload.source === 'mixed' || !ai) {
-      const text = payload.language === 'ar'
-        ? 'لا توجد مقاطع مطابقة كافية في المكتبة للإجابة بأمان.'
-        : 'There are not enough matching library passages to answer safely.';
-      sendPlainAnswer(res, streaming, text, {
-        model: null, citations: [], retrieved: 0, confident: false, elapsedMs: 0,
-        source: payload.source,
+    if (local) {
+      sendLocalTutorAnswer(res, streaming, local.text, {
+        model: 'insco-library', citations: payload.citations, retrieved: payload.citations.length,
+        confident: true, elapsedMs: 0, source: payload.source, kind: 'library', steps: local.steps,
       });
       return;
     }
+    sendLocalTutorAnswer(res, streaming, payload.language === 'ar'
+      ? 'لا توجد مقاطع مطابقة كافية في المكتبة للإجابة بأمان.'
+      : 'There are not enough matching library passages to answer safely.', {
+      model: 'insco-library', citations: [], retrieved: 0, confident: false, elapsedMs: 0, source: payload.source,
+    });
+    return;
+  }
+
+  // The local engine: the answer is composed from the passages `prepare` already ranked.
+  // No key, no upstream, no quota — and no network call that could fail.
+  if (LOCAL_ONLY) {
+    const started = Date.now();
+    if (!payload.confident) {
+      const message = tutorRefusal(payload.language, payload.source);
+      sendLocalTutorAnswer(res, streaming, message, {
+        model: BRAIN_MODEL,
+        citations: [],
+        retrieved: 0,
+        confident: false,
+        elapsedMs: Date.now() - started,
+        source: payload.source,
+        provider: 'local',
+      });
+      return;
+    }
+    const composed = composeTutorAnswer({
+      question: payload.question,
+      hits: payload.hits,
+      language: payload.language,
+      mode: payload.mode as 'explain' | 'compare' | 'code' | 'practice',
+    });
+    if (!composed) {
+      // Retrieval was confident but nothing in the passages could be quoted — say that
+      // instead of presenting a heading as an answer.
+      sendLocalTutorAnswer(res, streaming, tutorRefusal(payload.language, payload.source), {
+        model: BRAIN_MODEL,
+        citations: [],
+        retrieved: payload.citations.length,
+        confident: false,
+        elapsedMs: Date.now() - started,
+        source: payload.source,
+        provider: 'local',
+      });
+      return;
+    }
+    sendLocalTutorAnswer(res, streaming, composed.text, {
+      model: BRAIN_MODEL,
+      citations: payload.citations,
+      retrieved: payload.citations.length,
+      confident: true,
+      elapsedMs: Date.now() - started,
+      source: payload.source,
+      provider: 'local',
+    });
+    return;
   }
 
   if (!ai && !manusFallbackEnabled) {
@@ -987,14 +1146,7 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
 
   // Fail closed in both protocols, including the legacy JSON endpoint.
   if (!payload.confident) {
-    const emptyLibrary = payload.source === 'none';
-    const message = payload.language === 'ar'
-      ? emptyLibrary
-        ? 'لا توجد مادة مطابقة في مكتبة الموقع. راجع مراجع الأكاديمية أو اطرح السؤال على مختص مؤهل.'
-        : 'لا توجد مقاطع مطابقة لسؤالك في مادة الأكاديمية. أعد صياغته بمصطلح أدق أو راجع مراجع الأكاديمية.'
-      : emptyLibrary
-        ? 'The site library has no matching material. Consult the academy references or a qualified specialist.'
-        : 'No passage in the academy material matches this question. Rephrase it with a more specific term.';
+    const message = tutorRefusal(payload.language, payload.source);
     const meta = { model: MODEL_CHAIN[0], citations: [], retrieved: 0, confident: false, elapsedMs: 0, source: payload.source };
     res.setHeader('Cache-Control', 'no-store');
     if (!streaming) { res.json({ text: message, content: message, meta }); return; }
@@ -1285,6 +1437,7 @@ function guardAgentPreconditions(
     return false;
   }
 
+  if (LOCAL_ONLY) return true;
   if (!ai) {
     // A Manus-only deployment still answers these two agents: the structured prompt goes
     // to Manus as text and its reply fills the same fields (see the fallbacks below).
@@ -1301,19 +1454,6 @@ function guardAgentPreconditions(
   return true;
 }
 
-function guardAgentRateLimit(req: Request, res: Response, lang: 'ar' | 'en'): boolean {
-  const limit = takeToken(req.ip || req.socket.remoteAddress || 'unknown');
-  if (limit.allowed) return true;
-  const failure = limit.failure;
-  if (failure.code === 'rate_limited' && failure.retryAfterSeconds) {
-    res.setHeader('Retry-After', String(failure.retryAfterSeconds));
-  }
-  res.status(STATUS_CODE[failure.code]).json({
-    error: { ...failure, message: failureMessage(failure.code, lang) },
-  });
-  return false;
-}
-
 router.post(AGENT_ENDPOINTS.userCopilot, async (req: Request, res: Response) => {
   const parsed = normaliseUserCopilotRequest(req.body);
   if (!parsed.ok) {
@@ -1321,52 +1461,285 @@ router.post(AGENT_ENDPOINTS.userCopilot, async (req: Request, res: Response) => 
     return;
   }
   const input = parsed.value;
+  // The fallback is for public assistance, not admin or client portal context.
   const allowManus = input.context?.portal !== 'admin' && input.context?.portal !== 'client';
-  if (!ai && manusFallbackEnabled) {
-    if (!guardAgentPreconditions(req, res, input.language, { allowManus })) return;
-    const started = Date.now();
-    const prompt = [
-      'You are the INSCO universal NDT/PWHT engineering copilot. Reply in the requested language. Draft only; do not take actions or assert code compliance without a cited source.',
-      `Mode: ${input.mode}`,
-      input.context ? `Context: ${JSON.stringify(input.context)}` : '',
-      input.history.map(turn => `${turn.role}: ${turn.content}`).join('\n'),
-      `Request: ${input.message}`,
-    ].filter(Boolean).join('\n\n');
-    const fallback = await manusAnswerFor(prompt, input.language, REQUEST_TIMEOUT_MS, 'INSCO copilot');
+  if (!guardAgentPreconditions(req, res, input.language, { allowManus })) return;
+
+  const started = Date.now();
+  const privateDocuments = await searchPrivateKnowledge(copilotSearchQuery(input), bearerToken(req));
+  if (privateDocuments.length) {
+    // Never forward licensed Drive passages to a hosted model. The deterministic
+    // answer carries private-source citations and remains under the server-side claim gate.
+    res.setHeader('Cache-Control', 'no-store');
+    res.json(answerCopilot(input, privateDocuments));
+    return;
+  }
+
+  // The local engine answers first: it reads the same library the tutor reads, so the
+  // copilot cannot drift away from what the site actually documents.
+  if (LOCAL_ONLY) {
+    const library = await loadAiLibrary();
+    const local = draftCopilotAnswer({
+      message: input.message,
+      mode: input.mode,
+      language: input.language,
+      context: input.context,
+      hits: library.retrieve(input.message),
+    });
+    res.json({
+      reply: local.reply,
+      suggestedActions: local.suggestedActions.slice(0, 4),
+      ...(local.draftPost ? { draftPost: local.draftPost } : {}),
+      model: BRAIN_MODEL,
+      elapsedMs: Date.now() - started,
+    } satisfies UserCopilotResponse);
+    return;
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  res.on('close', () => {
+    if (!res.writableEnded) controller.abort();
+  });
+
+  const systemInstruction =
+    input.language === 'ar'
+      ? [
+          'أنت "المساعد الذكي الشامل لمستخدمي منصة INSCO" — خبير هندسي في الفحص غير الإتلافي (NDT: RT, UT, PAUT, MT, PT, VT) والمعالجة الحرارية PWHT، ومستشار تفاعلي داخل منصة INSCO (بوابة الشركة، بوابة العملاء والملفات المكوّدة، مجتمع INSCO المهني الهجين بين LinkedIn وFacebook، والأكاديمية ومعامل الواقع المعزز AR).',
+          'مهامك:',
+          '1) مساعدة المستخدم في أي طلب: اختيار طريقة الفحص أو تقنية التصوير المناسبة، صياغة منشورات احترافية في مجتمع INSCO، تلخيص المناقشات، تجهيز طلبات عرض الأسعار والاختبارات RFQ، وشرح محاكيات الأكاديمية والواقع المعزز.',
+          '2) أعد إجابة عملية ومختصرة ومنظمة بالعربية، واقترح أزرار إجراءات سريعة مفيدة للتنقل أو تطبيق المسودة مباشرة.',
+          '3) عندما يطلب المستخدم كتابة منشور أو صياغته (أو كان الوضع draft_post / improve_post)، عبّئ الحقل draftPost بعنوان ومحتوى هندسي جاهز للنشر ووسوم مناسبة.',
+          '4) أجب بصيغة JSON مطابقة للمخطط فقط بدون نص خارج JSON.',
+        ].join('\n')
+      : [
+          'You are the "INSCO Universal User Copilot" — a senior NDT (RT, UT, PAUT, MT, PT, VT) & PWHT engineering advisor and interactive platform concierge across the INSCO Corporate Portal, Client & Dossier Portal, INSCO Community (LinkedIn + Facebook hybrid), and Engineering Academy / AR Simulators.',
+          'Responsibilities:',
+          '1) Help users accomplish any task: choosing NDT methods or RT/UT techniques, drafting or polishing LinkedIn/Facebook community posts, summarizing discussions, structuring RFQs/test requests, and explaining simulator physics.',
+          '2) Keep replies concise, directly actionable, and structured, plus 1-3 concrete suggestedActions buttons.',
+          '3) When the user asks to draft or improve a post (or mode is draft_post / improve_post), populate draftPost completely.',
+          '4) Respond strictly as JSON matching the schema.',
+        ].join('\n');
+
+  const historyBlock = input.history
+    .map(m => `${m.role === 'assistant' ? 'Copilot' : 'User'}: ${m.content}`)
+    .join('\n');
+  const contextBlock = input.context ? JSON.stringify(input.context) : '{}';
+  const prompt = [
+    `Mode: ${input.mode}`,
+    `Active Platform Context JSON: ${contextBlock}`,
+    historyBlock ? `Recent Conversation:\n${historyBlock}` : '',
+    `User Request: ${input.message}`,
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+
+  try {
+    const { data, model } = await generateStructuredAgentJson<
+      Omit<UserCopilotResponse, 'model' | 'elapsedMs'>
+    >({
+      prompt,
+      systemInstruction,
+      signal: controller.signal,
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          reply: { type: Type.STRING },
+          suggestedActions: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                label: { type: Type.STRING },
+                actionType: {
+                  type: Type.STRING,
+                  enum: ['navigate', 'apply_post_draft', 'open_rfq', 'open_ar_lab', 'open_community'],
+                },
+                target: { type: Type.STRING },
+              },
+              required: ['label', 'actionType'],
+            },
+          },
+          draftPost: {
+            type: Type.OBJECT,
+            properties: {
+              postType: {
+                type: Type.STRING,
+                enum: ['technical_case', 'job_tender', 'discussion', 'equipment_review'],
+              },
+              ndtMethod: { type: Type.STRING },
+              title: { type: Type.STRING },
+              body: { type: Type.STRING },
+              tags: { type: Type.ARRAY, items: { type: Type.STRING } },
+            },
+            required: ['postType', 'ndtMethod', 'title', 'body', 'tags'],
+          },
+        },
+        required: ['reply', 'suggestedActions'],
+      },
+    });
+
+    res.json({
+      reply: data.reply,
+      suggestedActions: Array.isArray(data.suggestedActions) ? data.suggestedActions.slice(0, 4) : [],
+      ...(data.draftPost ? { draftPost: data.draftPost } : {}),
+      model,
+      elapsedMs: Date.now() - started,
+    } satisfies UserCopilotResponse);
+  } catch (error) {
+    const { code, signal, detail } = upstreamFailure(error, controller.signal.aborted);
+    console.error(`[ai] user-copilot failed: ${signal}: ${detail}`);
+    const fallback = !allowManus ? null : await manusAnswerFor(
+      `You are the INSCO copilot. Reply with plain text in the requested language. Draft only; don't take actions.\n\n${prompt}`,
+      input.language,
+      REQUEST_TIMEOUT_MS - (Date.now() - started),
+      'INSCO copilot',
+      controller.signal
+    );
     if (completedManusAnswer(fallback)) {
-      res.setHeader('Cache-Control', 'no-store');
       res.json({
         reply: fallback.answer,
         suggestedActions: [],
         model: 'manus',
-        kind: input.mode === 'draft_post' || input.mode === 'improve_post' ? 'editorial' : 'decline',
-        citations: [],
-        reasoningSteps: ['Hosted Manus fallback answered; no private Drive content was sent.'],
-        elapsedMs: Date.now() - started,
+        elapsedMs: fallback.elapsedMs,
       } satisfies UserCopilotResponse);
       return;
     }
-    res.status(STATUS_CODE.upstream_error).json({
-      error: failureBody('upstream_error', input.language, { signal: 'upstream_error', detail: 'Manus task did not complete' }, manusHint(fallback)),
+    res.status(STATUS_CODE[code]).json({
+      error: failureBody(
+        code,
+        input.language,
+        { signal, detail },
+        manusHint(fallback)
+      ),
     });
-    return;
+  } finally {
+    clearTimeout(timer);
   }
-  if (allowManus === false && !ai && !guardAgentPreconditions(req, res, input.language, { allowManus: false })) return;
-  if (!guardAgentRateLimit(req, res, input.language)) return;
-  const privateDocuments = await searchPrivateKnowledge(copilotSearchQuery(input), bearerToken(req));
-  res.setHeader('Cache-Control', 'no-store');
-  res.json(answerCopilot(input, privateDocuments));
 });
 
-router.post(AGENT_ENDPOINTS.siteManager, (req: Request, res: Response) => {
+router.post(AGENT_ENDPOINTS.siteManager, async (req: Request, res: Response) => {
   const parsed = normaliseSiteManagerRequest(req.body);
   if (!parsed.ok) {
     res.status(400).json({ error: { code: 'invalid_request', message: parsed.error } });
     return;
   }
-  if (!guardAgentRateLimit(req, res, parsed.value.language)) return;
-  res.setHeader('Cache-Control', 'no-store');
-  res.json(answerSiteManager(parsed.value));
+  const input = parsed.value;
+  if (!guardAgentPreconditions(req, res, input.language)) return;
+
+  const started = Date.now();
+
+  // The audit is arithmetic over the snapshot: the same numbers the prompt used to carry,
+  // read directly. Nothing here can invent a request count.
+  if (LOCAL_ONLY) {
+    const local = draftSiteManagerAnswer({
+      instruction: input.instruction,
+      language: input.language,
+      mode: input.mode,
+      telemetry: input.telemetry,
+    });
+    res.json({ ...local, model: BRAIN_MODEL, elapsedMs: Date.now() - started } satisfies SiteManagerResponse);
+    return;
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  res.on('close', () => {
+    if (!res.writableEnded) controller.abort();
+  });
+
+  const systemInstruction =
+    input.language === 'ar'
+      ? [
+          'أنت "وكيل إدارة الموقع والعمليات في منصة INSCO" — مدير عمليات رقمي احترافي يشرف على تشغيل المنصة بالكامل.',
+          'مسؤولياتك تشمل: تدقيق صحة المنصة، فرز أولويات طلبات الفحص والعملاء الجدد، تحليل تنبيهات الجيوفينس (تسجيل الحضور خارج النطاق الجغرافي للمشروع)، الإشراف على محتوى مجتمع INSCO ورصد أي منشورات تحتاج مراجعة أو توضيح، وصياغة إعلانات إدارية احترافية لنشرها وتثبيتها في المجتمع.',
+          'اعتمد بدقة على بيانات التليمترى المقدمة ولا تخترع أرقاماً غير موجودة فيها.',
+          'أجب بصيغة JSON مطابقة للمخطط فقط.',
+        ].join('\n')
+      : [
+          'You are the "INSCO Site Manager & Operations Director AI Agent" — the executive autonomous operator overseeing platform health, client request triage, field attendance geofencing alerts, and INSCO Community moderation & announcements.',
+          'Rely strictly on the telemetry snapshot provided; never fabricate counts or employee alerts.',
+          'Return strict JSON matching the schema.',
+        ].join('\n');
+
+  const prompt = [
+    `Operation Mode: ${input.mode}`,
+    `Telemetry Snapshot JSON:\n${JSON.stringify(input.telemetry)}`,
+    `Directive: ${input.instruction}`,
+  ].join('\n\n');
+
+  try {
+    const { data, model } = await generateStructuredAgentJson<
+      Omit<SiteManagerResponse, 'model' | 'elapsedMs'>
+    >({
+      prompt,
+      systemInstruction,
+      signal: controller.signal,
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          summary: { type: Type.STRING },
+          healthStatus: {
+            type: Type.STRING,
+            enum: ['OPTIMAL', 'ATTENTION_NEEDED', 'ACTION_REQUIRED'],
+          },
+          priorityActions: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                title: { type: Type.STRING },
+                detail: { type: Type.STRING },
+                severity: { type: Type.STRING, enum: ['high', 'medium', 'low'] },
+                actionType: {
+                  type: Type.STRING,
+                  enum: [
+                    'navigate',
+                    'publish_announcement',
+                    'flag_post',
+                    'open_requests',
+                    'open_timeclock',
+                    'open_community',
+                  ],
+                },
+                target: { type: Type.STRING },
+              },
+              required: ['title', 'detail', 'severity', 'actionType'],
+            },
+          },
+          flaggedPostIds: { type: Type.ARRAY, items: { type: Type.STRING } },
+          announcementDraft: {
+            type: Type.OBJECT,
+            properties: {
+              title: { type: Type.STRING },
+              body: { type: Type.STRING },
+              ndtMethod: { type: Type.STRING },
+            },
+            required: ['title', 'body', 'ndtMethod'],
+          },
+        },
+        required: ['summary', 'healthStatus', 'priorityActions', 'flaggedPostIds'],
+      },
+    });
+
+    res.json({
+      summary: data.summary,
+      healthStatus: data.healthStatus || 'OPTIMAL',
+      priorityActions: Array.isArray(data.priorityActions) ? data.priorityActions.slice(0, 6) : [],
+      flaggedPostIds: Array.isArray(data.flaggedPostIds) ? data.flaggedPostIds.slice(0, 10) : [],
+      ...(data.announcementDraft ? { announcementDraft: data.announcementDraft } : {}),
+      model,
+      elapsedMs: Date.now() - started,
+    } satisfies SiteManagerResponse);
+  } catch (error) {
+    const { code, signal, detail } = upstreamFailure(error, controller.signal.aborted);
+    console.error(`[ai] site-manager failed: ${signal}: ${detail}`);
+    res.status(STATUS_CODE[code]).json({
+      error: failureBody(code, input.language, { signal, detail }),
+    });
+  } finally {
+    clearTimeout(timer);
+  }
 });
 
 router.post(AGENT_ENDPOINTS.communityAssist, async (req: Request, res: Response) => {
@@ -1376,31 +1749,97 @@ router.post(AGENT_ENDPOINTS.communityAssist, async (req: Request, res: Response)
     return;
   }
   const input = parsed.value;
-  if (!ai && manusFallbackEnabled && input.action !== 'code_check') {
-    if (!guardAgentPreconditions(req, res, input.language, { allowManus: true })) return;
-    const started = Date.now();
-    const prompt = `You are the INSCO Community technical editor. Reply in the requested language with a draft only; do not publish, apply, or certify code compliance.\nAction: ${input.action}\nMethod: ${input.ndtMethod}\nTitle: ${input.title || ''}\nBody: ${input.body}`;
-    const fallback = await manusAnswerFor(prompt, input.language, REQUEST_TIMEOUT_MS, 'INSCO community');
-    if (completedManusAnswer(fallback)) {
-      res.setHeader('Cache-Control', 'no-store');
-      res.json({
-        reply: fallback.answer,
-        model: 'manus',
-        kind: 'editorial',
-        citations: [],
-        elapsedMs: Date.now() - started,
-      } satisfies CommunityAssistResponse);
-      return;
-    }
-    res.status(STATUS_CODE.upstream_error).json({ error: failureBody('upstream_error', input.language, { signal: 'upstream_error', detail: 'Manus task did not complete' }, manusHint(fallback)) });
-    return;
-  }
-  if (!guardAgentRateLimit(req, res, input.language)) return;
+  if (!guardAgentPreconditions(req, res, input.language, { allowManus: true })) return;
+
+  const started = Date.now();
   const privateDocuments = input.action === 'code_check'
     ? await searchPrivateKnowledge(`${input.ndtMethod} ${input.title || ''} ${input.body}`, bearerToken(req))
     : [];
-  res.setHeader('Cache-Control', 'no-store');
-  res.json(answerCommunity(input, privateDocuments));
+  if (privateDocuments.length) {
+    res.setHeader('Cache-Control', 'no-store');
+    res.json(answerCommunity(input, privateDocuments));
+    return;
+  }
+
+  if (LOCAL_ONLY) {
+    const library = await loadAiLibrary();
+    const local = draftCommunityAnswer({
+      ...input,
+      hits: library.retrieve(`${input.title ?? ''} ${input.body}`.trim()),
+    });
+    res.json({ ...local, model: BRAIN_MODEL, elapsedMs: Date.now() - started } satisfies CommunityAssistResponse);
+    return;
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  res.on('close', () => {
+    if (!res.writableEnded) controller.abort();
+  });
+
+  const systemInstruction =
+    input.language === 'ar'
+      ? 'أنت مساعد تحرير هندسي في مجتمع INSCO (مزيج LinkedIn وFacebook لمهندسي NDT وPWHT). حسّن المنشورات التقنية أو لخّصها أو اقترح ردوداً هندسية دقيقة متوافقة مع الأكواد الدولية بصيغة JSON فقط.'
+      : 'You are an engineering editorial AI inside INSCO Community (LinkedIn + Facebook hybrid for NDT & PWHT engineers). Draft, polish, summarize, or code-check posts strictly in JSON.';
+
+  const prompt = JSON.stringify({
+    action: input.action,
+    language: input.language,
+    ndtMethod: input.ndtMethod,
+    title: input.title || '',
+    body: input.body,
+  });
+
+  try {
+    const { data, model } = await generateStructuredAgentJson<
+      Omit<CommunityAssistResponse, 'model' | 'elapsedMs'>
+    >({
+      prompt,
+      systemInstruction,
+      signal: controller.signal,
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          reply: { type: Type.STRING },
+          title: { type: Type.STRING },
+          body: { type: Type.STRING },
+          tags: { type: Type.ARRAY, items: { type: Type.STRING } },
+          technicalSnippet: { type: Type.STRING },
+        },
+        required: ['reply'],
+      },
+    });
+
+    res.json({
+      ...data,
+      model,
+      elapsedMs: Date.now() - started,
+    } satisfies CommunityAssistResponse);
+  } catch (error) {
+    const { code, signal, detail } = upstreamFailure(error, controller.signal.aborted);
+    console.error(`[ai] community-assist failed: ${signal}: ${detail}`);
+    const fallback = await manusAnswerFor(
+      `You are the INSCO Community editor. Reply with plain text in the requested language. Draft only; don't take actions.\n\n${prompt}`,
+      input.language,
+      REQUEST_TIMEOUT_MS - (Date.now() - started),
+      'INSCO community',
+      controller.signal
+    );
+    if (completedManusAnswer(fallback)) {
+      res.json({ reply: fallback.answer, model: 'manus', elapsedMs: fallback.elapsedMs } satisfies CommunityAssistResponse);
+      return;
+    }
+    res.status(STATUS_CODE[code]).json({
+      error: failureBody(
+        code,
+        input.language,
+        { signal, detail },
+        manusHint(fallback)
+      ),
+    });
+  } finally {
+    clearTimeout(timer);
+  }
 });
 
   return router;

@@ -25,10 +25,28 @@ const failingFetch = async (): Promise<Response> => {
 Object.assign(globalThis, { fetch: failingFetch });
 
 const { EducationalAcademy } = await import('../src/components/EducationalAcademy');
+const { VirtualEngineer } = await import('../src/components/academy/VirtualEngineer');
 const { SemanticSearchBar } = await import('../src/components/academy/SemanticSearchBar');
 const { render, cleanup, fireEvent, waitFor } = await import('@testing-library/react');
 
 const OLD_CANNED_TEXT = 'في تقنيات الفحص غير الإتلافي والمعالجة الحرارية، يتم تطبيق مواصفات ASME';
+
+
+test('the virtual engineer uses the honest tutor gateway status instead of canned answers', async () => {
+  const ui = render(<VirtualEngineer language="ar" route="learn" />);
+  const launcher = [...ui.container.querySelectorAll('button')].find(button =>
+    /المهندس الافتراضي/.test(button.textContent || '')
+  );
+  assert.ok(launcher, 'the virtual engineer launcher must be visible');
+  fireEvent.click(launcher!);
+
+  await waitFor(() => {
+    assert.match(ui.container.textContent || '', /خدمة المدرّس غير متاحة حالياً/);
+  });
+
+  assert.doesNotMatch(ui.container.textContent || '', /في فحص UT نرسل نبضة/);
+  cleanup();
+});
 
 /* ---------------------------------------------------------------- */
 /* tutor tab                                                         */

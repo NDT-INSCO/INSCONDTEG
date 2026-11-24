@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Eye, EyeOff, Fingerprint, Globe2, KeyRound, LoaderCircle, LockKeyhole, RotateCw, ShieldCheck } from 'lucide-react';
-import { adminClient } from '../../admin/client';
+import { useAdminClient } from '../../admin/connection';
 import { isAdminPassword, PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '../../admin/contract';
 import { passkeyBrowser } from '../../admin/passkeyClient';
 import type { Language } from '../../types';
 import { AdminBrand, AdminLoading, AdminMessage, BackIcon, PasskeyNewTab, adminError } from './AdminUi';
 
-export type LoginPhase = 'checking' | 'login' | 'static' | 'disabled' | 'offline';
+export type LoginPhase = 'checking' | 'login' | 'static' | 'disabled' | 'offline' | 'embedded';
 type LoginMethod = 'password' | 'passkey';
 
 function SecurityGraphic() {
@@ -43,7 +43,8 @@ interface LoginProps {
   language: Language;
   phase: LoginPhase;
   linkedPortal?: string | null;
-  notice?: 'expired' | 'logout';
+  pages?: boolean;
+  notice?: 'expired' | 'logout' | 'local_logout';
   problem?: unknown;
   recheckSession?: boolean;
   onBack: () => void;
@@ -53,7 +54,8 @@ interface LoginProps {
   onPasskeyLogin: (signal: AbortSignal) => Promise<void>;
 }
 
-export function AdminLogin({ language, phase, linkedPortal, notice, problem, recheckSession, onBack, onToggleLanguage, onRetry, onLogin, onPasskeyLogin }: LoginProps) {
+export function AdminLogin({ language, phase, linkedPortal, pages, notice, problem, recheckSession, onBack, onToggleLanguage, onRetry, onLogin, onPasskeyLogin }: LoginProps) {
+  const adminClient = useAdminClient();
   const ar = language === 'ar';
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -79,7 +81,7 @@ export function AdminLogin({ language, phase, linkedPortal, notice, problem, rec
       if (!controller.signal.aborted) setPasskeyAvailable(available);
     }).catch(() => { /* Password sign-in stays available if the optional request fails. */ });
     return () => controller.abort();
-  }, [phase, device, linkedPortal]);
+  }, [adminClient, phase, device, linkedPortal]);
 
   async function authenticate(method: LoginMethod, run: (signal: AbortSignal) => Promise<void>) {
     if (attempt.current) return;
@@ -149,6 +151,13 @@ export function AdminLogin({ language, phase, linkedPortal, notice, problem, rec
               {phase === 'login' && <p className="ad-subtle">{passkeyAvailable && device === 'ready'
                 ? (ar ? 'استخدم كلمة المرور أو مفتاح المرور المسجّل.' : 'Use the admin password or a registered passkey.')
                 : (ar ? 'أدخل كلمة مرور الإدارة للمتابعة.' : 'Enter the admin password to continue.')}</p>}
+              {phase === 'embedded' && <AdminMessage error={false}>
+                {ar ? 'لتسجيل الدخول، افتح بوابة الإدارة في تبويب مستقل.' : 'Open the admin portal in its own tab to sign in.'}{' '}
+                <a href="#admin" target="_blank" rel="noopener noreferrer">{ar ? 'فتح الإدارة' : 'Open admin'}</a>
+              </AdminMessage>}
+              {pages && phase === 'login' && <p className="ad-passkey-tip">{ar
+                ? 'جلسة GitHub Pages مؤقتة. يلزم تسجيل الدخول مجددًا بعد تحديث الصفحة.'
+                : 'The GitHub Pages session is temporary. Reloading the page requires signing in again.'}</p>}
               {phase === 'checking' && <AdminLoading language={language} />}
               {(phase === 'static' || phase === 'disabled' || phase === 'offline') && (
                 <div className="ad-login-feedback">
@@ -200,7 +209,9 @@ export function AdminLogin({ language, phase, linkedPortal, notice, problem, rec
                     {showPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
                   </button>
                 </div>
-                {notice && !error && !badFormat && <AdminMessage error={false}>{notice === 'logout' ? (ar ? 'تم تسجيل الخروج.' : 'You have signed out.') : (ar ? 'انتهت الجلسة. سجّل دخولك مرة أخرى.' : 'Your session ended. Sign in again.')}</AdminMessage>}
+                {notice && !error && !badFormat && <AdminMessage error={false}>{notice === 'logout' ? (ar ? 'تم تسجيل الخروج.' : 'You have signed out.')
+                  : notice === 'local_logout' ? (ar ? 'أُغلقت الجلسة في هذا التبويب، لكن تعذّر تأكيد الخروج على الخادم.' : 'This tab is signed out, but the server could not confirm sign-out.')
+                  : (ar ? 'انتهت الجلسة. سجّل دخولك مرة أخرى.' : 'Your session ended. Sign in again.')}</AdminMessage>}
                 {badFormat && <AdminMessage>{ar ? `أدخل كلمة مرور صالحة من ${PASSWORD_MIN_LENGTH} إلى ${PASSWORD_MAX_LENGTH} حرفًا.` : `Enter a valid password between ${PASSWORD_MIN_LENGTH} and ${PASSWORD_MAX_LENGTH} characters.`}</AdminMessage>}
                 {error != null && <AdminMessage>{adminError(error, language)}</AdminMessage>}
                 <button type="submit" className="ad-button ad-primary ad-login-cta" disabled={pending !== null}>

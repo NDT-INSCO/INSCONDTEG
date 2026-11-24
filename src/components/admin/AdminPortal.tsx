@@ -1,9 +1,11 @@
-import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CircuitBoard, Fingerprint, Globe2, Inbox, LayoutDashboard, LogOut, Megaphone, RotateCw, ShieldCheck } from 'lucide-react';
-import { adminClient, AdminApiError } from '../../admin/client';
+import { AdminApiError, adminClient as sameOriginClient, createAdminClient } from '../../admin/client';
+import { AdminConnection, useAdminClient } from '../../admin/connection';
 import type { DashboardData, QuoteStatus } from '../../admin/contract';
 import { factorySnapshot } from '../../admin/factory';
 import { signInWithPasskey } from '../../admin/passkeyClient';
+import { pagesAdminOrigin } from '../../admin/pages';
 import { adminPortalLink } from '../../admin/public';
 import type { Language } from '../../types';
 import { isStaticPages } from '../../utils/staticPages';
@@ -17,8 +19,8 @@ import { AdminBrand, AdminLoading, AdminMessage, BackIcon, adminError, shortDate
 const AdminFactory = lazy(() => import('./AdminFactory'));
 
 type GateState = {
-  kind: Exclude<LoginPhase, 'static'>;
-  notice?: 'expired' | 'logout';
+  kind: Exclude<LoginPhase, 'static' | 'embedded'>;
+  notice?: 'expired' | 'logout' | 'local_logout';
   problem?: unknown;
   recheckSession?: boolean;
 } | { kind: 'ready'; initial: DashboardData };
@@ -32,14 +34,24 @@ const checkFailure = (problem: unknown, recheckSession = false): GateState => ({
 });
 
 export default function AdminPortal(props: PortalProps) {
+  const pages = pagesAdminOrigin();
+  const client = useMemo(() => pages ? createAdminClient(pages) : sameOriginClient, [pages]);
+  return <AdminConnection.Provider value={client}>
+    <AdminGate {...props} pages={Boolean(pages)} />
+  </AdminConnection.Provider>;
+}
+
+function AdminGate({ pages, ...props }: PortalProps & { pages: boolean }) {
+  const adminClient = useAdminClient();
   const [gate, setGate] = useState<GateState>({ kind: 'checking' });
   const linkedPortal = adminPortalLink();
-  const staticSite = isStaticPages();
+  const staticSite = isStaticPages() && !pages;
+  const embedded = pages && typeof window !== 'undefined' && window.top !== window;
   const checking = gate.kind === 'checking';
   const rechecking = checking && gate.recheckSession === true;
 
   useEffect(() => {
-    if (!checking || staticSite || linkedPortal) return; // A static site cannot verify a session.
+    if (!checking || staticSite || embedded || linkedPortal) return;
     const controller = new AbortController();
     const { signal } = controller;
     void adminClient.dashboard(signal).then(initial => {
@@ -48,19 +60,37 @@ export default function AdminPortal(props: PortalProps) {
       if (!signal.aborted) setGate(hasErrorCode(error, 'signed_out') ? { kind: 'login' } : checkFailure(error, rechecking));
     });
     return () => controller.abort();
-  }, [checking, rechecking, linkedPortal, staticSite]);
+  }, [adminClient, checking, rechecking, linkedPortal, staticSite, embedded]);
+
+  useEffect(() => {
+    if (!pages) return;
+    // A restored document must not retain the workspace or a bearer in BFCache.
+    const clear = () => adminClient.clearSession();
+    const restore = (event: PageTransitionEvent) => {
+      if (event.persisted) setGate({ kind: 'login', notice: 'expired' });
+    };
+    window.addEventListener('pagehide', clear);
+    window.addEventListener('pageshow', restore);
+    return () => {
+      window.removeEventListener('pagehide', clear);
+      window.removeEventListener('pageshow', restore);
+      clear();
+    };
+  }, [adminClient, pages]);
 
   const onSessionError = useCallback((error: unknown) => {
     if (hasErrorCode(error, 'signed_out')) {
+      adminClient.clearSession();
       setGate({ kind: 'login', notice: 'expired' });
       return true;
     }
     if (hasErrorCode(error, 'not_configured')) {
+      adminClient.clearSession();
       setGate(checkFailure(error));
       return true;
     }
     return false;
-  }, []);
+  }, [adminClient]);
 
   async function login(authenticate: () => Promise<void>, signal: AbortSignal) {
     try {
@@ -76,26 +106,33 @@ export default function AdminPortal(props: PortalProps) {
       if (!signal.aborted) setGate({ kind: 'ready', initial });
     } catch (error) {
       if (signal.aborted) return;
-      if (hasErrorCode(error, 'signed_out')) throw new AdminApiError('cookies_blocked');
+      if (hasErrorCode(error, 'signed_out')) throw new AdminApiError(pages ? 'session_unrecognised' : 'cookies_blocked');
       // The credential request completed. Retry the protected read, not the password or passkey.
       setGate(checkFailure(error, true));
     }
   }
 
   async function logout() {
-    await adminClient.logout();
-    setGate({ kind: 'login', notice: 'logout' });
+    try {
+      await adminClient.logout();
+      setGate({ kind: 'login', notice: 'logout' });
+    } catch (error) {
+      if (!pages) throw error;
+      // Remove the in-memory grant and private UI even if storage is unreachable.
+      adminClient.clearSession();
+      setGate({ kind: 'login', notice: 'local_logout' });
+    }
   }
 
-  if (gate.kind === 'ready' && !staticSite && !linkedPortal) {
+  if (gate.kind === 'ready' && !staticSite && !embedded && !linkedPortal) {
     return <AdminWorkspace {...props} initial={gate.initial} onSessionError={onSessionError} onLogout={logout} />;
   }
   const screen = gate.kind === 'ready' ? null : gate;
   return <AdminLogin {...props}
-    phase={staticSite ? 'static' : screen?.kind ?? 'checking'} notice={screen?.notice}
-    linkedPortal={linkedPortal} problem={screen?.problem} recheckSession={screen?.recheckSession}
+    phase={embedded ? 'embedded' : staticSite ? 'static' : screen?.kind ?? 'checking'} notice={screen?.notice}
+    linkedPortal={linkedPortal} problem={screen?.problem} recheckSession={screen?.recheckSession} pages={pages}
     onLogin={(password, signal) => login(() => adminClient.login(password, signal), signal)}
-    onPasskeyLogin={signal => login(() => signInWithPasskey(signal), signal)}
+    onPasskeyLogin={signal => login(() => signInWithPasskey(adminClient, signal), signal)}
     onRetry={() => setGate({ kind: 'checking', recheckSession: screen?.recheckSession })} />;
 }
 
@@ -113,6 +150,7 @@ function AdminWorkspace({ language, initial, onBack, onToggleLanguage, onSession
   onSessionError: (error: unknown) => boolean;
   onLogout: () => Promise<void>;
 }) {
+  const adminClient = useAdminClient();
   const ar = language === 'ar';
   const [data, setData] = useState(initial);
   const [active, setActive] = useState<ViewId>('overview');

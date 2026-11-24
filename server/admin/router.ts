@@ -1,12 +1,12 @@
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 import express, { type ErrorRequestHandler, type Request, type RequestHandler, type Response } from 'express';
-import { isAdminPassword, isQuoteStatus, NOTICE_LIMIT } from '../../src/admin/contract.js';
+import { isAdminPassword, isAdminToken, isQuoteStatus, INSCO_PAGES_ORIGIN, NOTICE_LIMIT } from '../../src/admin/contract.js';
 import type { AnnouncementInput, DashboardData } from '../../src/admin/contract.js';
 import { FACTORY_DRAFT_PATH, FACTORY_LIMITS, normaliseFactoryDraft, normaliseFactoryRequest } from '../../src/admin/factory.js';
 import type { FactoryDrafter } from './factory.js';
 import { clientAddress, fail, readJsonBody, readTokenCookie, runAsync } from './http.js';
 import { createPasskeyRouter } from './passkeys.js';
-import { PASSKEY_PASSWORD_WINDOW, SESSION_TTL } from './state.js';
+import { PASSKEY_PASSWORD_WINDOW, PAGES_SESSION_TTL, SESSION_TTL } from './state.js';
 import type { WebAuthnCredential } from '@simplewebauthn/server';
 import type { AdminStore } from './store.js';
 
@@ -51,7 +51,10 @@ function mutationOrigin(req: Request, configured: string | null): string | null 
     ? origin : null;
 }
 
-function sessionToken(req: Request) { return readTokenCookie(req, COOKIE); }
+function pagesSession(req: Request) {
+  const token = /^Bearer (\S+)$/i.exec(req.get('authorization') ?? '')?.[1];
+  return isAdminToken(token) ? token : undefined;
+}
 
 const noStore: RequestHandler = (_req, res, next) => {
   res.set({ 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'X-Robots-Tag': 'noindex' });
@@ -75,9 +78,13 @@ interface AdminOptions {
   now?: () => number;
   stateKey?: Uint8Array;
   draftFactory?: FactoryDrafter | null;
+  pages?: boolean;
 }
 
-export function createAdminRouter({ config, store, services, draftFactory, now = Date.now, stateKey = randomBytes(32) }: AdminOptions) {
+export function createAdminRouter({
+  config, store, services, draftFactory, now = Date.now, stateKey = randomBytes(32),
+  pages = false,
+}: AdminOptions) {
   const router = express.Router();
   router.use(noStore);
 
@@ -88,12 +95,22 @@ export function createAdminRouter({ config, store, services, draftFactory, now =
 
   const salt = randomBytes(16);
   const hash = scryptSync(config.secret, salt, 32);
-  const scope = createHmac('sha256', stateKey).update(JSON.stringify([config.origin, config.secret, config.legacyPin])).digest('hex');
-  const state = store.auth(scope, stateKey, config.origin);
+  const signInOrigin = pages ? INSCO_PAGES_ORIGIN : config.origin;
+  // The backend and browser origins both bind Pages sessions; keep the existing
+  // cookie scope byte-for-byte unchanged on hosted/standalone sign-in.
+  const scope = createHmac('sha256', stateKey).update(JSON.stringify([
+    config.origin, config.secret, config.legacyPin, ...(pages ? ['pages-v1', signInOrigin] : []),
+  ])).digest('hex');
+  const state = store.auth(scope, stateKey, signInOrigin);
+  const sessionToken = pages ? pagesSession : (req: Request) => readTokenCookie(req, COOKIE);
 
   async function issueSession(req: Request, res: Response, passkey?: WebAuthnCredential) {
-    const token = await state.issueSession(sessionToken(req), now(), passkey);
+    const token = await state.issueSession(sessionToken(req), now(), passkey, pages ? PAGES_SESSION_TTL : SESSION_TTL);
     if (!token) return fail(res, 401, 'passkey_verification_failed');
+    if (pages) {
+      res.json({ token });
+      return;
+    }
     res.cookie(COOKIE, token, { httpOnly: true, sameSite: 'strict', secure: res.locals.cookieSecure, path: COOKIE_PATH, maxAge: SESSION_TTL });
     res.status(204).end();
   }
@@ -109,6 +126,7 @@ export function createAdminRouter({ config, store, services, draftFactory, now =
   });
 
   router.use((req, res, next) => {
+    if (pages) return req.get('origin') === signInOrigin ? next() : fail(res, 403, 'origin_not_allowed');
     if (['GET', 'HEAD'].includes(req.method)) return next();
     const origin = mutationOrigin(req, config.origin);
     if (!origin) return fail(res, 403, 'origin_not_allowed');
@@ -138,12 +156,12 @@ export function createAdminRouter({ config, store, services, draftFactory, now =
 
   router.post('/logout', runAsync(async (req, res) => {
     await state.forgetSession(sessionToken(req));
-    res.clearCookie(COOKIE, { httpOnly: true, sameSite: 'strict', secure: res.locals.cookieSecure, path: COOKIE_PATH });
+    if (!pages) res.clearCookie(COOKIE, { httpOnly: true, sameSite: 'strict', secure: res.locals.cookieSecure, path: COOKIE_PATH });
     res.status(204).end();
   }));
 
   router.use('/passkeys', createPasskeyRouter({
-    origin: config.origin, store, state, now, requireSession,
+    origin: signInOrigin, store, state, now, requireSession, pages,
     canManage: res => typeof res.locals.passwordAt === 'number' && now() < res.locals.passwordAt + PASSKEY_PASSWORD_WINDOW,
     signIn: issueSession,
   }));

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, ClipboardCheck, Inbox, LoaderCircle, Mail, Phone, RotateCw, Search } from 'lucide-react';
-import { adminClient } from '../../admin/client';
+import { useAdminClient } from '../../admin/connection';
 import { isQuoteStatus, QUOTE_STATUSES } from '../../admin/contract';
 import type { ManagedQuote, QuotePage, QuoteStatus } from '../../admin/contract';
 import type { Language } from '../../types';
@@ -19,6 +19,7 @@ interface InboxProps {
 }
 
 export function AdminQuotes({ language, initialStatus, reference, onOpen, onSessionError, onUpdate }: InboxProps) {
+  const adminClient = useAdminClient();
   const ar = language === 'ar';
   const [query, setQuery] = useState('');
   const [search, setSearch] = useState('');
@@ -37,7 +38,7 @@ export function AdminQuotes({ language, initialStatus, reference, onOpen, onSess
       if (!controller.signal.aborted && !onSessionError(error)) setLoad({ error });
     });
     return () => controller.abort();
-  }, [reference, search, status, page, version, onSessionError]);
+  }, [adminClient, reference, search, status, page, version, onSessionError]);
 
   if (reference) return <QuoteDetails key={reference} reference={reference} language={language} onBack={() => { setLoad(null); onOpen(null); }} onSessionError={onSessionError} onUpdate={onUpdate} />;
   return (
@@ -86,6 +87,7 @@ function QuoteDetails({ reference, language, onBack, onSessionError, onUpdate }:
   onSessionError: SessionErrorHandler;
   onUpdate: () => void;
 }) {
+  const adminClient = useAdminClient();
   const ar = language === 'ar';
   const [load, setLoad] = useState<Load<ManagedQuote>>(null);
   const [version, setVersion] = useState(0);
@@ -105,7 +107,7 @@ function QuoteDetails({ reference, language, onBack, onSessionError, onUpdate }:
       if (!controller.signal.aborted && !onSessionError(cause)) setLoad({ error: cause });
     });
     return () => controller.abort();
-  }, [reference, version, onSessionError]);
+  }, [adminClient, reference, version, onSessionError]);
 
   async function save(event: React.FormEvent) {
     event.preventDefault();

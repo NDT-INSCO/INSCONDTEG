@@ -3,6 +3,7 @@ import type { WebAuthnCredential } from '@simplewebauthn/server';
 import type { AdminDatabase } from './database.js';
 
 export const SESSION_TTL = 4 * 60 * 60_000;
+export const PAGES_SESSION_TTL = 30 * 60_000;
 export const CHALLENGE_TTL = 2 * 60_000;
 export const PASSKEY_PASSWORD_WINDOW = 10 * 60_000;
 
@@ -12,7 +13,7 @@ export interface PasswordGrant { scope: string; token: string }
 interface Session { expiresAt: number; passwordAt?: number }
 type Limit = { purpose: 'password' | 'passkey' | 'rfq' | 'factory'; window: number; perAddress: number; total: number };
 
-/** Cookie values are never stored; state scopes also isolate origins and credential rotations. */
+/** Raw session and ceremony tokens are never stored; state scopes also isolate origins and credential rotations. */
 export function tokenDigest(token: string) {
   return createHash('sha256').update(token).digest('hex');
 }
@@ -40,7 +41,7 @@ export class AdminAuthState {
     if (token) await this.db.run('DELETE FROM admin_sessions WHERE scope = ? AND token = ?', this.scope, tokenDigest(token));
   }
 
-  async issueSession(previous: string | undefined, time: number, key?: WebAuthnCredential): Promise<string | null> {
+  async issueSession(previous: string | undefined, time: number, key?: WebAuthnCredential, ttl = SESSION_TTL): Promise<string | null> {
     const token = randomBytes(32).toString('hex');
     await this.forgetSession(previous);
     // If revocation wins the race with verified sign-in, don't recreate a session.
@@ -49,7 +50,7 @@ export class AdminAuthState {
       INSERT INTO admin_sessions (token, scope, origin, passkey_id, issued_at, expires_at)
       SELECT ?, ?, ?, ?, ?, ?
       WHERE ? IS NULL OR EXISTS (SELECT 1 FROM passkeys WHERE origin = ? AND credential_id = ? AND public_key = ?)
-    `, tokenDigest(token), this.scope, this.origin, id, time, time + SESSION_TTL, id, this.origin, id, key?.publicKey ?? null);
+    `, tokenDigest(token), this.scope, this.origin, id, time, time + ttl, id, this.origin, id, key?.publicKey ?? null);
     return added ? token : null;
   }
 

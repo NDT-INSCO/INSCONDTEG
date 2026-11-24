@@ -1,5 +1,5 @@
 import { browserSupportsWebAuthn, startAuthentication, startRegistration, WebAuthnAbortService, WebAuthnError } from '@simplewebauthn/browser';
-import { adminClient, AdminApiError } from './client';
+import { AdminApiError, type AdminClient } from './client';
 
 export function passkeyBrowser(): 'ready' | 'embedded' | 'unsupported' {
   if (typeof window === 'undefined') return 'unsupported';
@@ -28,18 +28,18 @@ async function withDevice<T>(signal: AbortSignal, prompt: () => Promise<T>): Pro
   }
 }
 
-export async function signInWithPasskey(signal: AbortSignal) {
+export async function signInWithPasskey(adminClient: AdminClient, signal: AbortSignal) {
   if (passkeyBrowser() !== 'ready') throw new AdminApiError('passkey_browser');
-  const optionsJSON = await adminClient.passkeyAuthOptions(signal);
+  const { optionsJSON, ceremony } = await adminClient.passkeyAuthOptions(signal);
   const response = await withDevice(signal, () => startAuthentication({ optionsJSON }));
   ensureActive(signal);
-  await adminClient.passkeyAuthVerify(response, signal);
+  await adminClient.passkeyAuthVerify(response, signal, ceremony);
 }
 
-export async function enrollPasskey(label: string, signal: AbortSignal) {
+export async function enrollPasskey(adminClient: AdminClient, label: string, signal: AbortSignal) {
   if (passkeyBrowser() !== 'ready') throw new AdminApiError('passkey_browser');
-  const optionsJSON = await adminClient.passkeyRegisterOptions(label, signal);
+  const { optionsJSON, ceremony } = await adminClient.passkeyRegisterOptions(label, signal);
   const response = await withDevice(signal, () => startRegistration({ optionsJSON }));
   ensureActive(signal);
-  return adminClient.passkeyRegisterVerify(response, signal);
+  return adminClient.passkeyRegisterVerify(response, signal, ceremony);
 }

@@ -133,6 +133,13 @@ export const VirtualEngineer: React.FC<Props> = ({ language, route, onOpenHash }
   const stopExplanation = () => {
     abortRef.current?.abort();
     abortRef.current = null;
+    if (answerRef.current.trim()) {
+      history.current = [
+        ...history.current,
+        { role: 'user', content: lastQuestion.current },
+        { role: 'assistant', content: answerRef.current },
+      ].slice(-20);
+    }
     setLoading(false);
     setSessionEnded(true);
   };

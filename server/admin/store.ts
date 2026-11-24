@@ -7,6 +7,7 @@ import { AdminAuthState, PASSKEY_PASSWORD_WINDOW, type PasswordGrant } from './s
 import type { WebAuthnCredential } from '@simplewebauthn/server';
 import type { Delivery, RfqRecord } from '../../src/rfq/gateway.js';
 import { PASSKEY_LIMIT } from '../../src/admin/contract.js';
+import { factorySnapshot, type FactorySnapshot } from '../../src/admin/factory.js';
 import type {
   Announcement, AnnouncementInput, DashboardData, ManagedQuote, PasskeySummary, QuotePage, QuoteStatus, QuoteSummary,
 } from '../../src/admin/contract.js';
@@ -164,18 +165,31 @@ export class AdminStore {
     return { ...input, updatedAt };
   }
 
-  async overview(now: number): Promise<Pick<DashboardData, 'totals' | 'activity' | 'recent' | 'announcement'>> {
+  private async quoteTotals(now: number): Promise<DashboardData['totals']> {
     const cutoff = new Date(now - 2 * DAY).toISOString();
+    const [totals] = await this.db.all(`
+      SELECT COUNT(*) AS total,
+        COUNT(CASE WHEN status = 'new' THEN 1 END) AS new,
+        COUNT(CASE WHEN status = 'in_progress' THEN 1 END) AS in_progress,
+        COUNT(CASE WHEN status = 'closed' THEN 1 END) AS closed,
+        COUNT(CASE WHEN status != 'closed' AND received_at <= ? THEN 1 END) AS overdue
+      FROM quotes
+    `, cutoff);
+    return totals as unknown as DashboardData['totals'];
+  }
+
+  /** Do not even read individual records or announcement text for the model. */
+  async factoryContext(now: number): Promise<FactorySnapshot> {
+    const [totals, [announcement]] = await Promise.all([
+      this.quoteTotals(now), this.db.all('SELECT enabled FROM announcement WHERE id = 1'),
+    ]);
+    return factorySnapshot({ updatedAt: new Date(now).toISOString(), totals, announcement: { enabled: announcement?.enabled === 1 } });
+  }
+
+  async overview(now: number): Promise<Pick<DashboardData, 'totals' | 'activity' | 'recent' | 'announcement'>> {
     const days = Array.from({ length: 7 }, (_, index) => new Date(now - (6 - index) * DAY).toISOString().slice(0, 10));
-    const [[totals], rows, recent, announcement] = await Promise.all([
-      this.db.all(`
-        SELECT COUNT(*) AS total,
-          COUNT(CASE WHEN status = 'new' THEN 1 END) AS new,
-          COUNT(CASE WHEN status = 'in_progress' THEN 1 END) AS in_progress,
-          COUNT(CASE WHEN status = 'closed' THEN 1 END) AS closed,
-          COUNT(CASE WHEN status != 'closed' AND received_at <= ? THEN 1 END) AS overdue
-        FROM quotes
-      `, cutoff),
+    const [totals, rows, recent, announcement] = await Promise.all([
+      this.quoteTotals(now),
       this.db.all(`SELECT substr(received_at, 1, 10) AS day, COUNT(*) AS count FROM quotes
         WHERE received_at >= ? GROUP BY day`, days[0]),
       this.db.all(`SELECT ${SUMMARY_FIELDS} FROM quotes ORDER BY received_at DESC, reference DESC LIMIT 4`),
@@ -183,7 +197,7 @@ export class AdminStore {
     ]);
     const counts = new Map(rows.map(row => [String(row.day), Number(row.count)]));
     const activity = days.map(day => ({ day, count: counts.get(day) ?? 0 }));
-    return { totals: totals as unknown as DashboardData['totals'], activity, recent: recent as unknown as QuoteSummary[], announcement };
+    return { totals, activity, recent: recent as unknown as QuoteSummary[], announcement };
   }
 }
 

@@ -7,8 +7,8 @@
  * is deliberately shaped around that difference instead of pretending Manus is a chat
  * completion endpoint:
  *
- *  - every call has a `task_id` that can be read again later, and a `task_url` a human
- *    can open in the Manus app;
+ *  - each task has an ID and may have a link for the Manus app; the direct gateway
+ *    also issues an expiring receipt for reading that task again;
  *  - "wait for it" is a *budget*, not a timeout that loses the work — when the budget
  *    runs out the task keeps running and the client is told its id instead of an error.
  *
@@ -20,6 +20,7 @@
  */
 
 export const MANUS_BASE_URL = 'https://api.manus.ai';
+export const MANUS_TASK_RECEIPT_HEADER = 'X-Insco-Task-Receipt';
 
 /** The upstream paths, versioned in one place so a v3 rename is a one-line change. */
 export const MANUS_PATHS = {
@@ -32,7 +33,7 @@ export const MANUS_PATHS = {
 export const MANUS_ENDPOINTS = {
   /** POST — create a task and wait inside the request budget. */
   ask: '/api/ai/manus',
-  /** GET ?task_id= — read a task that is still running, or collect a finished one. */
+  /** GET ?task_id= — collect a task with its X-Insco-Task-Receipt header. */
   task: '/api/ai/manus/task',
   /** GET — is Manus configured, and does the key authenticate? */
   status: '/api/ai/manus/status',
@@ -71,6 +72,8 @@ export interface ManusTaskHint {
 /** One task as the gateway reports it — the answer when there is one, the id always. */
 export interface ManusTaskView extends ManusTaskHint {
   status: ManusTaskStatus;
+  /** Expiring proof of access, returned only by the direct create endpoint. */
+  taskReceipt?: string;
   /** The agent's latest text. Partial while `status` is `running`. */
   answer?: string;
   title?: string;
@@ -97,7 +100,7 @@ export interface ManusStatusReport {
   autoFallback: boolean;
   profile: string;
   /** Present after a probe: `ok` means the key authenticated. */
-  auth?: 'ok' | 'unauthenticated' | 'unreachable' | ManusErrorCode;
+  auth?: 'ok' | 'unauthenticated' | 'unreachable';
   lastError?: { code: ManusErrorCode; at: string };
   baseUrl: string;
 }

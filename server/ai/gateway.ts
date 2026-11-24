@@ -52,14 +52,17 @@ import {
   MANUS_BASE_URL,
   MANUS_ENDPOINTS,
   MANUS_LIMITS,
+  MANUS_TASK_RECEIPT_HEADER,
   isTerminalStatus,
   manusFailureMessage,
   normaliseManusAsk,
   type ManusErrorCode,
   type ManusStatusReport,
+  type ManusTaskHint,
   type ManusTaskView,
 } from '../../src/ai/manusContract.js';
 import { ManusError, canWaitForManus, createManusClient, type ManusClient } from './manus.js';
+import { createManusTaskReceipts } from './manusReceipts.js';
 import { buildTutorLibrary, type TutorLibrary } from '../tutor/library.js';
 import {
   ChainAttempt,
@@ -127,7 +130,9 @@ export function createAiGateway(edbRoot: string): express.Router {
     if (origin) {
       res.setHeader('Access-Control-Allow-Origin', origin);
       res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
+      res.setHeader('Access-Control-Allow-Headers', req.path === MANUS_ENDPOINTS.task
+        ? `Content-Type, Accept, ${MANUS_TASK_RECEIPT_HEADER}`
+        : 'Content-Type, Accept');
       res.setHeader('Access-Control-Max-Age', '600');
     }
     if (req.method === 'OPTIONS') {
@@ -210,6 +215,8 @@ const ai: GoogleGenAI | null = API_KEY
  * crash at boot.
  */
 const manus: ManusClient = createManusClient(process.env);
+const taskReceipts = createManusTaskReceipts(process.env);
+const manusFallbackEnabled = manus.configured && manus.autoFallback;
 
 /* ------------------------------------------------------------------ */
 /* rate limiting + budget                                              */
@@ -395,7 +402,7 @@ function failureBody(
   code: TutorErrorCode,
   language: Parameters<typeof failureMessage>[1],
   upstream: { signal: UpstreamSignal; detail: string },
-  manusHint?: { taskId: string; taskUrl?: string }
+  manusHint?: ManusTaskHint
 ): TutorFailure {
   return {
     code,
@@ -420,19 +427,26 @@ async function manusAnswerFor(
   title: string,
   signal?: AbortSignal
 ): Promise<ManusTaskView | null> {
-  if (!canWaitForManus(manus, remainingMs)) return null;
+  if (signal?.aborted || !canWaitForManus(manus, remainingMs)) return null;
   const waitMs = Math.min(remainingMs - 1000, MANUS_LIMITS.waitMs);
   try {
     const view = await manus.ask({ message: prompt, language, title }, { waitMs, signal });
-    console.warn(
-      `[ai] manus task ${view.taskId} status=${view.status} elapsed=${view.elapsedMs}ms answer=${view.answer ? 'yes' : 'no'}`
-    );
+    console.warn(`[ai] manus task status=${view.status} elapsed=${view.elapsedMs}ms answer=${view.answer ? 'yes' : 'no'}`);
     return view;
   } catch (error) {
     const code = error instanceof ManusError ? error.code : 'upstream_error';
     console.error(`[ai] manus fallback failed: ${code}: ${error instanceof Error ? error.message : String(error)}`);
     return null;
   }
+}
+
+function completedManusAnswer(view: ManusTaskView | null): view is ManusTaskView & { answer: string } {
+  // A progress message is not the completed answer from the second engine.
+  return view?.status === 'stopped' && Boolean(view.answer);
+}
+
+function manusHint(view: ManusTaskView | null): ManusTaskHint | undefined {
+  return view ? { taskId: view.taskId, ...(view.taskUrl ? { taskUrl: view.taskUrl } : {}) } : undefined;
 }
 
 /** One plain answer, in whichever protocol the caller asked for. */
@@ -669,8 +683,8 @@ router.get(TUTOR_ENDPOINTS.status, async (_req: Request, res: Response) => {
     // "Can this server answer a question?" — Gemini first, Manus second. Reporting only
     // the Gemini key would tell the reader the tutor is off while a second engine is
     // standing by to answer.
-    configured: Boolean(ai) || manus.configured,
-    reason: ai || manus.configured ? 'ok' : clientInitError ? 'client_init_failed' : 'no_key',
+    configured: Boolean(ai) || manusFallbackEnabled,
+    reason: ai || manusFallbackEnabled ? 'ok' : clientInitError ? 'client_init_failed' : 'no_key',
     model: MODEL_CHAIN[0],
     deepModel: TUTOR_MODELS.deep,
     limits: TUTOR_LIMITS,
@@ -711,6 +725,7 @@ router.get(TUTOR_ENDPOINTS.status, async (_req: Request, res: Response) => {
  */
 
 router.post(MANUS_ENDPOINTS.ask, async (req: Request, res: Response) => {
+  res.setHeader('Cache-Control', 'no-store');
   const parsed = normaliseManusAsk(req.body);
   if (!parsed.ok) {
     res.status(400).json({ error: { code: 'invalid_request', message: parsed.error } });
@@ -749,11 +764,11 @@ router.post(MANUS_ENDPOINTS.ask, async (req: Request, res: Response) => {
       waitMs: Math.min(input.waitMs ?? MANUS_LIMITS.waitMs, REQUEST_TIMEOUT_MS - 3000),
       signal: controller.signal,
     });
-    const finished = Boolean(view.answer) && isTerminalStatus(view.status);
-    res.setHeader('Cache-Control', 'no-store');
+    const finished = isTerminalStatus(view.status);
     // 202 is the honest code for "a task exists and is still running": the body carries
     // everything needed to collect it, so no client has to guess.
-    res.status(finished ? 200 : 202).json(view);
+    const taskReceipt = taskReceipts.issue(view.taskId);
+    res.status(finished ? 200 : 202).json({ ...view, ...(taskReceipt ? { taskReceipt } : {}) });
   } catch (error) {
     const code: ManusErrorCode = error instanceof ManusError ? error.code : 'upstream_error';
     console.error(`[ai] manus ask failed: ${code}`);
@@ -761,7 +776,6 @@ router.post(MANUS_ENDPOINTS.ask, async (req: Request, res: Response) => {
       error: {
         code,
         message: manusFailureMessage(code, input.language),
-        detail: error instanceof Error ? error.message.slice(0, 200) : undefined,
       },
     });
   } finally {
@@ -770,6 +784,7 @@ router.post(MANUS_ENDPOINTS.ask, async (req: Request, res: Response) => {
 });
 
 router.get(MANUS_ENDPOINTS.task, async (req: Request, res: Response) => {
+  res.setHeader('Cache-Control', 'no-store');
   const taskId = typeof req.query.task_id === 'string' ? req.query.task_id.trim() : '';
   if (!taskId) {
     res.status(400).json({ error: { code: 'invalid_request', message: 'task_id is required' } });
@@ -781,18 +796,18 @@ router.get(MANUS_ENDPOINTS.task, async (req: Request, res: Response) => {
     });
     return;
   }
+  if (!taskReceipts.allows(taskId, req.get(MANUS_TASK_RECEIPT_HEADER))) {
+    // Do not ask Manus whether this ID exists unless we issued a receipt for it.
+    res.status(403).json({ error: { code: 'task_receipt_required', message: 'A valid task receipt is required.' } });
+    return;
+  }
   try {
     const view = await manus.task(taskId);
-    res.setHeader('Cache-Control', 'no-store');
     res.json(view);
   } catch (error) {
     const code: ManusErrorCode = error instanceof ManusError ? error.code : 'upstream_error';
     res.status(MANUS_STATUS_CODE[code]).json({
-      error: {
-        code,
-        message: manusFailureMessage(code, 'ar'),
-        detail: error instanceof Error ? error.message.slice(0, 200) : undefined,
-      },
+      error: { code, message: manusFailureMessage(code, 'ar') },
     });
   }
 });
@@ -893,6 +908,15 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
     return;
   }
 
+  if (!ai && !manusFallbackEnabled) {
+    res.status(503).json({ error: {
+      code: 'not_configured',
+      message: failureMessage('not_configured', payload.language),
+      detail: 'Set GEMINI_API_KEY on the server that hosts /api/ai/*.',
+    } });
+    return;
+  }
+
   // Fail closed in both protocols, including the legacy JSON endpoint.
   if (!payload.confident) {
     const emptyLibrary = payload.source === 'none';
@@ -908,40 +932,6 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
     if (!streaming) { res.json({ text: message, content: message, meta }); return; }
     res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
     res.end(encodeSse({ type: 'meta', meta }) + encodeSse({ type: 'delta', text: message }) + encodeSse({ type: 'done' }));
-    return;
-  }
-
-  if (!ai) {
-    // No Gemini key used to mean no answer. With a second engine configured it means the
-    // answer comes from Manus instead — the reader asked a question, not for a provider.
-    const fallback = await manusAnswerFor(
-      payload.prompt,
-      payload.language,
-      REQUEST_TIMEOUT_MS,
-      'INSCO tutor',
-    );
-    if (fallback?.answer) {
-      sendPlainAnswer(res, streaming, fallback.answer, {
-        model: 'manus',
-        citations: payload.citations,
-        retrieved: payload.citations.length,
-        confident: payload.confident,
-        elapsedMs: fallback.elapsedMs,
-        source: payload.source,
-        provider: 'manus',
-      });
-      return;
-    }
-    // Honest failure: no key and no second engine means no answer. The old build
-    // returned a canned paragraph here, which is worse than saying nothing.
-    res.status(STATUS_CODE.not_configured).json({
-      error: {
-        code: 'not_configured',
-        message: failureMessage('not_configured', payload.language),
-        detail: 'Set GEMINI_API_KEY on the server that hosts /api/ai/*.',
-        ...(fallback ? { manus: { taskId: fallback.taskId, taskUrl: fallback.taskUrl } } : {}),
-      },
-    });
     return;
   }
 
@@ -962,6 +952,24 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
     elapsedMs: 0,
     source: payload.source,
   };
+  const fallbackPrompt = `${payload.system}\n\n${payload.prompt}`;
+
+  if (!ai) {
+    try {
+      const fallback = await manusAnswerFor(fallbackPrompt, payload.language, REQUEST_TIMEOUT_MS, 'INSCO tutor', controller.signal);
+      if (completedManusAnswer(fallback)) {
+        sendPlainAnswer(res, streaming, fallback.answer, { ...meta, model: 'manus', provider: 'manus', elapsedMs: fallback.elapsedMs });
+        return;
+      }
+      const code = fallback ? 'timeout' : 'upstream_error';
+      res.status(STATUS_CODE[code]).json({
+        error: { code, message: failureMessage(code, payload.language), ...(fallback ? { manus: manusHint(fallback) } : {}) },
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+    return;
+  }
 
   if (!streaming) {
     const attempts: ChainAttempt[] = [];
@@ -977,13 +985,13 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
       // The second engine, on the same question: a Gemini quota window is not the end of
       // the answer, and the reader should not have to ask twice.
       const fallback = await manusAnswerFor(
-        payload.prompt,
+        fallbackPrompt,
         payload.language,
         REQUEST_TIMEOUT_MS - (Date.now() - started),
         'INSCO tutor',
         controller.signal
       );
-      if (fallback?.answer) {
+      if (completedManusAnswer(fallback)) {
         res.json({
           text: fallback.answer,
           content: fallback.answer,
@@ -996,7 +1004,7 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
           code,
           payload.language,
           { signal, detail },
-          fallback ? { taskId: fallback.taskId, ...(fallback.taskUrl ? { taskUrl: fallback.taskUrl } : {}) } : undefined
+          manusHint(fallback)
         ),
       });
     } finally {
@@ -1049,15 +1057,16 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
   } catch (error) {
     const { code, signal, detail } = upstreamFailure(error, controller.signal.aborted, streamAttempts);
     console.error(`[ai] Tutor stream failed: ${signal}: ${detail}`);
-    const fallback = await manusAnswerFor(
-      payload.prompt,
+    // Don't append a new provider's answer to an already-started Gemini answer.
+    const fallback = written ? null : await manusAnswerFor(
+      fallbackPrompt,
       payload.language,
       REQUEST_TIMEOUT_MS - (Date.now() - started),
       'INSCO tutor',
       controller.signal
     );
-    if (fallback?.answer) {
-      console.warn(`[ai] tutor stream answered by manus (${fallback.taskId})`);
+    if (completedManusAnswer(fallback)) {
+      res.write(encodeSse({ type: 'meta', meta: { ...meta, model: 'manus', provider: 'manus', elapsedMs: fallback.elapsedMs } }));
       res.write(encodeSse({ type: 'delta', text: fallback.answer }));
       res.write(encodeSse({ type: 'done' }));
     } else {
@@ -1068,7 +1077,7 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
             code,
             payload.language,
             { signal, detail },
-            fallback ? { taskId: fallback.taskId, ...(fallback.taskUrl ? { taskUrl: fallback.taskUrl } : {}) } : undefined
+            manusHint(fallback)
           ),
         })
       );
@@ -1211,7 +1220,7 @@ function guardAgentPreconditions(
   if (!ai) {
     // A Manus-only deployment still answers these two agents: the structured prompt goes
     // to Manus as text and its reply fills the same fields (see the fallbacks below).
-    if (options.allowManus && manus.configured) return true;
+    if (options.allowManus && manusFallbackEnabled) return true;
     res.status(STATUS_CODE.not_configured).json({
       error: {
         code: 'not_configured',
@@ -1231,7 +1240,9 @@ router.post(AGENT_ENDPOINTS.userCopilot, async (req: Request, res: Response) => 
     return;
   }
   const input = parsed.value;
-  if (!guardAgentPreconditions(req, res, input.language, { allowManus: true })) return;
+  // The fallback is for public assistance, not admin or client portal context.
+  const allowManus = input.context?.portal !== 'admin' && input.context?.portal !== 'client';
+  if (!guardAgentPreconditions(req, res, input.language, { allowManus })) return;
 
   const started = Date.now();
   const controller = new AbortController();
@@ -1327,14 +1338,14 @@ router.post(AGENT_ENDPOINTS.userCopilot, async (req: Request, res: Response) => 
   } catch (error) {
     const { code, signal, detail } = upstreamFailure(error, controller.signal.aborted);
     console.error(`[ai] user-copilot failed: ${signal}: ${detail}`);
-    const fallback = await manusAnswerFor(
-      `${systemInstruction}\n\n${prompt}`,
+    const fallback = !allowManus ? null : await manusAnswerFor(
+      `You are the INSCO copilot. Reply with plain text in the requested language. Draft only; don't take actions.\n\n${prompt}`,
       input.language,
       REQUEST_TIMEOUT_MS - (Date.now() - started),
       'INSCO copilot',
       controller.signal
     );
-    if (fallback?.answer) {
+    if (completedManusAnswer(fallback)) {
       res.json({
         reply: fallback.answer,
         suggestedActions: [],
@@ -1348,7 +1359,7 @@ router.post(AGENT_ENDPOINTS.userCopilot, async (req: Request, res: Response) => 
         code,
         input.language,
         { signal, detail },
-        fallback ? { taskId: fallback.taskId, ...(fallback.taskUrl ? { taskUrl: fallback.taskUrl } : {}) } : undefined
+        manusHint(fallback)
       ),
     });
   } finally {
@@ -1524,13 +1535,13 @@ router.post(AGENT_ENDPOINTS.communityAssist, async (req: Request, res: Response)
     const { code, signal, detail } = upstreamFailure(error, controller.signal.aborted);
     console.error(`[ai] community-assist failed: ${signal}: ${detail}`);
     const fallback = await manusAnswerFor(
-      `${systemInstruction}\n\n${prompt}`,
+      `You are the INSCO Community editor. Reply with plain text in the requested language. Draft only; don't take actions.\n\n${prompt}`,
       input.language,
       REQUEST_TIMEOUT_MS - (Date.now() - started),
       'INSCO community',
       controller.signal
     );
-    if (fallback?.answer) {
+    if (completedManusAnswer(fallback)) {
       res.json({ reply: fallback.answer, model: 'manus', elapsedMs: fallback.elapsedMs } satisfies CommunityAssistResponse);
       return;
     }
@@ -1539,7 +1550,7 @@ router.post(AGENT_ENDPOINTS.communityAssist, async (req: Request, res: Response)
         code,
         input.language,
         { signal, detail },
-        fallback ? { taskId: fallback.taskId, ...(fallback.taskUrl ? { taskUrl: fallback.taskUrl } : {}) } : undefined
+        manusHint(fallback)
       ),
     });
   } finally {

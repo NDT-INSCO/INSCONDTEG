@@ -18,10 +18,8 @@ on:
         description: Deployment to test
         required: false
         default: https://inscondteg.vercel.app
-  # Every push to every branch would mean six model calls per commit, on the same
-  # free-tier quota this file exists to measure. Main is where the answer matters.
-  push:
-    branches: [main]
+  # Real questions can fall back to a billable Manus task. Keep them opt-in;
+  # ai-probe.yml checks the production release without creating tasks on every push.
 
 jobs:
   live:

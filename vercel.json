@@ -42,6 +42,9 @@
     }
   ],
   "functions": {
+    "api/insco.ts": {
+      "maxDuration": 45
+    },
     "api/ai.ts": {
       "maxDuration": 60,
       "includeFiles": "public/edb/**"

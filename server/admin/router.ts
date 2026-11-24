@@ -2,6 +2,8 @@ import { createHmac, randomBytes, scryptSync, timingSafeEqual } from 'node:crypt
 import express, { type ErrorRequestHandler, type Request, type RequestHandler, type Response } from 'express';
 import { isAdminPassword, isQuoteStatus, NOTICE_LIMIT } from '../../src/admin/contract.js';
 import type { AnnouncementInput, DashboardData } from '../../src/admin/contract.js';
+import { FACTORY_DRAFT_PATH, FACTORY_LIMITS, normaliseFactoryDraft, normaliseFactoryRequest } from '../../src/admin/factory.js';
+import type { FactoryDrafter } from './factory.js';
 import { clientAddress, fail, readJsonBody, readTokenCookie, runAsync } from './http.js';
 import { createPasskeyRouter } from './passkeys.js';
 import { PASSKEY_PASSWORD_WINDOW, SESSION_TTL } from './state.js';
@@ -72,9 +74,10 @@ interface AdminOptions {
   services: DashboardData['services'];
   now?: () => number;
   stateKey?: Uint8Array;
+  draftFactory?: FactoryDrafter | null;
 }
 
-export function createAdminRouter({ config, store, services, now = Date.now, stateKey = randomBytes(32) }: AdminOptions) {
+export function createAdminRouter({ config, store, services, draftFactory, now = Date.now, stateKey = randomBytes(32) }: AdminOptions) {
   const router = express.Router();
   router.use(noStore);
 
@@ -153,9 +156,43 @@ export function createAdminRouter({ config, store, services, now = Date.now, sta
       sessionExpiresAt: res.locals.sessionExpiresAt,
       updatedAt: new Date(time).toISOString(),
       ...await store.overview(time),
-      services,
+      services: { ...services, ...(draftFactory ? { factoryAiConfigured: true } : {}) },
     };
     res.json(data);
+  }));
+
+  // Covered by the same origin and session gates as every other private mutation.
+  // This route only returns a draft. No generated code is evaluated or installed.
+  router.post(FACTORY_DRAFT_PATH, readJsonBody('10kb'), runAsync(async (req, res) => {
+    if (!draftFactory) return fail(res, 503, 'factory_not_configured');
+    const input = normaliseFactoryRequest(req.body);
+    if (!input) return fail(res, 400, 'factory_invalid_request');
+    const time = now();
+    const retry = await state.throttle(clientAddress(req), time, { purpose: 'factory', window: ATTEMPT_WINDOW, perAddress: 4, total: 12 });
+    if (retry) {
+      res.set('Retry-After', String(retry));
+      return fail(res, 429, 'rate_limited');
+    }
+    const snapshot = input.includeSnapshot ? await store.factoryContext(time) : null;
+    if (res.destroyed) return;
+    const controller = new AbortController();
+    const stop = () => controller.abort();
+    const timer = setTimeout(stop, FACTORY_LIMITS.requestMs);
+    const interrupted = new Promise<null>(resolve => controller.signal.addEventListener('abort', () => resolve(null), { once: true }));
+    res.once('close', stop);
+    try {
+      // Stop waiting at the deadline even if the upstream iterator is slow to abort.
+      const draft = normaliseFactoryDraft(await Promise.race([draftFactory(input, snapshot, controller.signal), interrupted]));
+      if (res.destroyed) return;
+      if (controller.signal.aborted) return fail(res, 504, 'factory_timeout');
+      if (!draft) return fail(res, 502, 'factory_invalid_draft');
+      res.json(draft);
+    } catch {
+      if (!res.destroyed) fail(res, controller.signal.aborted ? 504 : 502, controller.signal.aborted ? 'factory_timeout' : 'factory_unavailable');
+    } finally {
+      clearTimeout(timer);
+      res.off('close', stop);
+    }
   }));
 
   router.get('/quotes', runAsync(async (req, res) => {

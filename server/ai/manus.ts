@@ -44,8 +44,6 @@ export class ManusError extends Error {
 
 export interface ManusProbe {
   auth: 'ok' | 'unauthenticated' | 'unreachable';
-  code?: ManusErrorCode;
-  message?: string;
 }
 
 export interface ManusClient {
@@ -75,7 +73,8 @@ function withDeadline(signal: AbortSignal | undefined, timeoutMs: number) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   const onAbort = () => controller.abort();
-  signal?.addEventListener('abort', onAbort, { once: true });
+  if (signal?.aborted) onAbort();
+  else signal?.addEventListener('abort', onAbort, { once: true });
   return {
     signal: controller.signal,
     done: () => {
@@ -115,20 +114,20 @@ function codeFromUpstream(raw: unknown, httpStatus: number): ManusErrorCode {
       break;
   }
   if (httpStatus === 401 || httpStatus === 403) return 'unauthenticated';
-  if (httpStatus === 404) return 'not_found';
+  // A bare 404 can mean a missing API route rather than an authenticated task lookup.
   if (httpStatus === 429) return 'rate_limited';
   if (httpStatus === 400 || httpStatus === 422) return 'invalid_request';
   return 'upstream_error';
 }
 
-/** Short, credential-free version of an upstream sentence. */
-function safeDetail(value: unknown): string {
-  const text = typeof value === 'string' ? value : value instanceof Error ? value.message : '';
-  return text
-    .replace(/[A-Za-z0-9_-]{24,}/g, '***')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, 200);
+/** Only point a reader at HTTPS links on the provider's own sites. */
+function taskLink(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && ['manus.im', 'www.manus.im', 'manus.ai', 'www.manus.ai'].includes(url.host)
+      && !url.username && !url.password ? url.href : undefined;
+  } catch { return undefined; }
 }
 
 /* ------------------------------------------------------------------ */
@@ -139,6 +138,7 @@ export function createManusClient(env: NodeJS.ProcessEnv): ManusClient {
   const apiKey = (env.MANUS_API_KEY || '').trim();
   const profile = manusProfile(env);
   let lastError: { code: ManusErrorCode; at: string } | undefined;
+  let probeCache: { until: number; result: Promise<ManusProbe> } | undefined;
 
   function noteError(code: ManusErrorCode) {
     lastError = { code, at: new Date().toISOString() };
@@ -146,7 +146,7 @@ export function createManusClient(env: NodeJS.ProcessEnv): ManusClient {
 
   async function call(
     path: string,
-    init: { method: 'GET' | 'POST'; body?: unknown; query?: Record<string, string> },
+    init: { method: 'GET' | 'POST'; body?: unknown; query?: Record<string, string>; probe?: boolean },
     signal?: AbortSignal
   ): Promise<Record<string, unknown>> {
     if (!apiKey) throw new ManusError('not_configured', 'MANUS_API_KEY is not set');
@@ -154,9 +154,9 @@ export function createManusClient(env: NodeJS.ProcessEnv): ManusClient {
     for (const [key, value] of Object.entries(init.query ?? {})) url.searchParams.set(key, value);
 
     const deadline = withDeadline(signal, MANUS_LIMITS.upstreamTimeoutMs);
-    let response: Response;
     try {
-      response = await fetch(url, {
+      deadline.signal.throwIfAborted();
+      const response = await fetch(url, {
         method: init.method,
         headers: {
           'x-manus-api-key': apiKey,
@@ -164,30 +164,26 @@ export function createManusClient(env: NodeJS.ProcessEnv): ManusClient {
           ...(init.body === undefined ? {} : { 'Content-Type': 'application/json' }),
         },
         body: init.body === undefined ? undefined : JSON.stringify(init.body),
+        redirect: 'error', // Never forward the provider key to a redirect destination.
         signal: deadline.signal,
       });
+      const raw = await response.json().catch(() => null) as unknown;
+      deadline.signal.throwIfAborted();
+      const payload = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw as Record<string, unknown> : null;
+      if (!response.ok || payload?.ok === false) {
+        const error = payload?.error as { code?: unknown } | undefined;
+        const code = codeFromUpstream(payload?.ok === false ? error?.code : undefined, response.status);
+        throw new ManusError(code, `HTTP ${response.status}`, response.status);
+      }
+      if (payload?.ok !== true) throw new ManusError('upstream_error', 'Manus returned an invalid response');
+      return payload;
     } catch (error) {
-      const code: ManusErrorCode = signal?.aborted ? 'timeout' : 'upstream_error';
-      noteError(code);
-      throw new ManusError(code, `Manus request failed: ${safeDetail(error)}`);
+      const code: ManusErrorCode = error instanceof ManusError ? error.code : deadline.signal.aborted ? 'timeout' : 'upstream_error';
+      if (!init.probe && !signal?.aborted) noteError(code);
+      throw error instanceof ManusError ? error : new ManusError(code, 'Manus request failed');
     } finally {
       deadline.done();
     }
-
-    let payload: Record<string, unknown> = {};
-    try {
-      payload = (await response.json()) as Record<string, unknown>;
-    } catch {
-      payload = {};
-    }
-
-    if (!response.ok || payload.ok === false) {
-      const error = (payload.error ?? {}) as { code?: unknown; message?: unknown };
-      const code = codeFromUpstream(error.code, response.status);
-      noteError(code);
-      throw new ManusError(code, safeDetail(error.message) || `HTTP ${response.status}`, response.status);
-    }
-    return payload;
   }
 
   /** The newest assistant message on a task, if the agent has written anything. */
@@ -214,10 +210,11 @@ export function createManusClient(env: NodeJS.ProcessEnv): ManusClient {
   }> {
     const payload = await call(MANUS_PATHS.taskDetail, { method: 'GET', query: { task_id: taskId } }, signal);
     const task = (payload.task ?? {}) as Record<string, unknown>;
+    const taskUrl = taskLink(task.task_url);
     return {
       status: normaliseManusStatus(task.status),
       ...(typeof task.title === 'string' && task.title ? { title: task.title } : {}),
-      ...(typeof task.task_url === 'string' && task.task_url ? { taskUrl: task.task_url } : {}),
+      ...(taskUrl ? { taskUrl } : {}),
       ...(typeof task.credit_usage === 'number' ? { credits: task.credit_usage } : {}),
     };
   }
@@ -236,8 +233,11 @@ export function createManusClient(env: NodeJS.ProcessEnv): ManusClient {
           method: 'POST',
           body: {
             message: { content: [{ type: 'text', text: input.message, visibility: 'visible' }] },
-            locale: input.language === 'ar' ? 'ar' : 'en',
+            locale: input.language,
             agent_profile: profile,
+            clear_connectors: true, // Do not inherit the account's enabled connectors for public prompts.
+            share_visibility: 'private',
+            async_title: true,
             ...(input.title ? { title: input.title } : {}),
           },
         },
@@ -246,42 +246,35 @@ export function createManusClient(env: NodeJS.ProcessEnv): ManusClient {
 
       const taskId = typeof created.task_id === 'string' ? created.task_id : '';
       if (!taskId) throw new ManusError('upstream_error', 'Manus returned no task_id');
+      const taskUrl = taskLink(created.task_url);
       const view: ManusTaskView = {
         taskId,
         status: 'running',
         elapsedMs: 0,
         ...(typeof created.task_title === 'string' && created.task_title ? { title: created.task_title } : {}),
-        ...(typeof created.task_url === 'string' && created.task_url ? { taskUrl: created.task_url } : {}),
+        ...(taskUrl ? { taskUrl } : {}),
       };
 
-      while (Date.now() - started < waitMs && !options.signal?.aborted) {
-        await sleep(MANUS_LIMITS.pollMs, options.signal);
-        if (options.signal?.aborted) break;
-        let current: Awaited<ReturnType<typeof detail>>;
+      const remaining = waitMs - (Date.now() - started);
+      if (remaining > 0) {
+        const lookup = withDeadline(options.signal, remaining);
         try {
-          current = await detail(taskId, options.signal);
-        } catch (error) {
-          // A single failed poll must not discard the task we already created.
-          noteError(error instanceof ManusError ? error.code : 'upstream_error');
-          break;
+          while (waitMs - (Date.now() - started) > MANUS_LIMITS.pollMs && !lookup.signal.aborted) {
+            await sleep(MANUS_LIMITS.pollMs, lookup.signal);
+            if (lookup.signal.aborted) break;
+            const current = await detail(taskId, lookup.signal);
+            Object.assign(view, current);
+            if (current.status === 'waiting' || isTerminalStatus(current.status)) break;
+          }
+          if (!lookup.signal.aborted && view.status !== 'deleted') {
+            const answer = await newestAnswer(taskId, lookup.signal);
+            if (answer) view.answer = answer;
+          }
+        } catch {
+          // A failed or timed-out read must not discard a task we already created.
+        } finally {
+          lookup.done();
         }
-        view.status = current.status;
-        if (current.title) view.title = current.title;
-        if (current.taskUrl) view.taskUrl = current.taskUrl;
-        if (typeof current.credits === 'number') view.credits = current.credits;
-        view.elapsedMs = Date.now() - started;
-
-        if (current.status === 'waiting') break; // needs a human; do not burn the allowance
-        if (isTerminalStatus(current.status)) break;
-      }
-
-      // Collect the text for a finished task, and the partial text for a running one:
-      // both are useful, and the second is what a reader sees if the budget ran out.
-      try {
-        const answer = await newestAnswer(taskId, options.signal);
-        if (answer) view.answer = answer;
-      } catch (error) {
-        noteError(error instanceof ManusError ? error.code : 'upstream_error');
       }
       view.elapsedMs = Date.now() - started;
       return view;
@@ -304,22 +297,24 @@ export function createManusClient(env: NodeJS.ProcessEnv): ManusClient {
     },
 
     async probe() {
-      if (!apiKey) return { auth: 'unreachable', code: 'not_configured', message: 'No MANUS_API_KEY' };
-      try {
-        // A probe that creates a task would cost credits. Reading an id that cannot
-        // exist distinguishes the only two things we care about: the key works
-        // (`not_found`) or it does not (`unauthenticated`).
-        await call(MANUS_PATHS.taskDetail, { method: 'GET', query: { task_id: 'insco-probe-not-a-task' } });
-        return { auth: 'ok' };
-      } catch (error) {
-        if (error instanceof ManusError) {
-          if (error.code === 'not_found') return { auth: 'ok' };
-          if (error.code === 'unauthenticated') return { auth: 'unauthenticated', code: error.code, message: error.message };
-          if (error.code === 'rate_limited') return { auth: 'ok', code: error.code, message: error.message };
-          return { auth: 'unreachable', code: error.code, message: error.message };
+      if (!apiKey) return { auth: 'unreachable' };
+      if (probeCache && probeCache.until > Date.now()) return probeCache.result;
+      // Coalesce requests for one minute per worker. A valid-shaped synthetic ID
+      // exercises authentication without creating a task or listing account data.
+      const result = (async (): Promise<ManusProbe> => {
+        try {
+          await call(MANUS_PATHS.taskDetail, {
+            method: 'GET', query: { task_id: '0000000000000000000000' }, probe: true,
+          });
+          return { auth: 'ok' };
+        } catch (error) {
+          if (error instanceof ManusError && error.code === 'not_found') return { auth: 'ok' };
+          if (error instanceof ManusError && error.code === 'unauthenticated') return { auth: 'unauthenticated' };
+          return { auth: 'unreachable' };
         }
-        return { auth: 'unreachable', code: 'upstream_error', message: safeDetail(error) };
-      }
+      })();
+      probeCache = { until: Date.now() + 60_000, result };
+      return result;
     },
 
     lastError() {

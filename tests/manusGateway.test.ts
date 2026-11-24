@@ -11,7 +11,9 @@ import assert from 'node:assert/strict';
 import { createServer, type Server } from 'node:http';
 import { AddressInfo } from 'node:net';
 import { after, before, test } from 'node:test';
-import { MANUS_ENDPOINTS, MANUS_LIMITS, manusFailureMessage, normaliseManusAsk } from '../src/ai/manusContract';
+import { MANUS_ENDPOINTS, MANUS_LIMITS, MANUS_TASK_RECEIPT_HEADER, manusFailureMessage, normaliseManusAsk } from '../src/ai/manusContract';
+import { createManusClient } from '../server/ai/manus';
+import { createManusTaskReceipts } from '../server/ai/manusReceipts';
 
 const MANUS_KEY = 'mn-test-key-not-a-real-one';
 
@@ -20,6 +22,9 @@ delete process.env.API_KEY;
 process.env.MANUS_API_KEY = MANUS_KEY;
 process.env.MANUS_AGENT_PROFILE = 'lite';
 process.env.MANUS_AUTO_FALLBACK = 'true';
+process.env.TUTOR_RATE_PER_MINUTE = '10';
+process.env.TUTOR_RATE_PER_DAY = '200';
+process.env.TUTOR_DAILY_LIMIT = '300';
 
 /* ------------------------------------------------------------------ */
 /* a fake Manus, with the parts of the v2 API the gateway uses          */
@@ -36,6 +41,8 @@ const upstream: UpstreamCall[] = [];
 let answer = 'إجابة مانوس التجريبية عن فحص UT.';
 let taskStatus = 'stopped';
 let rejectKey = false;
+let probeOverride: Response | undefined;
+let receipt: string;
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -52,7 +59,7 @@ function handleManus(url: string, init: RequestInit | undefined): Response {
   upstream.push({ url, method, key: key ? 'present' : 'missing', body });
 
   if (rejectKey || !key) {
-    return json({ ok: false, request_id: 'req_1', error: { code: 'unauthenticated', message: 'Invalid API key' } }, 401);
+    return json({ ok: false, request_id: 'req_1', error: { code: 'unauthenticated', message: `Invalid API key: ${key}` } }, 401);
   }
 
   const path = new URL(url).pathname;
@@ -68,6 +75,7 @@ function handleManus(url: string, init: RequestInit | undefined): Response {
   if (path === '/v2/task.detail') {
     const taskId = new URL(url).searchParams.get('task_id') ?? '';
     if (taskId !== 'task_test_1') {
+      if (probeOverride) return probeOverride;
       // The probe relies on exactly this: an id that cannot exist proves the key works
       // without creating — and paying for — a task.
       return json({ ok: false, request_id: 'req_3', error: { code: 'not_found', message: 'Task not found' } }, 404);
@@ -106,7 +114,8 @@ const realFetch = globalThis.fetch.bind(globalThis);
 globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
   const url =
     typeof input === 'string' ? input : input instanceof URL ? input.href : String((input as Request).url);
-  if (!url.startsWith('https://api.manus.ai')) return realFetch(input as RequestInfo, init);
+  if (new URL(url).origin !== 'https://api.manus.ai') return realFetch(input, init);
+  assert.equal(init?.redirect, 'error');
   return handleManus(url, init);
 }) as typeof fetch;
 
@@ -161,15 +170,53 @@ test('the status route reports Manus without leaking the key', async () => {
   assert.equal(JSON.stringify(body).includes(MANUS_KEY), false, 'the key must never be echoed');
 });
 
-test('the probe proves the key authenticates without creating a task', async () => {
-  const response = await fetch(`${base}${MANUS_ENDPOINTS.status}?probe=1`);
-  const body = (await response.json()) as { auth?: string; configured: boolean };
-  assert.equal(body.auth, 'ok', 'not_found on a probe id means the key works');
-  assert.equal(
-    upstream.some(call => call.url.includes('/v2/task.create')),
-    false,
-    'probing must not spend credits on a task'
-  );
+test('the probe is a coalesced read and does not record a missing probe ID as a generation failure', async () => {
+  assert.deepEqual(upstream, [], 'the default status call must not contact Manus');
+  const url = `${base}${MANUS_ENDPOINTS.status}?probe=1`;
+  const responses = await Promise.all([fetch(url), fetch(url)]);
+  for (const response of responses) {
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('Cache-Control'), 'no-store');
+    const body = await response.json();
+    assert.equal(body.auth, 'ok');
+    assert.equal(body.lastError, undefined);
+  }
+  assert.equal(upstream.length, 1);
+  assert.equal(upstream[0].method, 'GET');
+  assert.equal(new URL(upstream[0].url).pathname, '/v2/task.detail');
+  assert.match(new URL(upstream[0].url).searchParams.get('task_id') ?? '', /^[a-z0-9]{22}$/i);
+});
+
+test('rejected credentials, a generic 404, and a throttled probe do not report auth ok', async () => {
+  const client = () => createManusClient({ MANUS_API_KEY: MANUS_KEY });
+  try {
+    rejectKey = true;
+    assert.deepEqual(await client().probe(), { auth: 'unauthenticated' });
+    rejectKey = false;
+    for (const status of [404, 429]) {
+      probeOverride = new Response('Not available', { status });
+      assert.deepEqual(await client().probe(), { auth: 'unreachable' });
+    }
+  } finally {
+    rejectKey = false;
+    probeOverride = undefined;
+  }
+});
+
+test('a cancelled request never creates an upstream task', async () => {
+  const client = createManusClient({ MANUS_API_KEY: MANUS_KEY });
+  const before = upstream.length;
+  await assert.rejects(client.ask({ message: 'test', language: 'en' }, { signal: AbortSignal.abort() }), { code: 'timeout' });
+  assert.equal(upstream.length, before);
+});
+
+test('a malformed HTTP request cannot start a task', async () => {
+  const count = upstream.length;
+  const response = await fetch(`${base}${MANUS_ENDPOINTS.ask}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+  });
+  assert.equal(response.status, 400);
+  assert.equal(upstream.length, count);
 });
 
 test('asking Manus returns the answer and its task id', async () => {
@@ -177,19 +224,25 @@ test('asking Manus returns the answer and its task id', async () => {
   const response = await fetch(`${base}${MANUS_ENDPOINTS.ask}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message: 'ما الفرق بين PAUT و TOFD؟', language: 'ar', title: 'سؤال' }),
+    body: JSON.stringify({ message: 'ما الفرق بين PAUT و TOFD؟', language: 'ar', title: 'سؤال', connectors: ['ignored'] }),
   });
   assert.equal(response.status, 200, 'a finished task is a 200, not a 202');
-  const body = (await response.json()) as { taskId: string; status: string; answer?: string; taskUrl?: string };
+  assert.equal(response.headers.get('Cache-Control'), 'no-store');
+  const body = (await response.json()) as { taskId: string; status: string; answer?: string; taskUrl?: string; taskReceipt?: string };
   assert.equal(body.taskId, 'task_test_1');
   assert.equal(body.status, 'stopped');
   assert.equal(body.answer, answer);
-  assert.equal(body.taskUrl, 'https://manus.im/app/task_test_1', 'a reader must be able to open the task');
+  assert.equal(body.taskUrl, 'https://manus.im/app/task_test_1');
+  assert.ok(body.taskReceipt);
+  assert.doesNotMatch(JSON.stringify(body), new RegExp(MANUS_KEY));
 
   const create = upstream.find(call => call.url.includes('/v2/task.create'));
   assert.ok(create, 'the gateway must create the task it reports');
   assert.equal(create?.method, 'POST');
-  assert.deepEqual((create?.body as { message: { content: { text: string }[] } }).message.content[0].text, 'ما الفرق بين PAUT و TOFD؟');
+  assert.deepEqual(create.body, {
+    message: { content: [{ type: 'text', text: 'ما الفرق بين PAUT و TOFD؟', visibility: 'visible' }] },
+    locale: 'ar', agent_profile: 'lite', title: 'سؤال', clear_connectors: true, share_visibility: 'private', async_title: true,
+  });
   assert.equal(upstream.every(call => call.key === 'present'), true, 'every upstream call carries the key');
 });
 
@@ -200,21 +253,63 @@ test('a still-running task is a 202 that carries the id, not an error', async ()
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       // The caller may cap its own wait; the server still clamps it.
-      body: JSON.stringify({ message: 'مهمة طويلة', wait_ms: 2500 }),
+      body: JSON.stringify({ message: 'مهمة طويلة', wait_ms: 1000 }),
     });
     assert.equal(response.status, 202, 'work in progress is not a failure');
-    const body = (await response.json()) as { taskId: string; status: string };
+    const body = (await response.json()) as { taskId: string; status: string; taskReceipt: string };
     assert.equal(body.taskId, 'task_test_1');
     assert.equal(body.status, 'running');
+    assert.ok(body.taskReceipt);
+    receipt = body.taskReceipt;
   } finally {
     taskStatus = 'stopped';
   }
 });
 
-test('a task can be collected later by id', async () => {
-  const response = await fetch(`${base}${MANUS_ENDPOINTS.task}?task_id=task_test_1`);
+test('reading a task with a missing, changed, or mismatched receipt never calls upstream', async () => {
+  const count = upstream.length;
+  for (const [id, token] of [['task_test_1', ''], ['task_test_1', `${receipt}x`], ['another_task', receipt]]) {
+    const response = await fetch(`${base}${MANUS_ENDPOINTS.task}?task_id=${id}`, {
+      headers: token ? { [MANUS_TASK_RECEIPT_HEADER]: token } : {},
+    });
+    assert.equal(response.status, 403);
+    assert.equal(response.headers.get('Cache-Control'), 'no-store');
+    assert.equal((await response.json()).error.code, 'task_receipt_required');
+  }
+  assert.equal(upstream.length, count);
+});
+
+test('task receipts are signed, expire, and work across workers without a database', () => {
+  const env = { MANUS_API_KEY: MANUS_KEY };
+  let now = 1_800_000_000_000;
+  const issuer = createManusTaskReceipts(env, () => now);
+  const verifier = createManusTaskReceipts(env, () => now);
+  const value = issuer.issue('task-abc');
+  assert.ok(value);
+  assert.equal(verifier.allows('task-abc', value), true);
+  assert.equal(verifier.allows('task-def', value), false);
+  assert.equal(verifier.allows('task-abc', value.replace(/\d(?=\.)/, digit => String((Number(digit) + 1) % 10))), false);
+  assert.equal(createManusTaskReceipts({ MANUS_API_KEY: 'rotated' }, () => now).allows('task-abc', value), false);
+  now += 60 * 60_000;
+  assert.equal(verifier.allows('task-abc', value), false);
+});
+
+test('a task can be collected later by its receipt, including from Pages', async () => {
+  const url = `${base}${MANUS_ENDPOINTS.task}?task_id=task_test_1`;
+  const preflight = await fetch(url, {
+    method: 'OPTIONS', headers: {
+      Origin: 'https://ndt-insco.github.io', 'Access-Control-Request-Method': 'GET',
+      'Access-Control-Request-Headers': MANUS_TASK_RECEIPT_HEADER,
+    },
+  });
+  assert.equal(preflight.status, 204);
+  assert.ok(preflight.headers.get('Access-Control-Allow-Headers')?.includes(MANUS_TASK_RECEIPT_HEADER));
+  const response = await fetch(url, { headers: { [MANUS_TASK_RECEIPT_HEADER]: receipt, Origin: 'https://ndt-insco.github.io' } });
   assert.equal(response.status, 200);
-  const body = (await response.json()) as { status: string; answer?: string };
+  assert.equal(response.headers.get('Access-Control-Allow-Origin'), 'https://ndt-insco.github.io');
+  assert.equal(response.headers.get('Cache-Control'), 'no-store');
+  const body = (await response.json()) as { status: string; answer?: string; taskReceipt?: string };
+  assert.equal(body.taskReceipt, undefined);
   assert.equal(body.status, 'stopped');
   assert.equal(body.answer, answer);
 });
@@ -234,6 +329,7 @@ test('a missing task_id is a 400, and a rejected key is reported as such', async
     const body = (await response.json()) as { error: { code: string; message: string } };
     assert.equal(body.error.code, 'unauthenticated');
     assert.match(body.error.message, /MANUS_API_KEY/);
+    assert.equal(JSON.stringify(body).includes(MANUS_KEY), false);
   } finally {
     rejectKey = false;
   }
@@ -263,4 +359,61 @@ test('the tutor status publishes the second engine too', async () => {
   assert.equal(body.configured, true, 'the server can answer: Manus is configured even without Gemini');
   assert.equal(body.manus?.configured, true);
   assert.equal(body.manus?.baseUrl, 'https://api.manus.ai');
+});
+
+
+test('the tutor keeps its source and constraints on a Manus answer', async () => {
+  const response = await fetch(`${base}/api/ai/tutor`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt: 'ما الفرق بين PAUT و TOFD؟', language: 'ar' }),
+  });
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get('Content-Type') ?? '', /text\/event-stream/);
+  const stream = await response.text();
+  assert.match(stream, /"provider":"manus"/);
+  assert.ok(stream.includes(answer));
+  const create = upstream.findLast(call => call.url.endsWith('/v2/task.create'));
+  assert.match(JSON.stringify(create?.body), /لا تصدر قرار قبول/);
+});
+
+test('the community fallback stays a text reply, never a published or applied action', async () => {
+  const response = await fetch(`${base}/api/ai/community/assist`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'summarize', body: 'مشاركة تجريبية لشرح أساسيات PAUT و TOFD.', language: 'ar' }),
+  });
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.model, 'manus');
+  assert.equal(body.reply, answer);
+  assert.equal(body.suggestedActions, undefined);
+});
+
+test('the copilot does not send admin or client portal context to Manus', async () => {
+  const before = upstream.length;
+  for (const portal of ['admin', 'client']) {
+    const response = await fetch(`${base}/api/ai/agent/user-copilot`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: 'Private portal test', language: 'en', context: { portal } }),
+    });
+    assert.equal(response.status, 503);
+  }
+  assert.equal(upstream.length, before);
+});
+
+test('direct creation shares the gateway budget and does not bill once limited', async () => {
+  for (let attempt = 0; attempt <= 10; attempt++) {
+    const before = upstream.length;
+    const response = await fetch(`${base}${MANUS_ENDPOINTS.ask}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: 'rate fixture', wait_ms: 1000 }),
+    });
+    await response.json();
+    if (response.status === 429) {
+      assert.equal(upstream.length, before);
+      assert.ok(response.headers.get('Retry-After'));
+      return;
+    }
+    assert.equal(response.status, 202);
+  }
+  assert.fail('the gateway did not enforce its per-worker budget');
 });

@@ -10,7 +10,7 @@ export type Challenge = { kind: 'authenticate'; challenge: string }
   | { kind: 'register'; challenge: string; session: string; label: string };
 export interface PasswordGrant { scope: string; token: string }
 interface Session { expiresAt: number; passwordAt?: number }
-type Limit = { purpose: 'password' | 'passkey' | 'rfq'; window: number; perAddress: number; total: number };
+type Limit = { purpose: 'password' | 'passkey' | 'rfq' | 'factory'; window: number; perAddress: number; total: number };
 
 /** Cookie values are never stored; state scopes also isolate origins and credential rotations. */
 export function tokenDigest(token: string) {

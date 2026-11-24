@@ -128,7 +128,9 @@ export const VirtualEngineer: React.FC<Props> = ({ language, route }) => {
 
   return <div className="ve-root" dir={isAr ? 'rtl' : 'ltr'}>
     {open && <section className="ve-panel" aria-label={isAr ? 'المهندس الافتراضي' : 'Virtual Engineer'}>
-      <header className="ve-header"><div className="ve-avatar"><Bot size={23}/></div><div className="ve-heading"><strong>INSCO Virtual Engineer</strong><small>{isAr ? 'مدرّب الأكاديمية · ' + route : 'Academy tutor · ' + route}</small></div>
+      <header className="ve-header"><div className={`ve-avatar ve-character ${loading ? 'is-thinking' : answer ? 'is-speaking' : ''}`} role="img" aria-label={isAr ? 'المهندس الافتراضي' : 'Virtual engineer'}>
+          <span className="ve-engineer-helmet"/><span className="ve-engineer-face"><i/><i/></span><span className="ve-engineer-body"/>
+        </div><div className="ve-heading"><strong>INSCO Virtual Engineer</strong><small>{isAr ? 'مدرّب الأكاديمية · ' + route : 'Academy tutor · ' + route}</small></div>
         <button type="button" onClick={() => setExpanded(v => !v)} aria-label={isAr ? 'تصغير' : 'Minimize'}><Minimize2 size={17}/></button>
         <button type="button" onClick={handleClose} aria-label={isAr ? 'إغلاق' : 'Close'}><X size={18}/></button></header>
       {expanded && <div className="ve-body">

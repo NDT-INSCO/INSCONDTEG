@@ -1,6 +1,7 @@
-# INSCO — https://ndt-insco.github.io/INSCONDTEG/
 User-agent: *
 Allow: /
-Disallow: /api/
+Disallow: /admin
+Disallow: /*?*translate=
+Disallow: /*?*lang=
 
 Sitemap: https://ndt-insco.github.io/INSCONDTEG/sitemap.xml

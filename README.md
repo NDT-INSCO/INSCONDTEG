@@ -79,6 +79,7 @@ npm run build && npm run site:check
 | `documentation/UNIVERSITY_AR.md` | الجامعة الروبوتية: التخصصات، روبوتات الجمع، الخلايا العصبية، الأرشفة و«المعمل» |
 | `documentation/TRANSLATOR_ROBOT_AR.md` | مترجم إنسكو الذكي — ترجمة الموقع لأي لغة في العالم |
 | `documentation/GEO_LOCALE_AR.md` | روبوت الموقع الجغرافي — فتح الموقع تلقائياً بلغة الزائر حسب اللوكيشن |
+| `documentation/INTEGRATIONS_AR.md` | تكاملات Drive و Vercel — النسخ وال نشر |
 | `documentation/EDB_FORMAT_AR.md` | صيغة مكتبة EDB |
 | `documentation/NDE_ED_REVIEW_AR.md` | إجراء مراجعة المحتوى |
 

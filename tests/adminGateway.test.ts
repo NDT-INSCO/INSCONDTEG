@@ -9,6 +9,8 @@ import { ADMIN_API, ANNOUNCEMENT_API } from '../src/admin/contract';
 import { handleRfqRequest } from '../src/rfq/gateway';
 import { adminConfig, createAdminRouter, publicAnnouncement, publicSiteCors } from '../server/admin/router';
 import { AdminStore, adminDatabasePath, deliverToInbox } from '../server/admin/store';
+import type { FactoryDrafter } from '../server/admin/factory';
+import './helpers/adminFactoryCases';
 
 const PIN = '054132698710'; // An isolated test fixture, never an application default.
 const ORIGIN = 'https://insco-test.example';
@@ -24,7 +26,9 @@ const sample = {
   pageUrl: 'https://example.test/private',
 };
 
-async function fixture(t: TestContext, { enabled = true, persisted = false, password }: { enabled?: boolean; persisted?: boolean; password?: string } = {}) {
+async function fixture(t: TestContext, { enabled = true, persisted = false, password, draftFactory }: {
+  enabled?: boolean; persisted?: boolean; password?: string; draftFactory?: FactoryDrafter;
+} = {}) {
   let store: AdminStore | null = null;
   let clock = Date.parse('2026-11-18T08:00:00Z');
   let file = ':memory:';
@@ -36,7 +40,7 @@ async function fixture(t: TestContext, { enabled = true, persisted = false, pass
   if (enabled) store = new AdminStore(file);
   const app = express();
   const config = adminConfig(enabled ? { ADMIN_ORIGIN: ORIGIN, ADMIN_PASSWORD: password, ADMIN_PIN: PIN } : {}, true);
-  app.use(ADMIN_API, createAdminRouter({ config, store, services: { tutorConfigured: false, rfqNotificationsConfigured: false }, now: () => clock }));
+  app.use(ADMIN_API, createAdminRouter({ config, store, draftFactory, services: { tutorConfigured: false, rfqNotificationsConfigured: false }, now: () => clock }));
   app.get(ANNOUNCEMENT_API, publicSiteCors(PAGES), publicAnnouncement(store));
   app.options('/api/rfq', publicSiteCors(PAGES));
   app.post('/api/rfq', publicSiteCors(PAGES), express.json(), async (req, res) => {
@@ -201,4 +205,75 @@ test('private storage is rejected in the static document root or a symlink into 
   symlinkSync(publicDir, join(dir, 'linked'));
   assert.throws(() => adminDatabasePath(join(publicDir, 'admin'), [publicDir]), /public site directory/);
   assert.throws(() => adminDatabasePath(join(dir, 'linked'), [publicDir]), /public site directory/);
+});
+
+const factoryPath = `${ADMIN_API}/factory/draft`;
+const factoryInput = {
+  task: 'inbox', output: 'bot', trigger: 'daily', locale: 'en', language: 'Python', brief: 'Prepare an internal staff review.',
+  cells: ['input', 'rule', 'draft'], includeSnapshot: false,
+};
+const factoryDraft = { title: 'Internal follow-up', summary: 'A draft for a person to review.', steps: [{ kind: 'input', label: 'Read counts' }], code: null, checks: ['Use a synthetic sample'] };
+
+test('factory AI is private, same-origin, and only gets an optional aggregate snapshot', async t => {
+  const attempts: Parameters<FactoryDrafter>[] = [];
+  const { call, login, advance, store } = await fixture(t, { draftFactory: async (...args) => { attempts.push(args); return factoryDraft; } });
+  const readContext = t.mock.method(store!, 'factoryContext');
+  assert.equal((await call('/api/rfq', { method: 'POST', origin: PAGES, body: sample })).status, 200);
+  await call(factoryPath, { method: 'POST', body: factoryInput }).then(async response => {
+    assert.equal(response.status, 401);
+    assert.deepEqual(await response.json(), { error: 'signed_out' });
+  });
+  advance(49 * HOURS);
+  const { cookie } = await login();
+  assert.equal((await call(factoryPath, { method: 'POST', origin: PAGES, cookie, body: factoryInput })).status, 403);
+  assert.equal((await call(factoryPath, { method: 'POST', cookie, body: { ...factoryInput, cells: ['execute'] } })).status, 400);
+  assert.equal(attempts.length, 0);
+  const result = await call(factoryPath, { method: 'POST', cookie, body: { ...factoryInput, snapshot: { email: sample.email } } });
+  assert.equal(result.status, 200);
+  assert.equal(result.headers.get('Cache-Control'), 'no-store');
+  assert.equal(result.headers.has('Access-Control-Allow-Origin'), false);
+  assert.deepEqual(await result.json(), factoryDraft);
+  assert.deepEqual(attempts[0][0], factoryInput);
+  assert.equal(attempts[0][1], null);
+  assert.equal(readContext.mock.callCount(), 0);
+  await store!.saveAnnouncement({ enabled: true, message: { ar: 'أخبار تجريبية', en: 'Test news' } }, '2026-11-20T08:00:00.000Z');
+  assert.equal((await call(factoryPath, { method: 'POST', cookie, body: { ...factoryInput, includeSnapshot: true } })).status, 200);
+  assert.equal(readContext.mock.callCount(), 1);
+  assert.deepEqual(attempts[1][1], { capturedAt: '2026-11-20T09:00:00.000Z', newRequests: 1, inProgress: 0, overdue: 1, announcementEnabled: true });
+  const dash = await call(`${ADMIN_API}/dashboard`, { cookie }).then(res => res.json());
+  assert.equal(dash.services.factoryAiConfigured, true);
+  assert.equal(dash.totals.new, 1, 'a draft does not change the live inbox');
+  await call(`${ADMIN_API}/logout`, { method: 'POST', cookie });
+  assert.equal((await call(factoryPath, { method: 'POST', cookie, body: factoryInput })).status, 401);
+});
+
+test('factory model failures return bounded errors and cannot bypass the generation budget', async t => {
+  let generations = 0;
+  const { call, login } = await fixture(t, { draftFactory: async () => {
+    generations++;
+    if (generations === 1) throw new Error('do not expose upstream diagnostics');
+    return { ...factoryDraft, steps: [{ kind: 'unsupported_action', label: 'Wrong shape' }] };
+  } });
+  const { cookie } = await login();
+  const draft = () => call(factoryPath, { method: 'POST', cookie, body: factoryInput });
+  const out = await draft();
+  assert.equal(out.status, 502);
+  assert.deepEqual(await out.json(), { error: 'factory_unavailable' });
+  for (let i = 0; i < 3; i++) {
+    const invalid = await draft();
+    assert.equal(invalid.status, 502);
+    assert.deepEqual(await invalid.json(), { error: 'factory_invalid_draft' });
+  }
+  const limited = await draft();
+  assert.equal(limited.status, 429);
+  assert.ok(Number(limited.headers.get('Retry-After')) > 0);
+  assert.equal(generations, 4);
+});
+
+test('no factory model key never makes drafts look available', async t => {
+  const { call, login } = await fixture(t);
+  const { cookie } = await login();
+  const res = await call(factoryPath, { method: 'POST', cookie, body: factoryInput });
+  assert.equal(res.status, 503);
+  assert.deepEqual(await res.json(), { error: 'factory_not_configured' });
 });

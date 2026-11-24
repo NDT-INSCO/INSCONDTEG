@@ -11,7 +11,6 @@ import {
   TutorMeta,
   TutorStatus,
 } from '../../ai/contract';
-import './VirtualEngineer.css';
 
 type Props = { language: Language; route: string };
 

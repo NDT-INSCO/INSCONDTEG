@@ -71,6 +71,8 @@ export async function createOperations(env: NodeJS.ProcessEnv, { production, bas
       region: env.VERCEL_REGION || null,
       aiKeyPresent: flag('GEMINI_API_KEY') || flag('API_KEY'),
       hasAiRoute: true,
+      // A build capability, not a claim that a visitor has a session or a usable model key.
+      hasAdminFactoryRoute: true,
       node: process.version,
     });
   });

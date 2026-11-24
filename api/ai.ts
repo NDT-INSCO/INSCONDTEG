@@ -10,10 +10,13 @@
  * The reviewed corpus (`edb/`) is bundled with the function (see `vercel.json`
  * `includeFiles`) because the tutor reads it from disk at request time.
  */
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import express from 'express';
+import express, { type Request, type Response } from 'express';
+import { GoogleGenAI } from '@google/genai';
 import { createAiGateway } from '../server/ai/gateway.js';
+import { createChatGptStreamRouter } from '../server/ai/chatgptStream.js';
+import { buildTutorLibrary } from '../server/tutor/library.js';
 
 // The corpus is read from `edb/` at request time. `includeFiles` bundles `public/edb`,
 // and `dist` stays first for a local run of the built app. Nothing here guesses: when
@@ -36,6 +39,50 @@ app.use((_req, res, next) => {
   next();
 });
 
+// The standalone server and Vercel expose the exact same ChatGPT stream handler. The
+// browser previously hit the gateway's generic 404 on this route, despite its UI and
+// server.ts implementation being present.
+const chatKey = (process.env.GEMINI_API_KEY || process.env.API_KEY || '').trim();
+let chatAi: GoogleGenAI | null = null;
+if (chatKey) {
+  try {
+    chatAi = new GoogleGenAI({ apiKey: chatKey, httpOptions: { headers: { 'User-Agent': 'aistudio-build' } } });
+  } catch {
+    chatAi = null;
+  }
+}
+let chatLibrary: ReturnType<typeof buildTutorLibrary> | null = null;
+const loadChatLibrary = async () => {
+  chatLibrary ??= buildTutorLibrary(
+    file => readFileSync(path.join(edbRoot, 'edb', file), 'utf8'),
+    { allowAcademyFallback: process.env.TUTOR_ALLOW_ACADEMY_FALLBACK !== 'false' }
+  );
+  return chatLibrary.library;
+};
+const chatRateBuckets = new Map<string, { start: number; count: number }>();
+const chatGuard = (req: Request, res: Response, lang: 'ar' | 'en'): boolean => {
+  const ip = (req.ip || req.socket.remoteAddress || 'unknown').slice(0, 80);
+  const now = Date.now();
+  const bucket = chatRateBuckets.get(ip);
+  if (!bucket || now - bucket.start >= 60_000) chatRateBuckets.set(ip, { start: now, count: 1 });
+  else if (bucket.count >= 8) {
+    res.setHeader('Retry-After', '60');
+    res.status(429).json({ error: { code: 'rate_limited', message: lang === 'ar' ? 'تم تجاوز حد الطلبات؛ حاول بعد دقيقة.' : 'Rate limit reached; retry in one minute.' } });
+    return false;
+  } else bucket.count += 1;
+  if (!chatAi) {
+    res.status(503).json({ error: { code: 'not_configured', message: lang === 'ar' ? 'خدمة البحث والتوليد غير مهيأة على الخادم.' : 'The server-side Gemini service is not configured.' } });
+    return false;
+  }
+  return true;
+};
+app.use(express.json({ limit: '6mb' }));
+app.use(createChatGptStreamRouter({
+  ai: chatAi,
+  guardAgentPreconditions: chatGuard,
+  loadAiLibrary: loadChatLibrary,
+  requestTimeoutMs: 53_000,
+}));
 app.use(createAiGateway(edbRoot));
 app.use((_req, res) => {
   res.status(404).json({ error: { code: 'not_found', message: 'Unknown AI route.' } });

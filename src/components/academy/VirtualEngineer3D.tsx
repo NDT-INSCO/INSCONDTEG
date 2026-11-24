@@ -1,15 +1,18 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
-type Props = { speaking: boolean; thinking: boolean };
+type LessonFocus = 'ascan' | 'dac' | 'ut';
+type Props = { speaking: boolean; thinking: boolean; lesson: LessonFocus };
 
-export const VirtualEngineer3D: React.FC<Props> = ({ speaking, thinking }) => {
+export const VirtualEngineer3D: React.FC<Props> = ({ speaking, thinking, lesson }) => {
   const hostRef = useRef<HTMLDivElement>(null);
   const speakingRef = useRef(speaking);
   const thinkingRef = useRef(thinking);
+  const lessonRef = useRef(lesson);
 
   useEffect(() => { speakingRef.current = speaking; }, [speaking]);
   useEffect(() => { thinkingRef.current = thinking; }, [thinking]);
+  useEffect(() => { lessonRef.current = lesson; }, [lesson]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -162,7 +165,9 @@ export const VirtualEngineer3D: React.FC<Props> = ({ speaking, thinking }) => {
         const time = clock.getElapsedTime();
         engineer.position.y = Math.sin(time * 1.4) * 0.025;
         head.rotation.y = thinkingRef.current ? Math.sin(time * 2) * 0.09 : Math.sin(time * 0.55) * 0.025;
-        leftArm.rotation.z = -0.035 + Math.sin(time * (speakingRef.current ? 3.2 : 0.8)) * (speakingRef.current ? 0.055 : 0.018);
+        const targetAngle = lessonRef.current === 'dac' ? -0.16 : lessonRef.current === 'ut' ? 0.12 : 0;
+        leftArm.rotation.z += (targetAngle - leftArm.rotation.z) * 0.055;
+        leftArm.rotation.z += Math.sin(time * (speakingRef.current ? 3.2 : 0.8)) * (speakingRef.current ? 0.012 : 0.004);
         mouth.scale.y = speakingRef.current ? 0.18 + Math.abs(Math.sin(time * 10)) * 0.75 : 0.12;
         activeRenderer.render(scene, camera);
       };

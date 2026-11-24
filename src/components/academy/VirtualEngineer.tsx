@@ -99,7 +99,7 @@ export const VirtualEngineer: React.FC<Props> = ({ language, route }) => {
           if (answerRef.current.trim()) {
             history.current = [
               ...messages,
-              { role: 'assistant', content: answerRef.current },
+              { role: 'assistant' as const, content: answerRef.current },
             ].slice(-20);
           }
           setLoading(false);

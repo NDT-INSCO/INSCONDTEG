@@ -78,6 +78,7 @@ npm run build && npm run site:check
 | `documentation/AI_STUDIO_AR.md` | المستشار الذكي والتكلفة والنشر |
 | `documentation/TRANSLATOR_ROBOT_AR.md` | مترجم إنسكو الذكي — ترجمة الموقع لأي لغة في العالم |
 | `documentation/GEO_LOCALE_AR.md` | روبوت الموقع الجغرافي — فتح الموقع تلقائياً بلغة الزائر حسب اللوكيشن |
+| `documentation/INTEGRATIONS_AR.md` | تكاملات Drive و Vercel — النسخ وال نشر |
 | `documentation/EDB_FORMAT_AR.md` | صيغة مكتبة EDB |
 | `documentation/NDE_ED_REVIEW_AR.md` | إجراء مراجعة المحتوى |
 

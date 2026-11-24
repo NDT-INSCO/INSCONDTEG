@@ -192,6 +192,7 @@ const PER_DAY = Math.max(1, parseInt(process.env.TUTOR_RATE_PER_DAY || '200', 10
 // The limits above exist to protect a paid quota. The local engine spends no quota — only
 // CPU on the instance already serving the page — so throttling it as if it were a model
 // would refuse readers for nothing. It keeps a ceiling, for abuse, and nothing more.
+const LOCAL_PASSAGES = Math.max(5, parseInt(process.env.LOCAL_PASSAGES || '9', 10));
 const LOCAL_PER_MINUTE = Math.max(PER_MINUTE, parseInt(process.env.LOCAL_RATE_PER_MINUTE || '45', 10));
 const LOCAL_PER_DAY = Math.max(PER_DAY, parseInt(process.env.LOCAL_RATE_PER_DAY || '5000', 10));
 /**
@@ -927,7 +928,9 @@ async function prepare(body: unknown, res: Response): Promise<TutorPayload | nul
   const library = await loadAiLibrary();
   const request = parsed.value;
   const question = latestQuestion(request);
-  const hits = library.retrieve(question);
+  // The composer reads more passages than a model prompt would: it must find a sentence
+  // about each method being compared, not merely the five best-scoring ones.
+  const hits = library.retrieve(question, LOCAL_ONLY ? LOCAL_PASSAGES : undefined);
   const reviewed = library.source === 'reviewed';
   const citations = hits.map(hit => toCitation(hit, reviewed));
   const context = buildContext(hits, request.language);

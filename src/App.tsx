@@ -11,6 +11,10 @@ import { GlobalAppConfigControl } from './components/GlobalAppConfigControl';
 import { SiteAccountActions } from './components/account/SiteAccountActions';
 import { SiteAccountProvider, useSiteAccount } from './account/SiteAccountContext';
 import { InscoDualAiDock } from './components/ai/InscoDualAiDock';
+import { TranslatorRobot } from './components/TranslatorRobot';
+import { GeoLocaleBanner } from './components/GeoLocaleBanner';
+import { getRobotTarget } from './i18n/translationStore';
+import { markManualOverride } from './i18n/geoLocale';
 import { Language } from './types';
 import { AcademyTab } from './academyTabs';
 import { ADMIN_HASH } from './admin/contract';
@@ -200,9 +204,19 @@ export const App: React.FC = () => {
     };
   }, [portal, adminOpen]);
 
+  const switchLanguage = useCallback((next: Language) => {
+    try { localStorage.setItem(LANGUAGE_KEY, next); } catch { /* ignore */ }
+    markManualOverride();
+    setLanguage(next);
+  }, []);
+
   useEffect(() => {
-    document.documentElement.lang = language;
-    document.documentElement.dir = isAr ? 'rtl' : 'ltr';
+    // While the Translator Robot is active it owns <html lang/dir> (the
+    // translated language may be RTL even when the native site is LTR).
+    if (!getRobotTarget()) {
+      document.documentElement.lang = language;
+      document.documentElement.dir = isAr ? 'rtl' : 'ltr';
+    }
     try {
       localStorage.setItem(LANGUAGE_KEY, language);
     } catch {
@@ -596,7 +610,7 @@ export const App: React.FC = () => {
           <AdminPortal
             language={language}
             onBack={closeAdmin}
-            onToggleLanguage={() => setLanguage(isAr ? 'en' : 'ar')}
+            onToggleLanguage={() => switchLanguage(isAr ? 'en' : 'ar')}
           />
         </Suspense>
       </div>
@@ -624,7 +638,7 @@ export const App: React.FC = () => {
           <header className="border-b border-violet-500/20 bg-slate-950">
             <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-end gap-2 px-4 pt-2 sm:px-6">
               <GlobalThemeSwitcher language={language} />
-              <button type="button" onClick={() => setLanguage(isAr ? 'en' : 'ar')} className="rounded-lg border border-slate-700 px-2.5 py-1.5 text-xs font-semibold text-white">
+              <button type="button" onClick={() => switchLanguage(isAr ? 'en' : 'ar')} className="rounded-lg border border-slate-700 px-2.5 py-1.5 text-xs font-semibold text-white">
                 {isAr ? 'English' : 'العربية'}
               </button>
             </div>
@@ -851,7 +865,7 @@ export const App: React.FC = () => {
 
               <button
                 type="button"
-                onClick={() => setLanguage(isAr ? 'en' : 'ar')}
+                onClick={() => switchLanguage(isAr ? 'en' : 'ar')}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-700 text-xs text-slate-200 hover:bg-slate-800 transition cursor-pointer"
               >
                 <Globe className="w-3.5 h-3.5" aria-hidden="true" />
@@ -1076,6 +1090,10 @@ export const App: React.FC = () => {
       />
     </div>
     )}
+    {/* Geo-aware auto-translation (IP → country → language): opens the site in the visitor's language, change always optional */}
+    <GeoLocaleBanner source={language} onSwitchNativeLanguage={switchLanguage} />
+    {/* Universal Translator Robot — every world language, on every portal. */}
+    <TranslatorRobot source={language} />
     </SiteAccountProvider>
   );
 };

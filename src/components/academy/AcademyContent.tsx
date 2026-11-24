@@ -8,6 +8,7 @@ import { AcademyHub } from './AcademyHub';
 import { AcademyAccountScope } from './AcademyAccountScope';
 import { AcademyDisciplineIndex } from './AcademyDisciplineIndex';
 import { AcademyDisciplinePage } from './AcademyDisciplinePage';
+import { VirtualEngineer } from './VirtualEngineer';
 import {
   ACADEMY_SECTIONS,
   ACADEMY_SECTION_COPY,
@@ -19,25 +20,15 @@ interface AcademyContentProps {
   language: Language;
   route: AcademyRoute;
   onOpenHash: (hash: string) => void;
-  /** A tab changed inside a section (the academy writes the legacy `#tab`). */
   onTabChange?: (tab: AcademyTab) => void;
 }
 
-/**
- * The academy pages, behind one code-split boundary.
- *
- * Four page types:
- *   `#academy`                    the learner's own home
- *   `#academy/disciplines`        the eight-discipline shelf
- *   `#academy/disciplines/<id>`   one discipline, its levels and its labs
- *   `#academy/<section>`          one section of the journey, and nothing else
- *
- * Keeping them in one module means the curriculum data and the simulators are
- * fetched once, when the academy is actually opened — the corporate profile
- * never pays for them.
- */
+/** The academy pages, behind one code-split boundary. */
 export const AcademyContent: React.FC<AcademyContentProps> = props => (
-  <AcademyAccountScope language={props.language}><AcademyPage {...props} /></AcademyAccountScope>
+  <AcademyAccountScope language={props.language}>
+    <AcademyPage {...props} />
+    <VirtualEngineer language={props.language} route={props.route.page} />
+  </AcademyAccountScope>
 );
 
 const AcademyPage: React.FC<AcademyContentProps> = ({

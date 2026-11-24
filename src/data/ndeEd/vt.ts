@@ -87,11 +87,36 @@ export const vtCourse: NdeEdCourse = {
         'القدرة على تمييز تفصيل لا تعني رؤيته عند تباين منخفض أو إضاءة غير مناسبة.',
         'Resolving detail does not mean seeing it under low contrast or unsuitable lighting.'
       ),
+      quizBank: [
+        quiz('vt-perception-q2', 'لماذا تعد الإضاءة عاملاً حاسماً في الفحص البصري؟', 'Why is lighting critical in visual testing?', [['لأنها تؤثر على قدرة العين على تمييز التفاصيل والتباين','Because it affects the eye's ability to distinguish detail and contrast'], ['لأنها تغير نوع المعدن','Because it changes the metal type'], ['لأنها تلغي الحاجة للمقياس','Because it removes the need for gauges'], ['لأنها تزيد سمك اللحام','Because it increases weld thickness']], 0, 'التباين والإضاءة يحددان ما يمكن رؤيته وقياسه بصرياً.', 'Contrast and lighting determine what can be seen and measured visually.', { category: 'understanding', difficulty: 'easy', reviewStatus: 'draft' }),
+        quiz('vt-perception-q3', 'إذا كانت الإضاءة غير كافية، ما المخاطر المحتملة؟', 'If lighting is insufficient, what is a likely risk?', [['تفويت عيوب سطحية أو قياس خاطئ','Missing surface flaws or making wrong measurements'], ['تحسن دقة القياس','Improved measurement accuracy'], ['لا تأثير على النتيجة','No effect on result'], ['زيادة حساسية MT تلقائياً','Automatic MT sensitivity increase']], 0, 'ضعف الإضاءة يقلل قابلية اكتشاف العيوب والتفاصيل.', 'Poor lighting reduces detectability of flaws and details.', { category: 'application', difficulty: 'easy', reviewStatus: 'draft' }),
+      ],
+
       sources: ['nde-visual-acuity', 'nde-contrast', 'nde-light-response'],
       prerequisiteLessonIds: [],
       assumptionsAndLimits: [
         t('هذا الدرس تعليمي ويحتاج تطبيقه في الميدان إلى إجراء معتمد ومؤهل مختص.', 'This lesson is educational; field application requires an approved procedure and qualified personnel.'),
         t('أي قرار قبول/رفض أو صلاحية للخدمة يتبع الكود/الإجراء المعتمد وليس هذا الملخص.', 'Any acceptance/rejection or fitness-for-service decision follows the approved code/procedure, not this summary.'),
+      ],
+      referenceTrace: [
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-visual-acuity',
+          verified: true,
+          note: t('مرجع قراءة داعم: Penetrant — Visual Acuity of the Human Eye.', 'Supporting reading: Penetrant — Visual Acuity of the Human Eye.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-contrast',
+          verified: true,
+          note: t('مرجع قراءة داعم: Penetrant — Contrast Sensitivity.', 'Supporting reading: Penetrant — Contrast Sensitivity.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-light-response',
+          verified: true,
+          note: t('مرجع قراءة داعم: Penetrant — The Human Eye’s Response to Light.', 'Supporting reading: Penetrant — The Human Eye’s Response to Light.'),
+        }
       ],
       governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'academic', moduleId: 'mod_c_acad_vt' },
@@ -153,11 +178,30 @@ export const vtCourse: NdeEdCourse = {
         'القبول يعتمد على معيار محدد وخدمة محددة، لا على الرقم وحده.',
         'Acceptance depends on a specific criterion and service, not a number alone.'
       ),
+      quizBank: [
+        quiz('vt-weld-geometry-q2', 'أي أداة تستخدم عادة لقياس تقعر/تحدب اللحام وHi-Lo؟', 'Which tool is commonly used to measure weld reinforcement and Hi-Lo?', [['مقياس لحام مثل Cambridge gauge','A weld gauge such as a Cambridge gauge'], ['مسبار UT فقط','Only a UT probe'], ['مقياس إشعاع','Radiation meter'], ['ميزان حرارة','Thermometer']], 0, 'مقاييس اللحام مصممة لقياسات هندسة الوصلة.', 'Weld gauges are designed for joint geometry measurements.', { category: 'knowledge', difficulty: 'easy', reviewStatus: 'draft' }),
+        quiz('vt-weld-geometry-q3', 'لماذا يجب تسجيل الوحدة والمرجع عند قياس Hi-Lo؟', 'Why must units and datum be recorded when measuring Hi-Lo?', [['لأن القراءة بدون مرجع ووحدة غير قابلة للتفسير أو التتبع','Because a reading without datum and unit cannot be interpreted or traced'], ['لأن الكود يمنع القياس','Because code forbids measurement'], ['لتغيير نتيجة القياس','To change the measurement result'], ['لإلغاء الحاجة للتقرير','To avoid reporting']], 0, 'التتبع يعتمد على ما تم قياسه، كيف، وبأي وحدة.', 'Traceability depends on what was measured, how, and in which unit.', { category: 'application', difficulty: 'medium', reviewStatus: 'draft' }),
+      ],
+
       sources: ['asnt-vt', 'nde-materials'],
       prerequisiteLessonIds: ['vt-perception'],
       assumptionsAndLimits: [
         t('هذا الدرس تعليمي ويحتاج تطبيقه في الميدان إلى إجراء معتمد ومؤهل مختص.', 'This lesson is educational; field application requires an approved procedure and qualified personnel.'),
         t('أي قرار قبول/رفض أو صلاحية للخدمة يتبع الكود/الإجراء المعتمد وليس هذا الملخص.', 'Any acceptance/rejection or fitness-for-service decision follows the approved code/procedure, not this summary.'),
+      ],
+      referenceTrace: [
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'asnt-vt',
+          verified: true,
+          note: t('مرجع قراءة داعم: Visual Testing — method overview.', 'Supporting reading: Visual Testing — method overview.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-materials',
+          verified: true,
+          note: t('مرجع قراءة داعم: Physics — Materials and Processes.', 'Supporting reading: Physics — Materials and Processes.'),
+        }
       ],
       governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'academic', moduleId: 'mod_c_acad_vt' },
@@ -220,11 +264,36 @@ export const vtCourse: NdeEdCourse = {
         'ظروف المشاهدة القابلة للقياس والتوثيق تجعل النتيجة قابلة للتكرار.',
         'Measurable, documented viewing conditions make the result repeatable.'
       ),
+      quizBank: [
+        quiz('vt-lighting-surface-q2', 'ما الذي قد يخفيه سطح خشن أو ملون بشكل سيئ أثناء VT؟', 'What can a rough or poorly conditioned surface hide during VT?', [['شقوق سطحية دقيقة أو دلالات صغيرة','Fine surface cracks or small indications'], ['عيوب تحت سطحية عميقة دائماً','Always deep subsurface flaws'], ['تركيب المادة الكيميائي','Chemical composition'], ['سرعة الموجة الصوتية','Sound velocity']], 0, 'حالة السطح تؤثر مباشرة على إمكانية الرؤية.', 'Surface condition directly affects visibility.', { category: 'understanding', difficulty: 'easy', reviewStatus: 'draft' }),
+        quiz('vt-lighting-surface-q3', 'متى يكون التنظيف أو التحضير الإضافي ضرورياً قبل VT؟', 'When is additional cleaning/preparation necessary before VT?', [['عندما تمنع الصدأ أو الطلاء أو الأوساخ رؤية منطقة الفحص','When rust, paint or contamination prevents viewing the inspection area'], ['دائماً غير مطلوب','Never required'], ['فقط بعد الإصلاح الإشعاعي','Only after radiographic repair'], ['عند استخدام UT فقط','Only when using UT']], 0, 'لا يمكن تقييم ما لا يمكن رؤيته بوضوح.', 'You cannot evaluate what cannot be clearly seen.', { category: 'application', difficulty: 'easy', reviewStatus: 'draft' }),
+      ],
+
       sources: ['nde-pt-lighting', 'nde-light-response', 'nde-materials'],
       prerequisiteLessonIds: ['vt-perception'],
       assumptionsAndLimits: [
         t('هذا الدرس تعليمي ويحتاج تطبيقه في الميدان إلى إجراء معتمد ومؤهل مختص.', 'This lesson is educational; field application requires an approved procedure and qualified personnel.'),
         t('أي قرار قبول/رفض أو صلاحية للخدمة يتبع الكود/الإجراء المعتمد وليس هذا الملخص.', 'Any acceptance/rejection or fitness-for-service decision follows the approved code/procedure, not this summary.'),
+      ],
+      referenceTrace: [
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-pt-lighting',
+          verified: true,
+          note: t('مرجع قراءة داعم: Penetrant — Quality Control of Lighting.', 'Supporting reading: Penetrant — Quality Control of Lighting.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-light-response',
+          verified: true,
+          note: t('مرجع قراءة داعم: Penetrant — The Human Eye’s Response to Light.', 'Supporting reading: Penetrant — The Human Eye’s Response to Light.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-materials',
+          verified: true,
+          note: t('مرجع قراءة داعم: Physics — Materials and Processes.', 'Supporting reading: Physics — Materials and Processes.'),
+        }
       ],
       governance: GOV,
       textbook: { bookId: 'book-vt', pageNumber: 3 },
@@ -286,11 +355,36 @@ export const vtCourse: NdeEdCourse = {
         'الوصف الأمين يحفظ المعلومة دون تجاوز الأدلة، ثم يوجه التحقق.',
         'An honest description preserves the observation without overclaiming and directs verification.'
       ),
+      quizBank: [
+        quiz('vt-records-q2', 'ما أقل عناصر التوثيق البصري الجيد؟', 'What are minimum elements of good visual inspection documentation?', [['الموقع، الحالة/الملاحظة، القياس، الصور/المرجع، والتاريخ/المفتش','Location, observation, measurement, photo/reference, and date/inspector'], ['اللون فقط','Color only'], ['رأي شخصي بدون بيانات','Personal opinion without data'], ['اسم الجهاز فقط','Only instrument name']], 0, 'التوثيق الجيد يسمح بإعادة الفهم والمراجعة.', 'Good documentation allows review and traceability.', { category: 'knowledge', difficulty: 'easy', reviewStatus: 'draft' }),
+        quiz('vt-records-q3', 'لماذا لا ينبغي إصدار قرار قبول كودي دون مرجع الإصدار والفقرة؟', 'Why should a code acceptance decision not be issued without edition/clause reference?', [['لأن متطلبات القبول تعتمد على الكود والإصدار والنطاق','Because acceptance requirements depend on code, edition and scope'], ['لأن الصور غير مسموحة','Because photos are not allowed'], ['لأن VT لا يحتاج معياراً أبداً','Because VT never needs a standard'], ['لأن التقرير يجب أن يكون قصيراً','Because report must be short']], 0, 'قرار القبول قرار معياري/إجرائي ويجب أن يكون قابلاً للتتبع.', 'Acceptance is a code/procedure decision and must be traceable.', { category: 'critical_thinking', difficulty: 'medium', reviewStatus: 'draft' }),
+      ],
+
       sources: ['nde-visual-acuity', 'asnt-vt', 'nde-pt-defect'],
       prerequisiteLessonIds: ['vt-weld-geometry', 'vt-lighting-surface'],
       assumptionsAndLimits: [
         t('هذا الدرس تعليمي ويحتاج تطبيقه في الميدان إلى إجراء معتمد ومؤهل مختص.', 'This lesson is educational; field application requires an approved procedure and qualified personnel.'),
         t('أي قرار قبول/رفض أو صلاحية للخدمة يتبع الكود/الإجراء المعتمد وليس هذا الملخص.', 'Any acceptance/rejection or fitness-for-service decision follows the approved code/procedure, not this summary.'),
+      ],
+      referenceTrace: [
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-visual-acuity',
+          verified: true,
+          note: t('مرجع قراءة داعم: Penetrant — Visual Acuity of the Human Eye.', 'Supporting reading: Penetrant — Visual Acuity of the Human Eye.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'asnt-vt',
+          verified: true,
+          note: t('مرجع قراءة داعم: Visual Testing — method overview.', 'Supporting reading: Visual Testing — method overview.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-pt-defect',
+          verified: true,
+          note: t('مرجع قراءة داعم: Penetrant — Nature of the Defect.', 'Supporting reading: Penetrant — Nature of the Defect.'),
+        }
       ],
       governance: GOV,
       textbook: { bookId: 'book-vt', pageNumber: 4 },

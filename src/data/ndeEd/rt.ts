@@ -88,11 +88,42 @@ export const rtCourse: NdeEdCourse = {
         'الامتصاص الكهروضوئي يعتمد بقوة على العدد الذري والكثافة، ما يزيد التباين في المعادن الثقيلة.',
         'Photoelectric absorption depends strongly on atomic number and density, increasing contrast in heavy metals.'
       ),
+      quizBank: [
+        quiz('rt-physics-q2', 'ما الذي يحدد مقدار امتصاص الإشعاع في المادة؟', 'What affects radiation absorption in material?', [['سماكة المادة وكثافتها وطاقة الإشعاع','Material thickness, density and radiation energy'], ['لون الفيلم فقط','Film color only'], ['اسم المفتش','Inspector name'], ['اتجاه الرياح','Wind direction']], 0, 'الامتصاص يعتمد على خصائص المادة والطاقة.', 'Absorption depends on material properties and energy.', { category: 'knowledge', difficulty: 'easy', reviewStatus: 'draft' }),
+        quiz('rt-physics-q3', 'لماذا يجب موازنة الطاقة مع السماكة؟', 'Why must energy be balanced with thickness?', [['طاقة منخفضة جداً قد لا تخترق؛ عالية جداً قد تقلل التباين','Too low may not penetrate; too high may reduce contrast'], ['الطاقة لا تؤثر','Energy has no effect'], ['لزيادة الضوضاء دائماً','Always to increase noise'], ['لتقليل زمن التعريض دائماً','Always to reduce exposure time']], 0, 'اختيار الطاقة يؤثر على جودة الصورة.', 'Energy selection affects image quality.', { category: 'understanding', difficulty: 'medium', reviewStatus: 'draft' }),
+      ],
+
       sources: ['nde-xray', 'nde-rt-interaction', 'nde-rt-penetration', 'nde-rt-sources'],
       prerequisiteLessonIds: ['phy-radiation'],
       assumptionsAndLimits: [
         t('هذا الدرس تعليمي ويحتاج تطبيقه في الميدان إلى إجراء معتمد ومؤهل مختص.', 'This lesson is educational; field application requires an approved procedure and qualified personnel.'),
         t('أي قرار قبول/رفض أو صلاحية للخدمة يتبع الكود/الإجراء المعتمد وليس هذا الملخص.', 'Any acceptance/rejection or fitness-for-service decision follows the approved code/procedure, not this summary.'),
+      ],
+      referenceTrace: [
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-xray',
+          verified: true,
+          note: t('مرجع قراءة داعم: Physics — X-Rays.', 'Supporting reading: Physics — X-Rays.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-rt-interaction',
+          verified: true,
+          note: t('مرجع قراءة داعم: Radiography — Interaction of Radiation and Matter.', 'Supporting reading: Radiography — Interaction of Radiation and Matter.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-rt-penetration',
+          verified: true,
+          note: t('مرجع قراءة داعم: Radiography — Depth of Penetration.', 'Supporting reading: Radiography — Depth of Penetration.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-rt-sources',
+          verified: true,
+          note: t('مرجع قراءة داعم: Radiography — Radiation Sources.', 'Supporting reading: Radiography — Radiation Sources.'),
+        }
       ],
       governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'level1', moduleId: 'mod_c_rt' },
@@ -155,11 +186,42 @@ export const rtCourse: NdeEdCourse = {
         'المنحنى يعرض استجابة الفيلم للتعرض ويساعد في اختيار الكثافة والتباين.',
         'The curve shows film response to exposure and guides density and contrast selection.'
       ),
+      quizBank: [
+        quiz('rt-imaging-q2', 'ما دور IQI في التصوير الإشعاعي؟', 'What is the role of an IQI in radiography?', [['مؤشر لجودة الصورة/الحساسية المحققة','An indicator of achieved image quality/sensitivity'], ['مصدر إشعاعي إضافي','An additional radiation source'], ['جهاز قياس سمك فقط','Only a thickness gauge'], ['بديل عن الفيلم','A replacement for film']], 0, 'IQI يساعد على إثبات جودة الصورة المحققة.', 'IQI helps demonstrate achieved image quality.', { category: 'knowledge', difficulty: 'easy', reviewStatus: 'draft' }),
+        quiz('rt-imaging-q3', 'هل رؤية IQI تعني اكتشاف كل العيوب؟', 'Does seeing the IQI mean all flaws are detected?', [['لا، IQI مؤشر جودة وليس ضماناً لاكتشاف كل العيوب','No, IQI is a quality indicator, not a guarantee of detecting all flaws'], ['نعم دائماً','Yes always'], ['يعني فقط أن السمك صحيح','It only means thickness is correct'], ['يلغي الحاجة للتفسير','It removes need for interpretation']], 0, 'جودة الصورة ضرورية لكنها ليست كافية وحدها.', 'Image quality is necessary but not sufficient alone.', { category: 'critical_thinking', difficulty: 'medium', reviewStatus: 'draft' }),
+      ],
+
       sources: ['nde-rt-film', 'nde-rt-density', 'nde-rt-curves', 'nde-rt-contrast'],
       prerequisiteLessonIds: ['rt-physics'],
       assumptionsAndLimits: [
         t('هذا الدرس تعليمي ويحتاج تطبيقه في الميدان إلى إجراء معتمد ومؤهل مختص.', 'This lesson is educational; field application requires an approved procedure and qualified personnel.'),
         t('أي قرار قبول/رفض أو صلاحية للخدمة يتبع الكود/الإجراء المعتمد وليس هذا الملخص.', 'Any acceptance/rejection or fitness-for-service decision follows the approved code/procedure, not this summary.'),
+      ],
+      referenceTrace: [
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-rt-film',
+          verified: true,
+          note: t('مرجع قراءة داعم: Radiography — Radiographic Film.', 'Supporting reading: Radiography — Radiographic Film.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-rt-density',
+          verified: true,
+          note: t('مرجع قراءة داعم: Radiography — Radiographic Density.', 'Supporting reading: Radiography — Radiographic Density.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-rt-curves',
+          verified: true,
+          note: t('مرجع قراءة داعم: Radiography — Film Characteristic Curves.', 'Supporting reading: Radiography — Film Characteristic Curves.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-rt-contrast',
+          verified: true,
+          note: t('مرجع قراءة داعم: Radiography — Radiographic Contrast.', 'Supporting reading: Radiography — Radiographic Contrast.'),
+        }
       ],
       governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'level2', moduleId: 'mod_c2_1' },
@@ -221,11 +283,42 @@ export const rtCourse: NdeEdCourse = {
         'IQI مؤشر قابل للقياس على جودة التقنية وحساسية الصورة، وليس مقياس سمك.',
         'An IQI is a measurable indicator of technique and image sensitivity, not a thickness gauge.'
       ),
+      quizBank: [
+        quiz('rt-technique-q2', 'ما تأثير عدم الوضوح الهندسي؟', 'What is the effect of geometric unsharpness?', [['تقليل وضوح حواف الدلالات والتفاصيل','Reducing sharpness of indication edges and details'], ['زيادة التباين دائماً','Always increasing contrast'], ['تحسين جودة الصورة','Improving image quality'], ['لا تأثير','No effect']], 0, 'الهندسة تؤثر على وضوح الصورة.', 'Geometry affects image sharpness.', { category: 'understanding', difficulty: 'easy', reviewStatus: 'draft' }),
+        quiz('rt-technique-q3', 'ما عامل يمكن ضبطه لتقليل عدم الوضوح الهندسي؟', 'Which factor can be adjusted to reduce geometric unsharpness?', [['تقليل حجم المصدر/زيادة SFD أو تحسين الهندسة حسب القيود','Reduce source size/increase SFD or improve geometry within constraints'], ['زيادة الاهتزاز','Increase vibration'], ['تقليل المسافة بين الفيلم والقطعة بشكل عشوائي','Randomly reduce film-object distance'], ['إزالة IQI','Remove IQI']], 0, 'الهندسة الجيدة تقلل Ug.', 'Good geometry reduces Ug.', { category: 'application', difficulty: 'medium', reviewStatus: 'draft' }),
+      ],
+
       sources: ['nde-rt-exposure', 'nde-rt-quality', 'nde-rt-curves', 'nde-rt-sources'],
       prerequisiteLessonIds: ['rt-imaging'],
       assumptionsAndLimits: [
         t('هذا الدرس تعليمي ويحتاج تطبيقه في الميدان إلى إجراء معتمد ومؤهل مختص.', 'This lesson is educational; field application requires an approved procedure and qualified personnel.'),
         t('أي قرار قبول/رفض أو صلاحية للخدمة يتبع الكود/الإجراء المعتمد وليس هذا الملخص.', 'Any acceptance/rejection or fitness-for-service decision follows the approved code/procedure, not this summary.'),
+      ],
+      referenceTrace: [
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-rt-exposure',
+          verified: true,
+          note: t('مرجع قراءة داعم: Radiography — Exposure Calculations.', 'Supporting reading: Radiography — Exposure Calculations.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-rt-quality',
+          verified: true,
+          note: t('مرجع قراءة داعم: Radiography — Controlling Radiographic Quality.', 'Supporting reading: Radiography — Controlling Radiographic Quality.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-rt-curves',
+          verified: true,
+          note: t('مرجع قراءة داعم: Radiography — Film Characteristic Curves.', 'Supporting reading: Radiography — Film Characteristic Curves.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-rt-sources',
+          verified: true,
+          note: t('مرجع قراءة داعم: Radiography — Radiation Sources.', 'Supporting reading: Radiography — Radiation Sources.'),
+        }
       ],
       governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'level2', moduleId: 'mod_c2_1' },
@@ -288,11 +381,36 @@ export const rtCourse: NdeEdCourse = {
         'الغاز المحبوس ينتج تجاويف كروية تظهر كدوائر داكنة في الصورة.',
         'Trapped gas forms rounded cavities that appear as dark circles.'
       ),
+      quizBank: [
+        quiz('rt-interpretation-q2', 'لماذا يجب تمييز آثار الفيلم/المعالجة من عيوب اللحام؟', 'Why distinguish film/processing artifacts from weld flaws?', [['لأن بعض العلامات قد تكون ناتجة عن معالجة أو خدش وليست عيباً','Because some marks may be processing/scratch artifacts, not flaws'], ['لأن كل علامة هي شرخ','Because every mark is a crack'], ['لأن الفيلم لا يظهر عيوباً','Because film shows no flaws'], ['لتجنب حفظ الصورة','To avoid saving image']], 0, 'التفسير الخاطئ قد يسبب رفضاً أو قبولاً خاطئاً.', 'Misinterpretation can cause false reject or accept.', { category: 'understanding', difficulty: 'medium', reviewStatus: 'draft' }),
+        quiz('rt-interpretation-q3', 'عند الاشتباه في دلالة، ما أفضل إجراء؟', 'When an indication is suspected, what is the best action?', [['التحقق من الموقع/الكثافة/المصدر المحتمل وتوثيقها وطلب مراجعة مؤهلة عند الحاجة','Verify location/density/possible source, document it, and seek qualified review when needed'], ['تجاهلها فوراً','Ignore immediately'], ['افتراض أنها مقبولة دائماً','Assume always acceptable'], ['حذف الصورة','Delete image']], 0, 'الشك يتطلب تحققاً وتوثيقاً، لا تخميناً.', 'Uncertainty requires verification and documentation, not guessing.', { category: 'critical_thinking', difficulty: 'medium', reviewStatus: 'draft' }),
+      ],
+
       sources: ['nde-rt-interp', 'nde-rt-quality', 'nde-rt-contrast'],
       prerequisiteLessonIds: ['rt-technique'],
       assumptionsAndLimits: [
         t('هذا الدرس تعليمي ويحتاج تطبيقه في الميدان إلى إجراء معتمد ومؤهل مختص.', 'This lesson is educational; field application requires an approved procedure and qualified personnel.'),
         t('أي قرار قبول/رفض أو صلاحية للخدمة يتبع الكود/الإجراء المعتمد وليس هذا الملخص.', 'Any acceptance/rejection or fitness-for-service decision follows the approved code/procedure, not this summary.'),
+      ],
+      referenceTrace: [
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-rt-interp',
+          verified: true,
+          note: t('مرجع قراءة داعم: Radiography — Interpretation of Welds.', 'Supporting reading: Radiography — Interpretation of Welds.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-rt-quality',
+          verified: true,
+          note: t('مرجع قراءة داعم: Radiography — Controlling Radiographic Quality.', 'Supporting reading: Radiography — Controlling Radiographic Quality.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-rt-contrast',
+          verified: true,
+          note: t('مرجع قراءة داعم: Radiography — Radiographic Contrast.', 'Supporting reading: Radiography — Radiographic Contrast.'),
+        }
       ],
       governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'level2', moduleId: 'mod_c2_1' },
@@ -354,11 +472,36 @@ export const rtCourse: NdeEdCourse = {
         'الوقت والمسافة والتدريع هي ضوابط الجرعة الأساسية، مع القياس والمراقبة.',
         'Time, distance and shielding are the core dose controls, supported by measurement and monitoring.'
       ),
+      quizBank: [
+        quiz('rt-safety-q2', 'ما المبادئ الثلاثة الأساسية للحماية الإشعاعية؟', 'What are the three basic radiation protection principles?', [['الزمن، المسافة، الحماية','Time, distance, shielding'], ['السرعة، الحرارة، الضغط','Speed, heat, pressure'], ['التردد، السعة، الطور','Frequency, amplitude, phase'], ['اللون، الكثافة، التباين','Color, density, contrast']], 0, 'هذه مبادئ أساسية لتقليل الجرعة.', 'These are basic principles to reduce dose.', { category: 'knowledge', difficulty: 'easy', reviewStatus: 'draft' }),
+        quiz('rt-safety-q3', 'قبل التعريض الإشعاعي، ما الإجراء المهم؟', 'Before radiographic exposure, what is important?', [['تأمين المنطقة، التحكم في الوصول، والتحقق من إجراءات السلامة المعتمدة','Secure area, control access, and verify approved safety procedures'], ['بدء التعريض فوراً لتوفير الوقت','Start exposure immediately to save time'], ['السماح لأي شخص بالاقتراب','Allow anyone nearby'], ['إلغاء حدود الجرعة','Ignore dose limits']], 0, 'السلامة الإشعاعية شرط مسبق لا يمكن تجاوزه.', 'Radiation safety is a non-negotiable prerequisite.', { category: 'application', difficulty: 'medium', reviewStatus: 'draft' }),
+      ],
+
       sources: ['nde-rt-safety', 'nde-xray', 'nde-rt-penetration'],
       prerequisiteLessonIds: ['rt-physics'],
       assumptionsAndLimits: [
         t('هذا الدرس تعليمي ويحتاج تطبيقه في الميدان إلى إجراء معتمد ومؤهل مختص.', 'This lesson is educational; field application requires an approved procedure and qualified personnel.'),
         t('أي قرار قبول/رفض أو صلاحية للخدمة يتبع الكود/الإجراء المعتمد وليس هذا الملخص.', 'Any acceptance/rejection or fitness-for-service decision follows the approved code/procedure, not this summary.'),
+      ],
+      referenceTrace: [
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-rt-safety',
+          verified: true,
+          note: t('مرجع قراءة داعم: NDE Engineering — Radiation Detectors.', 'Supporting reading: NDE Engineering — Radiation Detectors.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-xray',
+          verified: true,
+          note: t('مرجع قراءة داعم: Physics — X-Rays.', 'Supporting reading: Physics — X-Rays.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-rt-penetration',
+          verified: true,
+          note: t('مرجع قراءة داعم: Radiography — Depth of Penetration.', 'Supporting reading: Radiography — Depth of Penetration.'),
+        }
       ],
       governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'level2', moduleId: 'mod_c2_1' },

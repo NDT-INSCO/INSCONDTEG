@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-24T02:35:50.177Z",
+  "generatedAt": "2026-11-24T03:01:04.115Z",
   "courses": [
     {
       "file": "src/data/ndeEd/et.ts",
@@ -10,8 +10,8 @@
           "hasGovernance": true,
           "hasPrerequisites": true,
           "hasAssumptions": true,
-          "hasReferenceTrace": false,
-          "quizBankCount": 0,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
           "hasQuiz": true
         },
         {
@@ -19,8 +19,8 @@
           "hasGovernance": true,
           "hasPrerequisites": true,
           "hasAssumptions": true,
-          "hasReferenceTrace": false,
-          "quizBankCount": 0,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
           "hasQuiz": true
         },
         {
@@ -28,8 +28,8 @@
           "hasGovernance": true,
           "hasPrerequisites": true,
           "hasAssumptions": true,
-          "hasReferenceTrace": false,
-          "quizBankCount": 0,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
           "hasQuiz": true
         },
         {
@@ -37,8 +37,8 @@
           "hasGovernance": true,
           "hasPrerequisites": true,
           "hasAssumptions": true,
-          "hasReferenceTrace": false,
-          "quizBankCount": 0,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
           "hasQuiz": true
         },
         {
@@ -46,8 +46,8 @@
           "hasGovernance": true,
           "hasPrerequisites": true,
           "hasAssumptions": true,
-          "hasReferenceTrace": false,
-          "quizBankCount": 0,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
           "hasQuiz": true
         }
       ]
@@ -61,8 +61,8 @@
           "hasGovernance": true,
           "hasPrerequisites": true,
           "hasAssumptions": true,
-          "hasReferenceTrace": false,
-          "quizBankCount": 0,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
           "hasQuiz": true
         },
         {
@@ -70,8 +70,8 @@
           "hasGovernance": true,
           "hasPrerequisites": true,
           "hasAssumptions": true,
-          "hasReferenceTrace": false,
-          "quizBankCount": 0,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
           "hasQuiz": true
         },
         {
@@ -79,8 +79,8 @@
           "hasGovernance": true,
           "hasPrerequisites": true,
           "hasAssumptions": true,
-          "hasReferenceTrace": false,
-          "quizBankCount": 0,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
           "hasQuiz": true
         },
         {
@@ -88,8 +88,8 @@
           "hasGovernance": true,
           "hasPrerequisites": true,
           "hasAssumptions": true,
-          "hasReferenceTrace": false,
-          "quizBankCount": 0,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
           "hasQuiz": true
         },
         {
@@ -97,8 +97,8 @@
           "hasGovernance": true,
           "hasPrerequisites": true,
           "hasAssumptions": true,
-          "hasReferenceTrace": false,
-          "quizBankCount": 0,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
           "hasQuiz": true
         }
       ]
@@ -112,8 +112,8 @@
           "hasGovernance": true,
           "hasPrerequisites": true,
           "hasAssumptions": true,
-          "hasReferenceTrace": false,
-          "quizBankCount": 0,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
           "hasQuiz": true
         },
         {
@@ -121,8 +121,8 @@
           "hasGovernance": true,
           "hasPrerequisites": true,
           "hasAssumptions": true,
-          "hasReferenceTrace": false,
-          "quizBankCount": 0,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
           "hasQuiz": true
         },
         {
@@ -130,8 +130,8 @@
           "hasGovernance": true,
           "hasPrerequisites": true,
           "hasAssumptions": true,
-          "hasReferenceTrace": false,
-          "quizBankCount": 0,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
           "hasQuiz": true
         },
         {
@@ -139,8 +139,8 @@
           "hasGovernance": true,
           "hasPrerequisites": true,
           "hasAssumptions": true,
-          "hasReferenceTrace": false,
-          "quizBankCount": 0,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
           "hasQuiz": true
         },
         {
@@ -148,8 +148,8 @@
           "hasGovernance": true,
           "hasPrerequisites": true,
           "hasAssumptions": true,
-          "hasReferenceTrace": false,
-          "quizBankCount": 0,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
           "hasQuiz": true
         }
       ]
@@ -163,8 +163,8 @@
           "hasGovernance": true,
           "hasPrerequisites": true,
           "hasAssumptions": true,
-          "hasReferenceTrace": false,
-          "quizBankCount": 0,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
           "hasQuiz": true
         },
         {
@@ -172,8 +172,8 @@
           "hasGovernance": true,
           "hasPrerequisites": true,
           "hasAssumptions": true,
-          "hasReferenceTrace": false,
-          "quizBankCount": 0,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
           "hasQuiz": true
         },
         {
@@ -181,8 +181,8 @@
           "hasGovernance": true,
           "hasPrerequisites": true,
           "hasAssumptions": true,
-          "hasReferenceTrace": false,
-          "quizBankCount": 0,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
           "hasQuiz": true
         },
         {
@@ -190,8 +190,8 @@
           "hasGovernance": true,
           "hasPrerequisites": true,
           "hasAssumptions": true,
-          "hasReferenceTrace": false,
-          "quizBankCount": 0,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
           "hasQuiz": true
         },
         {
@@ -199,8 +199,8 @@
           "hasGovernance": true,
           "hasPrerequisites": true,
           "hasAssumptions": true,
-          "hasReferenceTrace": false,
-          "quizBankCount": 0,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
           "hasQuiz": true
         }
       ]
@@ -214,8 +214,8 @@
           "hasGovernance": true,
           "hasPrerequisites": true,
           "hasAssumptions": true,
-          "hasReferenceTrace": false,
-          "quizBankCount": 0,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
           "hasQuiz": true
         },
         {
@@ -223,8 +223,8 @@
           "hasGovernance": true,
           "hasPrerequisites": true,
           "hasAssumptions": true,
-          "hasReferenceTrace": false,
-          "quizBankCount": 0,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
           "hasQuiz": true
         },
         {
@@ -232,8 +232,8 @@
           "hasGovernance": true,
           "hasPrerequisites": true,
           "hasAssumptions": true,
-          "hasReferenceTrace": false,
-          "quizBankCount": 0,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
           "hasQuiz": true
         },
         {
@@ -241,8 +241,8 @@
           "hasGovernance": true,
           "hasPrerequisites": true,
           "hasAssumptions": true,
-          "hasReferenceTrace": false,
-          "quizBankCount": 0,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
           "hasQuiz": true
         },
         {
@@ -250,8 +250,8 @@
           "hasGovernance": true,
           "hasPrerequisites": true,
           "hasAssumptions": true,
-          "hasReferenceTrace": false,
-          "quizBankCount": 0,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
           "hasQuiz": true
         }
       ]
@@ -325,8 +325,8 @@
           "hasGovernance": true,
           "hasPrerequisites": true,
           "hasAssumptions": true,
-          "hasReferenceTrace": false,
-          "quizBankCount": 0,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
           "hasQuiz": true
         },
         {
@@ -334,8 +334,8 @@
           "hasGovernance": true,
           "hasPrerequisites": true,
           "hasAssumptions": true,
-          "hasReferenceTrace": false,
-          "quizBankCount": 0,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
           "hasQuiz": true
         },
         {
@@ -343,8 +343,8 @@
           "hasGovernance": true,
           "hasPrerequisites": true,
           "hasAssumptions": true,
-          "hasReferenceTrace": false,
-          "quizBankCount": 0,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
           "hasQuiz": true
         },
         {
@@ -352,8 +352,8 @@
           "hasGovernance": true,
           "hasPrerequisites": true,
           "hasAssumptions": true,
-          "hasReferenceTrace": false,
-          "quizBankCount": 0,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
           "hasQuiz": true
         }
       ]
@@ -365,8 +365,8 @@
     "withGovernance": 35,
     "withPrerequisites": 35,
     "withAssumptions": 35,
-    "withReferenceTrace": 6,
-    "withQuizBank": 6,
-    "quizBankQuestions": 13
+    "withReferenceTrace": 35,
+    "withQuizBank": 35,
+    "quizBankQuestions": 71
   }
 }

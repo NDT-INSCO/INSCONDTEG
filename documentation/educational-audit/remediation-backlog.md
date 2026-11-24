@@ -6,7 +6,7 @@
 |---|---|---|---|---|
 | P0-1 | Add review/governance metadata to all NDE-Ed lessons | all 7 courses | Content eng + SME coordinator | In Progress (35/35 governance+prereqs, UT deep pilot) |
 | P0-2 | Quarantine/flag code-acceptance exam questions until SME review | exam generators | SME + frontend | In Progress (metadata + default exclusion in generators) |
-| P0-3 | Build normative reference trace workflow (edition/clause/page/rights) | all technical content | SME + content ops | Open |
+| P0-3 | Build normative reference trace workflow (edition/clause/page/rights) | all technical content | SME + content ops | In Progress (35/35 have reading_support trace; normative verified refs still needed) |
 | P0-4 | Ensure no lesson/cert/exam implies certification/acceptance authority | site-wide copy | Content + legal/QA | Open |
 
 ## P1 — High
@@ -14,7 +14,7 @@
 | ID | Item | Scope | Status |
 |---|---|---|---|
 | P1-1 | Complete UT lesson quality cards for all 6 lessons and get SME review | UT | In Progress |
-| P1-2 | Migrate all NDE-Ed lessons to quizBank (>=4 questions/lesson) | all courses | Open |
+| P1-2 | Migrate all NDE-Ed lessons to quizBank (>=4 questions/lesson) | all courses | In Progress (35/35 have quizBank; 71 extra questions added, SME review needed) |
 | P1-3 | Add prerequisite enforcement in UI/learning path | academy UI | Open |
 | P1-4 | Add UT weld characterization practical task and simulator rubric | UT | Open |
 | P1-5 | Reconcile content count mismatch (practical tasks 6 vs previously reported 8) | inventory | Resolved (now 8 tasks) |

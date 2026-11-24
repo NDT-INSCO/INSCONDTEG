@@ -87,11 +87,36 @@ export const ptCourse: NdeEdCourse = {
         'PT يحتاج مساراً من السطح إلى العيب؛ العيب الداخلي المغلق غير قابل للوصول.',
         'PT needs a path from the surface; a closed internal flaw is unreachable.'
       ),
+      quizBank: [
+        quiz('pt-principles-q2', 'لماذا لا يصلح PT للكشف عن عيوب تحت السطح غير المفتوحة؟', 'Why is PT unsuitable for subsurface flaws that are not surface-breaking?', [['لأن النافذ يحتاج مساراً مفتوحاً للدخول','Because penetrant needs an open path to enter'], ['لأن النافذ مغناطيسي','Because penetrant is magnetic'], ['لأن PT يستخدم إشعاعاً','Because PT uses radiation'], ['لأن السطح دائماً شفاف','Because surface is always transparent']], 0, 'خاصية PT تعتمد على الفتح السطحي.', 'PT depends on surface-breaking openings.', { category: 'knowledge', difficulty: 'easy', reviewStatus: 'draft' }),
+        quiz('pt-principles-q3', 'ما الخطر من الحكم على عمق العيب من دلالة PT؟', 'What is the risk of judging flaw depth from a PT indication?', [['PT لا يقيس العمق؛ الدلالة السطحية قد لا تمثل الحجم الداخلي','PT does not measure depth; surface indication may not represent internal size'], ['PT يعطي عمقاً دقيقاً دائماً','PT always gives exact depth'], ['العمق يُقاس باللون فقط','Depth is measured by color only'], ['لا يوجد خطر','There is no risk']], 0, 'PT طريقة سطحية للكشف، لا لتحديد العمق الداخلي.', 'PT is a surface detection method, not an internal depth sizing method.', { category: 'critical_thinking', difficulty: 'medium', reviewStatus: 'draft' }),
+      ],
+
       sources: ['nde-pt-process', 'nde-pt-proscons', 'nde-capillary'],
       prerequisiteLessonIds: ['phy-capillary'],
       assumptionsAndLimits: [
         t('هذا الدرس تعليمي ويحتاج تطبيقه في الميدان إلى إجراء معتمد ومؤهل مختص.', 'This lesson is educational; field application requires an approved procedure and qualified personnel.'),
         t('أي قرار قبول/رفض أو صلاحية للخدمة يتبع الكود/الإجراء المعتمد وليس هذا الملخص.', 'Any acceptance/rejection or fitness-for-service decision follows the approved code/procedure, not this summary.'),
+      ],
+      referenceTrace: [
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-pt-process',
+          verified: true,
+          note: t('مرجع قراءة داعم: Penetrant — Liquid Penetrant Inspection Process.', 'Supporting reading: Penetrant — Liquid Penetrant Inspection Process.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-pt-proscons',
+          verified: true,
+          note: t('مرجع قراءة داعم: Penetrant — Advantages and Disadvantages.', 'Supporting reading: Penetrant — Advantages and Disadvantages.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-capillary',
+          verified: true,
+          note: t('مرجع قراءة داعم: Physics — Capillary Action.', 'Supporting reading: Physics — Capillary Action.'),
+        }
       ],
       governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'level1', moduleId: 'mod_c_pt' },
@@ -154,11 +179,42 @@ export const ptCourse: NdeEdCourse = {
         'المطوّر يعمل كضاغط/ماص يسحب النافذ من العيب ويشكل طبقة ذات تباين.',
         'Developer acts as a blotter, drawing penetrant from the flaw into a contrasting layer.'
       ),
+      quizBank: [
+        quiz('pt-materials-q2', 'ما دور المظهر (Developer) في PT؟', 'What is the role of developer in PT?', [['سحب النافذ من العيب وتكوين دلالة مرئية','Draw penetrant from discontinuity and form a visible indication'], ['تنظيف السطح قبل النافذ','Clean surface before penetrant'], ['مغنطة القطعة','Magnetize the part'], ['قياس السمك','Measure thickness']], 0, 'المظهر يساعد على إبراز الدلالة.', 'Developer helps make the indication visible.', { category: 'knowledge', difficulty: 'easy', reviewStatus: 'draft' }),
+        quiz('pt-materials-q3', 'ماذا يحدث عند إزالة زائدة للنافذ؟', 'What can happen with over-removal of penetrant?', [['إزالة النافذ من العيب وإضعاف/فقد الدلالة','Removing penetrant from flaw and weakening/losing indication'], ['زيادة الدلالة دائماً','Always increasing indication'], ['تحسين الحساسية دائماً','Always improving sensitivity'], ['لا تأثير','No effect']], 0, 'الغسل الزائد قد يقلل حساسية الكشف.', 'Over-washing can reduce detection sensitivity.', { category: 'application', difficulty: 'medium', reviewStatus: 'draft' }),
+      ],
+
       sources: ['nde-pt-penetrants', 'nde-pt-developers', 'nde-pt-emulsifiers', 'nde-pt-removal'],
       prerequisiteLessonIds: ['pt-principles'],
       assumptionsAndLimits: [
         t('هذا الدرس تعليمي ويحتاج تطبيقه في الميدان إلى إجراء معتمد ومؤهل مختص.', 'This lesson is educational; field application requires an approved procedure and qualified personnel.'),
         t('أي قرار قبول/رفض أو صلاحية للخدمة يتبع الكود/الإجراء المعتمد وليس هذا الملخص.', 'Any acceptance/rejection or fitness-for-service decision follows the approved code/procedure, not this summary.'),
+      ],
+      referenceTrace: [
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-pt-penetrants',
+          verified: true,
+          note: t('مرجع قراءة داعم: Penetrant — Penetrants.', 'Supporting reading: Penetrant — Penetrants.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-pt-developers',
+          verified: true,
+          note: t('مرجع قراءة داعم: Penetrant — Developers.', 'Supporting reading: Penetrant — Developers.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-pt-emulsifiers',
+          verified: true,
+          note: t('مرجع قراءة داعم: Penetrant — Emulsifiers.', 'Supporting reading: Penetrant — Emulsifiers.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-pt-removal',
+          verified: true,
+          note: t('مرجع قراءة داعم: Penetrant — Removal Process.', 'Supporting reading: Penetrant — Removal Process.'),
+        }
       ],
       governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'level1', moduleId: 'mod_c_pt' },
@@ -220,11 +276,54 @@ export const ptCourse: NdeEdCourse = {
         'الغسل الزائد يزيل النافذ المحبوس، خاصة من العيوب الضيقة.',
         'Excess washing removes trapped penetrant, especially from tight flaws.'
       ),
+      quizBank: [
+        quiz('pt-control-q2', 'لماذا يجب التحكم في زمن التشبع (dwell time)?', 'Why must dwell time be controlled?', [['لإتاحة وقت كافٍ لدخول النافذ دون انحراف عن الإجراء','To allow adequate penetrant entry without deviating from procedure'], ['لتسخين المعدن','To heat the metal'], ['لتغيير لون العيب','To change flaw color'], ['لإلغاء خطوة التنظيف','To skip cleaning']], 0, 'زمن التشبع متغير إجرائي حاسم.', 'Dwell time is a critical procedure variable.', { category: 'knowledge', difficulty: 'easy', reviewStatus: 'draft' }),
+        quiz('pt-control-q3', 'ما الذي يجب التحقق منه قبل تقييم دلالات الفلورسنت؟', 'What must be checked before evaluating fluorescent indications?', [['شدة الإضاءة UV/البيئة المناسبة وظروف الفحص','UV intensity/appropriate environment and inspection conditions'], ['لون قفازات المفتش فقط','Only inspector glove color'], ['سرعة الموجة','Wave speed'], ['سمك الطلاء الداخلي','Internal coating thickness']], 0, 'شروط الرؤية جزء من صلاحية الفحص.', 'Viewing conditions are part of inspection validity.', { category: 'application', difficulty: 'easy', reviewStatus: 'draft' }),
+      ],
+
       sources: ['nde-pt-temperature', 'nde-pt-dwell', 'nde-pt-wash', 'nde-pt-drying', 'nde-pt-lighting', 'nde-pt-performance'],
       prerequisiteLessonIds: ['pt-materials'],
       assumptionsAndLimits: [
         t('هذا الدرس تعليمي ويحتاج تطبيقه في الميدان إلى إجراء معتمد ومؤهل مختص.', 'This lesson is educational; field application requires an approved procedure and qualified personnel.'),
         t('أي قرار قبول/رفض أو صلاحية للخدمة يتبع الكود/الإجراء المعتمد وليس هذا الملخص.', 'Any acceptance/rejection or fitness-for-service decision follows the approved code/procedure, not this summary.'),
+      ],
+      referenceTrace: [
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-pt-temperature',
+          verified: true,
+          note: t('مرجع قراءة داعم: Penetrant — Process Control of Temperature.', 'Supporting reading: Penetrant — Process Control of Temperature.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-pt-dwell',
+          verified: true,
+          note: t('مرجع قراءة داعم: Penetrant — Quality Control of Dwell.', 'Supporting reading: Penetrant — Quality Control of Dwell.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-pt-wash',
+          verified: true,
+          note: t('مرجع قراءة داعم: Penetrant — Quality Control of Wash.', 'Supporting reading: Penetrant — Quality Control of Wash.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-pt-drying',
+          verified: true,
+          note: t('مرجع قراءة داعم: Penetrant — Quality Control of Drying.', 'Supporting reading: Penetrant — Quality Control of Drying.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-pt-lighting',
+          verified: true,
+          note: t('مرجع قراءة داعم: Penetrant — Quality Control of Lighting.', 'Supporting reading: Penetrant — Quality Control of Lighting.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-pt-performance',
+          verified: true,
+          note: t('مرجع قراءة داعم: Penetrant — System Performance Check.', 'Supporting reading: Penetrant — System Performance Check.'),
+        }
       ],
       governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'level2', moduleId: 'mod_c2_1' },
@@ -286,11 +385,48 @@ export const ptCourse: NdeEdCourse = {
         'التنظيف يفتح مسار الدخول؛ الإغلاق أو التلوث يمنع الكشف.',
         'Cleaning opens the entry path; sealing or contamination prevents detection.'
       ),
+      quizBank: [
+        quiz('pt-application-q2', 'ما التسلسل العام الصحيح في PT؟', 'What is the general PT sequence?', [['تنظيف، نافذ، إزالة، تجفيف حسب الطريقة، مظهر، تقييم، تنظيف نهائي','Clean, penetrant, removal, dry as applicable, develop, evaluate, post-clean'], ['مظهر، نافذ، تنظيف، تقييم','Develop, penetrant, clean, evaluate'], ['إزالة، نافذ، تنظيف','Removal, penetrant, clean'], ['تقييم ثم تنظيف فقط','Evaluate then clean only']], 0, 'الترتيب الإجرائي ضروري لصحة النتيجة.', 'Procedure sequence is essential for valid results.', { category: 'knowledge', difficulty: 'easy', reviewStatus: 'draft' }),
+        quiz('pt-application-q3', 'إذا بقيت خلفية حمراء/فلورية قوية بعد الإزالة، ما المشكلة المحتملة؟', 'If strong background remains after removal, what is the likely issue?', [['إزالة غير كافية أو تقنية غير مناسبة قد تخفي الدلالات','Insufficient removal or unsuitable technique may mask indications'], ['الفحص ممتاز دائماً','Inspection is always excellent'], ['العيوب اختفت','Flaws disappeared'], ['لا حاجة للمظهر','No developer needed']], 0, 'الخلفية العالية تقلل تباين الدلالة.', 'High background reduces indication contrast.', { category: 'application', difficulty: 'medium', reviewStatus: 'draft' }),
+      ],
+
       sources: ['nde-pt-preparation', 'nde-pt-selection', 'nde-pt-application', 'nde-pt-removal', 'nde-pt-developers'],
       prerequisiteLessonIds: ['pt-control'],
       assumptionsAndLimits: [
         t('هذا الدرس تعليمي ويحتاج تطبيقه في الميدان إلى إجراء معتمد ومؤهل مختص.', 'This lesson is educational; field application requires an approved procedure and qualified personnel.'),
         t('أي قرار قبول/رفض أو صلاحية للخدمة يتبع الكود/الإجراء المعتمد وليس هذا الملخص.', 'Any acceptance/rejection or fitness-for-service decision follows the approved code/procedure, not this summary.'),
+      ],
+      referenceTrace: [
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-pt-preparation',
+          verified: true,
+          note: t('مرجع قراءة داعم: Penetrant — Preparation of Part.', 'Supporting reading: Penetrant — Preparation of Part.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-pt-selection',
+          verified: true,
+          note: t('مرجع قراءة داعم: Penetrant — Selection of a Technique.', 'Supporting reading: Penetrant — Selection of a Technique.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-pt-application',
+          verified: true,
+          note: t('مرجع قراءة داعم: Penetrant — Application and Dwell Time.', 'Supporting reading: Penetrant — Application and Dwell Time.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-pt-removal',
+          verified: true,
+          note: t('مرجع قراءة داعم: Penetrant — Removal Process.', 'Supporting reading: Penetrant — Removal Process.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-pt-developers',
+          verified: true,
+          note: t('مرجع قراءة داعم: Penetrant — Developers.', 'Supporting reading: Penetrant — Developers.'),
+        }
       ],
       governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'level2', moduleId: 'mod_c2_1' },
@@ -352,11 +488,36 @@ export const ptCourse: NdeEdCourse = {
         'الدلالة أثر يحتاج تفسيراً؛ قد تكون سطحية أو كاذبة، والقبول يعتمد على المعيار.',
         'An indication is a trace needing interpretation; it may be superficial or false, and acceptance depends on the criterion.'
       ),
+      quizBank: [
+        quiz('pt-interpretation-q2', 'ما الفرق بين دلالة ذات صلة ودلالة غير ذات صلة؟', 'What is the difference between relevant and non-relevant indication?', [['ذات الصلة ناتجة عن انقطاع حقيقي؛ غير ذات الصلة بسبب هندسة/تلوث/سبب آخر','Relevant comes from a true discontinuity; non-relevant from geometry/contamination/other cause'], ['لا يوجد فرق','No difference'], ['غير ذات الصلة تعني رفضاً دائماً','Non-relevant always means reject'], ['ذات الصلة تعني قبولاً دائماً','Relevant always means accept']], 0, 'التصنيف ليس قرار قبول نهائي بحد ذاته.', 'Classification is not by itself a final acceptance decision.', { category: 'understanding', difficulty: 'medium', reviewStatus: 'draft' }),
+        quiz('pt-interpretation-q3', 'بعد العثور على دلالة خطية ذات صلة، ما الخطوة الصحيحة؟', 'After finding a relevant linear indication, what is the correct step?', [['توثيقها وتقييمها وفق الإجراء/الكود المعتمد من شخص مؤهل','Document and evaluate per approved procedure/code by qualified personnel'], ['مسحها وإعادة الطلاء فوراً','Wipe and repaint immediately'], ['اعتبارها قبولاً تلقائياً','Automatically accept it'], ['تجاهلها إن كانت قصيرة','Ignore if short']], 0, 'التوثيق والتقييم المؤهل ضروريان.', 'Qualified documentation and evaluation are required.', { category: 'critical_thinking', difficulty: 'medium', reviewStatus: 'draft' }),
+      ],
+
       sources: ['nde-pt-defect', 'nde-pt-safety', 'nde-pt-performance'],
       prerequisiteLessonIds: ['pt-application'],
       assumptionsAndLimits: [
         t('هذا الدرس تعليمي ويحتاج تطبيقه في الميدان إلى إجراء معتمد ومؤهل مختص.', 'This lesson is educational; field application requires an approved procedure and qualified personnel.'),
         t('أي قرار قبول/رفض أو صلاحية للخدمة يتبع الكود/الإجراء المعتمد وليس هذا الملخص.', 'Any acceptance/rejection or fitness-for-service decision follows the approved code/procedure, not this summary.'),
+      ],
+      referenceTrace: [
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-pt-defect',
+          verified: true,
+          note: t('مرجع قراءة داعم: Penetrant — Nature of the Defect.', 'Supporting reading: Penetrant — Nature of the Defect.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-pt-safety',
+          verified: true,
+          note: t('مرجع قراءة داعم: Penetrant — Health and Safety Precautions.', 'Supporting reading: Penetrant — Health and Safety Precautions.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-pt-performance',
+          verified: true,
+          note: t('مرجع قراءة داعم: Penetrant — System Performance Check.', 'Supporting reading: Penetrant — System Performance Check.'),
+        }
       ],
       governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'level2', moduleId: 'mod_c2_1' },

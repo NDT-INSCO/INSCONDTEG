@@ -87,11 +87,36 @@ export const mtCourse: NdeEdCourse = {
         'الألومنيوم غير فيرومغناطيسي؛ MT يحتاج مادة قابلة للمغنطة.',
         'Aluminium is not ferromagnetic; MT requires a magnetizable material.'
       ),
+      quizBank: [
+        quiz('mt-principles-q2', 'ما شرط المادة الأساسية لاستخدام MT؟', 'What is a basic material requirement for MT?', [['أن تكون حديدية مغناطيسية (ferromagnetic)','It must be ferromagnetic'], ['أن تكون شفافة','It must be transparent'], ['أن تكون بلاستيكية','It must be plastic'], ['أن تكون مشعة','It must be radioactive']], 0, 'MT يعتمد على المغنطة وتسرب الفيض.', 'MT relies on magnetization and flux leakage.', { category: 'knowledge', difficulty: 'easy', reviewStatus: 'draft' }),
+        quiz('mt-principles-q3', 'ما الذي تكتشفه MT عادة؟', 'What does MT typically detect?', [['عيوب سطحية وقريبة من السطح في المواد الحديدية','Surface and near-surface flaws in ferromagnetic materials'], ['جميع العيوب العميقة في الألومنيوم','All deep flaws in aluminum'], ['تركيب الكيميائي','Chemical composition'], ['سمك الطلاء بدقة','Exact coating thickness']], 0, 'MT فعّال للسطح وقرب السطح ضمن حدود الطريقة.', 'MT is effective at/near surface within method limits.', { category: 'understanding', difficulty: 'easy', reviewStatus: 'draft' }),
+      ],
+
       sources: ['nde-mt-principles', 'nde-mt-magnetism', 'nde-mt-orientation'],
       prerequisiteLessonIds: ['phy-magnetism'],
       assumptionsAndLimits: [
         t('هذا الدرس تعليمي ويحتاج تطبيقه في الميدان إلى إجراء معتمد ومؤهل مختص.', 'This lesson is educational; field application requires an approved procedure and qualified personnel.'),
         t('أي قرار قبول/رفض أو صلاحية للخدمة يتبع الكود/الإجراء المعتمد وليس هذا الملخص.', 'Any acceptance/rejection or fitness-for-service decision follows the approved code/procedure, not this summary.'),
+      ],
+      referenceTrace: [
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-mt-principles',
+          verified: true,
+          note: t('مرجع قراءة داعم: Magnetic Particle — Basic Principles.', 'Supporting reading: Magnetic Particle — Basic Principles.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-mt-magnetism',
+          verified: true,
+          note: t('مرجع قراءة داعم: Magnetic Particle — The Use of Magnetism in NDT.', 'Supporting reading: Magnetic Particle — The Use of Magnetism in NDT.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-mt-orientation',
+          verified: true,
+          note: t('مرجع قراءة داعم: Magnetic Particle — Field Orientation and Flaw Detectability.', 'Supporting reading: Magnetic Particle — Field Orientation and Flaw Detectability.'),
+        }
       ],
       governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'level1', moduleId: 'mod_c_mt' },
@@ -154,11 +179,42 @@ export const mtCourse: NdeEdCourse = {
         'DC/HWDC يخترقان أعمق من AC الذي يتركز قرب السطح.',
         'DC/HWDC penetrates deeper than AC, which concentrates near the surface.'
       ),
+      quizBank: [
+        quiz('mt-magnetization-q2', 'لماذا اتجاه المجال مهم في MT؟', 'Why is field direction important in MT?', [['لأن أفضل كشف يكون عندما يكون العيب عمودياً تقريباً على المجال','Because detection is best when flaw is roughly perpendicular to field'], ['لأن الاتجاه لا يؤثر','Because direction does not matter'], ['لأن المجال يذيب العيب','Because field melts flaw'], ['لأن اللون يتغير','Because color changes']], 0, 'اتجاه العيب بالنسبة للفيض يحدد التسرب.', 'Flaw orientation relative to flux determines leakage.', { category: 'application', difficulty: 'medium', reviewStatus: 'draft' }),
+        quiz('mt-magnetization-q3', 'ماذا قد يلزم عند فحص اتجاهات عيوب متعددة؟', 'What may be needed when flaws may have multiple orientations?', [['تمغنط في أكثر من اتجاه حسب الإجراء','Magnetization in more than one direction per procedure'], ['اتجاه واحد دائماً يكفي','One direction is always enough'], ['إلغاء الفحص','Cancel inspection'], ['استخدام PT بدلاً من أي تمغنط','Use PT instead of any magnetization']], 0, 'التغطية الاتجاهية جزء من صلاحية الفحص.', 'Directional coverage is part of inspection validity.', { category: 'application', difficulty: 'medium', reviewStatus: 'draft' }),
+      ],
+
       sources: ['nde-mt-current', 'nde-mt-ld', 'nde-mt-continuous', 'nde-mt-portable'],
       prerequisiteLessonIds: ['mt-principles'],
       assumptionsAndLimits: [
         t('هذا الدرس تعليمي ويحتاج تطبيقه في الميدان إلى إجراء معتمد ومؤهل مختص.', 'This lesson is educational; field application requires an approved procedure and qualified personnel.'),
         t('أي قرار قبول/رفض أو صلاحية للخدمة يتبع الكود/الإجراء المعتمد وليس هذا الملخص.', 'Any acceptance/rejection or fitness-for-service decision follows the approved code/procedure, not this summary.'),
+      ],
+      referenceTrace: [
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-mt-current',
+          verified: true,
+          note: t('مرجع قراءة داعم: Magnetic Particle — Magnetizing Current.', 'Supporting reading: Magnetic Particle — Magnetizing Current.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-mt-ld',
+          verified: true,
+          note: t('مرجع قراءة داعم: Magnetic Particle — Length to Diameter Ratio.', 'Supporting reading: Magnetic Particle — Length to Diameter Ratio.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-mt-continuous',
+          verified: true,
+          note: t('مرجع قراءة داعم: Magnetic Particle — Continuous and Residual Techniques.', 'Supporting reading: Magnetic Particle — Continuous and Residual Techniques.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-mt-portable',
+          verified: true,
+          note: t('مرجع قراءة داعم: Magnetic Particle — Portable Magnetizing Equipment.', 'Supporting reading: Magnetic Particle — Portable Magnetizing Equipment.'),
+        }
       ],
       governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'level1', moduleId: 'mod_c_mt' },
@@ -221,11 +277,42 @@ export const mtCourse: NdeEdCourse = {
         'الفلورية تُثار بالضوء فوق البنفسجي وتحتاج ظروف مشاهدة مظلمة.',
         'Fluorescence is excited by UV-A and needs dark viewing conditions.'
       ),
+      quizBank: [
+        quiz('mt-media-q2', 'ما الفرق العام بين الجسيمات الجافة والرطبة؟', 'What is a general difference between dry and wet particles?', [['الرطبة غالباً أكثر حساسية للعيوب الدقيقة؛ الجافة مفيدة لبعض العيوب السطحية والظروف','Wet often more sensitive for fine flaws; dry useful for some surface conditions'], ['لا يوجد أي فرق','No difference'], ['الجافة للإشعاع فقط','Dry is only for radiation'], ['الرطبة لا تستخدم في MT','Wet is not used in MT']], 0, 'اختيار الوسط يعتمد على التطبيق والإجراء.', 'Media choice depends on application and procedure.', { category: 'knowledge', difficulty: 'medium', reviewStatus: 'draft' }),
+        quiz('mt-media-q3', 'لماذا يجب التحكم في تركيز وسط الجسيمات الرطبة؟', 'Why must wet particle concentration be controlled?', [['التركيز الخاطئ قد يسبب خلفية زائدة أو حساسية ضعيفة','Wrong concentration can cause excess background or poor sensitivity'], ['لزيادة درجة حرارة السائل','To increase bath temperature'], ['لتغيير نفاذية الفولاذ','To change steel permeability'], ['لا حاجة للتحكم','No control needed']], 0, 'التحكم في الوسط شرط جودة.', 'Bath control is a quality requirement.', { category: 'application', difficulty: 'medium', reviewStatus: 'draft' }),
+      ],
+
       sources: ['nde-mt-particles', 'nde-mt-suspension', 'nde-mt-wet', 'nde-mt-concentration'],
       prerequisiteLessonIds: ['mt-magnetization'],
       assumptionsAndLimits: [
         t('هذا الدرس تعليمي ويحتاج تطبيقه في الميدان إلى إجراء معتمد ومؤهل مختص.', 'This lesson is educational; field application requires an approved procedure and qualified personnel.'),
         t('أي قرار قبول/رفض أو صلاحية للخدمة يتبع الكود/الإجراء المعتمد وليس هذا الملخص.', 'Any acceptance/rejection or fitness-for-service decision follows the approved code/procedure, not this summary.'),
+      ],
+      referenceTrace: [
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-mt-particles',
+          verified: true,
+          note: t('مرجع قراءة داعم: Magnetic Particle — Magnetic Particles.', 'Supporting reading: Magnetic Particle — Magnetic Particles.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-mt-suspension',
+          verified: true,
+          note: t('مرجع قراءة داعم: Magnetic Particle — Suspension Liquids.', 'Supporting reading: Magnetic Particle — Suspension Liquids.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-mt-wet',
+          verified: true,
+          note: t('مرجع قراءة داعم: Magnetic Particle — Wet Suspension Inspection.', 'Supporting reading: Magnetic Particle — Wet Suspension Inspection.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-mt-concentration',
+          verified: true,
+          note: t('مرجع قراءة داعم: Magnetic Particle — Particle Concentration and Condition.', 'Supporting reading: Magnetic Particle — Particle Concentration and Condition.'),
+        }
       ],
       governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'level1', moduleId: 'mod_c_mt' },
@@ -287,11 +374,42 @@ export const mtCourse: NdeEdCourse = {
         'نفس التيار قد يعطي مجالاً مختلفاً حسب الدائرة والقطعة؛ المؤشر يتحقق من النتيجة الفعلية.',
         'The same current can give a different field depending on the circuit and part; the indicator verifies the actual result.'
       ),
+      quizBank: [
+        quiz('mt-equipment-q2', 'ما فائدة قياس شدة المجال/التحقق منه؟', 'Why verify magnetic field strength?', [['للتأكد من أن المجال كافٍ للكشف دون إفراط غير مبرر','To ensure field is adequate for detection without unjustified excess'], ['لتغيير لون الجسيمات','To change particle color'], ['لإلغاء المعايرة','To eliminate calibration'], ['لزيادة سمك القطعة','To increase part thickness']], 0, 'التحقق من المجال يدعم موثوقية الفحص.', 'Field verification supports inspection reliability.', { category: 'application', difficulty: 'easy', reviewStatus: 'draft' }),
+        quiz('mt-equipment-q3', 'متى يجب إزالة المغنطة؟', 'When should demagnetization be performed?', [['عندما قد تؤثر المغنطة المتبقية على التشغيل أو الفحوصات اللاحقة أو السلامة','When residual magnetism may affect operation, later inspections, or safety'], ['لا حاجة أبداً','Never needed'], ['قبل التنظيف فقط','Only before cleaning'], ['بعد الطلاء فقط','Only after painting']], 0, 'المغنطة المتبقية قد تكون مشكلة تشغيلية.', 'Residual magnetism can be an operational issue.', { category: 'knowledge', difficulty: 'medium', reviewStatus: 'draft' }),
+      ],
+
       sources: ['nde-mt-portable', 'nde-mt-stationary', 'nde-mt-indicators', 'nde-mt-concentration'],
       prerequisiteLessonIds: ['mt-media'],
       assumptionsAndLimits: [
         t('هذا الدرس تعليمي ويحتاج تطبيقه في الميدان إلى إجراء معتمد ومؤهل مختص.', 'This lesson is educational; field application requires an approved procedure and qualified personnel.'),
         t('أي قرار قبول/رفض أو صلاحية للخدمة يتبع الكود/الإجراء المعتمد وليس هذا الملخص.', 'Any acceptance/rejection or fitness-for-service decision follows the approved code/procedure, not this summary.'),
+      ],
+      referenceTrace: [
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-mt-portable',
+          verified: true,
+          note: t('مرجع قراءة داعم: Magnetic Particle — Portable Magnetizing Equipment.', 'Supporting reading: Magnetic Particle — Portable Magnetizing Equipment.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-mt-stationary',
+          verified: true,
+          note: t('مرجع قراءة داعم: Magnetic Particle — Stationary Equipment.', 'Supporting reading: Magnetic Particle — Stationary Equipment.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-mt-indicators',
+          verified: true,
+          note: t('مرجع قراءة داعم: Magnetic Particle — Field Indicators.', 'Supporting reading: Magnetic Particle — Field Indicators.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-mt-concentration',
+          verified: true,
+          note: t('مرجع قراءة داعم: Magnetic Particle — Particle Concentration and Condition.', 'Supporting reading: Magnetic Particle — Particle Concentration and Condition.'),
+        }
       ],
       governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'level2', moduleId: 'mod_c2_1' },
@@ -353,11 +471,42 @@ export const mtCourse: NdeEdCourse = {
         'غياب الدلالة داخل حدود الطريقة لا ينفي وجود عيب خارج هذه الحدود.',
         'Absence of an indication within method limits does not exclude a flaw outside them.'
       ),
+      quizBank: [
+        quiz('mt-interpretation-q2', 'ما الفرق بين دلالة ذات صلة ودلالة كاذبة في MT؟', 'What is the difference between relevant and false indication in MT?', [['ذات الصلة مرتبطة بانقطاع؛ الكاذبة بسبب تلوث/خدوش سطح/تراكم جسيمات','Relevant relates to discontinuity; false due to contamination/scratches/particle buildup'], ['لا فرق','No difference'], ['الكاذبة تعني رفضاً دائماً','False always means reject'], ['ذات الصلة تعني قبولاً دائماً','Relevant always means accept']], 0, 'التفسير يحتاج تنظيفاً وفحصاً دقيقاً.', 'Interpretation requires cleaning and careful examination.', { category: 'understanding', difficulty: 'medium', reviewStatus: 'draft' }),
+        quiz('mt-interpretation-q3', 'إذا وجدت دلالة حادة خطية في MT، ماذا تفعل؟', 'If you find a sharp linear indication in MT, what should you do?', [['تنظيف/إعادة فحص حسب الإجراء وتوثيقها وتقييمها من مؤهل','Clean/recheck per procedure, document and have qualified evaluation'], ['طلاؤها مباشرة','Paint over it immediately'], ['تجاهلها لأنها جميلة','Ignore it because it looks sharp'], ['اعتبارها دائماً خدشاً','Always call it a scratch']], 0, 'الدلالة الخطية الحادة تحتاج تقييماً حذراً.', 'Sharp linear indications require careful evaluation.', { category: 'critical_thinking', difficulty: 'medium', reviewStatus: 'draft' }),
+      ],
+
       sources: ['nde-mt-indications', 'nde-mt-orientation', 'nde-mt-continuous', 'nde-mt-stationary'],
       prerequisiteLessonIds: ['mt-equipment'],
       assumptionsAndLimits: [
         t('هذا الدرس تعليمي ويحتاج تطبيقه في الميدان إلى إجراء معتمد ومؤهل مختص.', 'This lesson is educational; field application requires an approved procedure and qualified personnel.'),
         t('أي قرار قبول/رفض أو صلاحية للخدمة يتبع الكود/الإجراء المعتمد وليس هذا الملخص.', 'Any acceptance/rejection or fitness-for-service decision follows the approved code/procedure, not this summary.'),
+      ],
+      referenceTrace: [
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-mt-indications',
+          verified: true,
+          note: t('مرجع قراءة داعم: Magnetic Particle — Wet Indication Examples.', 'Supporting reading: Magnetic Particle — Wet Indication Examples.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-mt-orientation',
+          verified: true,
+          note: t('مرجع قراءة داعم: Magnetic Particle — Field Orientation and Flaw Detectability.', 'Supporting reading: Magnetic Particle — Field Orientation and Flaw Detectability.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-mt-continuous',
+          verified: true,
+          note: t('مرجع قراءة داعم: Magnetic Particle — Continuous and Residual Techniques.', 'Supporting reading: Magnetic Particle — Continuous and Residual Techniques.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-mt-stationary',
+          verified: true,
+          note: t('مرجع قراءة داعم: Magnetic Particle — Stationary Equipment.', 'Supporting reading: Magnetic Particle — Stationary Equipment.'),
+        }
       ],
       governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'level2', moduleId: 'mod_c2_1' },

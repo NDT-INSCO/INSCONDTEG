@@ -25,13 +25,14 @@ export const VirtualEngineer3D: React.FC<Props> = ({ speaking, thinking }) => {
       camera.position.set(0, 1.55, 6.8);
       camera.lookAt(0, 1.35, 0);
 
-      renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.7));
-      renderer.setClearColor(0x000000, 0);
-      renderer.outputColorSpace = THREE.SRGBColorSpace;
-      renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-      host.appendChild(renderer.domElement);
+      const activeRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+      renderer = activeRenderer;
+      activeRenderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.7));
+      activeRenderer.setClearColor(0x000000, 0);
+      activeRenderer.outputColorSpace = THREE.SRGBColorSpace;
+      activeRenderer.shadowMap.enabled = true;
+      activeRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      host.appendChild(activeRenderer.domElement);
       host.closest('.ve-instructor')?.classList.add('ve-3d-ready');
 
       scene.add(new THREE.HemisphereLight(0xe8f7ff, 0x31445a, 2.0));
@@ -143,7 +144,7 @@ export const VirtualEngineer3D: React.FC<Props> = ({ speaking, thinking }) => {
       const resize = () => {
         const width = Math.max(1, host.clientWidth);
         const height = Math.max(1, host.clientHeight);
-        renderer.setSize(width, height, false);
+        activeRenderer.setSize(width, height, false);
         camera.aspect = width / height;
         camera.updateProjectionMatrix();
       };
@@ -163,7 +164,7 @@ export const VirtualEngineer3D: React.FC<Props> = ({ speaking, thinking }) => {
         head.rotation.y = thinkingRef.current ? Math.sin(time * 2) * 0.09 : Math.sin(time * 0.55) * 0.025;
         leftArm.rotation.z = -0.035 + Math.sin(time * (speakingRef.current ? 3.2 : 0.8)) * (speakingRef.current ? 0.055 : 0.018);
         mouth.scale.y = speakingRef.current ? 0.18 + Math.abs(Math.sin(time * 10)) * 0.75 : 0.12;
-        renderer.render(scene, camera);
+        activeRenderer.render(scene, camera);
       };
       animate();
     } catch {

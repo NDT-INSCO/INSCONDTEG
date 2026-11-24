@@ -12,6 +12,7 @@
 import { useEffect, useSyncExternalStore } from 'react';
 import { getLanguage, isRtlLanguage } from './languages';
 import { isTranslatableText, translateBatch } from './translateEngine';
+import { notifyRobotLanguageChange } from './globalLanguageSync';
 
 export type RobotStatus = 'idle' | 'translating' | 'done' | 'error';
 
@@ -64,7 +65,7 @@ class TranslationRobotStore {
     }
     this.state = {
       target: saved && getLanguage(saved) ? saved : null,
-      source: 'ar',
+      source: 'en',
       status: 'idle',
       progress: { done: 0, total: 0 },
       error: null,
@@ -78,6 +79,12 @@ class TranslationRobotStore {
   };
 
   getSnapshot = (): RobotState => this.state;
+
+  private broadcastChange(): void {
+    if (typeof window === 'undefined') return;
+    const detail = { target: this.state.target, source: this.state.source, ts: Date.now() } as unknown as Record<string, unknown>;
+    try { window.dispatchEvent(new CustomEvent('insco:robot-changed', { detail })); } catch { /* ignore */ }
+  }
 
   private setState(patch: Partial<RobotState>): void {
     this.state = { ...this.state, ...patch };
@@ -132,6 +139,8 @@ class TranslationRobotStore {
     }
     this.setState({ target: language.code, error: null });
     this.syncDocumentLanguage();
+    this.broadcastChange();
+    try { notifyRobotLanguageChange(language.code); } catch { /* ignore */ }
     await this.applyAll();
     this.startObserver();
   }
@@ -150,6 +159,8 @@ class TranslationRobotStore {
     }
     this.setState({ target: null, status: 'idle', progress: { done: 0, total: 0 }, error: null });
     this.syncDocumentLanguage();
+    this.broadcastChange();
+    try { notifyRobotLanguageChange(null); } catch { /* ignore */ }
   }
 
   /** Re-run translation after a provider failure. */

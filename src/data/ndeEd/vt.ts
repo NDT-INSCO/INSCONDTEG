@@ -89,6 +89,10 @@ export const vtCourse: NdeEdCourse = {
       ),
       sources: ['nde-visual-acuity', 'nde-contrast', 'nde-light-response'],
       prerequisiteLessonIds: [],
+      assumptionsAndLimits: [
+        t('هذا الدرس تعليمي ويحتاج تطبيقه في الميدان إلى إجراء معتمد ومؤهل مختص.', 'This lesson is educational; field application requires an approved procedure and qualified personnel.'),
+        t('أي قرار قبول/رفض أو صلاحية للخدمة يتبع الكود/الإجراء المعتمد وليس هذا الملخص.', 'Any acceptance/rejection or fitness-for-service decision follows the approved code/procedure, not this summary.'),
+      ],
       governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'academic', moduleId: 'mod_c_acad_vt' },
       textbook: { bookId: 'book-vt', pageNumber: 1 },
@@ -151,6 +155,10 @@ export const vtCourse: NdeEdCourse = {
       ),
       sources: ['asnt-vt', 'nde-materials'],
       prerequisiteLessonIds: ['vt-perception'],
+      assumptionsAndLimits: [
+        t('هذا الدرس تعليمي ويحتاج تطبيقه في الميدان إلى إجراء معتمد ومؤهل مختص.', 'This lesson is educational; field application requires an approved procedure and qualified personnel.'),
+        t('أي قرار قبول/رفض أو صلاحية للخدمة يتبع الكود/الإجراء المعتمد وليس هذا الملخص.', 'Any acceptance/rejection or fitness-for-service decision follows the approved code/procedure, not this summary.'),
+      ],
       governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'academic', moduleId: 'mod_c_acad_vt' },
       textbook: { bookId: 'book-vt', pageNumber: 2 },
@@ -214,6 +222,10 @@ export const vtCourse: NdeEdCourse = {
       ),
       sources: ['nde-pt-lighting', 'nde-light-response', 'nde-materials'],
       prerequisiteLessonIds: ['vt-perception'],
+      assumptionsAndLimits: [
+        t('هذا الدرس تعليمي ويحتاج تطبيقه في الميدان إلى إجراء معتمد ومؤهل مختص.', 'This lesson is educational; field application requires an approved procedure and qualified personnel.'),
+        t('أي قرار قبول/رفض أو صلاحية للخدمة يتبع الكود/الإجراء المعتمد وليس هذا الملخص.', 'Any acceptance/rejection or fitness-for-service decision follows the approved code/procedure, not this summary.'),
+      ],
       governance: GOV,
       textbook: { bookId: 'book-vt', pageNumber: 3 },
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'level1', moduleId: 'mod_c_vt' },
@@ -276,6 +288,10 @@ export const vtCourse: NdeEdCourse = {
       ),
       sources: ['nde-visual-acuity', 'asnt-vt', 'nde-pt-defect'],
       prerequisiteLessonIds: ['vt-weld-geometry', 'vt-lighting-surface'],
+      assumptionsAndLimits: [
+        t('هذا الدرس تعليمي ويحتاج تطبيقه في الميدان إلى إجراء معتمد ومؤهل مختص.', 'This lesson is educational; field application requires an approved procedure and qualified personnel.'),
+        t('أي قرار قبول/رفض أو صلاحية للخدمة يتبع الكود/الإجراء المعتمد وليس هذا الملخص.', 'Any acceptance/rejection or fitness-for-service decision follows the approved code/procedure, not this summary.'),
+      ],
       governance: GOV,
       textbook: { bookId: 'book-vt', pageNumber: 4 },
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'level1', moduleId: 'mod_c_vt' },

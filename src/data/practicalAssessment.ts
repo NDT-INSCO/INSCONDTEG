@@ -147,6 +147,42 @@ export const PRACTICAL_TASKS: PracticalTask[] = [
       { id: 'c5', label: text('تسجيل النتيجة مع حدود الطريقة', 'Records the result with method limits'), evidence: text('يذكر حدود العمق والنفاذية والاتجاه.', 'Names depth, permeability and orientation limits.'), critical: true },
     ],
   },
+  {
+    id: 'pa-ut-weld-scan',
+    method: 'UT',
+    title: text('مسح لحام بحزمة مائلة وتوصيف إشارة', 'Angle-beam weld scan and indication characterization'),
+    objective: text('تنفيذ مسح لحام بحزمة مائلة، تحديد موقع الإشارة، تمييز الهندسة عن العيب المحتمل، وتوثيق النتيجة بدون إصدار قرار قبول/رفض كودي.', 'Perform an angle-beam weld scan, locate an indication, distinguish geometry from a potential flaw, and document the result without issuing a code acceptance/rejection decision.'),
+    specimen: text('لوحة لحام تناكبي بسماكة معلومة مع إشارة مرجعية/هندسية معروفة للمقيّم.', 'Butt-welded plate of known thickness with an assessor-known reference/geometric indication.'),
+    equipment: ['UT flaw detector', 'angle-beam probe(s)', 'couplant', 'calibration block', 'wedge', 'ruler', 'weld drawing/skip chart'],
+    procedureNote: text('المُقيِّم يحدد سمك القطعة ونوع الوصلة والزوايا المطلوبة قبل البدء. لا يُطلب من المتدرب إصدار حكم قبول/رفض نهائي.', 'The assessor defines part thickness, joint type and required angles before starting. The candidate is not asked to issue a final acceptance/rejection decision.'),
+    safety: text('سطح نظيف، كابلات آمنة، لا تشغيل أثناء الصيانة، احذر الحواف الحادة.', 'Clean surface, secure cables, no operation during maintenance, beware sharp edges.'),
+    estimatedMinutes: 50,
+    criteria: [
+      { id: 'c1', label: text('التحقق من المعايرة ونقطة الخروج/الزاوية', 'Verifies calibration, exit point and angle'), evidence: text('يُظهر تحقق المعايرة ونقطة الخروج قبل المسح.', 'Shows calibration and exit-point verification before scanning.'), critical: true },
+      { id: 'c2', label: text('مسح بتغطية واتجاهات مناسبة', 'Scans with suitable coverage and directions'), evidence: text('يغطي منطقة اللحام وHAZ بخطوات متداخلة واتجاهين عند الحاجة.', 'Covers weld and HAZ with overlapping passes and opposing directions where needed.') },
+      { id: 'c3', label: text('تحديد موقع الإشارة', 'Locates the indication'), evidence: text('يسجل مسار الصوت/المسافة السطحية/العمق التقريبي ضمن التسامح المعلن.', 'Records sound path/surface distance/approximate depth within stated tolerance.'), critical: true },
+      { id: 'c4', label: text('تمييز الهندسة عن العيب', 'Distinguishes geometry from flaw'), evidence: text('يستخدم الحركة والرسم والاتجاهات الأخرى لتبرير التصنيف المبدئي.', 'Uses movement, drawing and other directions to justify preliminary classification.') },
+      { id: 'c5', label: text('توثيق كامل وحدود القرار', 'Complete documentation and decision boundary'), evidence: text('يسجل الإعدادات والقراءات ويذكر أن القبول/الرفض يحتاج كوداً وإجراءً معتمداً.', 'Records setup/readings and states acceptance/rejection requires approved code/procedure.'), critical: true },
+    ],
+  },
+  {
+    id: 'pa-pt-indication-evaluation',
+    method: 'PT',
+    title: text('تقييم وتوثيق دلالات السائل النافذ', 'Evaluate and document penetrant indications'),
+    objective: text('تمييز الدلالات الحقيقية من الدلالات الكاذبة/غير ذات الصلة وتوثيق حجمها وموقعها ضمن حدود الإجراء التدريبي.', 'Distinguish relevant indications from false/non-relevant indications and document size and location within training procedure limits.'),
+    specimen: text('عينة تحتوي على دلالة ذات صلة واحدة على الأقل ودلالة غير ذات صلة/خلفية.', 'Specimen containing at least one relevant indication and one non-relevant/background indication.'),
+    equipment: ['penetrant test kit', 'UV/white light as applicable', 'light meter', 'ruler/magnifier', 'report form'],
+    procedureNote: text('المُقيِّم يحدد نوع النافذ والمظهر والإضاءة المطلوبة قبل البدء. القرار النهائي للقبول يحتاج كود/إجراء معتمد.', 'The assessor defines penetrant type, developer and required lighting before starting. Final acceptance requires approved code/procedure.'),
+    safety: text('تهوية، حماية عين، قفازات، تجنب ملامسة المواد الكيميائية، إدارة النفايات.', 'Ventilation, eye protection, gloves, avoid chemical contact, waste handling.'),
+    estimatedMinutes: 30,
+    criteria: [
+      { id: 'c1', label: text('التحقق من ظروف الإضاءة/النظافة', 'Verifies lighting/cleanliness conditions'), evidence: text('يقيس أو يتحقق من الإضاءة المناسبة قبل التقييم.', 'Measures or verifies appropriate lighting before evaluation.'), critical: true },
+      { id: 'c2', label: text('تمييز دلالة ذات صلة من غير ذات صلة', 'Distinguishes relevant from non-relevant indication'), evidence: text('يبرر التصنيف بناءً على الشكل والموقع والاستجابة.', 'Justifies classification based on shape, location and response.') },
+      { id: 'c3', label: text('قياس وتوثيق الدلالة', 'Measures and documents indication'), evidence: text('يسجل الموقع، الاتجاه، الطول/الحجم، ونوع الدلالة.', 'Records location, orientation, length/size and indication type.') },
+      { id: 'c4', label: text('عدم المبالغة في التقييم', 'Avoids over-interpretation'), evidence: text('لا يستنتج عمق العيب من PT وحده.', 'Does not infer flaw depth from PT alone.'), critical: true },
+      { id: 'c5', label: text('حدود القرار والتقرير', 'Decision boundary and reporting'), evidence: text('يذكر أن قرار القبول/الرفض يتبع الكود والإجراء المعتمد.', 'States acceptance/rejection follows approved code/procedure.'), critical: true },
+    ],
+  },
 ];
 
 export const PRACTICAL_METHODS: PracticalMethod[] = ['VT', 'PT', 'MT', 'UT', 'RT', 'ET'];

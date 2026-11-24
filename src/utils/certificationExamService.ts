@@ -698,8 +698,15 @@ export function checkCandidateEligibility(exam: PracticeExamExample): CandidateE
   };
 }
 
-export function getMockExamQuestions(examId?: string, section?: 'general' | 'specific' | 'practical'): MockExamQuestion[] {
+export function getMockExamQuestions(
+  examId?: string,
+  section?: 'general' | 'specific' | 'practical',
+  includeNeedsSmeReview = false
+): MockExamQuestion[] {
   let list = MOCK_EXAM_QUESTIONS;
+  if (!includeNeedsSmeReview) {
+    list = list.filter(q => !q.needsSmeReview && q.reviewStatus !== 'needs_sme_review');
+  }
   if (examId) {
     // If exact exam questions exist, filter, otherwise include cross-compatible questions
     const matching = list.filter(q => q.examId === examId);

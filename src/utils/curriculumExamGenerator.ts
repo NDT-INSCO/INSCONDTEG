@@ -847,9 +847,13 @@ export function getCurriculumSourceModules() {
 // -----------------------------------------------------------------------------
 export function buildExamQuestionPool(
   targetLevel: ExamCertificationLevel,
-  targetMethod: ExamMethod
+  targetMethod: ExamMethod,
+  includeNeedsSmeReview = false
 ): ExamQuestion[] {
   return MASTER_CURRICULUM_QUESTIONS.filter((q) => {
+    if (!includeNeedsSmeReview && (q.needsSmeReview || q.reviewStatus === 'needs_sme_review')) {
+      return false;
+    }
     // Level filter
     if (targetLevel !== 'both' && q.level !== targetLevel) {
       return false;
@@ -884,8 +888,9 @@ export function generateRandomizedCertificationExam(config: {
   mode: ExamMode;
   difficulty?: ExamDifficultyLevel;
   customSecondsPerQuestion?: number;
+  includeNeedsSmeReview?: boolean;
 }): GeneratedExam {
-  const pool = buildExamQuestionPool(config.level, config.method);
+  const pool = buildExamQuestionPool(config.level, config.method, config.includeNeedsSmeReview === true);
   
   if (pool.length === 0) {
     throw new Error('No curriculum questions found matching the selected filters');

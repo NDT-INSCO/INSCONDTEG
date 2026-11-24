@@ -14,7 +14,7 @@ Snapshot taken from repository source on 2026-11-24. Counts are source-based; pu
 | Encyclopedia | `src/data/ndeEncyclopediaData.ts` | 1 dataset (2032 lines) | Needs term-level audit |
 | Reference tables | `src/data/ndeReferenceTablesData.ts` | 1 dataset | Needs source/edition trace |
 | Learning paths | `src/data/learningPaths.ts` | 3 paths | foundations, volumetric, surface-advanced |
-| Practical assessment tasks | `src/data/practicalAssessment.ts` | 6 tasks | VT, PT, MT, UT, RT, ET — prior summary said 8; reconcile |
+| Practical assessment tasks | `src/data/practicalAssessment.ts` | 8 tasks | Added `pa-ut-weld-scan` and `pa-pt-indication-evaluation`; reconciled prior count |
 | Lesson quiz bank (legacy/curriculum) | `src/data/curriculumLessonQuizzes.ts` | present | Large file; needs question-by-question audit |
 | NDE curriculum quizzes | `src/data/ndeCurriculumQuizzes.ts` | present | Needs audit |
 | Exam generators | `src/utils/curriculumExamGenerator.ts`, `src/utils/certificationExamService.ts` | present | **High risk**: contains code/acceptance logic; SME review required |
@@ -45,7 +45,7 @@ Snapshot taken from repository source on 2026-11-24. Counts are source-based; pu
 
 ## 4. Inventory gaps / reconciliation required
 
-1. **Practical task count mismatch:** prior summary said 8; source currently has 6 in `PRACTICAL_TASKS`. Confirm whether 2 tasks exist elsewhere or were planned.
+1. **Practical task count reconciled:** source now has 8 tasks in `PRACTICAL_TASKS` (added UT weld scan + PT indication evaluation).
 2. **Two curriculum systems:** NDE-Ed lessons and `academyCurriculum` disciplines/modules coexist. Define ownership and mapping rules.
 3. **Published-site reconciliation:** `docs/` contains built assets; verify published content matches source after build.
 4. **Metadata gaps:** before pilot, NDE-Ed lessons lacked review status, reviewer, reference trace, prerequisite IDs, and change log. UT pilot adds them; other courses still need migration.

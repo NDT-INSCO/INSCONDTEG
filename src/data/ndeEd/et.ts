@@ -1,6 +1,16 @@
 import { NdeEdCourse } from './types.js';
 import { quiz, t } from './helpers.js';
 
+const GOV = {
+  status: 'draft' as const,
+  technicalReviewerRole: 'ET Level III',
+  lastUpdatedAt: '2026-11-24',
+  changeLog: [
+    '2026-11-24: Baseline governance metadata and prerequisiteLessonIds added by educational audit pilot. SME/Level III review required.',
+  ],
+};
+
+
 export const etCourse: NdeEdCourse = {
   id: 'nde-et',
   disciplineId: 'ndt_advanced',
@@ -82,6 +92,8 @@ export const etCourse: NdeEdCourse = {
         'δ is inversely proportional to the square root of frequency, so a higher frequency reduces depth.'
       ),
       sources: ['nde-et-principles', 'nde-magnetism', 'nde-et-formulas'],
+      prerequisiteLessonIds: ['phy-waves'],
+      governance: GOV,
       curriculum: { disciplineId: 'ndt_advanced', levelId: 'level1', moduleId: 'mod_adv_et' },
     },
     {
@@ -140,6 +152,8 @@ export const etCourse: NdeEdCourse = {
         'مقارنة ملفين متجاورين تلغي التغيرات المشتركة البطيئة.', 'Comparing two adjacent coils cancels common slow changes.'
       ),
       sources: ['nde-et-probes', 'nde-et-principles'],
+      prerequisiteLessonIds: ['et-principles'],
+      governance: GOV,
       curriculum: { disciplineId: 'ndt_advanced', levelId: 'level1', moduleId: 'mod_adv_et' },
       labId: 'ut_lab',
     },
@@ -199,6 +213,8 @@ export const etCourse: NdeEdCourse = {
         'الطور يقدم تقديراً للعمق ونوع التغيّر بعد معايرة مناسبة.', 'Phase gives an estimate of depth and type of change after suitable calibration.'
       ),
       sources: ['nde-et-impedance', 'nde-et-procedures', 'nde-et-formulas'],
+      prerequisiteLessonIds: ['et-probes'],
+      governance: GOV,
       curriculum: { disciplineId: 'ndt_advanced', levelId: 'level1', moduleId: 'mod_adv_et' },
     },
     {
@@ -258,6 +274,8 @@ export const etCourse: NdeEdCourse = {
         'Periodic repetition at supports is a common geometric indication that must be excluded before recording a flaw.'
       ),
       sources: ['nde-et-applications', 'nde-et-standards', 'nde-et-procedures'],
+      prerequisiteLessonIds: ['et-impedance'],
+      governance: GOV,
       curriculum: { disciplineId: 'ndt_advanced', levelId: 'level1', moduleId: 'mod_adv_et' },
       textbook: { bookId: 'book-et', pageNumber: 1 },
     },
@@ -318,6 +336,8 @@ export const etCourse: NdeEdCourse = {
         'Mixing combines signals from different frequencies to cancel a geometric or lift-off variable while retaining the flaw signal.'
       ),
       sources: ['nde-et-advanced', 'nde-et-standards', 'nde-et-formulas'],
+      prerequisiteLessonIds: ['et-applications'],
+      governance: GOV,
       curriculum: { disciplineId: 'ndt_advanced', levelId: 'level1', moduleId: 'mod_adv_et' },
     },
   ],

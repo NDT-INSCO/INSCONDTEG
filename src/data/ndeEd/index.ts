@@ -53,9 +53,14 @@ export function courseMinutes(course: NdeEdCourse): number {
   return course.lessons.reduce((sum, lesson) => sum + lesson.minutes, 0);
 }
 
+/** All questions for a lesson: primary quiz + optional quizBank. */
+export function lessonQuestions(lesson: NdeEdLesson) {
+  return [lesson.quiz, ...(lesson.quizBank || [])];
+}
+
 /** Quiz items used by the course-level self-check; one per lesson, in order. */
 export function courseAssessment(course: NdeEdCourse) {
-  return course.lessons.map(lesson => ({ lessonId: lesson.id, lessonTitle: lesson.title, quiz: lesson.quiz }));
+  return course.lessons.map(lesson => ({ lessonId: lesson.id, lessonTitle: lesson.title, quiz: lesson.quiz, questionBank: lessonQuestions(lesson) }));
 }
 
 /** Coverage of the existing eight-discipline curriculum, shown in the catalog. */

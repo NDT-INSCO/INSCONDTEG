@@ -1,6 +1,16 @@
 import { NdeEdCourse } from './types.js';
 import { quiz, t } from './helpers.js';
 
+const GOV = {
+  status: 'draft' as const,
+  technicalReviewerRole: 'VT Level III',
+  lastUpdatedAt: '2026-11-24',
+  changeLog: [
+    '2026-11-24: Baseline governance metadata and prerequisiteLessonIds added by educational audit pilot. SME/Level III review required.',
+  ],
+};
+
+
 export const vtCourse: NdeEdCourse = {
   id: 'nde-vt',
   disciplineId: 'conventional_ndt',
@@ -78,6 +88,8 @@ export const vtCourse: NdeEdCourse = {
         'Resolving detail does not mean seeing it under low contrast or unsuitable lighting.'
       ),
       sources: ['nde-visual-acuity', 'nde-contrast', 'nde-light-response'],
+      prerequisiteLessonIds: [],
+      governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'academic', moduleId: 'mod_c_acad_vt' },
       textbook: { bookId: 'book-vt', pageNumber: 1 },
     },
@@ -138,6 +150,8 @@ export const vtCourse: NdeEdCourse = {
         'Acceptance depends on a specific criterion and service, not a number alone.'
       ),
       sources: ['asnt-vt', 'nde-materials'],
+      prerequisiteLessonIds: ['vt-perception'],
+      governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'academic', moduleId: 'mod_c_acad_vt' },
       textbook: { bookId: 'book-vt', pageNumber: 2 },
       labId: 'weld_inspector_gauge',
@@ -199,6 +213,8 @@ export const vtCourse: NdeEdCourse = {
         'Measurable, documented viewing conditions make the result repeatable.'
       ),
       sources: ['nde-pt-lighting', 'nde-light-response', 'nde-materials'],
+      prerequisiteLessonIds: ['vt-perception'],
+      governance: GOV,
       textbook: { bookId: 'book-vt', pageNumber: 3 },
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'level1', moduleId: 'mod_c_vt' },
     },
@@ -259,6 +275,8 @@ export const vtCourse: NdeEdCourse = {
         'An honest description preserves the observation without overclaiming and directs verification.'
       ),
       sources: ['nde-visual-acuity', 'asnt-vt', 'nde-pt-defect'],
+      prerequisiteLessonIds: ['vt-weld-geometry', 'vt-lighting-surface'],
+      governance: GOV,
       textbook: { bookId: 'book-vt', pageNumber: 4 },
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'level1', moduleId: 'mod_c_vt' },
     },

@@ -1,6 +1,16 @@
 import { NdeEdCourse } from './types.js';
 import { quiz, t } from './helpers.js';
 
+const GOV = {
+  status: 'draft' as const,
+  technicalReviewerRole: 'NDT Level III — cross-method physics',
+  lastUpdatedAt: '2026-11-24',
+  changeLog: [
+    '2026-11-24: Baseline governance metadata and prerequisiteLessonIds added by educational audit pilot. SME/Level III review required.',
+  ],
+};
+
+
 export const physicsCourse: NdeEdCourse = {
   id: 'nde-physics',
   disciplineId: 'conventional_ndt',
@@ -79,6 +89,8 @@ export const physicsCourse: NdeEdCourse = {
         'From v = f × λ, with v constant, doubling f halves λ.'
       ),
       sources: ['nde-waves', 'nde-sound', 'nde-materials'],
+      prerequisiteLessonIds: [],
+      governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'academic', moduleId: 'mod_c_acad_1' },
       textbook: { bookId: 'book-ut', pageNumber: 1 },
       labId: 'ut_lab',
@@ -140,6 +152,8 @@ export const physicsCourse: NdeEdCourse = {
         'An air gap reflects most energy; couplant fills it and improves transmission.'
       ),
       sources: ['nde-sound', 'nde-ut-couplant', 'nde-ut-principles'],
+      prerequisiteLessonIds: ['phy-waves'],
+      governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'academic', moduleId: 'mod_c_acad_1' },
       textbook: { bookId: 'book-ut', pageNumber: 2 },
     },
@@ -200,6 +214,8 @@ export const physicsCourse: NdeEdCourse = {
         'MT requires a ferromagnetic material. Carbon steel qualifies; aluminium, copper and austenitic stainless do not.'
       ),
       sources: ['nde-magnetism', 'nde-mt-magnetism', 'nde-mt-principles'],
+      prerequisiteLessonIds: ['phy-waves'],
+      governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'academic', moduleId: 'mod_c_acad_2' },
       textbook: { bookId: 'book-mt', pageNumber: 1 },
       labId: 'pt_mt_darkroom',
@@ -261,6 +277,8 @@ export const physicsCourse: NdeEdCourse = {
         'Inverse-square law: rate is proportional to 1/r², so doubling r gives one quarter.'
       ),
       sources: ['nde-xray', 'nde-rt-interaction', 'nde-rt-penetration', 'nde-rt-safety'],
+      prerequisiteLessonIds: ['phy-waves'],
+      governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'academic', moduleId: 'mod_c_acad_2' },
       textbook: { bookId: 'book-rt', pageNumber: 1 },
       labId: 'rt_illuminator',
@@ -322,6 +340,8 @@ export const physicsCourse: NdeEdCourse = {
         'PT relies on surface entry; penetrant cannot reach a fully enclosed internal flaw.'
       ),
       sources: ['nde-capillary', 'nde-pt-process', 'nde-pt-penetrants'],
+      prerequisiteLessonIds: ['phy-waves'],
+      governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'academic', moduleId: 'mod_c_acad_2' },
       textbook: { bookId: 'book-pt', pageNumber: 1 },
       labId: 'pt_mt_darkroom',

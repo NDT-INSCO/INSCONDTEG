@@ -1,6 +1,16 @@
 import { NdeEdCourse } from './types.js';
 import { quiz, t } from './helpers.js';
 
+const GOV = {
+  status: 'draft' as const,
+  technicalReviewerRole: 'RT Level III',
+  lastUpdatedAt: '2026-11-24',
+  changeLog: [
+    '2026-11-24: Baseline governance metadata and prerequisiteLessonIds added by educational audit pilot. SME/Level III review required.',
+  ],
+};
+
+
 export const rtCourse: NdeEdCourse = {
   id: 'nde-rt',
   disciplineId: 'conventional_ndt',
@@ -79,6 +89,8 @@ export const rtCourse: NdeEdCourse = {
         'Photoelectric absorption depends strongly on atomic number and density, increasing contrast in heavy metals.'
       ),
       sources: ['nde-xray', 'nde-rt-interaction', 'nde-rt-penetration', 'nde-rt-sources'],
+      prerequisiteLessonIds: ['phy-radiation'],
+      governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'level1', moduleId: 'mod_c_rt' },
       textbook: { bookId: 'book-rt', pageNumber: 1 },
       labId: 'rt_illuminator',
@@ -140,6 +152,8 @@ export const rtCourse: NdeEdCourse = {
         'The curve shows film response to exposure and guides density and contrast selection.'
       ),
       sources: ['nde-rt-film', 'nde-rt-density', 'nde-rt-curves', 'nde-rt-contrast'],
+      prerequisiteLessonIds: ['rt-physics'],
+      governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'level2', moduleId: 'mod_c2_1' },
       textbook: { bookId: 'book-rt', pageNumber: 2 },
     },
@@ -200,6 +214,8 @@ export const rtCourse: NdeEdCourse = {
         'An IQI is a measurable indicator of technique and image sensitivity, not a thickness gauge.'
       ),
       sources: ['nde-rt-exposure', 'nde-rt-quality', 'nde-rt-curves', 'nde-rt-sources'],
+      prerequisiteLessonIds: ['rt-imaging'],
+      governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'level2', moduleId: 'mod_c2_1' },
       textbook: { bookId: 'book-rt', pageNumber: 3 },
       labId: 'rt_illuminator',
@@ -261,6 +277,8 @@ export const rtCourse: NdeEdCourse = {
         'Trapped gas forms rounded cavities that appear as dark circles.'
       ),
       sources: ['nde-rt-interp', 'nde-rt-quality', 'nde-rt-contrast'],
+      prerequisiteLessonIds: ['rt-technique'],
+      governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'level2', moduleId: 'mod_c2_1' },
       textbook: { bookId: 'book-rt', pageNumber: 4 },
     },
@@ -321,6 +339,8 @@ export const rtCourse: NdeEdCourse = {
         'Time, distance and shielding are the core dose controls, supported by measurement and monitoring.'
       ),
       sources: ['nde-rt-safety', 'nde-xray', 'nde-rt-penetration'],
+      prerequisiteLessonIds: ['rt-physics'],
+      governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'level2', moduleId: 'mod_c2_1' },
       textbook: { bookId: 'book-rt', pageNumber: 5 },
       labId: 'rt_illuminator',

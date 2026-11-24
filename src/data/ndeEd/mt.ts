@@ -1,6 +1,16 @@
 import { NdeEdCourse } from './types.js';
 import { quiz, t } from './helpers.js';
 
+const GOV = {
+  status: 'draft' as const,
+  technicalReviewerRole: 'MT Level III',
+  lastUpdatedAt: '2026-11-24',
+  changeLog: [
+    '2026-11-24: Baseline governance metadata and prerequisiteLessonIds added by educational audit pilot. SME/Level III review required.',
+  ],
+};
+
+
 export const mtCourse: NdeEdCourse = {
   id: 'nde-mt',
   disciplineId: 'conventional_ndt',
@@ -78,6 +88,8 @@ export const mtCourse: NdeEdCourse = {
         'Aluminium is not ferromagnetic; MT requires a magnetizable material.'
       ),
       sources: ['nde-mt-principles', 'nde-mt-magnetism', 'nde-mt-orientation'],
+      prerequisiteLessonIds: ['phy-magnetism'],
+      governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'level1', moduleId: 'mod_c_mt' },
       textbook: { bookId: 'book-mt', pageNumber: 1 },
       labId: 'pt_mt_darkroom',
@@ -139,6 +151,8 @@ export const mtCourse: NdeEdCourse = {
         'DC/HWDC penetrates deeper than AC, which concentrates near the surface.'
       ),
       sources: ['nde-mt-current', 'nde-mt-ld', 'nde-mt-continuous', 'nde-mt-portable'],
+      prerequisiteLessonIds: ['mt-principles'],
+      governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'level1', moduleId: 'mod_c_mt' },
       textbook: { bookId: 'book-mt', pageNumber: 2 },
       labId: 'pt_mt_darkroom',
@@ -200,6 +214,8 @@ export const mtCourse: NdeEdCourse = {
         'Fluorescence is excited by UV-A and needs dark viewing conditions.'
       ),
       sources: ['nde-mt-particles', 'nde-mt-suspension', 'nde-mt-wet', 'nde-mt-concentration'],
+      prerequisiteLessonIds: ['mt-magnetization'],
+      governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'level1', moduleId: 'mod_c_mt' },
       textbook: { bookId: 'book-mt', pageNumber: 3 },
     },
@@ -260,6 +276,8 @@ export const mtCourse: NdeEdCourse = {
         'The same current can give a different field depending on the circuit and part; the indicator verifies the actual result.'
       ),
       sources: ['nde-mt-portable', 'nde-mt-stationary', 'nde-mt-indicators', 'nde-mt-concentration'],
+      prerequisiteLessonIds: ['mt-media'],
+      governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'level2', moduleId: 'mod_c2_1' },
       textbook: { bookId: 'book-mt', pageNumber: 4 },
     },
@@ -320,6 +338,8 @@ export const mtCourse: NdeEdCourse = {
         'Absence of an indication within method limits does not exclude a flaw outside them.'
       ),
       sources: ['nde-mt-indications', 'nde-mt-orientation', 'nde-mt-continuous', 'nde-mt-stationary'],
+      prerequisiteLessonIds: ['mt-equipment'],
+      governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'level2', moduleId: 'mod_c2_1' },
       textbook: { bookId: 'book-mt', pageNumber: 5 },
     },

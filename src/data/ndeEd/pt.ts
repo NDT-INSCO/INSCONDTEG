@@ -1,6 +1,16 @@
 import { NdeEdCourse } from './types.js';
 import { quiz, t } from './helpers.js';
 
+const GOV = {
+  status: 'draft' as const,
+  technicalReviewerRole: 'PT Level III',
+  lastUpdatedAt: '2026-11-24',
+  changeLog: [
+    '2026-11-24: Baseline governance metadata and prerequisiteLessonIds added by educational audit pilot. SME/Level III review required.',
+  ],
+};
+
+
 export const ptCourse: NdeEdCourse = {
   id: 'nde-pt',
   disciplineId: 'conventional_ndt',
@@ -78,6 +88,8 @@ export const ptCourse: NdeEdCourse = {
         'PT needs a path from the surface; a closed internal flaw is unreachable.'
       ),
       sources: ['nde-pt-process', 'nde-pt-proscons', 'nde-capillary'],
+      prerequisiteLessonIds: ['phy-capillary'],
+      governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'level1', moduleId: 'mod_c_pt' },
       textbook: { bookId: 'book-pt', pageNumber: 1 },
       labId: 'pt_mt_darkroom',
@@ -139,6 +151,8 @@ export const ptCourse: NdeEdCourse = {
         'Developer acts as a blotter, drawing penetrant from the flaw into a contrasting layer.'
       ),
       sources: ['nde-pt-penetrants', 'nde-pt-developers', 'nde-pt-emulsifiers', 'nde-pt-removal'],
+      prerequisiteLessonIds: ['pt-principles'],
+      governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'level1', moduleId: 'mod_c_pt' },
       textbook: { bookId: 'book-pt', pageNumber: 2 },
     },
@@ -199,6 +213,8 @@ export const ptCourse: NdeEdCourse = {
         'Excess washing removes trapped penetrant, especially from tight flaws.'
       ),
       sources: ['nde-pt-temperature', 'nde-pt-dwell', 'nde-pt-wash', 'nde-pt-drying', 'nde-pt-lighting', 'nde-pt-performance'],
+      prerequisiteLessonIds: ['pt-materials'],
+      governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'level2', moduleId: 'mod_c2_1' },
       textbook: { bookId: 'book-pt', pageNumber: 3 },
     },
@@ -259,6 +275,8 @@ export const ptCourse: NdeEdCourse = {
         'Cleaning opens the entry path; sealing or contamination prevents detection.'
       ),
       sources: ['nde-pt-preparation', 'nde-pt-selection', 'nde-pt-application', 'nde-pt-removal', 'nde-pt-developers'],
+      prerequisiteLessonIds: ['pt-control'],
+      governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'level2', moduleId: 'mod_c2_1' },
       textbook: { bookId: 'book-pt', pageNumber: 4 },
     },
@@ -319,6 +337,8 @@ export const ptCourse: NdeEdCourse = {
         'An indication is a trace needing interpretation; it may be superficial or false, and acceptance depends on the criterion.'
       ),
       sources: ['nde-pt-defect', 'nde-pt-safety', 'nde-pt-performance'],
+      prerequisiteLessonIds: ['pt-application'],
+      governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'level2', moduleId: 'mod_c2_1' },
       textbook: { bookId: 'book-pt', pageNumber: 6 },
     },

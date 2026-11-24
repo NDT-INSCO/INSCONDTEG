@@ -1,6 +1,14 @@
-import { NdeEdQuiz, NdeEdText } from './types.js';
+import { NdeEdQuiz, NdeEdReviewStatus, NdeEdText } from './types.js';
 
 export const t = (ar: string, en: string): NdeEdText => ({ ar, en });
+
+export interface QuizMeta {
+  category?: 'knowledge' | 'understanding' | 'application' | 'critical_thinking';
+  difficulty?: 'easy' | 'medium' | 'hard';
+  optionFeedback?: NdeEdText[];
+  referenceNote?: NdeEdText;
+  reviewStatus?: NdeEdReviewStatus;
+}
 
 export function quiz(
   id: string,
@@ -9,7 +17,8 @@ export function quiz(
   options: [string, string][],
   answer: number,
   explanationAr: string,
-  explanationEn: string
+  explanationEn: string,
+  meta: QuizMeta = {}
 ): NdeEdQuiz {
   return {
     id,
@@ -17,6 +26,7 @@ export function quiz(
     options: options.map(([ar, en]) => t(ar, en)),
     answer,
     explanation: t(explanationAr, explanationEn),
+    ...meta,
   };
 }
 

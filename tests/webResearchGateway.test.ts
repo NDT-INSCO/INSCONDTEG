@@ -51,3 +51,27 @@ test('the research endpoint calls the configured search provider and returns sou
     if (server) await new Promise<void>(resolve => server!.close(() => resolve()));
   }
 });
+
+
+test('the Vercel AI gateway mounts the shared ChatGPT streaming endpoint', async () => {
+  const realFetch = globalThis.fetch;
+  let server: Server | undefined;
+  try {
+    const { createAiGateway } = await import('../server/ai/gateway.ts');
+    const app = express();
+    app.use(createAiGateway(process.cwd()));
+    server = createServer(app as never);
+    await new Promise<void>(resolve => server!.listen(0, '127.0.0.1', resolve));
+    const { port } = server.address() as AddressInfo;
+    const response = await realFetch(`http://127.0.0.1:${port}/api/ai/agent/chatgpt-stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    assert.equal(response.status, 400);
+    const body = await response.json() as { error?: { code?: string } };
+    assert.equal(body.error?.code, 'invalid_request');
+  } finally {
+    if (server) await new Promise<void>(resolve => server!.close(() => resolve()));
+  }
+});

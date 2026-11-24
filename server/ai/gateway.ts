@@ -51,6 +51,7 @@ import { buildIndex, searchLibrary, type SearchHit } from '../../src/ai/search.j
 import { composeSelfAnswer } from '../../src/ai/selfAnswer.js';
 import { searchPrivateKnowledge } from './privateKnowledge.js';
 import { searchPublicWeb, WebSearchError } from './webResearch.js';
+import { createChatGptStreamRouter } from './chatgptStream.js';
 import { buildGoogleGroundingPrompt, extractGoogleGroundingCitations, shouldUseGoogleGrounding } from './googleGrounding.js';
 import { answerCopilot, answerCommunity, copilotSearchQuery } from '../../src/ai/agentBrain.js';
 import { HOSTED_GATEWAY_URL, PAGES_SITE_ORIGIN } from '../../src/ai/pagesGateway.js';
@@ -1916,6 +1917,15 @@ router.post(AGENT_ENDPOINTS.communityAssist, async (req: Request, res: Response)
     clearTimeout(timer);
   }
 });
+
+  // Keep the shared streaming agent available on both Vercel and the standalone host.
+  // The same key/rate guard and academy corpus used by the other agents are injected here.
+  router.use(createChatGptStreamRouter({
+    ai,
+    guardAgentPreconditions,
+    loadAiLibrary,
+    requestTimeoutMs: REQUEST_TIMEOUT_MS,
+  }));
 
   return router;
 }

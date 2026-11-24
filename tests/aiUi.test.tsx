@@ -23,6 +23,7 @@ const failingFetch = async (): Promise<Response> => {
   throw new TypeError('Failed to fetch');
 };
 Object.assign(globalThis, { fetch: failingFetch });
+const FAILING_FETCH = globalThis.fetch;
 
 const { EducationalAcademy } = await import('../src/components/EducationalAcademy');
 const { VirtualEngineer } = await import('../src/components/academy/VirtualEngineer');
@@ -33,7 +34,7 @@ const OLD_CANNED_TEXT = 'في تقنيات الفحص غير الإتلافي و
 
 
 test('the virtual engineer uses the honest tutor gateway status instead of canned answers', async () => {
-  const ui = render(<VirtualEngineer language="ar" route="learn" />);
+  const ui = render(<VirtualEngineer language="ar" route="learn" onOpenHash={() => undefined} />);
   const launcher = [...ui.container.querySelectorAll('button')].find(button =>
     /المهندس الافتراضي/.test(button.textContent || '')
   );
@@ -52,6 +53,150 @@ test('the virtual engineer uses the honest tutor gateway status instead of canne
 
   assert.doesNotMatch(ui.container.textContent || '', /في فحص UT نرسل نبضة/);
   cleanup();
+});
+
+/* ---------------------------------------------------------------- */
+/* learner-controlled explanation pacing                             */
+/* ---------------------------------------------------------------- */
+
+const TUTOR_ONLINE = {
+  configured: true,
+  reason: 'no_key',
+  model: 'gemini-3.5-flash-lite',
+  deepModel: 'gemini-4-argon',
+  limits: { messageChars: 4000, messages: 20, outputTokens: 1600, passages: 5, contextChars: 9000, minScore: 4.2 },
+  retrieval: { documents: 132, ready: true, source: 'academy' },
+  transport: 'auto',
+};
+
+const sseAnswer = (text: string) => [
+  `data: ${JSON.stringify({ type: 'delta', text })}`,
+  `data: ${JSON.stringify({ type: 'done' })}`,
+].join('\n\n') + '\n\n';
+
+const buttonWith = (root: HTMLElement, label: RegExp) =>
+  [...root.querySelectorAll('button')].find(button => label.test(button.textContent || ''));
+
+test('the simulator handoff follows the original lesson after a continuation', async () => {
+  const requests: { messages: { role: string; content: string }[] }[] = [];
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+    if (url.includes('/api/ai/status')) {
+      return new Response(JSON.stringify(TUTOR_ONLINE), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+    if (url.includes('/api/ai/tutor')) {
+      requests.push(JSON.parse(String(init?.body ?? '{}')));
+      return new Response(sseAnswer('PAUT explanation'), { status: 200, headers: { 'Content-Type': 'text/event-stream' } });
+    }
+    return new Response('{}', { status: 404 });
+  }) as typeof fetch;
+
+  const opened: string[] = [];
+  const ui = render(
+    <VirtualEngineer language="en" route="practice" onOpenHash={hash => opened.push(hash)} />
+  );
+  try {
+    const launcher = buttonWith(ui.container, /Virtual Engineer/);
+    assert.ok(launcher, 'the virtual engineer launcher must be visible');
+    fireEvent.click(launcher!);
+
+    const input = ui.container.querySelector('input') as HTMLInputElement;
+    assert.ok(input, 'the question input must exist');
+    fireEvent.change(input, { target: { value: 'Explain PAUT principles' } });
+    const send = ui.container.querySelector('button[aria-label="Send"]') as HTMLButtonElement;
+    assert.ok(send, 'the send button must exist');
+    fireEvent.click(send);
+
+    await waitFor(() => {
+      assert.match(ui.container.textContent || '', /PAUT explanation/);
+    });
+    const simulator = buttonWith(ui.container, /Show me the simulator/);
+    assert.ok(simulator, 'the learner must be offered a simulator handoff');
+    fireEvent.click(simulator!);
+    assert.deepEqual(opened, ['#paut_controller'], 'the PAUT simulator opens for a PAUT lesson');
+
+    const next = buttonWith(ui.container, /^Continue$/);
+    assert.ok(next, 'the learner must be offered a continuation');
+    fireEvent.click(next!);
+    await waitFor(() => assert.equal(requests.length, 2));
+    const history = requests[1].messages;
+    assert.match(history[history.length - 1].content, /Continue from where you stopped/);
+    assert.ok(
+      history.some(message => /Explain PAUT principles/.test(message.content)),
+      'the original lesson topic stays in the conversation'
+    );
+
+    await waitFor(() => {
+      assert.match(ui.container.textContent || '', /PAUT explanation/);
+    });
+    fireEvent.click(buttonWith(ui.container, /Show me the simulator/)!);
+    assert.deepEqual(opened, ['#paut_controller', '#paut_controller'], 'continuation must not change the simulator');
+  } finally {
+    cleanup();
+    globalThis.fetch = FAILING_FETCH;
+  }
+});
+
+test('stopping a stream keeps the partial answer and ignores chunks that arrive later', async () => {
+  const encoder = new TextEncoder();
+  const requests: { messages: { role: string; content: string }[] }[] = [];
+  let sendLateChunk: (() => void) | null = null;
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+    if (url.includes('/api/ai/status')) {
+      return new Response(JSON.stringify(TUTOR_ONLINE), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+    if (url.includes('/api/ai/tutor')) {
+      if (init?.body) requests.push(JSON.parse(String(init.body)));
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'delta', text: 'First part' })}\n\n`));
+          sendLateChunk = () => {
+            try {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'delta', text: ' later part' })}\n\n`));
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done' })}\n\n`));
+              controller.close();
+            } catch {
+              // The reader was cancelled after the learner stopped the stream.
+            }
+          };
+        },
+      });
+      return new Response(body, { status: 200, headers: { 'Content-Type': 'text/event-stream' } });
+    }
+    return new Response('{}', { status: 404 });
+  }) as typeof fetch;
+
+  const ui = render(<VirtualEngineer language="en" route="learn" onOpenHash={() => undefined} />);
+  try {
+    fireEvent.click(buttonWith(ui.container, /Virtual Engineer/)!);
+    const input = ui.container.querySelector('input') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: 'Explain UT principles' } });
+    fireEvent.click(ui.container.querySelector('button[aria-label="Send"]') as HTMLButtonElement);
+
+    await waitFor(() => {
+      assert.match(ui.container.textContent || '', /First part/);
+    });
+    const stop = buttonWith(ui.container, /Stop explanation/);
+    assert.ok(stop, 'a streaming answer must offer an immediate stop control');
+    fireEvent.click(stop!);
+
+    assert.match(ui.container.textContent || '', /The explanation ends here/);
+    assert.equal(ui.container.querySelector('[role="alert"]'), null, 'stopping is not a gateway failure');
+    sendLateChunk?.();
+    await new Promise(resolve => setTimeout(resolve, 30));
+    assert.doesNotMatch(ui.container.textContent || '', /later part/, 'late chunks cannot edit a stopped answer');
+
+    fireEvent.click(buttonWith(ui.container, /^Continue$/)!);
+    await waitFor(() => assert.equal(requests.length, 2));
+    assert.ok(
+      requests[1].messages.some(message => message.role === 'assistant' && /First part/.test(message.content)),
+      'the partial explanation is kept in the session for the continuation'
+    );
+  } finally {
+    cleanup();
+    globalThis.fetch = FAILING_FETCH;
+  }
 });
 
 /* ---------------------------------------------------------------- */

@@ -134,6 +134,11 @@ test('normaliseChatGptStreamRequest validates bounds, MIME types, architectures,
     },
   });
 
+  const staleSearchFlag = agentsContract.normaliseChatGptStreamRequest({
+    message: 'Find current ISO requirements', mode: 'deep_research', webSearchEnabled: false,
+  });
+  assert.equal(staleSearchFlag.ok && staleSearchFlag.value.webSearchEnabled, true, 'research mode must not silently disable Google grounding');
+
   assert.equal(validReq.ok, true);
   if (validReq.ok) {
     assert.equal(validReq.value.mode, 'thinking');
@@ -204,8 +209,28 @@ test('cognitiveArchitecture selects adaptive reasoning strategies, builds playbo
   });
   assert.ok(knowledge.includes('PLAYBOOK: NDT Codes & Quantitative Equations'));
   assert.ok(knowledge.includes('PLAYBOOK: PWHT 65kW Induction'));
-  assert.ok(knowledge.includes('USER-TRAINED FEW-SHOT RULES'));
+  assert.ok(knowledge.includes('USER FORMATTING PREFERENCES'));
+  assert.ok(knowledge.includes('NOT FACTUAL SOURCES'));
   assert.ok(knowledge.includes('Equation -> Assumptions -> Result -> ASME Sec V Limit'));
+  assert.doesNotMatch(knowledge, /0\.51|0\.76|595-650|750-775|T-274\.2/, 'training context must not seed unsourced numerical code limits');
+
+  const sampleHit = {
+    document: {
+      id: 'academy-example#page-1',
+      title: { en: 'Example topic', ar: 'موضوع' },
+      text: { en: 'A reviewed passage excerpt with enough text for context.', ar: 'مقتطف تعليمي كافٍ.' },
+      bookId: 'example',
+      kind: 'textbook',
+    },
+    score: 1,
+    matched: [],
+    baseMatched: 0,
+    rareMatch: false,
+    snippet: { en: '', ar: '' },
+  } as never;
+  const academyRag = cognitive.formatLibraryRagContext([sampleHit], 'en', 'academy');
+  assert.match(academyRag, /unreviewed INSCO academy corpus/i);
+  assert.doesNotMatch(academyRag, /reviewed INSCO library/i);
 });
 
 /* ---------------- 3. Persistent Store Sanitization ---------------- */
@@ -361,7 +386,7 @@ test('InscoDualAiDock supports reasoning architecture selection, custom training
     ]);
   }) as typeof fetch;
 
-  const { getByTestId, getByText, getAllByText, queryByTestId } = render(
+  const { getByTestId, getByText, getAllByText, queryByTestId, queryByText } = render(
     <InscoDualAiDock
       language="en"
       portal="company"
@@ -438,9 +463,8 @@ test('InscoDualAiDock supports reasoning architecture selection, custom training
   assert.equal(sentMemory['customInstructions'], 'Respond with ASME tables.');
   assert.equal((sentMemory['fewShotExamples'] as unknown[]).length, 1);
 
-  // Expand reasoning thoughts accordion
-  fireEvent.click(getByText('Reasoning Process'));
-  assert.ok(getByText(/Checking ASME Sec V Art 2 Table T-276/));
+  // Raw model reasoning is private and must not be rendered as user-facing output.
+  assert.equal(queryByText(/Reasoning Process|Checking ASME Sec V Art 2 Table T-276/), null);
 
   // Grounding citation rendered safely
   assert.ok(getByText('ASME BPVC Sec V'));

@@ -4,8 +4,6 @@ import {
   Bot,
   Brain,
   Check,
-  ChevronDown,
-  ChevronUp,
   Code2,
   Compass,
   Copy,
@@ -256,7 +254,6 @@ export const InscoChatGptWorkspace: React.FC<InscoChatGptWorkspaceProps> = ({
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
   const [streamStatus, setStreamStatus] = useState<string>('');
   const [streamError, setStreamError] = useState<string | null>(null);
-  const [expandedThoughts, setExpandedThoughts] = useState<Record<string, boolean>>({});
   const [copiedTurnId, setCopiedTurnId] = useState<string | null>(null);
   const [speakingTurnId, setSpeakingTurnId] = useState<string | null>(null);
   const [isListeningVoice, setIsListeningVoice] = useState<boolean>(false);
@@ -600,20 +597,8 @@ export const InscoChatGptWorkspace: React.FC<InscoChatGptWorkspaceProps> = ({
             if (ev.type === 'status') {
               setStreamStatus(ev.label);
             } else if (ev.type === 'thought') {
-              setThreads((prev) =>
-                prev.map((t) =>
-                  t.id === targetThreadId
-                    ? {
-                        ...t,
-                        turns: t.turns.map((turn) =>
-                          turn.id === assistantTurnId
-                            ? { ...turn, thought: `${turn.thought || ''}${ev.delta}` }
-                            : turn
-                        ),
-                      }
-                    : t
-                )
-              );
+              // Kept in the stream contract for older servers, but private chain-of-thought
+              // is deliberately not stored or shown to the reader.
             } else if (ev.type === 'token') {
               setStreamStatus('');
               setThreads((prev) =>
@@ -1200,8 +1185,6 @@ export const InscoChatGptWorkspace: React.FC<InscoChatGptWorkspaceProps> = ({
             <div className="max-w-3xl mx-auto space-y-4">
               {activeThread.turns.map((turn, idx) => {
                 const isUser = turn.role === 'user';
-                const isThoughtOpen = Boolean(expandedThoughts[turn.id]);
-                const hasThought = Boolean(turn.thought && turn.thought.trim().length > 0);
 
                 return (
                   <div
@@ -1275,37 +1258,6 @@ export const InscoChatGptWorkspace: React.FC<InscoChatGptWorkspaceProps> = ({
                             <span>{att.name}</span>
                           </span>
                         ))}
-                      </div>
-                    )}
-
-                    {/* Reasoning / Thinking Accordion */}
-                    {!isUser && hasThought && (
-                      <div className="rounded-xl border border-violet-500/30 bg-violet-950/20 overflow-hidden">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setExpandedThoughts((prev) => ({
-                              ...prev,
-                              [turn.id]: !prev[turn.id],
-                            }))
-                          }
-                          className="w-full px-3 py-1.5 flex items-center justify-between gap-2 text-[11px] font-bold text-violet-300 cursor-pointer"
-                        >
-                          <span className="flex items-center gap-1.5">
-                            <Brain className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
-                            <span>{isAr ? 'خطوات التفكير والتحليل' : 'Reasoning Process'}</span>
-                          </span>
-                          {isThoughtOpen ? (
-                            <ChevronUp className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
-                          ) : (
-                            <ChevronDown className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
-                          )}
-                        </button>
-                        {isThoughtOpen && (
-                          <div className="px-3 pb-2.5 text-[11px] text-violet-200/85 whitespace-pre-line border-t border-violet-500/20 pt-2 leading-relaxed">
-                            {turn.thought}
-                          </div>
-                        )}
                       </div>
                     )}
 

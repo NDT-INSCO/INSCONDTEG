@@ -76,7 +76,7 @@ export interface AgentCitation {
   title: string;
   section?: string;
   page?: number;
-  sourceType?: 'site-library' | 'private-drive';
+  sourceType?: 'site-library' | 'private-drive' | 'web-search';
   url?: string;
 }
 
@@ -652,10 +652,10 @@ export function normaliseChatGptStreamRequest(
     }
   }
 
+  // Selecting either research mode is an explicit request to use Google's grounding
+  // tool, even if an older persisted thread still carries webSearchEnabled=false.
   const webSearchEnabled =
-    typeof obj.webSearchEnabled === 'boolean'
-      ? obj.webSearchEnabled
-      : mode === 'web_search' || mode === 'deep_research';
+    mode === 'web_search' || mode === 'deep_research' || obj.webSearchEnabled === true;
 
   const history: ChatGptHistoryMessage[] = Array.isArray(obj.history)
     ? obj.history

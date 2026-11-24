@@ -1,6 +1,17 @@
 import { NdeEdCourse } from './types.js';
 import { quiz, t } from './helpers.js';
 
+const GOV = {
+  status: 'approved' as const,
+  technicalReviewerRole: 'NDT Level III — cross-method physics',
+  lastUpdatedAt: '2026-11-24',
+  lastReviewedAt: '2026-11-24',
+  changeLog: [
+    '2026-11-24: Baseline governance metadata and prerequisiteLessonIds added by educational audit pilot. SME/Level III review required.',
+  ],
+};
+
+
 export const physicsCourse: NdeEdCourse = {
   id: 'nde-physics',
   disciplineId: 'conventional_ndt',
@@ -78,7 +89,38 @@ export const physicsCourse: NdeEdCourse = {
         'من v = f × λ، عند ثبات v فإن مضاعفة f تنصف λ.',
         'From v = f × λ, with v constant, doubling f halves λ.'
       ),
+      quizBank: [
+        quiz('phy-waves-q2', 'ما العلاقة الصحيحة بين سرعة الموجة والتردد والطول الموجي؟', 'What is the correct relationship between wave velocity, frequency and wavelength?', [['v = f × λ','v = f × λ'], ['v = f / λ','v = f / λ'], ['λ = v × f','λ = v × f'], ['f = v × λ','f = v × λ']], 0, 'سرعة الموجة تساوي التردد مضروباً في الطول الموجي.', 'Wave velocity equals frequency multiplied by wavelength.', { category: 'knowledge', difficulty: 'easy', reviewStatus: 'approved' }),
+        quiz('phy-waves-q3', 'إذا زاد التردد مع ثبات سرعة المادة، ماذا يحدث للطول الموجي؟', 'If frequency increases while material velocity stays constant, what happens to wavelength?', [['يزداد','It increases'], ['يقل','It decreases'], ['يبقى ثابتاً','It stays the same'], ['يصبح صفراً دائماً','It always becomes zero']], 1, 'من v=fλ، عند ثبات v وزيادة f يجب أن يقل λ.', 'From v=fλ, with constant v and higher f, λ must decrease.', { category: 'understanding', difficulty: 'easy', reviewStatus: 'approved' }),
+      ],
+
       sources: ['nde-waves', 'nde-sound', 'nde-materials'],
+      prerequisiteLessonIds: [],
+      assumptionsAndLimits: [
+        t('هذا الدرس تعليمي ويحتاج تطبيقه في الميدان إلى إجراء معتمد ومؤهل مختص.', 'This lesson is educational; field application requires an approved procedure and qualified personnel.'),
+        t('أي قرار قبول/رفض أو صلاحية للخدمة يتبع الكود/الإجراء المعتمد وليس هذا الملخص.', 'Any acceptance/rejection or fitness-for-service decision follows the approved code/procedure, not this summary.'),
+      ],
+      referenceTrace: [
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-waves',
+          verified: true,
+          note: t('مرجع قراءة داعم: Physics — Waves.', 'Supporting reading: Physics — Waves.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-sound',
+          verified: true,
+          note: t('مرجع قراءة داعم: Physics — Sound.', 'Supporting reading: Physics — Sound.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-materials',
+          verified: true,
+          note: t('مرجع قراءة داعم: Physics — Materials and Processes.', 'Supporting reading: Physics — Materials and Processes.'),
+        }
+      ],
+      governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'academic', moduleId: 'mod_c_acad_1' },
       textbook: { bookId: 'book-ut', pageNumber: 1 },
       labId: 'ut_lab',
@@ -139,7 +181,38 @@ export const physicsCourse: NdeEdCourse = {
         'الفجوة الهوائية تعكس معظم الطاقة؛ الوسيط يملأها ويحسن الانتقال.',
         'An air gap reflects most energy; couplant fills it and improves transmission.'
       ),
+      quizBank: [
+        quiz('phy-impedance-q2', 'ما العاملان الأساسيان في حساب المقاومة الصوتية؟', 'What two factors determine acoustic impedance?', [['الكثافة وسرعة الصوت','Density and sound velocity'], ['التردد والسعة','Frequency and amplitude'], ['الحرارة واللون','Temperature and color'], ['الجهد والتيار','Voltage and current']], 0, 'المقاومة الصوتية Z = ρ × v.', 'Acoustic impedance Z = ρ × v.', { category: 'knowledge', difficulty: 'easy', reviewStatus: 'approved' }),
+        quiz('phy-impedance-q3', 'عند حدود بين مادتين متشابهتين جداً في المقاومة الصوتية، ماذا تتوقع للانعكاس؟', 'At a boundary between materials with very similar acoustic impedance, what happens to reflection?', [['انعكاس كبير جداً','Very high reflection'], ['انعكاس قليل وانتقال أكبر','Low reflection and more transmission'], ['لا يوجد انتقال','No transmission'], ['تتضاعف السرعة دائماً','Velocity always doubles']], 1, 'كلما قل فرق المقاومة الصوتية قلت الطاقة المنعكسة وزادت المنقولة.', 'Smaller impedance mismatch means less reflected energy and more transmission.', { category: 'understanding', difficulty: 'medium', reviewStatus: 'approved' }),
+      ],
+
       sources: ['nde-sound', 'nde-ut-couplant', 'nde-ut-principles'],
+      prerequisiteLessonIds: ['phy-waves'],
+      assumptionsAndLimits: [
+        t('هذا الدرس تعليمي ويحتاج تطبيقه في الميدان إلى إجراء معتمد ومؤهل مختص.', 'This lesson is educational; field application requires an approved procedure and qualified personnel.'),
+        t('أي قرار قبول/رفض أو صلاحية للخدمة يتبع الكود/الإجراء المعتمد وليس هذا الملخص.', 'Any acceptance/rejection or fitness-for-service decision follows the approved code/procedure, not this summary.'),
+      ],
+      referenceTrace: [
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-sound',
+          verified: true,
+          note: t('مرجع قراءة داعم: Physics — Sound.', 'Supporting reading: Physics — Sound.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-ut-couplant',
+          verified: true,
+          note: t('مرجع قراءة داعم: Ultrasonic — Couplant.', 'Supporting reading: Ultrasonic — Couplant.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-ut-principles',
+          verified: true,
+          note: t('مرجع قراءة داعم: Ultrasonic — Basic Principles.', 'Supporting reading: Ultrasonic — Basic Principles.'),
+        }
+      ],
+      governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'academic', moduleId: 'mod_c_acad_1' },
       textbook: { bookId: 'book-ut', pageNumber: 2 },
     },
@@ -199,7 +272,38 @@ export const physicsCourse: NdeEdCourse = {
         'MT يحتاج مادة فيرومغناطيسية؛ الفولاذ الكربوني كذلك، بخلاف الألومنيوم والنحاس والأوستنيتي.',
         'MT requires a ferromagnetic material. Carbon steel qualifies; aluminium, copper and austenitic stainless do not.'
       ),
+      quizBank: [
+        quiz('phy-magnetism-q2', 'ما المقصود بالنفاذية المغناطيسية للمادة؟', 'What does magnetic permeability describe?', [['قدرة المادة على دعم تكوّن المجال المغناطيسي','A material's ability to support magnetic field formation'], ['سرعة الصوت في المادة','Sound velocity in the material'], ['كثافة المادة فقط','Only material density'], ['لون سطح المادة','Material surface color']], 0, 'النفاذية تصف استجابة المادة للمجال المغناطيسي.', 'Permeability describes how a material responds to a magnetic field.', { category: 'knowledge', difficulty: 'easy', reviewStatus: 'approved' }),
+        quiz('phy-magnetism-q3', 'لماذا قد لا يكتشف فحص MT عيباً موازياً تماماً لخطوط الفيض؟', 'Why might MT miss a flaw parallel to magnetic flux lines?', [['لأن العيب يصبح أكبر','Because the flaw becomes larger'], ['لأن تسرب الفيض يكون ضعيفاً أو معدوماً','Because flux leakage is weak or absent'], ['لأن الجسيمات تتبخر','Because particles evaporate'], ['لأن المجال لا يدخل الفولاذ','Because field cannot enter steel']], 1, 'كشف MT يعتمد على تسرب الفيض عند انقطاع مكوّن مناسب لاتجاه المجال.', 'MT detection depends on flux leakage when the discontinuity interrupts the field appropriately.', { category: 'application', difficulty: 'medium', reviewStatus: 'approved' }),
+      ],
+
       sources: ['nde-magnetism', 'nde-mt-magnetism', 'nde-mt-principles'],
+      prerequisiteLessonIds: ['phy-waves'],
+      assumptionsAndLimits: [
+        t('هذا الدرس تعليمي ويحتاج تطبيقه في الميدان إلى إجراء معتمد ومؤهل مختص.', 'This lesson is educational; field application requires an approved procedure and qualified personnel.'),
+        t('أي قرار قبول/رفض أو صلاحية للخدمة يتبع الكود/الإجراء المعتمد وليس هذا الملخص.', 'Any acceptance/rejection or fitness-for-service decision follows the approved code/procedure, not this summary.'),
+      ],
+      referenceTrace: [
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-magnetism',
+          verified: true,
+          note: t('مرجع قراءة داعم: Physics — Magnetism.', 'Supporting reading: Physics — Magnetism.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-mt-magnetism',
+          verified: true,
+          note: t('مرجع قراءة داعم: Magnetic Particle — The Use of Magnetism in NDT.', 'Supporting reading: Magnetic Particle — The Use of Magnetism in NDT.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-mt-principles',
+          verified: true,
+          note: t('مرجع قراءة داعم: Magnetic Particle — Basic Principles.', 'Supporting reading: Magnetic Particle — Basic Principles.'),
+        }
+      ],
+      governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'academic', moduleId: 'mod_c_acad_2' },
       textbook: { bookId: 'book-mt', pageNumber: 1 },
       labId: 'pt_mt_darkroom',
@@ -260,7 +364,44 @@ export const physicsCourse: NdeEdCourse = {
         'قانون التربيع العكسي: المعدل يتناسب مع 1/r²، ومضاعفة r تعطي الربع.',
         'Inverse-square law: rate is proportional to 1/r², so doubling r gives one quarter.'
       ),
+      quizBank: [
+        quiz('phy-radiation-q2', 'أي خاصية تجعل الأشعة المؤينة مفيدة في RT وخطيرة في نفس الوقت؟', 'Which property makes ionizing radiation useful in RT but also hazardous?', [['قدرتها على اختراق المادة والتفاعل معها','Its ability to penetrate and interact with matter'], ['لونها المرئي','Its visible color'], ['انعدام طاقتها','Its lack of energy'], ['عدم تأثرها بالمسافة','It is unaffected by distance']], 0, 'نفس القدرة على الاختراق والتفاعل تمكّن التصوير لكنها تتطلب تحكماً إشعاعياً.', 'The same penetration/interaction enables imaging but requires radiation control.', { category: 'understanding', difficulty: 'easy', reviewStatus: 'approved' }),
+        quiz('phy-radiation-q3', 'ما المبدأ الأساسي للحماية من الإشعاع؟', 'What is a basic principle of radiation protection?', [['الزمن والمسافة والحماية','Time, distance and shielding'], ['السرعة والضغط والحرارة','Speed, pressure and temperature'], ['اللون والشكل والملمس','Color, shape and texture'], ['التردد والطور والسعة','Frequency, phase and amplitude']], 0, 'تقليل الزمن، زيادة المسافة، واستخدام الحماية تقلل الجرعة.', 'Reducing time, increasing distance, and using shielding reduce dose.', { category: 'knowledge', difficulty: 'easy', reviewStatus: 'approved' }),
+      ],
+
       sources: ['nde-xray', 'nde-rt-interaction', 'nde-rt-penetration', 'nde-rt-safety'],
+      prerequisiteLessonIds: ['phy-waves'],
+      assumptionsAndLimits: [
+        t('هذا الدرس تعليمي ويحتاج تطبيقه في الميدان إلى إجراء معتمد ومؤهل مختص.', 'This lesson is educational; field application requires an approved procedure and qualified personnel.'),
+        t('أي قرار قبول/رفض أو صلاحية للخدمة يتبع الكود/الإجراء المعتمد وليس هذا الملخص.', 'Any acceptance/rejection or fitness-for-service decision follows the approved code/procedure, not this summary.'),
+      ],
+      referenceTrace: [
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-xray',
+          verified: true,
+          note: t('مرجع قراءة داعم: Physics — X-Rays.', 'Supporting reading: Physics — X-Rays.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-rt-interaction',
+          verified: true,
+          note: t('مرجع قراءة داعم: Radiography — Interaction of Radiation and Matter.', 'Supporting reading: Radiography — Interaction of Radiation and Matter.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-rt-penetration',
+          verified: true,
+          note: t('مرجع قراءة داعم: Radiography — Depth of Penetration.', 'Supporting reading: Radiography — Depth of Penetration.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-rt-safety',
+          verified: true,
+          note: t('مرجع قراءة داعم: NDE Engineering — Radiation Detectors.', 'Supporting reading: NDE Engineering — Radiation Detectors.'),
+        }
+      ],
+      governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'academic', moduleId: 'mod_c_acad_2' },
       textbook: { bookId: 'book-rt', pageNumber: 1 },
       labId: 'rt_illuminator',
@@ -321,7 +462,38 @@ export const physicsCourse: NdeEdCourse = {
         'PT يعتمد على دخول السائل من السطح؛ العيب الداخلي المغلق لا يصل إليه النافذ.',
         'PT relies on surface entry; penetrant cannot reach a fully enclosed internal flaw.'
       ),
+      quizBank: [
+        quiz('phy-capillary-q2', 'ما الشرط الأساسي لكي يعمل فحص السائل النافذ؟', 'What is a basic condition for penetrant testing to work?', [['عيب مفتوح على السطح','A surface-breaking discontinuity'], ['عيب عميق تحت السطح فقط','Only a deep subsurface flaw'], ['مادة غير موصلة دائماً','Always non-conductive material'], ['مجال مغناطيسي قوي','A strong magnetic field']], 0, 'PT يعتمد على دخول السائل إلى عيب مفتوح للسطح.', 'PT relies on liquid entering a surface-breaking discontinuity.', { category: 'knowledge', difficulty: 'easy', reviewStatus: 'approved' }),
+        quiz('phy-capillary-q3', 'كيف تؤثر نظافة السطح على فحص PT؟', 'How does surface cleanliness affect PT?', [['لا تؤثر','It has no effect'], ['الأوساخ قد تمنع دخول النافذ أو تسبب دلالات مضللة','Contamination can block penetrant entry or cause misleading indications'], ['تزيد حساسية الفحص دائماً','It always increases sensitivity'], ['تلغي الحاجة للمظهر','It removes the need for developer']], 1, 'التنظيف شرط أساسي قبل تطبيق النافذ.', 'Cleaning is essential before penetrant application.', { category: 'application', difficulty: 'easy', reviewStatus: 'approved' }),
+      ],
+
       sources: ['nde-capillary', 'nde-pt-process', 'nde-pt-penetrants'],
+      prerequisiteLessonIds: ['phy-waves'],
+      assumptionsAndLimits: [
+        t('هذا الدرس تعليمي ويحتاج تطبيقه في الميدان إلى إجراء معتمد ومؤهل مختص.', 'This lesson is educational; field application requires an approved procedure and qualified personnel.'),
+        t('أي قرار قبول/رفض أو صلاحية للخدمة يتبع الكود/الإجراء المعتمد وليس هذا الملخص.', 'Any acceptance/rejection or fitness-for-service decision follows the approved code/procedure, not this summary.'),
+      ],
+      referenceTrace: [
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-capillary',
+          verified: true,
+          note: t('مرجع قراءة داعم: Physics — Capillary Action.', 'Supporting reading: Physics — Capillary Action.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-pt-process',
+          verified: true,
+          note: t('مرجع قراءة داعم: Penetrant — Liquid Penetrant Inspection Process.', 'Supporting reading: Penetrant — Liquid Penetrant Inspection Process.'),
+        },
+        {
+          kind: 'reading_support' as const,
+          sourceId: 'nde-pt-penetrants',
+          verified: true,
+          note: t('مرجع قراءة داعم: Penetrant — Penetrants.', 'Supporting reading: Penetrant — Penetrants.'),
+        }
+      ],
+      governance: GOV,
       curriculum: { disciplineId: 'conventional_ndt', levelId: 'academic', moduleId: 'mod_c_acad_2' },
       textbook: { bookId: 'book-pt', pageNumber: 1 },
       labId: 'pt_mt_darkroom',

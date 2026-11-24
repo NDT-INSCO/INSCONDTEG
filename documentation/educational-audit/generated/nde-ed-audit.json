@@ -1,0 +1,372 @@
+{
+  "generatedAt": "2026-11-24T03:01:04.115Z",
+  "courses": [
+    {
+      "file": "src/data/ndeEd/et.ts",
+      "courseId": "nde-et",
+      "lessons": [
+        {
+          "id": "et-principles",
+          "hasGovernance": true,
+          "hasPrerequisites": true,
+          "hasAssumptions": true,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
+          "hasQuiz": true
+        },
+        {
+          "id": "et-probes",
+          "hasGovernance": true,
+          "hasPrerequisites": true,
+          "hasAssumptions": true,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
+          "hasQuiz": true
+        },
+        {
+          "id": "et-impedance",
+          "hasGovernance": true,
+          "hasPrerequisites": true,
+          "hasAssumptions": true,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
+          "hasQuiz": true
+        },
+        {
+          "id": "et-applications",
+          "hasGovernance": true,
+          "hasPrerequisites": true,
+          "hasAssumptions": true,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
+          "hasQuiz": true
+        },
+        {
+          "id": "et-advanced",
+          "hasGovernance": true,
+          "hasPrerequisites": true,
+          "hasAssumptions": true,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
+          "hasQuiz": true
+        }
+      ]
+    },
+    {
+      "file": "src/data/ndeEd/mt.ts",
+      "courseId": "nde-mt",
+      "lessons": [
+        {
+          "id": "mt-principles",
+          "hasGovernance": true,
+          "hasPrerequisites": true,
+          "hasAssumptions": true,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
+          "hasQuiz": true
+        },
+        {
+          "id": "mt-magnetization",
+          "hasGovernance": true,
+          "hasPrerequisites": true,
+          "hasAssumptions": true,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
+          "hasQuiz": true
+        },
+        {
+          "id": "mt-media",
+          "hasGovernance": true,
+          "hasPrerequisites": true,
+          "hasAssumptions": true,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
+          "hasQuiz": true
+        },
+        {
+          "id": "mt-equipment",
+          "hasGovernance": true,
+          "hasPrerequisites": true,
+          "hasAssumptions": true,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
+          "hasQuiz": true
+        },
+        {
+          "id": "mt-interpretation",
+          "hasGovernance": true,
+          "hasPrerequisites": true,
+          "hasAssumptions": true,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
+          "hasQuiz": true
+        }
+      ]
+    },
+    {
+      "file": "src/data/ndeEd/physics.ts",
+      "courseId": "nde-physics",
+      "lessons": [
+        {
+          "id": "phy-waves",
+          "hasGovernance": true,
+          "hasPrerequisites": true,
+          "hasAssumptions": true,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
+          "hasQuiz": true
+        },
+        {
+          "id": "phy-impedance",
+          "hasGovernance": true,
+          "hasPrerequisites": true,
+          "hasAssumptions": true,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
+          "hasQuiz": true
+        },
+        {
+          "id": "phy-magnetism",
+          "hasGovernance": true,
+          "hasPrerequisites": true,
+          "hasAssumptions": true,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
+          "hasQuiz": true
+        },
+        {
+          "id": "phy-radiation",
+          "hasGovernance": true,
+          "hasPrerequisites": true,
+          "hasAssumptions": true,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
+          "hasQuiz": true
+        },
+        {
+          "id": "phy-capillary",
+          "hasGovernance": true,
+          "hasPrerequisites": true,
+          "hasAssumptions": true,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
+          "hasQuiz": true
+        }
+      ]
+    },
+    {
+      "file": "src/data/ndeEd/pt.ts",
+      "courseId": "nde-pt",
+      "lessons": [
+        {
+          "id": "pt-principles",
+          "hasGovernance": true,
+          "hasPrerequisites": true,
+          "hasAssumptions": true,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
+          "hasQuiz": true
+        },
+        {
+          "id": "pt-materials",
+          "hasGovernance": true,
+          "hasPrerequisites": true,
+          "hasAssumptions": true,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
+          "hasQuiz": true
+        },
+        {
+          "id": "pt-control",
+          "hasGovernance": true,
+          "hasPrerequisites": true,
+          "hasAssumptions": true,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
+          "hasQuiz": true
+        },
+        {
+          "id": "pt-application",
+          "hasGovernance": true,
+          "hasPrerequisites": true,
+          "hasAssumptions": true,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
+          "hasQuiz": true
+        },
+        {
+          "id": "pt-interpretation",
+          "hasGovernance": true,
+          "hasPrerequisites": true,
+          "hasAssumptions": true,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
+          "hasQuiz": true
+        }
+      ]
+    },
+    {
+      "file": "src/data/ndeEd/rt.ts",
+      "courseId": "nde-rt",
+      "lessons": [
+        {
+          "id": "rt-physics",
+          "hasGovernance": true,
+          "hasPrerequisites": true,
+          "hasAssumptions": true,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
+          "hasQuiz": true
+        },
+        {
+          "id": "rt-imaging",
+          "hasGovernance": true,
+          "hasPrerequisites": true,
+          "hasAssumptions": true,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
+          "hasQuiz": true
+        },
+        {
+          "id": "rt-technique",
+          "hasGovernance": true,
+          "hasPrerequisites": true,
+          "hasAssumptions": true,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
+          "hasQuiz": true
+        },
+        {
+          "id": "rt-interpretation",
+          "hasGovernance": true,
+          "hasPrerequisites": true,
+          "hasAssumptions": true,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
+          "hasQuiz": true
+        },
+        {
+          "id": "rt-safety",
+          "hasGovernance": true,
+          "hasPrerequisites": true,
+          "hasAssumptions": true,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
+          "hasQuiz": true
+        }
+      ]
+    },
+    {
+      "file": "src/data/ndeEd/ut.ts",
+      "courseId": "nde-ut",
+      "lessons": [
+        {
+          "id": "ut-principles",
+          "hasGovernance": true,
+          "hasPrerequisites": true,
+          "hasAssumptions": true,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
+          "hasQuiz": true
+        },
+        {
+          "id": "ut-beam",
+          "hasGovernance": true,
+          "hasPrerequisites": true,
+          "hasAssumptions": true,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
+          "hasQuiz": true
+        },
+        {
+          "id": "ut-presentation",
+          "hasGovernance": true,
+          "hasPrerequisites": true,
+          "hasAssumptions": true,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
+          "hasQuiz": true
+        },
+        {
+          "id": "ut-calibration",
+          "hasGovernance": true,
+          "hasPrerequisites": true,
+          "hasAssumptions": true,
+          "hasReferenceTrace": true,
+          "quizBankCount": 3,
+          "hasQuiz": true
+        },
+        {
+          "id": "ut-welds",
+          "hasGovernance": true,
+          "hasPrerequisites": true,
+          "hasAssumptions": true,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
+          "hasQuiz": true
+        },
+        {
+          "id": "ut-advanced",
+          "hasGovernance": true,
+          "hasPrerequisites": true,
+          "hasAssumptions": true,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
+          "hasQuiz": true
+        }
+      ]
+    },
+    {
+      "file": "src/data/ndeEd/vt.ts",
+      "courseId": "nde-vt",
+      "lessons": [
+        {
+          "id": "vt-perception",
+          "hasGovernance": true,
+          "hasPrerequisites": true,
+          "hasAssumptions": true,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
+          "hasQuiz": true
+        },
+        {
+          "id": "vt-weld-geometry",
+          "hasGovernance": true,
+          "hasPrerequisites": true,
+          "hasAssumptions": true,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
+          "hasQuiz": true
+        },
+        {
+          "id": "vt-lighting-surface",
+          "hasGovernance": true,
+          "hasPrerequisites": true,
+          "hasAssumptions": true,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
+          "hasQuiz": true
+        },
+        {
+          "id": "vt-records",
+          "hasGovernance": true,
+          "hasPrerequisites": true,
+          "hasAssumptions": true,
+          "hasReferenceTrace": true,
+          "quizBankCount": 2,
+          "hasQuiz": true
+        }
+      ]
+    }
+  ],
+  "totals": {
+    "courses": 7,
+    "lessons": 35,
+    "withGovernance": 35,
+    "withPrerequisites": 35,
+    "withAssumptions": 35,
+    "withReferenceTrace": 35,
+    "withQuizBank": 35,
+    "quizBankQuestions": 71
+  }
+}

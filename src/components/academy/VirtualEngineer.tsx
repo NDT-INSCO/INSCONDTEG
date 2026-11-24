@@ -13,20 +13,32 @@ import {
   TutorStatus,
 } from '../../ai/contract';
 
-type Props = { language: Language; route: string };
+type Props = { language: Language; route: string; onOpenHash: (hash: string) => void };
+
+const simulatorForQuestion = (question: string): string => {
+  const q = question.toLowerCase();
+  if (/paut| phased array|مصفوفة/.test(q)) return 'paut_controller';
+  if (/dac|دك|منحنى/.test(q)) return 'dac_builder';
+  if (/v1|v2|معاير/.test(q)) return 'v1_v2_calibration';
+  if (/rt|radiograph|تصوير|أشعة/.test(q)) return 'rt_lab';
+  if (/weld|لحام|ut|ultrasonic|موجات فوق/.test(q)) return 'weld_simulator';
+  return 'sim_labs_rt';
+};
 
 const suggestions = {
   ar: ['اشرح مبدأ UT', 'كيف أقرأ A-Scan؟', 'اشرح معايرة DAC'],
   en: ['Explain UT principles', 'How do I read an A-scan?', 'Explain DAC calibration'],
 };
 
-export const VirtualEngineer: React.FC<Props> = ({ language, route }) => {
+export const VirtualEngineer: React.FC<Props> = ({ language, route, onOpenHash }) => {
   const isAr = language === 'ar';
   const tutorLanguage: TutorLanguage = isAr ? 'ar' : 'en';
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState(true);
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState('');
+  const [sessionEnded, setSessionEnded] = useState(false);
+  const lastQuestion = useRef('');
   const [lessonFocus, setLessonFocus] = useState<'ascan' | 'dac' | 'ut'>('ascan');
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<TutorStatus | null>(null);
@@ -53,6 +65,8 @@ export const VirtualEngineer: React.FC<Props> = ({ language, route }) => {
     if (!q || loading) return;
 
     setQuestion('');
+    lastQuestion.current = q;
+    setSessionEnded(false);
     const normalizedQuestion = q.toLowerCase();
     setLessonFocus(/dac|calibrat|معاير/.test(normalizedQuestion) ? 'dac' : /principle|مبدأ|مبادئ/.test(normalizedQuestion) ? 'ut' : 'ascan');
     setAnswer('');
@@ -112,6 +126,22 @@ export const VirtualEngineer: React.FC<Props> = ({ language, route }) => {
 
     if (abortRef.current === controller) abortRef.current = null;
     setLoading(false);
+  };
+
+  const stopExplanation = () => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setLoading(false);
+    setSessionEnded(true);
+  };
+
+  const continueExplanation = () => {
+    void ask(isAr ? 'كمّل من النقطة التي انتهيت عندها، واشرح الجزء التالي فقط ثم انتظر اختياري.' : 'Continue from where you stopped. Explain only the next part, then wait for my choice.');
+  };
+
+  const showSimulator = () => {
+    const tab = simulatorForQuestion(lastQuestion.current);
+    onOpenHash(`#${tab}`);
   };
 
   const sourceLabel = (source: TutorMeta['source']) => {
@@ -184,6 +214,15 @@ export const VirtualEngineer: React.FC<Props> = ({ language, route }) => {
           {answerMeta?.source && <small className="ve-disclaimer">{sourceLabel(answerMeta.source)}{answerMeta.kind === 'library' ? (isAr ? ' · إجابة مستخرجة من المكتبة' : ' · library-composed answer') : ''}</small>}
           {citations.length > 0 && <div className="ve-citations"><strong>{isAr ? 'المراجع المستخدمة' : 'Sources used'}</strong>{citations.slice(0, 4).map((citation, index) => <span key={citation.id || index}>{citation.title[isAr ? 'ar' : 'en']}</span>)}</div>}
         </div>}
+        {answer && !loading && <div className="ve-next-actions" aria-label={isAr ? 'اختيارات المتعلم' : 'Learner choices'}>
+          <p>{isAr ? (sessionEnded ? 'تم إيقاف الشرح عند هذه النقطة.' : 'تحب نعمل إيه بعد الجزء ده؟') : (sessionEnded ? 'The explanation is paused here.' : 'What would you like to do next?')}</p>
+          <div>
+            <button type="button" onClick={continueExplanation}>{isAr ? 'نكمل الجزء التالي' : 'Continue'}</button>
+            <button type="button" onClick={showSimulator}>{isAr ? 'ورّيني المحاكي' : 'Show me the simulator'}</button>
+            <button type="button" onClick={() => setSessionEnded(true)}>{isAr ? 'نكتفي هنا' : 'That’s enough'}</button>
+          </div>
+        </div>}
+        {loading && <button className="ve-stop" type="button" onClick={stopExplanation}>{isAr ? 'إيقاف الشرح الآن' : 'Stop explanation'}</button>}
         {failure && <p className="ve-error" role="alert">{failureMessage(failure.code, tutorLanguage)}{failure.retryAfterSeconds ? ` (${failure.retryAfterSeconds}s)` : ''}</p>}
         {loading && !answer && <small className="ve-disclaimer">{isAr ? 'المدرّس بيبحث في المصادر وبيجهز الشرح…' : 'The tutor is retrieving sources and preparing an explanation…'}</small>}
         <form className="ve-input" onSubmit={e => { e.preventDefault(); void ask(question); }}><input value={question} onChange={e => setQuestion(e.target.value)} maxLength={4000} placeholder={isAr ? 'اكتب سؤالك هنا…' : 'Ask a question…'} aria-label={isAr ? 'سؤالك' : 'Your question'}/><button type="submit" disabled={!question.trim() || loading} aria-label={isAr ? 'إرسال' : 'Send'}><Send size={17}/></button></form>

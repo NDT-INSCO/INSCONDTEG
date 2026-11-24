@@ -27,6 +27,7 @@ export const VirtualEngineer: React.FC<Props> = ({ language, route }) => {
   const [expanded, setExpanded] = useState(true);
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState('');
+  const [lessonFocus, setLessonFocus] = useState<'ascan' | 'dac' | 'ut'>('ascan');
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<TutorStatus | null>(null);
   const [citations, setCitations] = useState<TutorCitation[]>([]);
@@ -52,6 +53,8 @@ export const VirtualEngineer: React.FC<Props> = ({ language, route }) => {
     if (!q || loading) return;
 
     setQuestion('');
+    const normalizedQuestion = q.toLowerCase();
+    setLessonFocus(/dac|calibrat|معاير/.test(normalizedQuestion) ? 'dac' : /principle|مبدأ|مبادئ/.test(normalizedQuestion) ? 'ut' : 'ascan');
     setAnswer('');
     answerRef.current = '';
     setCitations([]);
@@ -151,7 +154,7 @@ export const VirtualEngineer: React.FC<Props> = ({ language, route }) => {
             </div>
           </div>
           <div className={`ve-instructor ${loading ? "is-thinking" : answer ? "is-speaking" : "is-idle"}`} aria-label={isAr ? "مهندس ثلاثي الأبعاد يشير إلى السبورة" : "3D instructor pointing at the whiteboard"} role="img">
-            <VirtualEngineer3D speaking={Boolean(answer)} thinking={loading} />
+            <VirtualEngineer3D speaking={Boolean(answer)} thinking={loading} lesson={lessonFocus} />
             <svg viewBox="0 0 230 300" className="ve-instructor-art ve-instructor-fallback">
               <defs><linearGradient id="ve-skin" x2="1" y2="1"><stop stopColor="#f0c6a3"/><stop offset="1" stopColor="#bd8061"/></linearGradient><linearGradient id="ve-jacket" x2="1" y2="1"><stop stopColor="#e8eef2"/><stop offset="1" stopColor="#8299aa"/></linearGradient></defs>
               <ellipse cx="119" cy="292" rx="78" ry="7" fill="#081a2a" opacity=".18"/>

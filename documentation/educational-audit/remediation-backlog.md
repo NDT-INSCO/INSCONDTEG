@@ -5,7 +5,7 @@
 | ID | Item | Scope | Owner role | Status |
 |---|---|---|---|---|
 | P0-1 | Add review/governance metadata to all NDE-Ed lessons | all 7 courses | Content eng + SME coordinator | In Progress (35/35 governance+prereqs, UT deep pilot) |
-| P0-2 | Quarantine/flag code-acceptance exam questions until SME review | exam generators | SME + frontend | In Progress (metadata + default exclusion in generators) |
+| P0-2 | Quarantine/flag code-acceptance exam questions until SME review | exam generators | SME + frontend | Resolved (owner confirmed review; flags set to approved) |
 | P0-3 | Build normative reference trace workflow (edition/clause/page/rights) | all technical content | SME + content ops | In Progress (35/35 have reading_support trace; normative verified refs still needed) |
 | P0-4 | Ensure no lesson/cert/exam implies certification/acceptance authority | site-wide copy | Content + legal/QA | Open |
 

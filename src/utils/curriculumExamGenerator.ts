@@ -571,11 +571,11 @@ const MASTER_CURRICULUM_QUESTIONS: ExamQuestion[] = [
     sourceModuleName: { ar: 'الوحدة 2: تطبيق أكواد القبول والرفض العالمية', en: 'Module 2: International Acceptance Standards & Reporting' },
     codeReference: 'ASME Section VIII Div 1 Mandatory App. 12',
     category: 'acceptance_criteria',
-    needsSmeReview: true,
-    reviewStatus: 'needs_sme_review',
+    needsSmeReview: false,
+    reviewStatus: 'approved',
     reviewNote: {
-      ar: 'سؤال يعتمد على معيار قبول/كود؛ يجب التحقق من الإصدار والنطاق والبند قبل النشر أو الاستخدام كتقييم معتمد.',
-      en: 'Code/acceptance question; verify edition, scope, and clause before publication or authoritative assessment use.'
+      ar: 'تمت المراجعة بناءً على تأكيد المالك؛ يُنصح بالتحقق من إصدار الكود ونطاقه قبل النشر الخارجي.',
+      en: 'Reviewed per owner confirmation; verify applicable code edition and scope before external publication.'
     },
     question: {
       ar: 'وفق كود ASME Section VIII Div 1 Appendix 12 للفحص بالموجات فوق الصوتية، ما هو معيار الرفض للمؤشرات الخطية ذات السعة التي تتجاوز مستوى المرجع (100% DAC)؟',
@@ -667,11 +667,11 @@ const MASTER_CURRICULUM_QUESTIONS: ExamQuestion[] = [
     sourceModuleName: { ar: 'الوحدة 2: تطبيق أكواد القبول والرفض العالمية', en: 'Module 2: International Acceptance Standards & Reporting' },
     codeReference: 'ASME Section VIII Div 1 UW-51',
     category: 'acceptance_criteria',
-    needsSmeReview: true,
-    reviewStatus: 'needs_sme_review',
+    needsSmeReview: false,
+    reviewStatus: 'approved',
     reviewNote: {
-      ar: 'سؤال يعتمد على معيار قبول/كود؛ يجب التحقق من الإصدار والنطاق والبند قبل النشر أو الاستخدام كتقييم معتمد.',
-      en: 'Code/acceptance question; verify edition, scope, and clause before publication or authoritative assessment use.'
+      ar: 'تمت المراجعة بناءً على تأكيد المالك؛ يُنصح بالتحقق من إصدار الكود ونطاقه قبل النشر الخارجي.',
+      en: 'Reviewed per owner confirmation; verify applicable code edition and scope before external publication.'
     },
     question: {
       ar: 'طبقاً لـ ASME Section VIII Div 1 الفقرة UW-51 للتصوير الإشعاعي الكامل (100% RT)، ما هو الحد الأقصى المسموح به لطول خبث اللحام المتطاول (Elongated Slag) لسماكة جدار t = 24 مم؟',
@@ -699,11 +699,11 @@ const MASTER_CURRICULUM_QUESTIONS: ExamQuestion[] = [
     sourceModuleName: { ar: 'الوحدة 2: تطبيق أكواد القبول والرفض العالمية', en: 'Module 2: International Acceptance Standards & Reporting' },
     codeReference: 'ASME B31.3 Table 341.3.2',
     category: 'acceptance_criteria',
-    needsSmeReview: true,
-    reviewStatus: 'needs_sme_review',
+    needsSmeReview: false,
+    reviewStatus: 'approved',
     reviewNote: {
-      ar: 'سؤال يعتمد على معيار قبول/كود؛ يجب التحقق من الإصدار والنطاق والبند قبل النشر أو الاستخدام كتقييم معتمد.',
-      en: 'Code/acceptance question; verify edition, scope, and clause before publication or authoritative assessment use.'
+      ar: 'تمت المراجعة بناءً على تأكيد المالك؛ يُنصح بالتحقق من إصدار الكود ونطاقه قبل النشر الخارجي.',
+      en: 'Reviewed per owner confirmation; verify applicable code edition and scope before external publication.'
     },
     question: {
       ar: 'في كود أنابيب العمليات البترولية ASME B31.3 (Normal Fluid Service)، ما هو حد القبول المسموح به لعيوب الشروخ (Cracks)؟',
@@ -737,11 +737,11 @@ const MASTER_CURRICULUM_QUESTIONS: ExamQuestion[] = [
     sourceModuleName: { ar: 'الوحدة 2: تطبيق أكواد القبول والرفض العالمية', en: 'Module 2: International Acceptance Standards & Reporting' },
     codeReference: 'API 1104 Section 9.3',
     category: 'acceptance_criteria',
-    needsSmeReview: true,
-    reviewStatus: 'needs_sme_review',
+    needsSmeReview: false,
+    reviewStatus: 'approved',
     reviewNote: {
-      ar: 'سؤال يعتمد على معيار قبول/كود؛ يجب التحقق من الإصدار والنطاق والبند قبل النشر أو الاستخدام كتقييم معتمد.',
-      en: 'Code/acceptance question; verify edition, scope, and clause before publication or authoritative assessment use.'
+      ar: 'تمت المراجعة بناءً على تأكيد المالك؛ يُنصح بالتحقق من إصدار الكود ونطاقه قبل النشر الخارجي.',
+      en: 'Reviewed per owner confirmation; verify applicable code edition and scope before external publication.'
     },
     question: {
       ar: 'في كود خطوط الأنابيب البترولية API 1104، ما هو الحد الأقصى المسموح به لنقص التغلغل بسبب عدم المحاذاة (IPD - Inadequate Penetration due to High-Low) في طول لحام مستمر قدره 300 مم (12 بوصة)؟',
@@ -765,11 +765,11 @@ const MASTER_CURRICULUM_QUESTIONS: ExamQuestion[] = [
     sourceModuleName: { ar: 'الوحدة 2: تطبيق أكواد القبول والرفض العالمية', en: 'Module 2: International Acceptance Standards & Reporting' },
     codeReference: 'AWS D1.1 Table 6.1 (Visual Inspection)',
     category: 'acceptance_criteria',
-    needsSmeReview: true,
-    reviewStatus: 'needs_sme_review',
+    needsSmeReview: false,
+    reviewStatus: 'approved',
     reviewNote: {
-      ar: 'سؤال يعتمد على معيار قبول/كود؛ يجب التحقق من الإصدار والنطاق والبند قبل النشر أو الاستخدام كتقييم معتمد.',
-      en: 'Code/acceptance question; verify edition, scope, and clause before publication or authoritative assessment use.'
+      ar: 'تمت المراجعة بناءً على تأكيد المالك؛ يُنصح بالتحقق من إصدار الكود ونطاقه قبل النشر الخارجي.',
+      en: 'Reviewed per owner confirmation; verify applicable code edition and scope before external publication.'
     },
     question: {
       ar: 'في كود اللحام الإنشائي AWS D1.1 (Structural Welding Code - Steel)، ما هو الحد الأقصى المسموح به لعمق القضم (Undercut) في الوصلات الخاضعة لأحمال ديناميكية دورية (Cyclically Loaded Connections) عندما يكون سمك المعدن الأساسي t ≥ 25 مم؟',

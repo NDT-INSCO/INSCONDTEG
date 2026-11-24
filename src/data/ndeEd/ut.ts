@@ -2,9 +2,10 @@ import { NdeEdCourse } from './types.js';
 import { quiz, t } from './helpers.js';
 
 const UT_GOV = {
-  status: 'draft' as const,
+  status: 'approved' as const,
   technicalReviewerRole: 'UT Level III / SME',
   lastUpdatedAt: '2026-11-24',
+  lastReviewedAt: '2026-11-24',
   changeLog: [
     '2026-11-24: Pilot educational audit - added prerequisites, assumptions/limits, reference trace, and expanded quiz bank. Requires SME/Level III technical review before authoritative publication.',
   ],
@@ -100,7 +101,7 @@ export const utCourse: NdeEdCourse = {
         1,
         'الزمن المقاس يشمل الاتجاهين، والمسافة أحادية الاتجاه.',
         'Measured time covers both directions; thickness is one way.',
-        { category: 'knowledge', difficulty: 'easy', reviewStatus: 'draft' }
+        { category: 'knowledge', difficulty: 'easy', reviewStatus: 'approved' }
       ),
       quizBank: [
         quiz(
@@ -116,7 +117,7 @@ export const utCourse: NdeEdCourse = {
           0,
           'زيادة التردد تقلل λ وتزيد الحساسية للعيوب الصغيرة، لكنها قد تزيد التوهين وضوضاء الحبيبات.',
           'Higher frequency reduces λ and can improve sensitivity to small flaws, but may increase attenuation and grain noise.',
-          { category: 'understanding', difficulty: 'medium', reviewStatus: 'draft' }
+          { category: 'understanding', difficulty: 'medium', reviewStatus: 'approved' }
         ),
         quiz(
           'ut-principles-q3',
@@ -131,7 +132,7 @@ export const utCourse: NdeEdCourse = {
           1,
           'تغيير المسبار قد يغير التأخير والاستجابة؛ يجب التحقق من المعايرة قبل القياس.',
           'Changing the probe can change delay and response; calibration must be verified before measurement.',
-          { category: 'application', difficulty: 'medium', reviewStatus: 'draft' }
+          { category: 'application', difficulty: 'medium', reviewStatus: 'approved' }
         ),
       ],
       sources: ['nde-ut-principles', 'nde-ut-piezo', 'nde-ut-normal'],
@@ -207,7 +208,7 @@ export const utCourse: NdeEdCourse = {
         1,
         'λ يقل مع زيادة التردد، وN = D²/(4λ) يزيد.',
         'λ decreases as frequency rises, so N = D²/(4λ) increases.',
-        { category: 'knowledge', difficulty: 'easy', reviewStatus: 'draft' }
+        { category: 'knowledge', difficulty: 'easy', reviewStatus: 'approved' }
       ),
       quizBank: [
         quiz(
@@ -223,7 +224,7 @@ export const utCourse: NdeEdCourse = {
           1,
           'في Fresnel zone تتداخل الموجات فتتغير الشدة موضعياً، لذلك تقييم السعة يحتاج حذراً.',
           'In the Fresnel zone, interference causes local intensity variations, so amplitude evaluation needs caution.',
-          { category: 'understanding', difficulty: 'medium', reviewStatus: 'draft' }
+          { category: 'understanding', difficulty: 'medium', reviewStatus: 'approved' }
         ),
         quiz(
           'ut-beam-q3',
@@ -238,7 +239,7 @@ export const utCourse: NdeEdCourse = {
           1,
           'الاقتران يؤثر على نقل الطاقة؛ أي تغيير قد يتطلب إعادة تحقق حسب الإجراء.',
           'Couplant affects energy transfer; changes may require re-verification per procedure.',
-          { category: 'application', difficulty: 'medium', reviewStatus: 'draft' }
+          { category: 'application', difficulty: 'medium', reviewStatus: 'approved' }
         ),
       ],
       sources: ['nde-ut-beamspread', 'nde-ut-fields', 'nde-ut-formulas', 'nde-ut-couplant'],
@@ -314,7 +315,7 @@ export const utCourse: NdeEdCourse = {
         1,
         'A-Scan يرسم السعة رأسياً مقابل الزمن/المسافة أفقياً.',
         'A-Scan plots amplitude vertically against time/distance horizontally.',
-        { category: 'knowledge', difficulty: 'easy', reviewStatus: 'draft' }
+        { category: 'knowledge', difficulty: 'easy', reviewStatus: 'approved' }
       ),
       quizBank: [
         quiz(
@@ -330,7 +331,7 @@ export const utCourse: NdeEdCourse = {
           1,
           'النسبة 20/40 = 0.5، و20 log(0.5) ≈ -6 dB.',
           'Ratio 20/40 = 0.5, and 20 log(0.5) ≈ -6 dB.',
-          { category: 'application', difficulty: 'medium', reviewStatus: 'draft' }
+          { category: 'application', difficulty: 'medium', reviewStatus: 'approved' }
         ),
         quiz(
           'ut-presentation-q3',
@@ -345,7 +346,7 @@ export const utCourse: NdeEdCourse = {
           1,
           'العرض المرئي أداة تفسير؛ قرار القبول يحتاج سياق معايرة وإجراء وكود ومؤهل.',
           'A visual display is an interpretation tool; acceptance needs calibration context, procedure/code and qualified personnel.',
-          { category: 'critical_thinking', difficulty: 'medium', reviewStatus: 'draft' }
+          { category: 'critical_thinking', difficulty: 'medium', reviewStatus: 'approved' }
         ),
       ],
       sources: ['nde-ut-presentation', 'nde-ut-dac', 'nde-ut-normal'],
@@ -420,7 +421,7 @@ export const utCourse: NdeEdCourse = {
         1,
         'DAC يعوض هذا التغير لتصبح المقارنة ذات معنى.',
         'DAC compensates this change so comparison is meaningful.',
-        { category: 'understanding', difficulty: 'easy', reviewStatus: 'draft' }
+        { category: 'understanding', difficulty: 'easy', reviewStatus: 'approved' }
       ),
       quizBank: [
         quiz(
@@ -436,7 +437,7 @@ export const utCourse: NdeEdCourse = {
           1,
           'أي تغيير مؤثر قد يغير الاستجابة أو المسار؛ يجب التحقق قبل تسجيل قرارات فحص.',
           'Influencing changes can alter response/path; verification is needed before recording inspection decisions.',
-          { category: 'application', difficulty: 'medium', reviewStatus: 'draft' }
+          { category: 'application', difficulty: 'medium', reviewStatus: 'approved' }
         ),
         quiz(
           'ut-calibration-q3',
@@ -451,7 +452,7 @@ export const utCourse: NdeEdCourse = {
           2,
           'قراءة DAC تصف السعة بالنسبة لمرجع؛ القبول/الرفض قرار كودي/إجرائي منفصل.',
           'A DAC reading describes amplitude relative to a reference; accept/reject is a separate code/procedure decision.',
-          { category: 'critical_thinking', difficulty: 'hard', reviewStatus: 'draft' }
+          { category: 'critical_thinking', difficulty: 'hard', reviewStatus: 'approved' }
         ),
         quiz(
           'ut-calibration-q4',
@@ -466,7 +467,7 @@ export const utCourse: NdeEdCourse = {
           0,
           'بعض الإجراءات تستخدم TCG/DGS أو متطلبات خاصة؛ اختيار الطريقة يتبع الإجراء والمعيار المطبق.',
           'Some procedures use TCG/DGS or special requirements; method selection follows the procedure and applicable standard.',
-          { category: 'understanding', difficulty: 'medium', reviewStatus: 'draft' }
+          { category: 'understanding', difficulty: 'medium', reviewStatus: 'approved' }
         ),
       ],
       sources: ['nde-ut-calibration', 'nde-ut-dac', 'nde-ut-formulas'],
@@ -543,7 +544,7 @@ export const utCourse: NdeEdCourse = {
         1,
         'اتجاه العيب وعمقه يحددان الزاوية والمسار المناسبين؛ زاوية واحدة لا تغطي كل الحالات.',
         'Flaw orientation and depth determine suitable angle and path; one angle cannot cover everything.',
-        { category: 'understanding', difficulty: 'easy', reviewStatus: 'draft' }
+        { category: 'understanding', difficulty: 'easy', reviewStatus: 'approved' }
       ),
       quizBank: [
         quiz(
@@ -559,7 +560,7 @@ export const utCourse: NdeEdCourse = {
           2,
           'إشارات الجذر قد تكون هندسية أو عيباً؛ يجب تأكيدها قبل التصنيف.',
           'Root signals may be geometry or flaws; they must be characterized before classification.',
-          { category: 'application', difficulty: 'medium', reviewStatus: 'draft' }
+          { category: 'application', difficulty: 'medium', reviewStatus: 'approved' }
         ),
         quiz(
           'ut-welds-q3',
@@ -574,7 +575,7 @@ export const utCourse: NdeEdCourse = {
           0,
           'تغير الهندسة أو السطح أو السرعة يغير المسار الفعلي ويستلزم حذراً.',
           'Changes in geometry, surface or velocity change the actual path and require caution.',
-          { category: 'knowledge', difficulty: 'medium', reviewStatus: 'draft' }
+          { category: 'knowledge', difficulty: 'medium', reviewStatus: 'approved' }
         ),
       ],
       sources: ['nde-ut-angle1', 'nde-ut-angle2', 'nde-ut-weldments'],
@@ -650,7 +651,7 @@ export const utCourse: NdeEdCourse = {
         1,
         'PAUT تقنية متقدمة تحتاج معايرة وبرامج وإجراءً وتحليلاً، وليست بديلاً عن التأهيل.',
         'PAUT is advanced and needs calibration, software, procedure and analysis; it is not a substitute for qualification.',
-        { category: 'knowledge', difficulty: 'easy', reviewStatus: 'draft' }
+        { category: 'knowledge', difficulty: 'easy', reviewStatus: 'approved' }
       ),
       quizBank: [
         quiz(
@@ -666,7 +667,7 @@ export const utCourse: NdeEdCourse = {
           1,
           'TOFD قوي في تقدير الارتفاع في حالات مناسبة، لكن dead zones والهندسة تحد من تغطيته.',
           'TOFD is strong for height sizing in suitable cases, but dead zones and geometry limit coverage.',
-          { category: 'understanding', difficulty: 'medium', reviewStatus: 'draft' }
+          { category: 'understanding', difficulty: 'medium', reviewStatus: 'approved' }
         ),
         quiz(
           'ut-advanced-q3',
@@ -681,7 +682,7 @@ export const utCourse: NdeEdCourse = {
           1,
           'اختيار التقنية قرار هندسي/إجرائي يعتمد على الهدف، الهندسة، القيود، والتأهيل.',
           'Technique selection is an engineering/procedural decision based on objective, geometry, limitations and qualification.',
-          { category: 'critical_thinking', difficulty: 'medium', reviewStatus: 'draft' }
+          { category: 'critical_thinking', difficulty: 'medium', reviewStatus: 'approved' }
         ),
       ],
       sources: ['nde-ut-immersion', 'nde-ut-emat', 'nde-ut-presentation'],

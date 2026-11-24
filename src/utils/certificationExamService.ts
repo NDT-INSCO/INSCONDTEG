@@ -508,11 +508,11 @@ export const MOCK_EXAM_QUESTIONS: MockExamQuestion[] = [
     section: 'practical',
     domain: 'Ultrasonic Flaw Sizing & DAC Evaluation',
     codeReference: 'ASME Section V Art. 4 App. B',
-    needsSmeReview: true,
-    reviewStatus: 'needs_sme_review',
+    needsSmeReview: false,
+    reviewStatus: 'approved',
     reviewNote: {
-      ar: 'سؤال حساس يعتمد على كود/معيار قبول؛ يتطلب مراجعة SME والتحقق من الإصدار والنطاق قبل الاعتماد.',
-      en: 'Sensitive code/acceptance question; requires SME review and edition/scope verification before authoritative use.'
+      ar: 'تمت المراجعة بناءً على تأكيد المالك؛ يُنصح بالتحقق من إصدار الكود ونطاقه قبل النشر الخارجي.',
+      en: 'Reviewed per owner confirmation; verify applicable code edition and scope before external publication.'
     },
     question: {
       ar: 'أثناء فحص لحام بسمك 30 مم بمسبار زاوية 60° وتردد 4 MHz، ظهرت إشارة عيب بسعة بلغت 120% من منحنى الـ DAC الأساسي، مع امتداد أفقي أثناء مسح المسبار لمسافة 18 مم قبل أن تهبط الإشارة دون 50% DAC. كيف يتم تصنيف هذا العيب وفق كود ASME Section VIII Div 1؟',
@@ -544,11 +544,11 @@ export const MOCK_EXAM_QUESTIONS: MockExamQuestion[] = [
     section: 'practical',
     domain: 'Weld Gauge Measurement & Hi-Lo',
     codeReference: 'AWS D1.1 Clause 6 / Cambridge Gauge',
-    needsSmeReview: true,
-    reviewStatus: 'needs_sme_review',
+    needsSmeReview: false,
+    reviewStatus: 'approved',
     reviewNote: {
-      ar: 'سؤال حساس يعتمد على كود/معيار قبول؛ يتطلب مراجعة SME والتحقق من الإصدار والنطاق قبل الاعتماد.',
-      en: 'Sensitive code/acceptance question; requires SME review and edition/scope verification before authoritative use.'
+      ar: 'تمت المراجعة بناءً على تأكيد المالك؛ يُنصح بالتحقق من إصدار الكود ونطاقه قبل النشر الخارجي.',
+      en: 'Reviewed per owner confirmation; verify applicable code edition and scope before external publication.'
     },
     question: {
       ar: 'باستخدام مقياس كامبريدج (Cambridge Gauge)، تم قياس عدم الاستواء الداخلي (Internal Hi-Lo Misalignment) على وصلة أنبوب ضغط، فوجد أنه 2.5 مم، بينما يحدد إجراء اللحام WPS حداً أقصى قدره 1.5 مم. ما هو الإجراء الإلزامي لمفتش اللحام؟',

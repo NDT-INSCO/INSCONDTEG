@@ -65,6 +65,7 @@ export function buildReviewedTutorLibrary(read: (filename: string) => string) {
   const index = buildIndex(documents);
   return {
     reviewedDocuments: documents.length,
-    retrieveForTutor: (query: string) => retrieveForTutor(query, { index, limit: TUTOR_LIMITS.passages }),
+    retrieveForTutor: (query: string, limit?: number) =>
+      retrieveForTutor(query, { index, limit: limit ?? TUTOR_LIMITS.passages }),
   };
 }

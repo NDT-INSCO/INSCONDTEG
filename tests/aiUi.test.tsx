@@ -40,8 +40,14 @@ test('the virtual engineer uses the honest tutor gateway status instead of canne
   assert.ok(launcher, 'the virtual engineer launcher must be visible');
   fireEvent.click(launcher!);
 
+  const topic = [...ui.container.querySelectorAll('button')].find(button =>
+    /اشرح مبدأ UT/.test(button.textContent || '')
+  );
+  assert.ok(topic, 'a UT starter question must be available');
+  fireEvent.click(topic!);
+
   await waitFor(() => {
-    assert.match(ui.container.textContent || '', /خدمة المدرّس غير متاحة حالياً/);
+    assert.match(ui.container.textContent || '', /المستشار الذكي غير مُهيّأ|تعذّر الوصول إلى النموذج/);
   });
 
   assert.doesNotMatch(ui.container.textContent || '', /في فحص UT نرسل نبضة/);

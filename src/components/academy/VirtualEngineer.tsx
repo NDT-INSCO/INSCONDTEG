@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Bot, MessageCircle, Minimize2, Send, Sparkles, X } from 'lucide-react';
+import { VirtualEngineer3D } from './VirtualEngineer3D';
 import type { Language } from '../../types';
 import { fetchTutorStatus, streamTutor } from '../../ai/client';
 import {
@@ -149,8 +150,9 @@ export const VirtualEngineer: React.FC<Props> = ({ language, route }) => {
               <div className="ve-board-notes"><span>① Initial pulse</span><span>② Back-wall / reflector echo</span></div>
             </div>
           </div>
-          <div className="ve-instructor" aria-hidden="true">
-            <svg viewBox="0 0 230 300" className="ve-instructor-art">
+          <div className={`ve-instructor ${loading ? "is-thinking" : answer ? "is-speaking" : "is-idle"}`} aria-label={isAr ? "مهندس ثلاثي الأبعاد يشير إلى السبورة" : "3D instructor pointing at the whiteboard"} role="img">
+            <VirtualEngineer3D speaking={Boolean(answer)} thinking={loading} />
+            <svg viewBox="0 0 230 300" className="ve-instructor-art ve-instructor-fallback">
               <defs><linearGradient id="ve-skin" x2="1" y2="1"><stop stopColor="#f0c6a3"/><stop offset="1" stopColor="#bd8061"/></linearGradient><linearGradient id="ve-jacket" x2="1" y2="1"><stop stopColor="#e8eef2"/><stop offset="1" stopColor="#8299aa"/></linearGradient></defs>
               <ellipse cx="119" cy="292" rx="78" ry="7" fill="#081a2a" opacity=".18"/>
               <path d="M65 171 Q35 188 30 288 L194 288 Q189 190 151 171Z" fill="url(#ve-jacket)" stroke="#39576d" strokeWidth="3"/>

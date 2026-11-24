@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { checkAdminHost } from '../scripts/check-admin-host';
+import { checkAdminHost, checkPagesAdminHost } from '../scripts/check-admin-host';
+import { INSCO_PAGES_ORIGIN as PAGES, PAGES_ADMIN_API as API } from '../src/admin/contract';
 
 const HOST = 'https://admin.insco.test';
 const DASHBOARD = `${HOST}/api/admin/dashboard`;
@@ -70,4 +71,47 @@ test('an unauthenticated 200 is rejected without parsing the potentially private
   response.json = () => { parsed = true; return parse(); };
   assert.deepEqual(await checkAdminHost(HOST, async () => response), { code: 'unexpected_response', status: 200 });
   assert.equal(parsed, false);
+});
+
+const cors = { 'Access-Control-Allow-Origin': PAGES, Vary: 'Origin', 'Cache-Control': 'no-store' };
+
+test('Pages readiness verifies signed-out dashboard and Factory, allowed preflight and refused origin without credentials', async () => {
+  const calls: string[] = [];
+  const request: typeof fetch = async (input, init) => {
+    const { pathname } = new URL(String(input));
+    const headers = new Headers(init?.headers);
+    assert.equal(headers.has('authorization') || headers.has('cookie'), false);
+    assert.equal(init?.credentials, 'omit');
+    assert.equal(init?.redirect, 'manual');
+    calls.push(`${init?.method} ${pathname}`);
+    if (init?.method === 'OPTIONS') {
+      assert.equal(headers.get('origin'), PAGES);
+      assert.equal(headers.get('access-control-request-method'), 'PUT');
+      assert.equal(headers.get('access-control-request-headers'), 'authorization,content-type');
+      return new Response(null, { status: 204, headers: {
+        ...cors, 'Access-Control-Allow-Methods': 'GET, PUT', 'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+      } });
+    }
+    if (headers.get('origin') !== PAGES) {
+      return Response.json({}, { status: 403, headers: { 'cache-control': 'no-store' } });
+    }
+    if (init?.method === 'POST') assert.equal(init.body, '{}');
+    return signedOut(cors);
+  };
+  assert.deepEqual(await checkPagesAdminHost(HOST, request), { code: 'ready', portal: HOST });
+  assert.deepEqual(calls, [`GET ${API}/dashboard`, `OPTIONS ${API}/announcement`, `GET ${API}/dashboard`, `POST ${API}/factory/draft`]);
+});
+
+test('Pages readiness fails on credentialed or wildcard CORS, blocked preflight or exposed Factory', async () => {
+  for (const extra of [{ 'Access-Control-Allow-Origin': '*' }, { 'Access-Control-Allow-Credentials': 'true' }]) {
+    assert.deepEqual(await checkPagesAdminHost(HOST, async () => signedOut({ ...cors, ...extra })), { code: 'cors', status: 401 });
+  }
+  const blocked: typeof fetch = async (_input, init) => init?.method === 'OPTIONS'
+    ? new Response(null, { status: 403 }) : signedOut(cors);
+  assert.deepEqual(await checkPagesAdminHost(HOST, blocked), { code: 'cors', status: 403 });
+  const exposed: typeof fetch = async (_input, init) => init?.method === 'OPTIONS'
+    ? new Response(null, { status: 204, headers: { ...cors, 'Access-Control-Allow-Methods': 'PUT', 'Access-Control-Allow-Headers': 'Authorization,Content-Type' } })
+    : init?.method === 'POST' ? Response.json({})
+    : new Headers(init?.headers).get('origin') === PAGES ? signedOut(cors) : new Response(null, { status: 403, headers: { 'cache-control': 'no-store' } });
+  assert.deepEqual(await checkPagesAdminHost(HOST, exposed), { code: 'unexpected_response', status: 200 });
 });

@@ -2,12 +2,20 @@ import type { LocalizedText } from '../types';
 
 export const ADMIN_HASH = '#admin';
 export const ADMIN_API = '/api/admin';
+export const PAGES_ADMIN_API = `${ADMIN_API}/pages`;
+export const INSCO_PAGES_ORIGIN = 'https://ndt-insco.github.io';
+export const INSCO_PAGES_PATH = '/INSCONDTEG';
 export const ANNOUNCEMENT_API = '/api/site/announcement';
 export const NOTICE_LIMIT = 240;
 export const PASSWORD_MIN_LENGTH = 8;
 export const PASSWORD_MAX_LENGTH = 128;
 export const PASSKEY_LIMIT = 10;
 export const PASSKEY_LABEL_LIMIT = 48;
+
+/** Opaque session and ceremony credentials have the same on-wire format. */
+export function isAdminToken(value: unknown): value is string {
+  return typeof value === 'string' && value.length === 64 && /^[a-f0-9]{64}$/.test(value);
+}
 
 /** Only metadata goes to the management UI; the verifier key stays on the server. */
 export interface PasskeySummary {

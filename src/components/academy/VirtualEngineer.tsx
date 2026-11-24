@@ -39,6 +39,7 @@ export const VirtualEngineer: React.FC<Props> = ({ language, route, onOpenHash }
   const [answer, setAnswer] = useState('');
   const [sessionEnded, setSessionEnded] = useState(false);
   const lastQuestion = useRef('');
+  const lessonTopic = useRef('');
   const [lessonFocus, setLessonFocus] = useState<'ascan' | 'dac' | 'ut'>('ascan');
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<TutorStatus | null>(null);
@@ -66,6 +67,7 @@ export const VirtualEngineer: React.FC<Props> = ({ language, route, onOpenHash }
 
     setQuestion('');
     lastQuestion.current = q;
+    if (!/كمّل من النقطة|continue from where/i.test(q)) lessonTopic.current = q;
     setSessionEnded(false);
     const normalizedQuestion = q.toLowerCase();
     setLessonFocus(/dac|calibrat|معاير/.test(normalizedQuestion) ? 'dac' : /principle|مبدأ|مبادئ/.test(normalizedQuestion) ? 'ut' : 'ascan');
@@ -140,7 +142,7 @@ export const VirtualEngineer: React.FC<Props> = ({ language, route, onOpenHash }
   };
 
   const showSimulator = () => {
-    const tab = simulatorForQuestion(lastQuestion.current);
+    const tab = simulatorForQuestion(lessonTopic.current || lastQuestion.current);
     onOpenHash(`#${tab}`);
   };
 

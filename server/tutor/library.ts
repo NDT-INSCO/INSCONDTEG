@@ -27,7 +27,12 @@ export type TutorLibrarySource = 'reviewed' | 'academy' | 'none';
 export interface TutorLibrary {
   source: TutorLibrarySource;
   documents: number;
-  retrieve: (query: string) => SearchHit[];
+  /**
+   * Ranked passages for a query. `limit` is optional because the composer wants a wider
+   * net than the model prompt did: a comparison has to find a sentence about *each*
+   * method, and a five-passage prompt often holds only one of them.
+   */
+  retrieve: (query: string, limit?: number) => SearchHit[];
 }
 
 export const EMPTY_TUTOR_LIBRARY: TutorLibrary = {
@@ -44,7 +49,8 @@ export function buildAcademyLibrary(): TutorLibrary {
   return {
     source: 'academy',
     documents: documents.length,
-    retrieve: (query: string) => retrieveForTutor(query, { index, limit: TUTOR_LIMITS.passages }),
+    retrieve: (query: string, limit?: number) =>
+      retrieveForTutor(query, { index, limit: limit ?? TUTOR_LIMITS.passages }),
   };
 }
 

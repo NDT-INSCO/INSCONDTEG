@@ -10,7 +10,7 @@ import { AcademyDisciplineIndex } from './AcademyDisciplineIndex';
 import { AcademyDisciplinePage } from './AcademyDisciplinePage';
 import { VirtualEngineer } from './VirtualEngineer';
 import {
-  ACADEMY_SECTIONS,
+  ACADEMY_JOURNEY_SECTIONS,
   ACADEMY_SECTION_COPY,
   academySectionLabel,
   type AcademyRoute,
@@ -61,15 +61,19 @@ const AcademyPage: React.FC<AcademyContentProps> = ({
     );
   }
 
-  const sectionIndex = ACADEMY_SECTIONS.indexOf(route.section) + 1;
+  const isUniversity = route.section === 'university';
+  const sectionIndex = ACADEMY_JOURNEY_SECTIONS.indexOf(
+    route.section as (typeof ACADEMY_JOURNEY_SECTIONS)[number]
+  ) + 1;
 
   return (
     <div data-testid={`academy-section-${route.section}`} className="space-y-6">
       <AcademyPageHeader
-        eyebrow={
-          isAr
-            ? `المحطة ${sectionIndex} من ${ACADEMY_SECTIONS.length} · رحلة المتعلم`
-            : `Station ${sectionIndex} of ${ACADEMY_SECTIONS.length} · learner journey`
+        eyebrow={isUniversity
+          ? (isAr ? 'وجهة تعليمية مستقلة' : 'Independent learning destination')
+          : isAr
+            ? `المحطة ${sectionIndex} من ${ACADEMY_JOURNEY_SECTIONS.length} · رحلة المتعلم`
+            : `Station ${sectionIndex} of ${ACADEMY_JOURNEY_SECTIONS.length} · learner journey`
         }
         title={academySectionLabel(route.section, isAr ? 'ar' : 'en')}
         description={

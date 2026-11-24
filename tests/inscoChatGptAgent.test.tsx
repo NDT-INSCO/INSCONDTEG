@@ -12,7 +12,9 @@ import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
 
 const dom = new JSDOM('<!doctype html><html lang="en" dir="ltr"><body></body></html>', {
-  url: 'https://ndt-insco.github.io/INSCONDTEG/',
+  // This suite verifies the hosted ChatGPT/copilot API path. Static Pages local-brain
+  // behavior is covered separately in aiStaticGuard.test.tsx.
+  url: 'https://inscondteg.vercel.app/',
   pretendToBeVisual: true,
 });
 
@@ -635,4 +637,3 @@ test('InscoDualAiDock saves, persists across remount, loads, renames, and delete
   fireEvent.click(ui2.getByTestId(`copilot-thread-delete-${firstThread.id}`));
   assert.equal(ui2.queryByText('Renamed Ir-192 Archive'), null);
 });
-

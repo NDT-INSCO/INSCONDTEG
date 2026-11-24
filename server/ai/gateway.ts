@@ -46,7 +46,10 @@ import {
   TutorStatus,
   UpstreamSignal,
 } from '../../src/ai/contract.js';
-import type { SearchHit } from '../../src/ai/search.js';
+import { buildIndex, searchLibrary, type SearchHit } from '../../src/ai/search.js';
+import { composeSelfAnswer } from '../../src/ai/selfAnswer.js';
+import { searchPrivateKnowledge } from './privateKnowledge.js';
+import { answerCopilot, answerCommunity, copilotSearchQuery } from '../../src/ai/agentBrain.js';
 import { HOSTED_GATEWAY_URL, PAGES_SITE_ORIGIN } from '../../src/ai/pagesGateway.js';
 import {
   MANUS_BASE_URL,
@@ -914,10 +917,23 @@ interface TutorPayload {
   prompt: string;
   system: string;
   /** Which library produced the citations — echoed to the reader in `meta`. */
-  source: 'reviewed' | 'academy' | 'none';
+  source: 'reviewed' | 'academy' | 'private-drive' | 'mixed' | 'none';
+  documents: number;
 }
 
-async function prepare(body: unknown, res: Response): Promise<TutorPayload | null> {
+function bearerToken(req: Request): string | undefined {
+  const match = /^Bearer\s+([A-Za-z0-9._-]{20,})$/i.exec(req.header('authorization') || '');
+  return match?.[1];
+}
+
+async function privateKnowledgeHits(question: string, token?: string): Promise<SearchHit[]> {
+  const documents = await searchPrivateKnowledge(question, token);
+  if (!documents.length) return [];
+  const result = searchLibrary(question, { index: buildIndex(documents), limit: TUTOR_LIMITS.passages, minScore: TUTOR_LIMITS.minScore });
+  return result.confident ? result.hits : [];
+}
+
+async function prepare(body: unknown, res: Response, idToken?: string): Promise<TutorPayload | null> {
   const parsed = normaliseTutorRequest(body);
   if (!parsed.ok || !parsed.value) {
     res.status(STATUS_CODE.invalid_request).json({
@@ -930,9 +946,17 @@ async function prepare(body: unknown, res: Response): Promise<TutorPayload | nul
   const question = latestQuestion(request);
   // The composer reads more passages than a model prompt would: it must find a sentence
   // about each method being compared, not merely the five best-scoring ones.
-  const hits = library.retrieve(question, LOCAL_ONLY ? LOCAL_PASSAGES : undefined);
+  const publicHits = library.retrieve(question, LOCAL_ONLY ? LOCAL_PASSAGES : undefined);
+  const privateHits = await privateKnowledgeHits(question, idToken);
+  const hits = [...publicHits, ...privateHits].sort((a, b) => b.score - a.score).slice(0, TUTOR_LIMITS.passages);
   const reviewed = library.source === 'reviewed';
-  const citations = hits.map(hit => toCitation(hit, reviewed));
+  const citations = hits.map(hit => ({
+    ...toCitation(hit, reviewed && !hit.document.id.startsWith('drive:')),
+    sourceType: hit.document.id.startsWith('drive:') ? 'private-drive' as const : 'site-library' as const,
+  }));
+  const source: TutorPayload['source'] = privateHits.length
+    ? (publicHits.length ? 'mixed' : 'private-drive')
+    : library.source;
   const context = buildContext(hits, request.language);
   const confident = Boolean(context);
   const hint = MODE_HINT[request.mode]?.[request.language] ?? '';
@@ -965,7 +989,8 @@ async function prepare(body: unknown, res: Response): Promise<TutorPayload | nul
     confident,
     prompt: history ? `${history}\n\n${prompt}` : prompt,
     system: `${SYSTEM[request.language]}\n\n${hint}`,
-    source: library.source,
+    source,
+    documents: library.documents + privateHits.length,
   };
 }
 
@@ -1021,7 +1046,7 @@ function tutorRefusal(language: 'ar' | 'en', source: TutorPayload['source']): st
 
 async function handleTutor(req: Request, res: Response, streaming: boolean): Promise<void> {
   // Validate first: a malformed body must be a 400 and must not spend quota.
-  const payload = await prepare(req.body, res);
+  const payload = await prepare(req.body, res, bearerToken(req));
   if (!payload) return;
 
   const limit = takeToken(req.ip || req.socket.remoteAddress || 'unknown');
@@ -1032,6 +1057,31 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
     }
     res.status(STATUS_CODE[failure.code]).json({
       error: { ...failure, message: failureMessage(failure.code, payload.language) },
+    });
+    return;
+  }
+
+  // Licensed/private Drive passages stay on this server: when present, answer from the
+  // retrieved library locally and never forward their text to Gemini or Manus.
+  if (payload.source === 'private-drive' || payload.source === 'mixed') {
+    const local = composeSelfAnswer({
+      question: payload.question,
+      language: payload.language,
+      hits: payload.hits,
+      corpusSize: payload.documents,
+      privatePassages: payload.hits.filter(hit => hit.document.id.startsWith('drive:')).length,
+    });
+    if (local) {
+      sendLocalTutorAnswer(res, streaming, local.text, {
+        model: 'insco-library', citations: payload.citations, retrieved: payload.citations.length,
+        confident: true, elapsedMs: 0, source: payload.source, kind: 'library', steps: local.steps,
+      });
+      return;
+    }
+    sendLocalTutorAnswer(res, streaming, payload.language === 'ar'
+      ? 'لا توجد مقاطع مطابقة كافية في المكتبة للإجابة بأمان.'
+      : 'There are not enough matching library passages to answer safely.', {
+      model: 'insco-library', citations: [], retrieved: 0, confident: false, elapsedMs: 0, source: payload.source,
     });
     return;
   }
@@ -1416,6 +1466,14 @@ router.post(AGENT_ENDPOINTS.userCopilot, async (req: Request, res: Response) => 
   if (!guardAgentPreconditions(req, res, input.language, { allowManus })) return;
 
   const started = Date.now();
+  const privateDocuments = await searchPrivateKnowledge(copilotSearchQuery(input), bearerToken(req));
+  if (privateDocuments.length) {
+    // Never forward licensed Drive passages to a hosted model. The deterministic
+    // answer carries private-source citations and remains under the server-side claim gate.
+    res.setHeader('Cache-Control', 'no-store');
+    res.json(answerCopilot(input, privateDocuments));
+    return;
+  }
 
   // The local engine answers first: it reads the same library the tutor reads, so the
   // copilot cannot drift away from what the site actually documents.
@@ -1694,6 +1752,14 @@ router.post(AGENT_ENDPOINTS.communityAssist, async (req: Request, res: Response)
   if (!guardAgentPreconditions(req, res, input.language, { allowManus: true })) return;
 
   const started = Date.now();
+  const privateDocuments = input.action === 'code_check'
+    ? await searchPrivateKnowledge(`${input.ndtMethod} ${input.title || ''} ${input.body}`, bearerToken(req))
+    : [];
+  if (privateDocuments.length) {
+    res.setHeader('Cache-Control', 'no-store');
+    res.json(answerCommunity(input, privateDocuments));
+    return;
+  }
 
   if (LOCAL_ONLY) {
     const library = await loadAiLibrary();

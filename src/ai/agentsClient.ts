@@ -12,8 +12,9 @@ import {
 import { gatewayBase } from './client';
 import { isStaticPages } from '../utils/staticPages';
 
+
 export function agentUrl(path: string): string {
-  return `${gatewayBase()}${path}`;
+  return isStaticPages() ? path : `${gatewayBase()}${path}`;
 }
 
 export class AgentApiError extends Error {
@@ -41,17 +42,31 @@ async function postAgentJson<TReq, TRes>(
 ): Promise<TRes> {
   // A static GitHub Pages build ships no gateway at all: say so honestly instead
   // of firing a request that can never answer. Same posture as the tutor.
-  if (!gatewayBase() && isStaticPages()) {
-    throw new AgentApiError(
-      'The AI agents require the INSCO AI gateway. This site is a static build without a gateway attached.',
-      503,
-      'not_configured'
-    );
+  if (isStaticPages()) {
+    if (signal?.aborted) throw new DOMException('The operation was aborted.', 'AbortError');
+    // Keep the three advertised agents keyless on static hosting too. The hosted
+    // gateway remains available to the tutor and the separate ChatGPT workspace.
+    const { answerCopilot, answerSiteManager, answerCommunity } = await import('./agentBrain');
+    const result = endpoint === AGENT_ENDPOINTS.userCopilot
+      ? answerCopilot(payload as UserCopilotRequest)
+      : endpoint === AGENT_ENDPOINTS.siteManager
+        ? answerSiteManager(payload as SiteManagerRequest)
+        : answerCommunity(payload as CommunityAssistRequest);
+    return result as TRes;
+  }
+
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  try {
+    const { auth } = await import('../firebase/config');
+    const idToken = await auth?.currentUser?.getIdToken();
+    if (idToken) headers.Authorization = `Bearer ${idToken}`;
+  } catch {
+    // Public corpus/rules remain usable when Firebase Auth is absent.
   }
 
   const res = await fetch(agentUrl(endpoint), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(payload),
     signal,
   });
@@ -119,7 +134,7 @@ export async function streamChatGptAgent(
   handlers: ChatGptStreamHandlers,
   signal?: AbortSignal
 ): Promise<void> {
-  const res = await fetch(AGENT_ENDPOINTS.chatgptStream, {
+  const res = await fetch(`${gatewayBase()}${AGENT_ENDPOINTS.chatgptStream}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),
@@ -180,4 +195,3 @@ export async function streamChatGptAgent(
     dispatchFrame(buffer);
   }
 }
-

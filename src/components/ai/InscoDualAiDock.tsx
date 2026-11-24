@@ -329,7 +329,7 @@ export const InscoDualAiDock: React.FC<InscoDualAiDockProps> = ({
       role: t.role,
       content: t.content,
     }));
-    const withUserTurn: CopilotChatTurn[] = [...turns, { role: 'user', content: text }];
+    const withUserTurn: CopilotChatTurn[] = [...turns, { role: 'user', content: text, createdAt: new Date().toISOString() }];
     setTurns(withUserTurn);
     persistCopilotTurns(withUserTurn, modeToUse, currentThreadId);
     if (!overrideMsg) setCopilotInput('');
@@ -357,8 +357,12 @@ export const InscoDualAiDock: React.FC<InscoDualAiDockProps> = ({
         {
           role: 'assistant',
           content: res.reply,
+          createdAt: new Date().toISOString(),
           actions: res.suggestedActions,
           draftPost: res.draftPost,
+          kind: res.kind,
+          citations: res.citations,
+          reasoningSteps: res.reasoningSteps,
         },
       ];
       setTurns(completedTurns);
@@ -512,6 +516,17 @@ export const InscoDualAiDock: React.FC<InscoDualAiDockProps> = ({
                 {isAr
                   ? 'هذا البناء ثابت (static) ولا يحتوي بوابة الذكاء الاصطناعي. الوكلاء يعملون على نسخة Vercel المستضافة.'
                   : 'This static build has no AI gateway. The agents need the hosted INSCO AI gateway.'}
+              </p>
+            )}
+
+            {isStaticPages() && (
+              <p
+                data-testid="ai-local-brain"
+                className="mx-3 mt-3 rounded-lg border border-cyan-400/30 bg-cyan-500/5 px-3 py-2 text-[11px] text-cyan-100"
+              >
+                {isAr
+                  ? 'المساعد والوكلاء التشغيليون يعملون من مكتبة الموقع وقواعده دون مفتاح نموذج؛ مساحة ChatGPT تستخدم البوابة المستضافة عند تهيئتها.'
+                  : 'The copilot and operational agents use the site library and rules without a key or model call. ChatGPT workspace uses the hosted gateway when configured.'}
               </p>
             )}
 
@@ -874,6 +889,22 @@ export const InscoDualAiDock: React.FC<InscoDualAiDockProps> = ({
                       }`}
                     >
                       <div className="whitespace-pre-line leading-relaxed">{turn.content}</div>
+
+                      {!!turn.citations?.length && (
+                        <div className="space-y-1 border-t border-slate-700 pt-2" aria-label={isAr ? 'المصادر' : 'Sources'}>
+                          {turn.citations.map(citation => (
+                            <div key={citation.id} className="text-[10px] text-cyan-300">
+                              {citation.url ? (
+                                <a href={citation.url} target="_blank" rel="noreferrer" className="underline underline-offset-2">
+                                  {citation.title}{citation.page ? ` · ${isAr ? 'ص' : 'p.'}${citation.page}` : ''}{citation.sourceType === 'private-drive' ? ` · ${isAr ? 'Drive خاص' : 'private Drive'}` : ''}
+                                </a>
+                              ) : (
+                                <>{citation.title}{citation.page ? ` · ${isAr ? 'ص' : 'p.'}${citation.page}` : ''}</>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
 
                       {turn.draftPost && (
                         <div className="rounded-lg border border-emerald-500/35 bg-slate-950/85 p-3 space-y-1.5">

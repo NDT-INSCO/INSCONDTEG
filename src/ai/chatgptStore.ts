@@ -12,6 +12,7 @@ import type {
 
 export const INSCO_CHATGPT_THREADS_KEY = 'insco_chatgpt_threads_v1';
 export const INSCO_CHATGPT_MEMORY_KEY = 'insco_chatgpt_memory_v1';
+const CHATGPT_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 
 export const DEFAULT_TRAINING_PACKS: ChatGptTrainingPack[] = [
   'ndt_codes',
@@ -90,13 +91,21 @@ export function loadChatGptThreads(isAr: boolean): ChatGptThread[] {
     if (!Array.isArray(parsed) || parsed.length === 0) {
       return [createEmptyThread(isAr)];
     }
-    return (parsed.slice(0, 30) as Partial<ChatGptThread>[]).map((t) => ({
-      ...createEmptyThread(isAr),
-      ...t,
-      reasoningArchitecture: t.reasoningArchitecture ?? 'auto',
-      selfVerifyPass: typeof t.selfVerifyPass === 'boolean' ? t.selfVerifyPass : true,
-      turns: Array.isArray(t.turns) ? t.turns : [],
-    }));
+    const cutoff = Date.now() - CHATGPT_RETENTION_MS;
+    const retained = (parsed.slice(0, 30) as Partial<ChatGptThread>[]).map((t) => {
+      const turns = Array.isArray(t.turns) ? t.turns.filter(turn => {
+        const created = Date.parse(turn.createdAt || t.updatedAt || '');
+        return Number.isFinite(created) && created >= cutoff;
+      }) : [];
+      return {
+        ...createEmptyThread(isAr),
+        ...t,
+        reasoningArchitecture: t.reasoningArchitecture ?? 'auto',
+        selfVerifyPass: typeof t.selfVerifyPass === 'boolean' ? t.selfVerifyPass : true,
+        turns,
+      };
+    }).filter(thread => thread.turns.length > 0 || Date.parse(thread.updatedAt) >= cutoff);
+    return retained.length ? retained : [createEmptyThread(isAr)];
   } catch {
     return [createEmptyThread(isAr)];
   }
@@ -105,9 +114,10 @@ export function loadChatGptThreads(isAr: boolean): ChatGptThread[] {
 export function saveChatGptThreads(threads: ChatGptThread[]): void {
   try {
     if (typeof localStorage === 'undefined') return;
+    const cutoff = Date.now() - CHATGPT_RETENTION_MS;
     const trimmed = threads.slice(0, 30).map((t) => ({
       ...t,
-      turns: t.turns.slice(-40).map((turn) => ({
+      turns: t.turns.filter(turn => Date.parse(turn.createdAt) >= cutoff).slice(-40).map((turn) => ({
         ...turn,
         // Strip heavy raw base64 payloads while preserving attachment metadata
         attachments: turn.attachments?.map((att) => ({
@@ -118,7 +128,7 @@ export function saveChatGptThreads(threads: ChatGptThread[]): void {
           sizeBytes: att.sizeBytes,
         })),
       })),
-    }));
+    })).filter(thread => thread.turns.length > 0 || Date.parse(thread.updatedAt) >= cutoff);
     localStorage.setItem(INSCO_CHATGPT_THREADS_KEY, JSON.stringify(trimmed));
   } catch {
     // Ignore storage quota limits

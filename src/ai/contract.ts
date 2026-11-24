@@ -199,10 +199,13 @@ export interface TutorCitation {
    * forget that a citation is a claim about its source.
    */
   reviewed?: boolean;
+  /** Distinguishes licensed private Drive sources from the public site library. */
+  sourceType?: 'private-drive' | 'site-library';
+  url?: string;
 }
 
 export interface TutorMeta {
-  model: string;
+  model: string | null;
   citations: TutorCitation[];
   retrieved: number;
   /** false when retrieval found nothing above TUTOR_LIMITS.minScore. */
@@ -210,13 +213,16 @@ export interface TutorMeta {
   /** Milliseconds the answer took, server side. */
   elapsedMs: number;
   /** Which library the citations came from — the reader is told, not left to guess. */
-  source?: 'reviewed' | 'academy' | 'none';
+  source?: 'reviewed' | 'academy' | 'private-drive' | 'mixed' | 'none';
   /**
    * Which engine answered. `manus` means the Gemini chain could not answer and the
    * second engine did — the reader deserves to know the answer is not from the tutor
    * model, and the operator needs it to read the telemetry honestly.
    */
   provider?: 'local' | 'gemini' | 'manus';
+  /** The answer came from deterministic library composition rather than a model. */
+  kind?: 'model' | 'library';
+  steps?: string[];
 }
 
 /**
@@ -360,7 +366,7 @@ export interface TutorStatus {
   retrieval: {
     documents: number;
     ready: boolean;
-    source?: 'reviewed' | 'academy' | 'none';
+    source?: 'reviewed' | 'academy' | 'private-drive' | 'mixed' | 'none';
     /** How many of those documents came from the reviewed course corpus. */
     reviewed?: number;
     error?: string;

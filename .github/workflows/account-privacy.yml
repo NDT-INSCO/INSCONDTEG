@@ -3,9 +3,9 @@ name: account-privacy
 on:
   push:
     branches: [main, 'arena/**']
-    paths: ['.github/workflows/account-privacy.yml', 'firestore.rules', 'firebase*.json', 'tests/accountPrivacy.emulator.test.ts', 'tests/networkGroups.emulator.test.ts', 'src/account/**', 'src/client/communityGroupsService.ts', 'package*.json']
+    paths: ['.github/workflows/account-privacy.yml', 'firestore.rules', 'firebase*.json', 'tests/accountPrivacy.emulator.test.ts', 'tests/networkGroups.emulator.test.ts', 'tests/networkReputation.emulator.test.ts', 'src/account/**', 'src/client/communityGroupsService.ts', 'package*.json']
   pull_request:
-    paths: ['.github/workflows/account-privacy.yml', 'firestore.rules', 'firebase*.json', 'tests/accountPrivacy.emulator.test.ts', 'tests/networkGroups.emulator.test.ts', 'src/account/**', 'src/client/communityGroupsService.ts', 'package*.json']
+    paths: ['.github/workflows/account-privacy.yml', 'firestore.rules', 'firebase*.json', 'tests/accountPrivacy.emulator.test.ts', 'tests/networkGroups.emulator.test.ts', 'tests/networkReputation.emulator.test.ts', 'src/account/**', 'src/client/communityGroupsService.ts', 'package*.json']
 
 permissions:
   contents: read
@@ -39,9 +39,14 @@ jobs:
           import re, sys
           with open(sys.argv[1], encoding='utf-8', errors='replace') as file:
               lines = [re.sub(r'\x1b\[[0-9;]*m', '', line.strip()) for line in file]
-          selected = [line for line in lines if re.search(r'not ok|protocol|error:|code:|failed|Java', line, re.I)]
-          summary = '\n'.join((selected or lines)[-20:])[-3500:]
-          print('::error title=Firestore emulator verification::' + summary.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A'))
+
+          # The emulator prints one gRPC noise line per rejected write; the one
+          # that matters is the last line of the log (the failing test's error).
+          # Print the last window of the log so the failing test name, its error,
+          # and the summary are all visible in the annotation.
+          summary = '\n'.join(lines[-60:]).strip()
+
+          print('::error title=Firestore emulator verification::' + summary.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')[-3500:])
           PYLOG
             exit 1
           fi

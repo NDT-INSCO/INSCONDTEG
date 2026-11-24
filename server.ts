@@ -33,10 +33,14 @@ import {
   TutorCitation,
   TutorErrorCode,
   TutorFailure,
+  TutorMeta,
   TutorStatus,
 } from './src/ai/contract.js';
 
-import type { SearchHit } from './src/ai/search.js';
+import { answerCopilot, answerSiteManager, answerCommunity, copilotSearchQuery } from './src/ai/agentBrain.js';
+import { searchPrivateKnowledge } from './server/ai/privateKnowledge.js';
+import { buildIndex, searchLibrary, type SearchHit } from './src/ai/search.js';
+import { composeSelfAnswer } from './src/ai/selfAnswer.js';
 import { isModelMissing, streamTutorText, TutorAiClient, TutorTransportMode } from './src/ai/transport.js';
 import { buildTutorLibrary, type TutorLibrary } from './server/tutor/library.js';
 import { createOperations } from './server/admin/operations.js';
@@ -247,6 +251,7 @@ function toCitation(hit: SearchHit, reviewed: boolean): TutorCitation {
     courseId: document.courseId,
     score: Math.round(hit.score * 100) / 100,
     reviewed,
+    ...(document.id.startsWith('drive:') ? { sourceType: 'private-drive' as const } : { sourceType: 'site-library' as const }),
   };
 }
 
@@ -327,12 +332,26 @@ interface TutorPayload {
   citations: TutorCitation[];
   confident: boolean;
   /** Which corpus answered: the reviewed one, the academy one, or neither. */
-  source: TutorLibrary['source'];
+  source: TutorLibrary['source'] | 'private-drive' | 'mixed';
+  hits: SearchHit[];
+  documents: number;
   prompt: string;
   system: string;
 }
 
-async function prepare(body: unknown, res: Response): Promise<TutorPayload | null> {
+async function privateKnowledgeHits(question: string, token?: string): Promise<SearchHit[]> {
+  const documents = await searchPrivateKnowledge(question, token);
+  if (!documents.length) return [];
+  const index = buildIndex(documents);
+  const result = searchLibrary(question, {
+    index,
+    limit: TUTOR_LIMITS.passages,
+    minScore: TUTOR_LIMITS.minScore,
+  });
+  return result.confident ? result.hits : [];
+}
+
+async function prepare(body: unknown, res: Response, idToken?: string): Promise<TutorPayload | null> {
   const parsed = normaliseTutorRequest(body);
   if (!parsed.ok || !parsed.value) {
     res.status(STATUS_CODE.invalid_request).json({
@@ -343,8 +362,13 @@ async function prepare(body: unknown, res: Response): Promise<TutorPayload | nul
   const library = await loadAiLibrary();
   const request = parsed.value;
   const question = latestQuestion(request);
-  const hits = library.retrieve(question);
-  const citations = hits.map(hit => toCitation(hit, library.source === 'reviewed' && library.reviewedDocuments > 0));
+  const publicHits = library.retrieve(question);
+  const privateHits = await privateKnowledgeHits(question, idToken);
+  const hits = [...publicHits, ...privateHits].sort((a, b) => b.score - a.score).slice(0, TUTOR_LIMITS.passages);
+  const citations = hits.map(hit => toCitation(hit, library.source === 'reviewed' && library.reviewedDocuments > 0 && !hit.document.id.startsWith('drive:')));
+  const source: TutorPayload['source'] = privateHits.length
+    ? (publicHits.length ? 'mixed' : 'private-drive')
+    : library.source;
   const context = buildContext(hits, request.language);
   const confident = Boolean(context);
   const hint = MODE_HINT[request.mode]?.[request.language] ?? '';
@@ -369,7 +393,9 @@ async function prepare(body: unknown, res: Response): Promise<TutorPayload | nul
     mode: request.mode,
     citations,
     confident,
-    source: library.source,
+    source,
+    hits,
+    documents: library.documents + privateHits.length,
     prompt: history ? `${history}\n\n${prompt}` : prompt,
     system: `${SYSTEM[request.language]}\n\n${hint}`,
   };
@@ -377,7 +403,7 @@ async function prepare(body: unknown, res: Response): Promise<TutorPayload | nul
 
 async function handleTutor(req: Request, res: Response, streaming: boolean): Promise<void> {
   // Validate first: a malformed body must be a 400 and must not spend quota.
-  const payload = await prepare(req.body, res);
+  const payload = await prepare(req.body, res, bearerToken(req));
   if (!payload) return;
 
   const limit = takeToken(req.ip || req.socket.remoteAddress || 'unknown');
@@ -392,18 +418,49 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
     return;
   }
 
-  if (!ai) {
-    // Honest failure: no key means no answer. The old build returned a canned
-    // paragraph here, which is worse than saying nothing.
-    res.status(STATUS_CODE.not_configured).json({
-      error: {
-        code: 'not_configured',
-        message: failureMessage('not_configured', payload.language),
-        detail: 'Set GEMINI_API_KEY on the server that hosts /api/ai/*.',
-      },
+  if (!ai || payload.source === 'private-drive' || payload.source === 'mixed') {
+    // Private Drive material is never sent to an external model provider. Without a key,
+    // the public library path is likewise composed from retrieved passages only.
+    const selfAnswer = composeSelfAnswer({
+      question: payload.question,
+      language: payload.language,
+      hits: payload.hits,
+      corpusSize: payload.documents,
+      privatePassages: payload.hits.filter(hit => hit.document.id.startsWith('drive:')).length,
     });
+    if (!selfAnswer) {
+      const emptyLibrary = payload.source === 'none';
+      const message = payload.language === 'ar'
+        ? emptyLibrary
+          ? 'لا توجد مادة مطابقة في مكتبة الموقع. راجع مراجع الأكاديمية أو اطرح السؤال على مختص مؤهل.'
+          : 'لا توجد مقاطع مطابقة لسؤالك في مادة الأكاديمية. أعد صياغته بمصطلح أدق أو راجع مراجع الأكاديمية.'
+        : emptyLibrary
+          ? 'The site library has no matching material. Consult the academy references or a qualified specialist.'
+          : 'No passage in the academy material matches this question. Rephrase it with a more specific term.';
+      const meta: TutorMeta = { model: null, citations: [], retrieved: 0, confident: false, elapsedMs: 0, source: payload.source };
+      res.setHeader('Cache-Control', 'no-store');
+      if (!streaming) { res.json({ text: message, content: message, meta }); return; }
+      res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+      res.end(encodeSse({ type: 'meta', meta }) + encodeSse({ type: 'delta', text: message }) + encodeSse({ type: 'done' }));
+      return;
+    }
+    const meta: TutorMeta = {
+      model: null,
+      citations: payload.citations,
+      retrieved: payload.citations.length,
+      confident: payload.confident,
+      elapsedMs: 0,
+      source: payload.source,
+      kind: 'library',
+      steps: selfAnswer.steps,
+    };
+    res.setHeader('Cache-Control', 'no-store');
+    if (!streaming) { res.json({ text: selfAnswer.text, content: selfAnswer.text, meta }); return; }
+    res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+    res.end(encodeSse({ type: 'meta', meta }) + encodeSse({ type: 'delta', text: selfAnswer.text }) + encodeSse({ type: 'done' }));
     return;
   }
+
 
   // Fail closed in both protocols, including the legacy JSON endpoint.
   if (!payload.confident) {
@@ -568,6 +625,27 @@ function guardAgentPreconditions(req: Request, res: Response, lang: 'ar' | 'en')
   return true;
 }
 
+function bearerToken(req: Request): string | undefined {
+  const authorization = req.header('authorization') || '';
+  const match = /^Bearer\s+([A-Za-z0-9._-]{20,})$/i.exec(authorization);
+  return match?.[1];
+}
+
+function guardAgentRateLimit(req: Request, res: Response, lang: 'ar' | 'en'): boolean {
+  const limit = takeToken(req.ip || req.socket.remoteAddress || 'unknown');
+  if (limit.allowed) return true;
+  const failure = limit.failure;
+  if (failure.code === 'rate_limited' && failure.retryAfterSeconds) {
+    res.setHeader('Retry-After', String(failure.retryAfterSeconds));
+  }
+  res.status(STATUS_CODE[failure.code]).json({
+    error: { ...failure, message: failureMessage(failure.code, lang) },
+  });
+  return false;
+}
+
+// Operational agents remain deterministic and keyless. Hosted model-backed ChatGPT is
+// available separately below and is never a prerequisite for these routes.
 app.post(AGENT_ENDPOINTS.userCopilot, async (req: Request, res: Response) => {
   const parsed = normaliseUserCopilotRequest(req.body);
   if (!parsed.ok) {
@@ -575,220 +653,21 @@ app.post(AGENT_ENDPOINTS.userCopilot, async (req: Request, res: Response) => {
     return;
   }
   const input = parsed.value;
-  if (!guardAgentPreconditions(req, res, input.language)) return;
-
-  const started = Date.now();
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-  res.on('close', () => {
-    if (!res.writableEnded) controller.abort();
-  });
-
-  const systemInstruction =
-    input.language === 'ar'
-      ? [
-          'أنت "المساعد الذكي الشامل لمستخدمي منصة INSCO" — خبير هندسي في الفحص غير الإتلافي (NDT: RT, UT, PAUT, MT, PT, VT) والمعالجة الحرارية PWHT، ومستشار تفاعلي داخل منصة INSCO (بوابة الشركة، بوابة العملاء والملفات المكوّدة، مجتمع INSCO المهني الهجين بين LinkedIn وFacebook، والأكاديمية ومعامل الواقع المعزز AR).',
-          'مهامك:',
-          '1) مساعدة المستخدم في أي طلب: اختيار طريقة الفحص أو تقنية التصوير المناسبة، صياغة منشورات احترافية في مجتمع INSCO، تلخيص المناقشات، تجهيز طلبات عرض الأسعار والاختبارات RFQ، وشرح محاكيات الأكاديمية والواقع المعزز.',
-          '2) أعد إجابة عملية ومختصرة ومنظمة بالعربية، واقترح أزرار إجراءات سريعة مفيدة للتنقل أو تطبيق المسودة مباشرة.',
-          '3) عندما يطلب المستخدم كتابة منشور أو صياغته (أو كان الوضع draft_post / improve_post)، عبّئ الحقل draftPost بعنوان ومحتوى هندسي جاهز للنشر ووسوم مناسبة.',
-          '4) أجب بصيغة JSON مطابقة للمخطط فقط بدون نص خارج JSON.',
-        ].join('\n')
-      : [
-          'You are the "INSCO Universal User Copilot" — a senior NDT (RT, UT, PAUT, MT, PT, VT) & PWHT engineering advisor and interactive platform concierge across the INSCO Corporate Portal, Client & Dossier Portal, INSCO Community (LinkedIn + Facebook hybrid), and Engineering Academy / AR Simulators.',
-          'Responsibilities:',
-          '1) Help users accomplish any task: choosing NDT methods or RT/UT techniques, drafting or polishing LinkedIn/Facebook community posts, summarizing discussions, structuring RFQs/test requests, and explaining simulator physics.',
-          '2) Keep replies concise, directly actionable, and structured, plus 1-3 concrete suggestedActions buttons.',
-          '3) When the user asks to draft or improve a post (or mode is draft_post / improve_post), populate draftPost completely.',
-          '4) Respond strictly as JSON matching the schema.',
-        ].join('\n');
-
-  const historyBlock = input.history
-    .map(m => `${m.role === 'assistant' ? 'Copilot' : 'User'}: ${m.content}`)
-    .join('\n');
-  const contextBlock = input.context ? JSON.stringify(input.context) : '{}';
-  const prompt = [
-    `Mode: ${input.mode}`,
-    `Active Platform Context JSON: ${contextBlock}`,
-    historyBlock ? `Recent Conversation:\n${historyBlock}` : '',
-    `User Request: ${input.message}`,
-  ]
-    .filter(Boolean)
-    .join('\n\n');
-
-  try {
-    const { data, model } = await generateStructuredAgentJson<
-      Omit<UserCopilotResponse, 'model' | 'elapsedMs'>
-    >({
-      prompt,
-      systemInstruction,
-      signal: controller.signal,
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          reply: { type: Type.STRING },
-          suggestedActions: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                label: { type: Type.STRING },
-                actionType: {
-                  type: Type.STRING,
-                  enum: ['navigate', 'apply_post_draft', 'open_rfq', 'open_ar_lab', 'open_community'],
-                },
-                target: { type: Type.STRING },
-              },
-              required: ['label', 'actionType'],
-            },
-          },
-          draftPost: {
-            type: Type.OBJECT,
-            properties: {
-              postType: {
-                type: Type.STRING,
-                enum: ['technical_case', 'job_tender', 'discussion', 'equipment_review'],
-              },
-              ndtMethod: { type: Type.STRING },
-              title: { type: Type.STRING },
-              body: { type: Type.STRING },
-              tags: { type: Type.ARRAY, items: { type: Type.STRING } },
-            },
-            required: ['postType', 'ndtMethod', 'title', 'body', 'tags'],
-          },
-        },
-        required: ['reply', 'suggestedActions'],
-      },
-    });
-
-    res.json({
-      reply: data.reply,
-      suggestedActions: Array.isArray(data.suggestedActions) ? data.suggestedActions.slice(0, 4) : [],
-      ...(data.draftPost ? { draftPost: data.draftPost } : {}),
-      model,
-      elapsedMs: Date.now() - started,
-    } satisfies UserCopilotResponse);
-  } catch (error) {
-    const timedOut = controller.signal.aborted;
-    const code: TutorErrorCode = timedOut ? 'timeout' : 'upstream_error';
-    console.error('[ai] user-copilot failed:', error instanceof Error ? error.message : error);
-    res.status(STATUS_CODE[code]).json({
-      error: { code, message: failureMessage(code, input.language) },
-    });
-  } finally {
-    clearTimeout(timer);
-  }
+  if (!guardAgentRateLimit(req, res, input.language)) return;
+  const privateDocuments = await searchPrivateKnowledge(copilotSearchQuery(input), bearerToken(req));
+  res.setHeader('Cache-Control', 'no-store');
+  res.json(answerCopilot(input, privateDocuments));
 });
 
-app.post(AGENT_ENDPOINTS.siteManager, async (req: Request, res: Response) => {
+app.post(AGENT_ENDPOINTS.siteManager, (req: Request, res: Response) => {
   const parsed = normaliseSiteManagerRequest(req.body);
   if (!parsed.ok) {
     res.status(400).json({ error: { code: 'invalid_request', message: parsed.error } });
     return;
   }
-  const input = parsed.value;
-  if (!guardAgentPreconditions(req, res, input.language)) return;
-
-  const started = Date.now();
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-  res.on('close', () => {
-    if (!res.writableEnded) controller.abort();
-  });
-
-  const systemInstruction =
-    input.language === 'ar'
-      ? [
-          'أنت "وكيل إدارة الموقع والعمليات في منصة INSCO" — مدير عمليات رقمي احترافي يشرف على تشغيل المنصة بالكامل.',
-          'مسؤولياتك تشمل: تدقيق صحة المنصة، فرز أولويات طلبات الفحص والعملاء الجدد، تحليل تنبيهات الجيوفينس (تسجيل الحضور خارج النطاق الجغرافي للمشروع)، الإشراف على محتوى مجتمع INSCO ورصد أي منشورات تحتاج مراجعة أو توضيح، وصياغة إعلانات إدارية احترافية لنشرها وتثبيتها في المجتمع.',
-          'اعتمد بدقة على بيانات التليمترى المقدمة ولا تخترع أرقاماً غير موجودة فيها.',
-          'أجب بصيغة JSON مطابقة للمخطط فقط.',
-        ].join('\n')
-      : [
-          'You are the "INSCO Site Manager & Operations Director AI Agent" — the executive autonomous operator overseeing platform health, client request triage, field attendance geofencing alerts, and INSCO Community moderation & announcements.',
-          'Rely strictly on the telemetry snapshot provided; never fabricate counts or employee alerts.',
-          'Return strict JSON matching the schema.',
-        ].join('\n');
-
-  const prompt = [
-    `Operation Mode: ${input.mode}`,
-    `Telemetry Snapshot JSON:\n${JSON.stringify(input.telemetry)}`,
-    `Directive: ${input.instruction}`,
-  ].join('\n\n');
-
-  try {
-    const { data, model } = await generateStructuredAgentJson<
-      Omit<SiteManagerResponse, 'model' | 'elapsedMs'>
-    >({
-      prompt,
-      systemInstruction,
-      signal: controller.signal,
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          summary: { type: Type.STRING },
-          healthStatus: {
-            type: Type.STRING,
-            enum: ['OPTIMAL', 'ATTENTION_NEEDED', 'ACTION_REQUIRED'],
-          },
-          priorityActions: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                title: { type: Type.STRING },
-                detail: { type: Type.STRING },
-                severity: { type: Type.STRING, enum: ['high', 'medium', 'low'] },
-                actionType: {
-                  type: Type.STRING,
-                  enum: [
-                    'navigate',
-                    'publish_announcement',
-                    'flag_post',
-                    'open_requests',
-                    'open_timeclock',
-                    'open_community',
-                  ],
-                },
-                target: { type: Type.STRING },
-              },
-              required: ['title', 'detail', 'severity', 'actionType'],
-            },
-          },
-          flaggedPostIds: { type: Type.ARRAY, items: { type: Type.STRING } },
-          announcementDraft: {
-            type: Type.OBJECT,
-            properties: {
-              title: { type: Type.STRING },
-              body: { type: Type.STRING },
-              ndtMethod: { type: Type.STRING },
-            },
-            required: ['title', 'body', 'ndtMethod'],
-          },
-        },
-        required: ['summary', 'healthStatus', 'priorityActions', 'flaggedPostIds'],
-      },
-    });
-
-    res.json({
-      summary: data.summary,
-      healthStatus: data.healthStatus || 'OPTIMAL',
-      priorityActions: Array.isArray(data.priorityActions) ? data.priorityActions.slice(0, 6) : [],
-      flaggedPostIds: Array.isArray(data.flaggedPostIds) ? data.flaggedPostIds.slice(0, 10) : [],
-      ...(data.announcementDraft ? { announcementDraft: data.announcementDraft } : {}),
-      model,
-      elapsedMs: Date.now() - started,
-    } satisfies SiteManagerResponse);
-  } catch (error) {
-    const timedOut = controller.signal.aborted;
-    const code: TutorErrorCode = timedOut ? 'timeout' : 'upstream_error';
-    console.error('[ai] site-manager failed:', error instanceof Error ? error.message : error);
-    res.status(STATUS_CODE[code]).json({
-      error: { code, message: failureMessage(code, input.language) },
-    });
-  } finally {
-    clearTimeout(timer);
-  }
+  if (!guardAgentRateLimit(req, res, parsed.value.language)) return;
+  res.setHeader('Cache-Control', 'no-store');
+  res.json(answerSiteManager(parsed.value));
 });
 
 app.post(AGENT_ENDPOINTS.communityAssist, async (req: Request, res: Response) => {
@@ -798,63 +677,12 @@ app.post(AGENT_ENDPOINTS.communityAssist, async (req: Request, res: Response) =>
     return;
   }
   const input = parsed.value;
-  if (!guardAgentPreconditions(req, res, input.language)) return;
-
-  const started = Date.now();
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-  res.on('close', () => {
-    if (!res.writableEnded) controller.abort();
-  });
-
-  const systemInstruction =
-    input.language === 'ar'
-      ? 'أنت مساعد تحرير هندسي في مجتمع INSCO (مزيج LinkedIn وFacebook لمهندسي NDT وPWHT). حسّن المنشورات التقنية أو لخّصها أو اقترح ردوداً هندسية دقيقة متوافقة مع الأكواد الدولية بصيغة JSON فقط.'
-      : 'You are an engineering editorial AI inside INSCO Community (LinkedIn + Facebook hybrid for NDT & PWHT engineers). Draft, polish, summarize, or code-check posts strictly in JSON.';
-
-  const prompt = JSON.stringify({
-    action: input.action,
-    language: input.language,
-    ndtMethod: input.ndtMethod,
-    title: input.title || '',
-    body: input.body,
-  });
-
-  try {
-    const { data, model } = await generateStructuredAgentJson<
-      Omit<CommunityAssistResponse, 'model' | 'elapsedMs'>
-    >({
-      prompt,
-      systemInstruction,
-      signal: controller.signal,
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          reply: { type: Type.STRING },
-          title: { type: Type.STRING },
-          body: { type: Type.STRING },
-          tags: { type: Type.ARRAY, items: { type: Type.STRING } },
-          technicalSnippet: { type: Type.STRING },
-        },
-        required: ['reply'],
-      },
-    });
-
-    res.json({
-      ...data,
-      model,
-      elapsedMs: Date.now() - started,
-    } satisfies CommunityAssistResponse);
-  } catch (error) {
-    const timedOut = controller.signal.aborted;
-    const code: TutorErrorCode = timedOut ? 'timeout' : 'upstream_error';
-    console.error('[ai] community-assist failed:', error instanceof Error ? error.message : error);
-    res.status(STATUS_CODE[code]).json({
-      error: { code, message: failureMessage(code, input.language) },
-    });
-  } finally {
-    clearTimeout(timer);
-  }
+  if (!guardAgentRateLimit(req, res, input.language)) return;
+  const privateDocuments = input.action === 'code_check'
+    ? await searchPrivateKnowledge(`${input.ndtMethod} ${input.title || ''} ${input.body}`, bearerToken(req))
+    : [];
+  res.setHeader('Cache-Control', 'no-store');
+  res.json(answerCommunity(input, privateDocuments));
 });
 
 const CHATGPT_TOOL_DECLARATIONS: FunctionDeclaration[] = [

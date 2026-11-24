@@ -4,6 +4,8 @@
  * previous conversation threads safely across sessions.
  */
 import type {
+  AgentAnswerKind,
+  AgentCitation,
   UserCopilotAction,
   UserCopilotMode,
   UserCopilotResponse,
@@ -14,8 +16,12 @@ export const INSCO_COPILOT_HISTORY_KEY = 'insco_dual_ai_copilot_threads_v1';
 export interface CopilotChatTurn {
   role: 'user' | 'assistant';
   content: string;
+  createdAt?: string;
   actions?: UserCopilotAction[];
   draftPost?: UserCopilotResponse['draftPost'];
+  kind?: AgentAnswerKind;
+  citations?: AgentCitation[];
+  reasoningSteps?: string[];
 }
 
 export interface CopilotConversationThread {
@@ -45,6 +51,16 @@ export function deriveCopilotThreadTitle(
   return cleaned.length > 46 ? `${cleaned.slice(0, 46)}…` : cleaned;
 }
 
+const COPILOT_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
+
+function retainCopilotTurns(turns: CopilotChatTurn[], fallbackTime?: string): CopilotChatTurn[] {
+  const cutoff = Date.now() - COPILOT_RETENTION_MS;
+  return turns.filter(turn => {
+    const timestamp = Date.parse(turn.createdAt || fallbackTime || '');
+    return Number.isFinite(timestamp) && timestamp >= cutoff;
+  }).slice(-50);
+}
+
 export function loadCopilotHistoryState(): CopilotHistoryState {
   try {
     if (typeof localStorage === 'undefined') {
@@ -65,13 +81,17 @@ export function loadCopilotHistoryState(): CopilotHistoryState {
               )
           )
           .slice(0, 25)
-          .map((t) => ({
-            id: t.id,
-            title: t.title,
-            mode: t.mode || 'assistant',
-            turns: t.turns.slice(-50),
-            updatedAt: typeof t.updatedAt === 'string' ? t.updatedAt : new Date().toISOString(),
-          }))
+          .map((t) => {
+            const updatedAt = typeof t.updatedAt === 'string' ? t.updatedAt : '';
+            return {
+              id: t.id,
+              title: t.title,
+              mode: t.mode || 'assistant',
+              turns: retainCopilotTurns(t.turns, updatedAt),
+              updatedAt: updatedAt || new Date().toISOString(),
+            };
+          })
+          .filter(thread => thread.turns.length > 0)
       : [];
 
     const activeThreadId =
@@ -93,8 +113,8 @@ export function saveCopilotHistoryState(state: CopilotHistoryState): void {
       activeThreadId: state.activeThreadId,
       threads: state.threads.slice(0, 25).map((t) => ({
         ...t,
-        turns: t.turns.slice(-50),
-      })),
+        turns: retainCopilotTurns(t.turns, t.updatedAt),
+      })).filter(thread => thread.turns.length > 0),
     };
     localStorage.setItem(INSCO_COPILOT_HISTORY_KEY, JSON.stringify(sanitised));
   } catch {
@@ -120,7 +140,7 @@ export function upsertCopilotThread(
       existing?.title ||
       deriveCopilotThreadTitle(payload.turns),
     mode: payload.mode,
-    turns: payload.turns.slice(-50),
+    turns: retainCopilotTurns(payload.turns),
     updatedAt: new Date().toISOString(),
   };
 

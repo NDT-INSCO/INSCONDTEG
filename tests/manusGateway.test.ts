@@ -21,6 +21,8 @@ delete process.env.GEMINI_API_KEY;
 delete process.env.API_KEY;
 process.env.MANUS_API_KEY = MANUS_KEY;
 process.env.MANUS_AGENT_PROFILE = 'lite';
+// The local engine is the default now; this file is about the external second engine.
+process.env.AI_PROVIDER = 'auto';
 process.env.MANUS_AUTO_FALLBACK = 'true';
 process.env.TUTOR_RATE_PER_MINUTE = '10';
 process.env.TUTOR_RATE_PER_DAY = '200';

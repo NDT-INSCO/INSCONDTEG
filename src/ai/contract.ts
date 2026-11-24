@@ -216,7 +216,7 @@ export interface TutorMeta {
    * second engine did — the reader deserves to know the answer is not from the tutor
    * model, and the operator needs it to read the telemetry honestly.
    */
-  provider?: 'gemini' | 'manus';
+  provider?: 'local' | 'gemini' | 'manus';
 }
 
 /**
@@ -310,8 +310,18 @@ export type TutorStreamEvent =
 
 export interface TutorStatus {
   configured: boolean;
+  /**
+   * Which engine is serving the tutor: the platform's own local brain, or a provider
+   * outside it. Published so a reader can tell "the model is busy" from "no outside
+   * service is involved at all".
+   */
+  provider?: 'local' | 'gemini' | 'manus' | 'auto';
+  /** False when answers are composed on this server without leaving it. */
+  external?: boolean;
+  /** The local engine's identity and the number of passages it can quote. */
+  brain?: { model: string; documents: number };
   /** Why it is off, when it is off. Shown to the reader verbatim. */
-  reason: 'no_key' | 'client_init_failed' | 'unreachable' | 'ok';
+  reason: 'no_key' | 'client_init_failed' | 'unreachable' | 'no_corpus' | 'ok';
   model: string;
   deepModel: string;
   limits: typeof TUTOR_LIMITS;

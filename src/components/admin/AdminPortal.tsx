@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Fingerprint, Globe2, Inbox, LayoutDashboard, LogOut, Megaphone, RotateCw, ShieldCheck } from 'lucide-react';
+import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { CircuitBoard, Fingerprint, Globe2, Inbox, LayoutDashboard, LogOut, Megaphone, RotateCw, ShieldCheck } from 'lucide-react';
 import { adminClient, AdminApiError } from '../../admin/client';
 import type { DashboardData, QuoteStatus } from '../../admin/contract';
+import { factorySnapshot } from '../../admin/factory';
 import { signInWithPasskey } from '../../admin/passkeyClient';
 import { adminPortalLink } from '../../admin/public';
 import type { Language } from '../../types';
@@ -11,7 +12,9 @@ import { AdminLogin, type LoginPhase } from './AdminLogin';
 import { AdminOverview } from './AdminOverview';
 import { AdminPasskeys } from './AdminPasskeys';
 import { AdminQuotes } from './AdminQuotes';
-import { AdminBrand, AdminMessage, BackIcon, adminError, shortDate } from './AdminUi';
+import { AdminBrand, AdminLoading, AdminMessage, BackIcon, adminError, shortDate } from './AdminUi';
+
+const AdminFactory = lazy(() => import('./AdminFactory'));
 
 type GateState = {
   kind: Exclude<LoginPhase, 'static'>;
@@ -98,6 +101,7 @@ export default function AdminPortal(props: PortalProps) {
 
 const VIEWS = [
   { id: 'overview', icon: LayoutDashboard, ar: 'نظرة عامة', en: 'Overview' },
+  { id: 'factory', icon: CircuitBoard, ar: 'مصنع البرمجيات', en: 'Software Factory' },
   { id: 'quotes', icon: Inbox, ar: 'صندوق الطلبات', en: 'Quote requests' },
   { id: 'announcement', icon: Megaphone, ar: 'إعلانات الموقع', en: 'Announcements' },
   { id: 'passkeys', icon: Fingerprint, ar: 'مفاتيح المرور', en: 'Passkeys' },
@@ -112,6 +116,7 @@ function AdminWorkspace({ language, initial, onBack, onToggleLanguage, onSession
   const ar = language === 'ar';
   const [data, setData] = useState(initial);
   const [active, setActive] = useState<ViewId>('overview');
+  const [factoryVisited, setFactoryVisited] = useState(false);
   const [initialStatus, setInitialStatus] = useState<QuoteStatus | ''>('');
   const [reference, setReference] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -159,6 +164,7 @@ function AdminWorkspace({ language, initial, onBack, onToggleLanguage, onSession
 
   function navigate(view: ViewId, status: QuoteStatus | '' = '', quote: string | null = null) {
     setActive(view);
+    if (view === 'factory') setFactoryVisited(true);
     setInitialStatus(status);
     setReference(quote);
     setError(null);
@@ -193,7 +199,7 @@ function AdminWorkspace({ language, initial, onBack, onToggleLanguage, onSession
             <h1 ref={heading} tabIndex={-1}>{reference ? (ar ? 'بيانات الطلب' : 'Request details') : VIEWS.find(view => view.id === active)![language]}</h1>
           </div>
           <div className="ad-topbar-actions">
-            {active === 'overview' && <>
+            {(active === 'overview' || active === 'factory') && <>
               <small>{ar ? 'آخر تحديث:' : 'Updated:'} <time dateTime={data.updatedAt}>{shortDate(data.updatedAt, language, { timeStyle: 'short' })}</time></small>
               <button type="button" className="ad-icon-button" disabled={refreshing} onClick={() => void refresh()} aria-label={ar ? 'تحديث الملخص' : 'Refresh overview'} title={ar ? 'تحديث الملخص' : 'Refresh overview'}><RotateCw size={17} aria-hidden="true" className={refreshing ? 'ad-spin' : ''} /></button>
             </>}
@@ -206,6 +212,12 @@ function AdminWorkspace({ language, initial, onBack, onToggleLanguage, onSession
           {active === 'quotes' && <AdminQuotes language={language} initialStatus={initialStatus} reference={reference} onOpen={selectQuote} onSessionError={onSessionError} onUpdate={() => void refresh()} />}
           {active === 'announcement' && <AdminAnnouncement language={language} initial={data.announcement} onSessionError={onSessionError} onSaved={announcement => setData(current => ({ ...current, announcement }))} />}
           {active === 'passkeys' && <AdminPasskeys language={language} onSessionError={onSessionError} />}
+          {factoryVisited && <div hidden={active !== 'factory'}>
+            <Suspense fallback={<AdminLoading language={language} />}>
+              <AdminFactory language={language} snapshot={factorySnapshot(data)} aiConfigured={data.services.factoryAiConfigured === true}
+                active={active === 'factory' && !signingOut} onSessionError={onSessionError} />
+            </Suspense>
+          </div>}
         </div>
         <footer className="ad-workspace-footer"><span>© 2026 INSCO</span><span>{ar ? 'مركز عمليات الموقع' : 'Site operations workspace'}</span></footer>
       </main>

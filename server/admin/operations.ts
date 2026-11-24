@@ -4,6 +4,7 @@ import express, { type ErrorRequestHandler } from 'express';
 import { ADMIN_API, ANNOUNCEMENT_API } from '../../src/admin/contract.js';
 import { createRateLimiter, deliveryFromEnv, handleRfqRequest } from '../../src/rfq/gateway.js';
 import { hostedDatabase, hostedDatabaseConfig } from './database.js';
+import { createFactoryDrafter } from './factory.js';
 import { clientAddress, fail, readJsonBody, runAsync } from './http.js';
 import { adminConfig, createAdminRouter, httpOrigin, publicAnnouncement, publicSiteCors } from './router.js';
 import { ADMIN_SCHEMA } from './schema.js';
@@ -51,8 +52,9 @@ export async function createOperations(env: NodeJS.ProcessEnv, { production, bas
   const delivery = store ? deliverToInbox(store, primary) : requireHosted ? null : primary;
   const publicCors = publicSiteCors(httpOrigin(env.PUBLIC_SITE_ORIGIN?.trim()));
   const router = express.Router();
+  const draftFactory = config && store ? createFactoryDrafter(env) : null;
   router.use(ADMIN_API, createAdminRouter({
-    config, store, stateKey: hosted?.stateKey,
+    config, store, stateKey: hosted?.stateKey, draftFactory,
     services: { tutorConfigured, rfqNotificationsConfigured: Boolean(delivery && primary) },
   }));
   router.get(ANNOUNCEMENT_API, publicCors, publicAnnouncement(store));

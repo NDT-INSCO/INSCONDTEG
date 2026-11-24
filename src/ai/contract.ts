@@ -15,6 +15,7 @@
  */
 
 import type { NdeEdText } from '../data/ndeEd/types.js';
+import type { ManusTaskHint } from './manusContract.js';
 
 /* ------------------------------------------------------------------ */
 /* models                                                              */
@@ -210,6 +211,12 @@ export interface TutorMeta {
   elapsedMs: number;
   /** Which library the citations came from — the reader is told, not left to guess. */
   source?: 'reviewed' | 'academy' | 'none';
+  /**
+   * Which engine answered. `manus` means the Gemini chain could not answer and the
+   * second engine did — the reader deserves to know the answer is not from the tutor
+   * model, and the operator needs it to read the telemetry honestly.
+   */
+  provider?: 'gemini' | 'manus';
 }
 
 /**
@@ -257,6 +264,11 @@ export interface TutorFailure {
   code: TutorErrorCode;
   message: string;
   retryAfterSeconds?: number;
+  /**
+   * Set only when the second engine (Manus) picked the question up: its task keeps
+   * running after the request ends, so the reader gets a link instead of a dead end.
+   */
+  manus?: ManusTaskHint;
   /**
    * What the provider actually said, shortened and stripped of anything
    * credential-shaped. A generic sentence cannot be debugged; this can.
@@ -319,6 +331,17 @@ export interface TutorStatus {
    * paste or a stray quote from a key that Google has revoked.
    */
   keyShape?: { length: number; looksLikeAiStudioKey: boolean };
+  /**
+   * The second engine. Reported so a reader can tell "Gemini is rate-limited and Manus
+   * is off" from "Gemini is rate-limited and Manus is answering instead".
+   */
+  manus?: {
+    configured: boolean;
+    autoFallback: boolean;
+    profile: string;
+    baseUrl: string;
+    lastError?: { code: string; at: string };
+  };
   /**
    * `error` is set only when the corpus itself could not be read — never guessed.
    * `source` says which library is answering: reviewed courses, the unreviewed academy

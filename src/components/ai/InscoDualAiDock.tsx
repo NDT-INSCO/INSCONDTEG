@@ -100,6 +100,11 @@ export const InscoDualAiDock: React.FC<InscoDualAiDockProps> = ({
   const [copilotInput, setCopilotInput] = useState('');
   const [copilotLoading, setCopilotLoading] = useState(false);
   const [copilotError, setCopilotError] = useState<string | null>(null);
+  /**
+   * A Manus task that outlived the failed request. Shown as a link rather than folded
+   * into the error text, because the work continues and the reader can still collect it.
+   */
+  const [copilotManusUrl, setCopilotManusUrl] = useState<string | null>(null);
   const [turns, setTurns] = useState<CopilotChatTurn[]>(
     () => initialActiveThread?.turns || []
   );
@@ -319,6 +324,7 @@ export const InscoDualAiDock: React.FC<InscoDualAiDockProps> = ({
 
     const currentThreadId = activeThreadId;
     setCopilotError(null);
+    setCopilotManusUrl(null);
     const nextHistory: UserCopilotMessage[] = turns.slice(-8).map(t => ({
       role: t.role,
       content: t.content,
@@ -365,6 +371,7 @@ export const InscoDualAiDock: React.FC<InscoDualAiDockProps> = ({
             ? err.message
             : String(err);
       setCopilotError(msg);
+      setCopilotManusUrl(err instanceof AgentApiError && err.manusTaskUrl ? err.manusTaskUrl : null);
     } finally {
       setCopilotLoading(false);
     }
@@ -922,7 +929,23 @@ export const InscoDualAiDock: React.FC<InscoDualAiDockProps> = ({
                   {copilotError && (
                     <div role="alert" className="rounded-lg border border-rose-500/40 bg-rose-500/10 p-3 text-xs text-rose-300 flex items-start gap-2">
                       <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-                      <span>{copilotError}</span>
+                      <span>
+                        {copilotError}
+                        {copilotManusUrl && (
+                          <>
+                            {' '}
+                            <a
+                              href={copilotManusUrl}
+                              target="_blank"
+                              rel="noreferrer noopener"
+                              data-testid="copilot-manus-task"
+                              className="underline font-bold text-cyan-300 hover:text-cyan-200"
+                            >
+                              {isAr ? 'متابعة المهمة في مانوس' : 'Follow the Manus task'}
+                            </a>
+                          </>
+                        )}
+                      </span>
                     </div>
                   )}
                 </div>

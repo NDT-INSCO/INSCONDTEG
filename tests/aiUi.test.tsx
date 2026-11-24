@@ -25,13 +25,28 @@ const failingFetch = async (): Promise<Response> => {
 Object.assign(globalThis, { fetch: failingFetch });
 
 const { EducationalAcademy } = await import('../src/components/EducationalAcademy');
-const { VirtualEngineer, simulatorForQuestion } = await import('../src/components/academy/VirtualEngineer');
+const { VirtualEngineer, simulatorForQuestion, readLessonCheckpoint, saveLessonCheckpoint, clearLessonCheckpoint } = await import('../src/components/academy/VirtualEngineer');
 const { SemanticSearchBar } = await import('../src/components/academy/SemanticSearchBar');
 const { render, cleanup, fireEvent, waitFor } = await import('@testing-library/react');
 
 const OLD_CANNED_TEXT = 'في تقنيات الفحص غير الإتلافي والمعالجة الحرارية، يتم تطبيق مواصفات ASME';
 
 
+
+
+test('lesson checkpoints persist safely and are scoped to the selected language', () => {
+  clearLessonCheckpoint();
+  assert.equal(readLessonCheckpoint('ar'), null);
+  saveLessonCheckpoint({ language: 'ar', topic: 'شرح معايرة DAC', answer: 'نبدأ بالنبضة المرجعية.', focus: 'dac' });
+  const restored = readLessonCheckpoint('ar');
+  assert.ok(restored);
+  assert.equal(restored.topic, 'شرح معايرة DAC');
+  assert.equal(restored.answer, 'نبدأ بالنبضة المرجعية.');
+  assert.equal(restored.focus, 'dac');
+  assert.equal(readLessonCheckpoint('en'), null);
+  clearLessonCheckpoint();
+  assert.equal(readLessonCheckpoint('ar'), null);
+});
 
 test('the virtual engineer routes lesson topics to the matching simulator', () => {
   assert.equal(simulatorForQuestion('Explain phased array PAUT'), 'paut_controller');

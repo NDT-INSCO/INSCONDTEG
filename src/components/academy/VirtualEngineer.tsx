@@ -15,6 +15,53 @@ import {
 
 type Props = { language: Language; route: string; onOpenHash: (hash: string) => void };
 
+
+type LessonCheckpoint = {
+  version: 1;
+  language: TutorLanguage;
+  topic: string;
+  answer: string;
+  focus: 'ascan' | 'dac' | 'ut';
+  savedAt: number;
+};
+const LESSON_CHECKPOINT_KEY = 'insco.virtual-engineer.lesson.v1';
+
+export const readLessonCheckpoint = (language: TutorLanguage): LessonCheckpoint | null => {
+  try {
+    if (typeof window === 'undefined') return null;
+    const raw = window.localStorage.getItem(LESSON_CHECKPOINT_KEY);
+    if (!raw) return null;
+    const value = JSON.parse(raw) as Partial<LessonCheckpoint>;
+    if (value.version !== 1 || value.language !== language ||
+        typeof value.topic !== 'string' || !value.topic.trim() ||
+        typeof value.answer !== 'string' || !value.answer.trim() ||
+        !['ascan', 'dac', 'ut'].includes(String(value.focus)) ||
+        typeof value.savedAt !== 'number') return null;
+    return {
+      version: 1, language,
+      topic: value.topic.slice(0, 4000),
+      answer: value.answer.slice(0, 12000),
+      focus: value.focus as LessonCheckpoint['focus'],
+      savedAt: value.savedAt,
+    };
+  } catch { return null; }
+};
+
+export const saveLessonCheckpoint = (checkpoint: Omit<LessonCheckpoint, 'version' | 'savedAt'>): void => {
+  try {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(LESSON_CHECKPOINT_KEY, JSON.stringify({
+      ...checkpoint, version: 1, savedAt: Date.now(),
+    } satisfies LessonCheckpoint));
+  } catch { /* Storage can be disabled or full; tutoring must continue. */ }
+};
+
+export const clearLessonCheckpoint = (): void => {
+  try {
+    if (typeof window !== 'undefined') window.localStorage.removeItem(LESSON_CHECKPOINT_KEY);
+  } catch { /* Ignore unavailable browser storage. */ }
+};
+
 export const simulatorForQuestion = (question: string): string => {
   const q = question.toLowerCase();
   // Route the learner to the simulator that actually demonstrates the topic.
@@ -36,20 +83,21 @@ const suggestions = {
 export const VirtualEngineer: React.FC<Props> = ({ language, route, onOpenHash }) => {
   const isAr = language === 'ar';
   const tutorLanguage: TutorLanguage = isAr ? 'ar' : 'en';
+  const [checkpoint, setCheckpoint] = useState(() => readLessonCheckpoint(tutorLanguage));
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState(true);
   const [question, setQuestion] = useState('');
-  const [answer, setAnswer] = useState('');
-  const [sessionEnded, setSessionEnded] = useState(false);
-  const lastQuestion = useRef('');
-  const lessonTopic = useRef('');
-  const [lessonFocus, setLessonFocus] = useState<'ascan' | 'dac' | 'ut'>('ascan');
+  const [answer, setAnswer] = useState(() => checkpoint?.answer ?? '');
+  const [sessionEnded, setSessionEnded] = useState(Boolean(checkpoint));
+  const lastQuestion = useRef(checkpoint?.topic ?? '');
+  const lessonTopic = useRef(checkpoint?.topic ?? '');
+  const [lessonFocus, setLessonFocus] = useState<'ascan' | 'dac' | 'ut'>(checkpoint?.focus ?? 'ascan');
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<TutorStatus | null>(null);
   const [citations, setCitations] = useState<TutorCitation[]>([]);
   const [failure, setFailure] = useState<TutorFailure | null>(null);
   const [answerMeta, setAnswerMeta] = useState<Pick<TutorMeta, 'kind' | 'source' | 'provider'> | null>(null);
-  const history = useRef<TutorMessage[]>([]);
+  const history = useRef<TutorMessage[]>(checkpoint ? [{ role: 'user', content: checkpoint.topic }, { role: 'assistant', content: checkpoint.answer }] : []);
   const abortRef = useRef<AbortController | null>(null);
   const answerRef = useRef('');
 
@@ -119,6 +167,8 @@ export const VirtualEngineer: React.FC<Props> = ({ language, route, onOpenHash }
         onError: next => setFailure(next),
         onDone: () => {
           if (answerRef.current.trim()) {
+            saveLessonCheckpoint({ language: tutorLanguage, topic: lessonTopic.current || q, answer: answerRef.current, focus: lessonFocus });
+            setCheckpoint(readLessonCheckpoint(tutorLanguage));
             history.current = [
               ...messages,
               { role: 'assistant' as const, content: answerRef.current },
@@ -137,6 +187,8 @@ export const VirtualEngineer: React.FC<Props> = ({ language, route, onOpenHash }
     abortRef.current?.abort();
     abortRef.current = null;
     if (answerRef.current.trim()) {
+      saveLessonCheckpoint({ language: tutorLanguage, topic: lessonTopic.current || lastQuestion.current, answer: answerRef.current, focus: lessonFocus });
+      setCheckpoint(readLessonCheckpoint(tutorLanguage));
       history.current = [
         ...history.current,
         { role: 'user' as const, content: lastQuestion.current },
@@ -154,6 +206,21 @@ export const VirtualEngineer: React.FC<Props> = ({ language, route, onOpenHash }
   const showSimulator = () => {
     const tab = simulatorForQuestion(lessonTopic.current || lastQuestion.current);
     onOpenHash(`#${tab}`);
+  };
+
+
+  const startNewLesson = () => {
+    clearLessonCheckpoint();
+    setCheckpoint(null);
+    setAnswer('');
+    answerRef.current = '';
+    setCitations([]);
+    setFailure(null);
+    setAnswerMeta(null);
+    setSessionEnded(false);
+    lastQuestion.current = '';
+    lessonTopic.current = '';
+    history.current = [];
   };
 
   const sourceLabel = (source: TutorMeta['source']) => {
@@ -219,6 +286,7 @@ export const VirtualEngineer: React.FC<Props> = ({ language, route, onOpenHash }
             <div className={`ve-speech-indicator ${loading ? 'is-thinking' : answer ? 'is-speaking' : ''}`}><span/>{loading ? (isAr ? 'بيحضّر الشرح' : 'Preparing') : answer ? (isAr ? 'بيشرح' : 'Explaining') : (isAr ? 'جاهز للشرح' : 'Ready to teach')}</div>
           </div>
         </div>
+        {checkpoint && <div className="ve-disclaimer" role="status">{isAr ? 'استعدنا آخر نقطة شرح محفوظة على هذا الجهاز.' : 'Your last lesson checkpoint was restored on this device.'} <button type="button" onClick={startNewLesson}>{isAr ? 'بدء درس جديد' : 'Start a new lesson'}</button></div>}
         {status === null && <small className="ve-disclaimer">{isAr ? 'جارٍ التحقق من اتصال المدرّس…' : 'Checking tutor availability…'}</small>}
         {status && !status.configured && status.reason !== 'unreachable' && <small className="ve-disclaimer">{isAr ? 'الرد من مكتبة إنسكو التعليمية عند عدم توفر نموذج خارجي.' : 'The INSCO learning library may answer when no external model is configured.'}</small>}
         <div className="ve-chips">{suggestions[isAr ? 'ar' : 'en'].map(item => <button key={item} type="button" disabled={loading} onClick={() => void ask(item)}>{item}</button>)}</div>

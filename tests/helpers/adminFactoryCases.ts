@@ -1,11 +1,12 @@
+// Registered by adminGateway.test.ts in the existing admin suite.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
   DEFAULT_FACTORY_NEURON, FACTORY_LIMITS, factoryBundle, factorySnapshot,
   normaliseFactoryDraft, normaliseFactoryRequest, scoreFactoryNeuron, simulateFactory, type FactoryRequest,
-} from '../src/admin/factory';
-import { FACTORY_LANGUAGES, localFactoryDraft, starterCells } from '../src/admin/factoryTemplates';
-import { createFactoryDrafter } from '../server/admin/factory';
+} from '../../src/admin/factory';
+import { FACTORY_LANGUAGES, localFactoryDraft, starterCells } from '../../src/admin/factoryTemplates';
+import { createFactoryDrafter } from '../../server/admin/factory';
 
 const request: FactoryRequest = {
   task: 'inbox', output: 'bot', trigger: 'daily', locale: 'en', language: 'TypeScript', brief: 'Draft an internal follow-up report.',

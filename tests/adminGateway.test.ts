@@ -10,6 +10,7 @@ import { handleRfqRequest } from '../src/rfq/gateway';
 import { adminConfig, createAdminRouter, publicAnnouncement, publicSiteCors } from '../server/admin/router';
 import { AdminStore, adminDatabasePath, deliverToInbox } from '../server/admin/store';
 import type { FactoryDrafter } from '../server/admin/factory';
+import './helpers/adminFactoryCases';
 
 const PIN = '054132698710'; // An isolated test fixture, never an application default.
 const ORIGIN = 'https://insco-test.example';

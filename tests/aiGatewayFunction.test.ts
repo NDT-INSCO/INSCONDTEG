@@ -1,11 +1,10 @@
 /**
  * The deployed function must answer `/api/ai/*`.
  *
- * This is the regression that mattered: the site, the admin API and the RFQ endpoint
- * were all served on Vercel, but nothing answered the AI routes, so every tutor or
- * copilot call came back 404 and the client blamed a missing API key. The test mounts
- * the actual Vercel handler (`api/ai.ts`) on a real socket and speaks HTTP to it — no
- * key is configured, so the honest answer is `no_key`, not a 404 and not a fake reply.
+ * This is the regression that mattered: the site, admin API and RFQ endpoint were
+ * served on Vercel, but nothing answered the AI routes, so the client blamed a missing
+ * key for a 404. This mounts the real Vercel handler (`api/ai.ts`) on a socket. No model
+ * key is configured: library/rules paths must still answer honestly without one.
  */
 import assert from 'node:assert/strict';
 import { createServer, type Server } from 'node:http';
@@ -79,6 +78,32 @@ test('every agent route the client calls is mounted', async () => {
       body: JSON.stringify({ message: 'اختبار', language: 'ar' }),
     });
     assert.notEqual(response.status, 404, `${route} must be mounted`);
+  }
+});
+
+test('all site-agent endpoints answer without a Gemini key and identify their real source', async () => {
+  const calls = [
+    {
+      route: '/api/ai/agent/user-copilot',
+      body: { message: 'ما الفرق بين PAUT و TOFD؟', history: [], language: 'ar', mode: 'assistant' },
+    },
+    {
+      route: '/api/ai/agent/site-manager',
+      body: { instruction: 'audit', language: 'en', mode: 'executive_audit', telemetry: { totalRequests: 5, urgentRequests: 1 } },
+    },
+    {
+      route: '/api/ai/community/assist',
+      body: { action: 'suggest_reply', language: 'ar', ndtMethod: 'PAUT', body: 'ما الإعدادات المستخدمة في هذه الحالة؟' },
+    },
+  ];
+  for (const call of calls) {
+    const response = await fetch(`${base}${call.route}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(call.body),
+    });
+    assert.equal(response.status, 200, `${call.route} must answer without a model key`);
+    const body = await response.json() as { model: string | null; kind: string; citations?: unknown[] };
+    assert.equal(body.model, null);
+    assert.ok(['library', 'rules', 'editorial', 'site-data', 'decline'].includes(body.kind));
   }
 });
 

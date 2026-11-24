@@ -10,6 +10,7 @@ import {
 import { gatewayBase } from './client';
 import { isStaticPages } from '../utils/staticPages';
 
+
 export function agentUrl(path: string): string {
   return `${gatewayBase()}${path}`;
 }
@@ -34,11 +35,16 @@ async function postAgentJson<TReq, TRes>(
   // A static GitHub Pages build ships no gateway at all: say so honestly instead
   // of firing a request that can never answer. Same posture as the tutor.
   if (!gatewayBase() && isStaticPages()) {
-    throw new AgentApiError(
-      'The AI agents require the INSCO AI gateway. This site is a static build without a gateway attached.',
-      503,
-      'not_configured'
-    );
+    if (signal?.aborted) throw new DOMException('The operation was aborted.', 'AbortError');
+    // Static hosting cannot call a private API, so use the same inspectable,
+    // keyless retrieval/rules engine locally rather than pretending a gateway exists.
+    const { answerCopilot, answerSiteManager, answerCommunity } = await import('./agentBrain');
+    const result = endpoint === AGENT_ENDPOINTS.userCopilot
+      ? answerCopilot(payload as UserCopilotRequest)
+      : endpoint === AGENT_ENDPOINTS.siteManager
+        ? answerSiteManager(payload as SiteManagerRequest)
+        : answerCommunity(payload as CommunityAssistRequest);
+    return result as TRes;
   }
 
   const res = await fetch(agentUrl(endpoint), {

@@ -84,8 +84,8 @@ async function startServer(): Promise<void> {
     const port = typeof address === 'object' && address ? address.port : PORT;
     console.log(`Server listening on http://0.0.0.0:${port} (${isProduction ? 'production' : 'development'})`);
     const aiRuntime = readAiEnv(process.env);
-  console.log(`[ai] tutor: ${aiRuntime.configured ? `enabled, model ${aiRuntime.models[0]}` : 'disabled (no GEMINI_API_KEY)'}`);
-    console.log(`[ai] transport: ${aiRuntime.mode}${aiRuntime.configured ? '' : ' (no key, calls will be refused)'}`);
+    console.log(`[ai] tutor: ${aiRuntime.configured ? `optional model generation enabled (${aiRuntime.models[0]})` : 'keyless library-answer path enabled'}`);
+    console.log(`[ai] agents: local retrieval/rules enabled (no external key required)`);
     console.log(`[rfq] delivery: ${operations.rfqEnabled ? 'configured' : 'not configured (POST /api/rfq will answer 503)'}`);
     console.log(`[admin] portal: ${operations.adminEnabled ? 'enabled' : 'disabled (set ADMIN_PASSWORD and, in production, ADMIN_ORIGIN)'}`);
   });

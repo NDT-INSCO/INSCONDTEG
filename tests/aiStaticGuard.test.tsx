@@ -1,7 +1,6 @@
 /**
- * Static GitHub Pages build honesty checks for the Dual AI agents:
- * no gateway may be faked — the client refuses with `not_configured`, the
- * contract names the measured chain, and the dock banner explains itself.
+ * Static GitHub Pages checks: the local agent brain answers without a gateway
+ * or external key, and the dock explains that path honestly.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -25,21 +24,9 @@ Object.assign(globalThis, {
 });
 dom.window.scrollTo = () => {};
 
-test('static build: agents refuse with not_configured and the contract names real models', async () => {
-  const { askUserCopilot, runSiteManagerAgent, runCommunityAssist, agentUrl, AgentApiError } =
+test('static build: every agent uses the local brain without a gateway or model key', async () => {
+  const { askUserCopilot, runSiteManagerAgent, runCommunityAssist, agentUrl } =
     await import('../src/ai/agentsClient');
-  const { AGENT_MODELS } = await import('../src/ai/agentsContract');
-
-  const chain = [AGENT_MODELS.primary, AGENT_MODELS.fallback, ...AGENT_MODELS.fallbacks];
-
-  // The busy model must never lead — it is the one model that always answers 503.
-  assert.notEqual(AGENT_MODELS.primary, 'gemini-4-hydrogen');
-  // The measured chain leads with the model that answers and puts the busy one last.
-  assert.equal(chain[0], 'gemini-3.5-flash-lite');
-  assert.equal(chain[chain.length - 1], 'gemini-4-hydrogen');
-  assert.equal(new Set(chain).size, chain.length, 'the chain must not repeat a model');
-
-  // The static build must never reach the network with a relative URL.
   const before = globalThis.fetch;
   let fetchCalls = 0;
   globalThis.fetch = (async () => {
@@ -47,47 +34,29 @@ test('static build: agents refuse with not_configured and the contract names rea
     return new Response('{}', { status: 200 });
   }) as typeof fetch;
   try {
-    await assert.rejects(
-      askUserCopilot({ message: 'hello', history: [], language: 'ar', mode: 'assistant' }),
-      (error: AgentApiError) => {
-        assert.equal(error.code, 'not_configured');
-        assert.equal(error.status, 503);
-        assert.match(error.message, /INSCO AI gateway/);
-        return true;
-      }
-    );
+    const copilot = await askUserCopilot({ message: 'ما الفرق بين PAUT و TOFD؟', history: [], language: 'ar', mode: 'assistant' });
+    assert.equal(copilot.model, null);
+    assert.ok(copilot.kind === 'library' || copilot.kind === 'decline');
 
-    await assert.rejects(
-      runSiteManagerAgent({
-        instruction: 'audit',
-        language: 'ar',
-        mode: 'executive_audit',
-        telemetry: {
-          totalRequests: 0, newRequests: 0, urgentRequests: 0, totalCompanies: 0,
-          activeTestingCompanies: 0, pendingAccounts: 0, geofenceAlertCount: 0,
-          recentGeofenceAlerts: [], communityPostsCount: 0, communityMembersCount: 0,
-          opportunitiesCount: 0, recentPosts: [],
-        },
-      }),
-      (error: AgentApiError) => {
-        assert.equal(error.code, 'not_configured');
-        return true;
-      }
-    );
+    const manager = await runSiteManagerAgent({
+      instruction: 'audit', language: 'ar', mode: 'executive_audit',
+      telemetry: {
+        totalRequests: 0, newRequests: 0, urgentRequests: 0, totalCompanies: 0,
+        activeTestingCompanies: 0, pendingAccounts: 0, geofenceAlertCount: 0,
+        recentGeofenceAlerts: [], communityPostsCount: 0, communityMembersCount: 0,
+        opportunitiesCount: 0, recentPosts: [],
+      },
+    });
+    assert.equal(manager.model, null);
+    assert.equal(manager.kind, 'site-data');
 
-    await assert.rejects(
-      runCommunityAssist({ action: 'enhance_post', language: 'ar', ndtMethod: 'RT', body: 'فحص' }),
-      (error: AgentApiError) => {
-        assert.equal(error.code, 'not_configured');
-        return true;
-      }
-    );
+    const community = await runCommunityAssist({ action: 'enhance_post', language: 'ar', ndtMethod: 'RT', body: 'فحص' });
+    assert.equal(community.model, null);
+    assert.equal(community.kind, 'editorial');
   } finally {
     globalThis.fetch = before;
   }
-  assert.equal(fetchCalls, 0, 'static build must never hit the network');
-
-  // URL helper stays relative when the gateway is not configured (see client.ts).
+  assert.equal(fetchCalls, 0, 'static build must never hit the network for agent answers');
   assert.match(agentUrl('/api/ai/agent/user-copilot'), /^\/api\/ai\/agent\/user-copilot$/);
 });
 
@@ -106,7 +75,7 @@ test('static build: the dock explains itself instead of faking', async () => {
     })
   );
   fireEvent.click(ui.getByTestId('insco-dual-ai-launcher'));
-  assert.ok(ui.getByTestId('ai-gateway-unavailable'));
-  assert.match(ui.getByTestId('ai-gateway-unavailable').textContent, /static/i);
+  assert.ok(ui.getByTestId('ai-local-brain'));
+  assert.match(ui.getByTestId('ai-local-brain').textContent, /without a key/i);
   cleanup();
 });

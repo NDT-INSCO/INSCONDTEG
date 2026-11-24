@@ -1,24 +1,10 @@
 /**
- * Shared contract for INSCO's two professional Gemini AI Agents:
- * 1. INSCO Site Manager & Operations Director AI (/api/ai/agent/site-manager)
- * 2. INSCO Universal User Copilot AI (/api/ai/agent/user-copilot)
- * Plus Community Post/Thread Assist (/api/ai/community/assist)
+ * Shared, provider-neutral contracts for INSCO's user copilot, operations
+ * manager and community editor. Their answer path is deterministic, retrieval
+ * and site-data based, and does not need an external model key.
  *
  * Node & browser safe — zero DOM or Node imports.
  */
-
-export const AGENT_MODELS = {
-  /**
-   * Measured on production: `gemini-3.5-flash-lite` answered in 652ms while every `flash`
-   * hung and was aborted, and `gemini-4-hydrogen` returned 503 high demand every time it
-   * was asked. Quota is per model, so the model with headroom leads and the busy one
-   * sits at the back.
-   */
-  primary: 'gemini-3.5-flash-lite',
-  fallback: 'gemini-3.8-flash',
-  /** Walked when a model is busy or rate-limited, not only when an id is missing. */
-  fallbacks: ['gemini-3.6-flash', 'gemini-4-hydrogen'] as const,
-} as const;
 
 export const AGENT_ENDPOINTS = {
   userCopilot: '/api/ai/agent/user-copilot',
@@ -78,11 +64,24 @@ export interface CopilotDraftPost {
   tags: string[];
 }
 
+export interface AgentCitation {
+  id: string;
+  title: string;
+  section?: string;
+  page?: number;
+}
+
+export type AgentAnswerKind = 'library' | 'rules' | 'editorial' | 'site-data' | 'decline';
+
 export interface UserCopilotResponse {
   reply: string;
   suggestedActions: UserCopilotAction[];
   draftPost?: CopilotDraftPost;
-  model: string;
+  /** null means no external model/API key was used. */
+  model: string | null;
+  kind: AgentAnswerKind;
+  citations: AgentCitation[];
+  reasoningSteps: string[];
   elapsedMs: number;
 }
 
@@ -236,7 +235,9 @@ export interface SiteManagerResponse {
     body: string;
     ndtMethod: string;
   };
-  model: string;
+  model: string | null;
+  kind: AgentAnswerKind;
+  reasoningSteps: string[];
   elapsedMs: number;
 }
 
@@ -349,7 +350,9 @@ export interface CommunityAssistResponse {
   body?: string;
   tags?: string[];
   technicalSnippet?: string;
-  model: string;
+  model: string | null;
+  kind: AgentAnswerKind;
+  citations: AgentCitation[];
   elapsedMs: number;
 }
 

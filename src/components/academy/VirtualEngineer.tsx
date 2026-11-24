@@ -49,6 +49,8 @@ export const VirtualEngineer: React.FC<Props> = ({ language, route, onOpenHash }
   const history = useRef<TutorMessage[]>([]);
   const abortRef = useRef<AbortController | null>(null);
   const answerRef = useRef('');
+  const sentQuestionRef = useRef('');
+  const recordedRef = useRef(false);
 
   useEffect(() => {
     if (!open || status) return;
@@ -63,23 +65,28 @@ export const VirtualEngineer: React.FC<Props> = ({ language, route, onOpenHash }
 
   const ask = async (raw: string) => {
     const q = raw.trim();
-    if (!q || loading) return;
+    // The controller is also the "busy" flag: a stopped stream clears it, so
+    // the learner can ask the next question without waiting for the old one.
+    if (!q || abortRef.current) return;
 
     setQuestion('');
+    const continuing = /كمّل من النقطة|continue from where/i.test(q);
     lastQuestion.current = q;
-    if (!/كمّل من النقطة|continue from where/i.test(q)) lessonTopic.current = q;
+    if (!continuing) {
+      lessonTopic.current = q;
+      const normalizedQuestion = q.toLowerCase();
+      setLessonFocus(/dac|calibrat|معاير/.test(normalizedQuestion) ? 'dac' : /principle|مبدأ|مبادئ/.test(normalizedQuestion) ? 'ut' : 'ascan');
+    }
     setSessionEnded(false);
-    const normalizedQuestion = q.toLowerCase();
-    setLessonFocus(/dac|calibrat|معاير/.test(normalizedQuestion) ? 'dac' : /principle|مبدأ|مبادئ/.test(normalizedQuestion) ? 'ut' : 'ascan');
     setAnswer('');
     answerRef.current = '';
+    recordedRef.current = false;
     setCitations([]);
     setFailure(null);
     setAnswerMeta(null);
     setLoading(true);
 
     const controller = new AbortController();
-    abortRef.current?.abort();
     abortRef.current = controller;
 
     const currentPage = typeof window === 'undefined'
@@ -88,6 +95,7 @@ export const VirtualEngineer: React.FC<Props> = ({ language, route, onOpenHash }
     const contextualQuestion = isAr
       ? `سياق المتعلم الحالي داخل أكاديمية INSCO: ${currentPage}. أنت المهندس الافتراضي ومهمتك شرح NDT للتعلم. أجب عن سؤال المتعلم مع ربط الشرح بسياق الصفحة الحالية متى كان ذلك مناسباً. وضّح الافتراضات وحدود الإجابة، ولا تصدر قرار قبول/رفض تشغيلياً ولا تخترع مرجعاً.\n\nسؤال المتعلم: ${q}`
       : `Learner context in INSCO Academy: ${currentPage}. You are the virtual NDT learning engineer. Answer the learner's question and relate the explanation to the current page when relevant. State assumptions and limits; do not issue operational accept/reject decisions or invent references.\n\nLearner question: ${q}`;
+    sentQuestionRef.current = contextualQuestion;
 
     const messages: TutorMessage[] = [
       ...history.current.slice(-18),
@@ -96,26 +104,35 @@ export const VirtualEngineer: React.FC<Props> = ({ language, route, onOpenHash }
     const liveStatus = status ?? await fetchTutorStatus();
     setStatus(liveStatus);
     if (!liveStatus.configured && liveStatus.reason === 'unreachable') {
+      abortRef.current = null;
       setFailure({ code: 'not_configured', message: isAr ? 'خدمة المدرّس غير متاحة حالياً من هذا النشر.' : 'The tutor service is not reachable from this deployment.' });
       setLoading(false);
       return;
     }
 
+    // A stopped or replaced stream must never write into a newer answer.
+    const isCurrent = () => abortRef.current === controller;
     await streamTutor(
       { messages, language: tutorLanguage, mode: 'explain' },
       {
         signal: controller.signal,
         onMeta: meta => {
+          if (!isCurrent()) return;
           setCitations(meta.citations);
           setAnswerMeta({ kind: meta.kind, source: meta.source, provider: meta.provider });
         },
         onDelta: chunk => {
+          if (!isCurrent()) return;
           answerRef.current += chunk;
           setAnswer(previous => previous + chunk);
         },
-        onError: next => setFailure(next),
+        onError: next => {
+          if (isCurrent()) setFailure(next);
+        },
         onDone: () => {
-          if (answerRef.current.trim()) {
+          if (!isCurrent()) return;
+          if (answerRef.current.trim() && !recordedRef.current) {
+            recordedRef.current = true;
             history.current = [
               ...messages,
               { role: 'assistant' as const, content: answerRef.current },
@@ -126,17 +143,22 @@ export const VirtualEngineer: React.FC<Props> = ({ language, route, onOpenHash }
       }
     );
 
-    if (abortRef.current === controller) abortRef.current = null;
-    setLoading(false);
+    if (isCurrent()) {
+      abortRef.current = null;
+      setLoading(false);
+    }
   };
 
   const stopExplanation = () => {
-    abortRef.current?.abort();
+    const controller = abortRef.current;
+    if (!controller) return;
+    controller.abort();
     abortRef.current = null;
-    if (answerRef.current.trim()) {
+    if (!recordedRef.current && answerRef.current.trim()) {
+      recordedRef.current = true;
       history.current = [
         ...history.current,
-        { role: 'user' as const, content: lastQuestion.current },
+        { role: 'user' as const, content: sentQuestionRef.current },
         { role: 'assistant' as const, content: answerRef.current },
       ].slice(-20);
     }
@@ -224,7 +246,7 @@ export const VirtualEngineer: React.FC<Props> = ({ language, route, onOpenHash }
           {citations.length > 0 && <div className="ve-citations"><strong>{isAr ? 'المراجع المستخدمة' : 'Sources used'}</strong>{citations.slice(0, 4).map((citation, index) => <span key={citation.id || index}>{citation.title[isAr ? 'ar' : 'en']}</span>)}</div>}
         </div>}
         {answer && !loading && <div className="ve-next-actions" aria-label={isAr ? 'اختيارات المتعلم' : 'Learner choices'}>
-          <p>{isAr ? (sessionEnded ? 'تم إيقاف الشرح عند هذه النقطة.' : 'تحب نعمل إيه بعد الجزء ده؟') : (sessionEnded ? 'The explanation is paused here.' : 'What would you like to do next?')}</p>
+          <p>{isAr ? (sessionEnded ? 'ينتهي الشرح عند هذه النقطة.' : 'تحب نعمل إيه بعد الجزء ده؟') : (sessionEnded ? 'The explanation ends here.' : 'What would you like to do next?')}</p>
           <div>
             <button type="button" onClick={continueExplanation}>{isAr ? 'نكمل الجزء التالي' : 'Continue'}</button>
             <button type="button" onClick={showSimulator}>{isAr ? 'ورّيني المحاكي' : 'Show me the simulator'}</button>

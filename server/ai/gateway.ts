@@ -73,10 +73,11 @@ import {
   draftCommunityAnswer,
   draftCopilotAnswer,
   draftSiteManagerAnswer,
+  detectIntent,
   resolveAiProvider,
 } from '../../src/ai/brain/index.js';
 import { createManusTaskReceipts } from './manusReceipts.js';
-import { buildTutorLibrary, type TutorLibrary } from '../tutor/library.js';
+import { buildTutorLibrary, EMPTY_TUTOR_LIBRARY, type TutorLibrary } from '../tutor/library.js';
 import {
   ChainAttempt,
   isModelMissing,
@@ -182,6 +183,15 @@ export function createAiGateway(edbRoot: string): express.Router {
         console.warn(`[ai] no reviewed courses; answering from the academy corpus (${built.library.documents} passages)`);
       }
       return built.library;
+    }).catch(() => {
+      // A corpus or filesystem problem must not become an unhandled Express 4
+      // async-handler rejection (which Vercel reports as FUNCTION_INVOCATION_FAILED).
+      // Preserve the gateway and make every surface fail closed with an honest
+      // no-corpus status instead of taking the whole function down.
+      reviewedDocuments = 0;
+      libraryFailure = 'library_load_failed';
+      console.error('[ai] tutor library could not be loaded; AI answers are disabled until it is available.');
+      return EMPTY_TUTOR_LIBRARY;
     });
     return aiLibraryPromise;
   }
@@ -235,17 +245,13 @@ const ai: GoogleGenAI | null = API_KEY
  */
 const manus: ManusClient = createManusClient(process.env);
 
-/**
- * Which engine answers: the platform's own brain, or a provider outside it.
- *
- * The default is `local`. That is a deliberate inversion of the old behaviour, where the
- * agents could not answer at all without a Google key and a quota window: a dependence
- * that is switched on by omission is not a choice.
- */
+/** Local-first is the default; external credentials are only a fallback in `auto` mode. */
 const AI_PROVIDER = resolveAiProvider(process.env);
+const LOCAL_FIRST = AI_PROVIDER === 'local' || AI_PROVIDER === 'auto';
 const LOCAL_ONLY = AI_PROVIDER === 'local';
 const taskReceipts = createManusTaskReceipts(process.env);
 const manusFallbackEnabled = manus.configured && manus.autoFallback;
+const externalReady = !LOCAL_ONLY && (Boolean(ai) || manusFallbackEnabled);
 
 /* ------------------------------------------------------------------ */
 /* rate limiting + budget                                              */
@@ -268,21 +274,32 @@ function todayKey(): string {
 
 type LimitResult = { allowed: true } | { allowed: false; failure: TutorFailure };
 
-function takeToken(ip: string): LimitResult {
-  const now = Date.now();
+function resetDailyBudget(): void {
   const dayKey = todayKey();
   if (dayKey !== globalDayStart) {
     globalDayStart = dayKey;
     globalCount = 0;
     buckets.clear();
   }
-  const perMinute = LOCAL_ONLY ? LOCAL_PER_MINUTE : PER_MINUTE;
-  const perDay = LOCAL_ONLY ? LOCAL_PER_DAY : PER_DAY;
-  if (!LOCAL_ONLY && globalCount >= DAILY_BUDGET) {
-    return {
-      allowed: false,
-      failure: { code: 'budget_exhausted', message: 'Daily tutor budget reached' },
-    };
+}
+
+/** Reserve one paid-provider call only after the local path has declined the request. */
+function reserveExternalBudget(): LimitResult {
+  resetDailyBudget();
+  if (globalCount >= DAILY_BUDGET) {
+    return { allowed: false, failure: { code: 'budget_exhausted', message: 'Daily tutor budget reached' } };
+  }
+  globalCount += 1;
+  return { allowed: true };
+}
+
+function takeToken(ip: string, externalCall = !LOCAL_FIRST): LimitResult {
+  const now = Date.now();
+  resetDailyBudget();
+  const perMinute = externalCall ? PER_MINUTE : LOCAL_PER_MINUTE;
+  const perDay = externalCall ? PER_DAY : LOCAL_PER_DAY;
+  if (externalCall && globalCount >= DAILY_BUDGET) {
+    return { allowed: false, failure: { code: 'budget_exhausted', message: 'Daily tutor budget reached' } };
   }
   const bucket = buckets.get(ip) ?? { minuteStart: now, minuteCount: 0, dayStart: now, dayCount: 0 };
   if (now - bucket.minuteStart >= 60_000) {
@@ -310,7 +327,7 @@ function takeToken(ip: string): LimitResult {
   bucket.minuteCount += 1;
   bucket.dayCount += 1;
   buckets.set(ip, bucket);
-  globalCount += 1;
+  if (externalCall) globalCount += 1;
   return { allowed: true };
 }
 
@@ -737,7 +754,9 @@ router.get('/api/ai/selftest', async (req: Request, res: Response) => {
   res.json({
     engine: BRAIN_MODEL,
     provider: AI_PROVIDER,
-    external: !LOCAL_ONLY,
+    external: !LOCAL_FIRST,
+    localFirst: LOCAL_FIRST,
+    fallbackAvailable: externalReady,
     documents: library.documents,
     source: library.source,
     question,
@@ -755,13 +774,15 @@ router.get(TUTOR_ENDPOINTS.status, async (_req: Request, res: Response) => {
   const library = await loadAiLibrary();
   // The local brain needs no key but it does need the corpus: without a passage it has
   // nothing to quote, and `retrieval.ready` is the honest place to say so.
-  const localReady = LOCAL_ONLY && library.documents > 0;
-  const externalReady = Boolean(ai) || manusFallbackEnabled;
+  const localReady = LOCAL_FIRST && library.documents > 0;
+  const configured = localReady || externalReady;
   const status: TutorStatus = {
-    configured: LOCAL_ONLY ? localReady : externalReady,
-    reason: LOCAL_ONLY ? (localReady ? 'ok' : 'no_corpus') : externalReady ? 'ok' : clientInitError ? 'client_init_failed' : 'no_key',
+    configured,
+    reason: configured ? 'ok' : LOCAL_FIRST ? 'no_corpus' : clientInitError ? 'client_init_failed' : 'no_key',
     provider: AI_PROVIDER,
-    external: !LOCAL_ONLY,
+    external: !LOCAL_FIRST,
+    localFirst: LOCAL_FIRST,
+    fallbackAvailable: externalReady,
     brain: { model: BRAIN_MODEL, documents: library.documents },
     model: MODEL_CHAIN[0],
     deepModel: TUTOR_MODELS.deep,
@@ -820,7 +841,7 @@ router.post(MANUS_ENDPOINTS.ask, async (req: Request, res: Response) => {
     });
     return;
   }
-  const limit = takeToken(req.ip || req.socket.remoteAddress || 'unknown');
+  const limit = takeToken(req.ip || req.socket.remoteAddress || 'unknown', true);
   if (!limit.allowed) {
     const failure = limit.failure;
     if (failure.code === 'rate_limited' && failure.retryAfterSeconds) {
@@ -948,7 +969,7 @@ async function prepare(body: unknown, res: Response, idToken?: string): Promise<
   const question = latestQuestion(request);
   // The composer reads more passages than a model prompt would: it must find a sentence
   // about each method being compared, not merely the five best-scoring ones.
-  const publicHits = library.retrieve(question, LOCAL_ONLY ? LOCAL_PASSAGES : undefined);
+  const publicHits = library.retrieve(question, LOCAL_FIRST ? LOCAL_PASSAGES : undefined);
   const privateHits = await privateKnowledgeHits(question, idToken);
   const hits = [...publicHits, ...privateHits].sort((a, b) => b.score - a.score).slice(0, TUTOR_LIMITS.passages);
   const reviewed = library.source === 'reviewed';
@@ -1088,32 +1109,32 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
     return;
   }
 
-  // The local engine: the answer is composed from the passages `prepare` already ranked.
-  // No key, no upstream, no quota — and no network call that could fail.
-  if (LOCAL_ONLY) {
+  // Local-first: quote the INSCO corpus when the local composer can support an answer.
+  // In `auto`, only an uncertain local result proceeds to a configured external provider.
+  if (LOCAL_FIRST) {
     const started = Date.now();
-    if (!payload.confident) {
-      const message = tutorRefusal(payload.language, payload.source);
-      sendLocalTutorAnswer(res, streaming, message, {
+    const composed = payload.confident
+      ? composeTutorAnswer({
+          question: payload.question,
+          hits: payload.hits,
+          language: payload.language,
+          mode: payload.mode as 'explain' | 'compare' | 'code' | 'practice',
+        })
+      : null;
+    if (composed) {
+      sendLocalTutorAnswer(res, streaming, composed.text, {
         model: BRAIN_MODEL,
-        citations: [],
-        retrieved: 0,
-        confident: false,
+        citations: payload.citations,
+        retrieved: payload.citations.length,
+        confident: true,
         elapsedMs: Date.now() - started,
         source: payload.source,
         provider: 'local',
       });
       return;
     }
-    const composed = composeTutorAnswer({
-      question: payload.question,
-      hits: payload.hits,
-      language: payload.language,
-      mode: payload.mode as 'explain' | 'compare' | 'code' | 'practice',
-    });
-    if (!composed) {
-      // Retrieval was confident but nothing in the passages could be quoted — say that
-      // instead of presenting a heading as an answer.
+
+    if (LOCAL_ONLY || !externalReady) {
       sendLocalTutorAnswer(res, streaming, tutorRefusal(payload.language, payload.source), {
         model: BRAIN_MODEL,
         citations: [],
@@ -1125,19 +1146,15 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
       });
       return;
     }
-    sendLocalTutorAnswer(res, streaming, composed.text, {
-      model: BRAIN_MODEL,
-      citations: payload.citations,
-      retrieved: payload.citations.length,
-      confident: true,
-      elapsedMs: Date.now() - started,
-      source: payload.source,
-      provider: 'local',
-    });
-    return;
+
+    const budget = reserveExternalBudget();
+    if (!budget.allowed) {
+      res.status(429).json({ error: { ...budget.failure, message: failureMessage(budget.failure.code, payload.language) } });
+      return;
+    }
   }
 
-  if (!ai && !manusFallbackEnabled) {
+  if (!externalReady) {
     res.status(503).json({ error: {
       code: 'not_configured',
       message: failureMessage('not_configured', payload.language),
@@ -1147,7 +1164,7 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
   }
 
   // Fail closed in both protocols, including the legacy JSON endpoint.
-  if (!payload.confident) {
+  if (!payload.confident && AI_PROVIDER !== 'auto') {
     const message = tutorRefusal(payload.language, payload.source);
     const meta = { model: MODEL_CHAIN[0], citations: [], retrieved: 0, confident: false, elapsedMs: 0, source: payload.source };
     res.setHeader('Cache-Control', 'no-store');
@@ -1473,7 +1490,7 @@ function guardAgentPreconditions(
     return false;
   }
 
-  if (LOCAL_ONLY) return true;
+  if (LOCAL_FIRST) return true;
   if (!ai) {
     // A Manus-only deployment still answers these two agents: the structured prompt goes
     // to Manus as text and its reply fills the same fields (see the fallbacks below).
@@ -1511,25 +1528,42 @@ router.post(AGENT_ENDPOINTS.userCopilot, async (req: Request, res: Response) => 
     return;
   }
 
-  // The local engine answers first: it reads the same library the tutor reads, so the
-  // copilot cannot drift away from what the site actually documents.
-  if (LOCAL_ONLY) {
+  // Try local rules, context and library first. For a free-form question with no matching
+  // INSCO material, auto mode may escalate to a configured provider; task modes remain local.
+  if (LOCAL_FIRST) {
     const library = await loadAiLibrary();
+    const hits = library.retrieve(input.message);
     const local = draftCopilotAnswer({
       message: input.message,
       mode: input.mode,
       language: input.language,
       context: input.context,
-      hits: library.retrieve(input.message),
+      hits,
     });
-    res.json({
-      reply: local.reply,
-      suggestedActions: local.suggestedActions.slice(0, 4),
-      ...(local.draftPost ? { draftPost: local.draftPost } : {}),
-      model: BRAIN_MODEL,
-      elapsedMs: Date.now() - started,
-    } satisfies UserCopilotResponse);
-    return;
+    const intent = detectIntent(input.message).intent;
+    const localActionHandled = ['greeting', 'post', 'summarize', 'navigate', 'rfq'].includes(intent);
+    const groundedLocalAnswer = composeTutorAnswer({
+      question: input.message,
+      hits,
+      language: input.language,
+      mode: 'explain',
+    });
+    const needsExternal = AI_PROVIDER === 'auto'
+      && input.mode === 'assistant'
+      && !localActionHandled
+      && !groundedLocalAnswer
+      && externalReady
+      && (Boolean(ai) || allowManus);
+    if (!needsExternal || !reserveExternalBudget().allowed) {
+      res.json({
+        reply: local.reply,
+        suggestedActions: local.suggestedActions.slice(0, 4),
+        ...(local.draftPost ? { draftPost: local.draftPost } : {}),
+        model: BRAIN_MODEL,
+        elapsedMs: Date.now() - started,
+      } satisfies UserCopilotResponse);
+      return;
+    }
   }
 
   const controller = new AbortController();
@@ -1669,15 +1703,18 @@ router.post(AGENT_ENDPOINTS.siteManager, async (req: Request, res: Response) => 
 
   // The audit is arithmetic over the snapshot: the same numbers the prompt used to carry,
   // read directly. Nothing here can invent a request count.
-  if (LOCAL_ONLY) {
+  if (LOCAL_FIRST) {
     const local = draftSiteManagerAnswer({
       instruction: input.instruction,
       language: input.language,
       mode: input.mode,
       telemetry: input.telemetry,
     });
-    res.json({ ...local, model: BRAIN_MODEL, elapsedMs: Date.now() - started } satisfies SiteManagerResponse);
-    return;
+    const needsExternal = AI_PROVIDER === 'auto' && input.mode === 'custom' && externalReady;
+    if (!needsExternal || !reserveExternalBudget().allowed) {
+      res.json({ ...local, model: BRAIN_MODEL, elapsedMs: Date.now() - started } satisfies SiteManagerResponse);
+      return;
+    }
   }
 
   const controller = new AbortController();
@@ -1799,14 +1836,18 @@ router.post(AGENT_ENDPOINTS.communityAssist, async (req: Request, res: Response)
     return;
   }
 
-  if (LOCAL_ONLY) {
+  if (LOCAL_FIRST) {
     const library = await loadAiLibrary();
-    const local = draftCommunityAnswer({
-      ...input,
-      hits: library.retrieve(`${input.title ?? ''} ${input.body}`.trim()),
-    });
-    res.json({ ...local, model: BRAIN_MODEL, elapsedMs: Date.now() - started } satisfies CommunityAssistResponse);
-    return;
+    const hits = library.retrieve(`${input.title ?? ''} ${input.body}`.trim());
+    const local = draftCommunityAnswer({ ...input, hits });
+    const needsExternal = AI_PROVIDER === 'auto'
+      && input.action === 'code_check'
+      && !local.technicalSnippet
+      && externalReady;
+    if (!needsExternal || !reserveExternalBudget().allowed) {
+      res.json({ ...local, model: BRAIN_MODEL, elapsedMs: Date.now() - started } satisfies CommunityAssistResponse);
+      return;
+    }
   }
 
   const controller = new AbortController();

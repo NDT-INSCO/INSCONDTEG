@@ -78,5 +78,5 @@ export interface DashboardData {
   activity: { day: string; count: number }[];
   recent: QuoteSummary[];
   announcement: Announcement;
-  services: { tutorConfigured: boolean; rfqNotificationsConfigured: boolean };
+  services: { tutorConfigured: boolean; rfqNotificationsConfigured: boolean; factoryAiConfigured?: boolean };
 }

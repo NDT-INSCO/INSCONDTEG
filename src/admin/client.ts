@@ -4,6 +4,7 @@ import type {
 import { isStaticPages } from '../utils/staticPages';
 import { ADMIN_API, isQuoteStatus } from './contract';
 import type { Announcement, AnnouncementInput, DashboardData, ManagedQuote, PasskeySettings, PasskeySummary, QuotePage, QuoteStatus } from './contract';
+import { FACTORY_DRAFT_PATH, FACTORY_LIMITS, normaliseFactoryDraft, type FactoryRequest } from './factory';
 
 export class AdminApiError extends Error {
   constructor(public readonly code: string, public readonly retryAfter = 0) {
@@ -36,17 +37,18 @@ function isDashboard(value: unknown): value is DashboardData {
         && typeof quote.serviceType === 'string' && validDate(quote.receivedAt) && isQuoteStatus(quote.status);
     })
     && typeof services?.tutorConfigured === 'boolean' && typeof services.rfqNotificationsConfigured === 'boolean'
+    && (services.factoryAiConfigured === undefined || typeof services.factoryAiConfigured === 'boolean')
     && typeof announcement?.enabled === 'boolean' && (announcement.updatedAt === null || validDate(announcement.updatedAt))
     && typeof message?.ar === 'string' && typeof message.en === 'string';
 }
 
-async function request<T>(path: string, options: { method?: string; body?: unknown; signal?: AbortSignal; expectEmpty?: boolean } = {}): Promise<T> {
+async function request<T>(path: string, options: { method?: string; body?: unknown; signal?: AbortSignal; expectEmpty?: boolean; timeoutMs?: number } = {}): Promise<T> {
   if (isStaticPages()) throw new AdminApiError('not_configured');
   // Keep older passkey-capable Safari versions working without AbortSignal.any().
   const controller = new AbortController();
   const abort = () => controller.abort();
   let timedOut = false;
-  const timeout = setTimeout(() => { timedOut = true; abort(); }, 12_000);
+  const timeout = setTimeout(() => { timedOut = true; abort(); }, options.timeoutMs ?? 12_000);
   if (options.signal?.aborted) abort();
   else options.signal?.addEventListener('abort', abort, { once: true });
   try {
@@ -96,6 +98,12 @@ export const adminClient = {
     const data = await request<unknown>('/dashboard', { signal });
     if (!isDashboard(data)) throw new AdminApiError('invalid_response');
     return data;
+  },
+  factoryDraft: async (input: FactoryRequest, signal: AbortSignal) => {
+    const raw = await request<unknown>(FACTORY_DRAFT_PATH, { method: 'POST', body: input, signal, timeoutMs: FACTORY_LIMITS.requestMs + 5_000 });
+    const draft = normaliseFactoryDraft(raw);
+    if (!draft) throw new AdminApiError('factory_invalid_draft');
+    return draft;
   },
   passkeyStatus: (signal: AbortSignal) => request<{ available: boolean }>('/passkeys/status', { signal }),
   passkeys: (signal: AbortSignal) => request<PasskeySettings>('/passkeys', { signal }),

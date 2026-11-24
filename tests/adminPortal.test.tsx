@@ -2,6 +2,7 @@ import React from 'react';
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, test } from 'node:test';
 import { JSDOM } from 'jsdom';
+import { adminClient, AdminApiError } from '../src/admin/client';
 import type { DashboardData } from '../src/admin/contract';
 import { adminPortalLink, externalAdminLink, readPublicAnnouncement } from '../src/admin/public';
 
@@ -103,7 +104,11 @@ test('a saved #admin bookmark offers the hosted portal, not a form or cross-orig
   assert.equal(link.getAttribute('target'), '_blank');
   assert.equal(link.getAttribute('rel'), 'noopener noreferrer');
   assert.equal(ui.queryByLabelText('كلمة المرور', { exact: true }), null);
-  assert.equal(await readPublicAnnouncement(new AbortController().signal), null);
+  assert.equal(ui.queryByRole('button', { name: 'مصنع البرمجيات' }), null);
+  const signal = new AbortController().signal;
+  assert.equal(await readPublicAnnouncement(signal), null);
+  await assert.rejects(adminClient.factoryDraft({ task: 'inbox', output: 'block', trigger: 'manual', locale: 'ar', language: 'Python',
+    brief: 'مسودة للمراجعة', cells: ['input', 'draft'], includeSnapshot: false }, signal), (error: unknown) => error instanceof AdminApiError && error.code === 'not_configured');
   assert.deepEqual(requests, []);
 });
 
@@ -312,4 +317,102 @@ test('an in-flight sign-in is sent only once and cancelled when leaving the port
   assert.equal(field.value, '');
   ui.unmount();
   assert.equal(pending?.aborted, true);
+});
+
+test('the factory is signed-in only, rehearses and drafts locally, and keeps work only for the session', async () => {
+  let session = false;
+  const calls: string[] = [];
+  globalThis.fetch = async input => {
+    const route = String(input);
+    calls.push(route);
+    if (route === '/api/admin/dashboard') return session ? adminJson(dashboard()) : signedOut();
+    if (route === '/api/admin/login') { session = true; return noContent(); }
+    if (route === '/api/admin/logout') { session = false; return noContent(); }
+    throw new Error(`Unexpected API: ${route}`);
+  };
+  const ui = renderPortal();
+  await ui.findByLabelText('Admin password');
+  assert.equal(ui.queryByRole('button', { name: 'Software Factory' }), null);
+  await submitPassword(ui);
+  fireEvent.click(await ui.findByRole('button', { name: 'Software Factory' }));
+  await ui.findByRole('heading', { name: 'Scenario board' });
+  assert.equal((ui.getByRole('button', { name: 'Draft with AI' }) as HTMLButtonElement).disabled, true);
+  fireEvent.click(ui.getByRole('button', { name: 'Neural cell' }));
+  fireEvent.click(ui.getByRole('button', { name: 'Rehearse steps' }));
+  assert.ok(ui.getByText(/Follow-up suggested · 71%/));
+  assert.ok(ui.getByText('Waiting for human review'));
+  fireEvent.change(ui.getByLabelText('Programming language'), { target: { value: 'Python' } });
+  fireEvent.click(ui.getByRole('button', { name: 'Build from template' }));
+  assert.match(ui.getByLabelText('Code draft').textContent!, /def neuron/);
+  assert.equal((ui.getByRole('button', { name: 'Download draft JSON' }) as HTMLButtonElement).disabled, false);
+  fireEvent.change(ui.getByLabelText('Task objective'), { target: { value: 'Updated objective' } });
+  assert.equal((ui.getByRole('button', { name: 'Download draft JSON' }) as HTMLButtonElement).disabled, true);
+  fireEvent.click(ui.getByRole('button', { name: 'Overview' }));
+  fireEvent.click(ui.getByRole('button', { name: 'Software Factory' }));
+  assert.equal((ui.getByLabelText('Task objective') as HTMLTextAreaElement).value, 'Updated objective');
+  fireEvent.click(ui.getByRole('button', { name: 'Sign out' }));
+  await ui.findByText('You have signed out.');
+  assert.equal(ui.queryByText('Updated objective'), null);
+  assert.deepEqual(calls, ['/api/admin/dashboard', '/api/admin/login', '/api/admin/dashboard', '/api/admin/logout']);
+});
+
+test('AI factory drafts use the private endpoint and proposed steps or markup stay inert', async () => {
+  const data = dashboard();
+  data.services.factoryAiConfigured = true;
+  let requests = 0;
+  globalThis.fetch = async (input, init) => {
+    if (input === '/api/admin/dashboard') return adminJson(data);
+    assert.equal(input, '/api/admin/factory/draft');
+    assert.equal(init?.method, 'POST');
+    assert.equal(init?.credentials, 'same-origin');
+    const request = JSON.parse(String(init?.body));
+    assert.equal(request.language, 'Elixir');
+    assert.equal(request.includeSnapshot, false);
+    assert.equal(request.snapshot, undefined);
+    requests++;
+    return adminJson({ title: 'Proposed draft', summary: 'No site changes', code: '<b>plain text</b>', checks: ['Review'], steps: [{ kind: 'input', label: 'Read anonymised counts' }] });
+  };
+  const ui = renderPortal();
+  fireEvent.click(await ui.findByRole('button', { name: 'Software Factory' }));
+  await ui.findByRole('heading', { name: 'Work brief' });
+  fireEvent.change(ui.getByLabelText('Programming language'), { target: { value: 'other' } });
+  fireEvent.change(ui.getByLabelText('Language name'), { target: { value: 'Elixir' } });
+  fireEvent.change(ui.getByLabelText('Task objective'), { target: { value: 'Plan an internal report' } });
+  fireEvent.click(ui.getByRole('button', { name: 'Draft with AI' }));
+  await ui.findByRole('heading', { name: 'Proposed draft' });
+  const snippet = ui.getByLabelText('Code draft');
+  assert.equal(snippet.textContent, '<b>plain text</b>');
+  assert.equal(snippet.querySelector('b'), null);
+  assert.equal((ui.getByLabelText('Cell 1 name') as HTMLInputElement).value, '');
+  fireEvent.click(ui.getByRole('button', { name: 'Replace scenario with proposed steps' }));
+  assert.equal((ui.getByLabelText('Cell 1 name') as HTMLInputElement).value, 'Read anonymised counts');
+  assert.ok(ui.getByText('Human review'));
+  assert.equal(requests, 1);
+});
+
+test('leaving the factory tab cancels an in-flight draft and retains the brief', async () => {
+  const data = dashboard();
+  data.services.factoryAiConfigured = true;
+  let pendingSignal: AbortSignal | null | undefined;
+  let finish!: (response: Response) => void;
+  globalThis.fetch = async (input, init) => {
+    if (input === '/api/admin/dashboard') return adminJson(data);
+    assert.equal(input, '/api/admin/factory/draft');
+    pendingSignal = init?.signal;
+    return new Promise<Response>(resolve => { finish = resolve; });
+  };
+  const ui = renderPortal();
+  const factory = await ui.findByRole('button', { name: 'Software Factory' });
+  fireEvent.click(factory);
+  const brief = await ui.findByLabelText('Task objective');
+  fireEvent.change(brief, { target: { value: 'Keep this working brief' } });
+  fireEvent.click(ui.getByRole('button', { name: 'Draft with AI' }));
+  assert.equal(pendingSignal?.aborted, false);
+  fireEvent.click(ui.getByRole('button', { name: 'Overview' }));
+  assert.equal(pendingSignal?.aborted, true);
+  await act(async () => finish(adminJson({ title: 'Stale reply', summary: 'Late response', steps: [], code: null, checks: ['Review'] })));
+  fireEvent.click(factory);
+  assert.equal((ui.getByLabelText('Task objective') as HTMLTextAreaElement).value, 'Keep this working brief');
+  assert.equal((ui.getByRole('button', { name: 'Draft with AI' }) as HTMLButtonElement).disabled, false);
+  assert.equal(ui.queryByText('Stale reply'), null);
 });

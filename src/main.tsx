@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import './index.css';
 import './components/admin/admin.css';
+import './components/admin/factory.css';
 
 if (typeof window !== 'undefined') {
   (window as { gm_authFailure?: () => void }).gm_authFailure = () => {

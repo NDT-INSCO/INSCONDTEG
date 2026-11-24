@@ -341,8 +341,10 @@ textarea.ad-input { resize: vertical; line-height: 1.65; }
   .ad-sidebar { height: auto; position: static; padding: 13px 16px; display: grid; grid-template-columns: 1fr auto; gap: 11px; border-inline-end: 0; border-bottom: 1px solid #26384e; }
   .ad-sidebar > .ad-brand { margin: 0; padding-inline: 0; }
   .ad-sidebar .ad-sidebar-label, .ad-private { display: none; }
-  .ad-sidebar-nav { grid-column: 1 / -1; grid-row: 2; grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .ad-sidebar-nav button { justify-content: center; text-align: center; }
+  .ad-sidebar-nav { grid-column: 1 / -1; grid-row: 2; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .ad-sidebar-nav .ad-nav-button { flex-direction: column; justify-content: center; text-align: center; gap: 5px; padding-inline: 4px; min-height: 46px; font-size: .76rem; }
+  .ad-sidebar-nav .ad-nav-button > span { max-inline-size: 100%; overflow-wrap: anywhere; }
+  .ad-sidebar-nav svg { width: 16px; height: 16px; }
   .ad-sidebar-bottom { margin: 0; padding: 0; border: 0; display: flex; gap: 3px; justify-self: end; align-items: center; }
   .ad-sidebar-bottom button { width: auto; background: #18293e; border-color: #304256; }
 }
@@ -369,8 +371,9 @@ textarea.ad-input { resize: vertical; line-height: 1.65; }
   .ad-topbar-actions small { display: none; }
   .ad-sidebar-bottom button > span { position: absolute; width: 1px; height: 1px; clip-path: inset(50%); overflow: hidden; white-space: nowrap; }
   .ad-sidebar-bottom .ad-nav-button { min-width: 42px; justify-content: center; }
-  .ad-sidebar-nav .ad-nav-button { flex-direction: column; gap: 5px; padding-inline: 4px; font-size: .72rem; }
-  .ad-sidebar-nav svg { width: 16px; height: 16px; }
+  .ad-sidebar-nav { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .ad-sidebar-nav .ad-nav-button { grid-column: span 2; }
+  .ad-sidebar-nav .ad-nav-button:nth-last-child(-n + 2) { grid-column: span 3; }
   .ad-welcome-art { display: none; }
   .ad-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .ad-metric { padding: 12px; }

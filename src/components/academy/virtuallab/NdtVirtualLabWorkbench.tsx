@@ -14,6 +14,7 @@ import { GeRadiographicExposureTimeApp } from './GeRadiographicExposureTimeApp';
 import { WorkshopTrainingResultsPanel } from './WorkshopTrainingResultsPanel';
 import { WorkshopAr4dAllBranchesLab } from './WorkshopAr4dAllBranchesLab';
 import { VtMtPtPwhtAr4dSimulator } from './VtMtPtPwhtAr4dSimulator';
+import { MissingNdtTestsSimulator } from './MissingNdtTestsSimulator';
 import { VirtualLab } from '../VirtualLab';
 import { consumePendingAr4dBranch } from '../../../utils/workshopAr4dSelection';
 import type { WorkshopAr4dBranchId } from '../../../data/workshopAr4dBranchesData';
@@ -58,6 +59,7 @@ export const NdtVirtualLabWorkbench: React.FC<NdtVirtualLabWorkbenchProps> = ({ 
     | 'ar_camera_ndt'
     | 'ar_4d_all_branches'
     | 'vt_mt_pt_pwht_ar4d'
+    | 'missing_ndt_tests'
     | 'ge_exposure_calc'
   >(() => (initialAr4dBranch ? 'ar_4d_all_branches' : 'weld_ray_tracing'));
   const [activeTheoryTab, setActiveTheoryTab] = useState<'acoustics' | 'calibration' | 'acceptance'>('acoustics');
@@ -232,6 +234,24 @@ export const NdtVirtualLabWorkbench: React.FC<NdtVirtualLabWorkbenchProps> = ({ 
 
             <button
               type="button"
+              data-testid="lab-mode-missing-ndt-tests"
+              onClick={() => setActiveLabMode('missing_ndt_tests')}
+              className={`px-3.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition cursor-pointer flex items-center gap-2 border ${
+                activeLabMode === 'missing_ndt_tests'
+                  ? 'bg-cyan-400 text-slate-950 font-black border-cyan-300 shadow-lg shadow-cyan-950/50'
+                  : 'bg-slate-950 text-cyan-300 border-cyan-500/40 hover:text-white hover:border-cyan-400'
+              }`}
+            >
+              <Layers className="w-4 h-4 shrink-0" />
+              <span>
+                {isAr
+                  ? 'محاكيات الاختبارات التكميلية وسيناريوهات الأكواد (ET · LT · TOFD · MFL · الطلاء · PMI)'
+                  : 'Missing NDT Sims & All Code Scenarios (ET · LT · TOFD · MFL · Coating · PMI)'}
+              </span>
+            </button>
+
+            <button
+              type="button"
               onClick={() => setActiveLabMode('ut_conventional')}
               className={`px-3.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition cursor-pointer flex items-center gap-2 border whitespace-nowrap ${
                 activeLabMode === 'ut_conventional'
@@ -391,6 +411,8 @@ export const NdtVirtualLabWorkbench: React.FC<NdtVirtualLabWorkbenchProps> = ({ 
         />
       ) : activeLabMode === 'vt_mt_pt_pwht_ar4d' ? (
         <VtMtPtPwhtAr4dSimulator language={language} />
+      ) : activeLabMode === 'missing_ndt_tests' ? (
+        <MissingNdtTestsSimulator language={language} />
       ) : (
         <BeamConeAndDefectExplorer
           language={language}

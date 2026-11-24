@@ -66,6 +66,28 @@ jobs:
           echo "::notice title=build::$(curl -s --max-time 20 "$BASE/api/site/build-info?cachebust=$GITHUB_SHA" | tr -d '\n' | cut -c1-200)"
           echo "::notice title=status::$(curl -s --max-time 20 "$BASE/api/ai/status?cachebust=$GITHUB_SHA" | tr -d '\n' | cut -c1-260)"
 
+      - name: Cross-origin access for the static build
+        run: |
+          set -u
+          # The GitHub Pages build calls this gateway from another origin. Without the
+          # preflight grant the request never leaves the browser, and the AI looks dead on
+          # Pages while it works on Vercel.
+          preflight=$(curl -s -D - -o /dev/null -X OPTIONS --max-time 20 \
+            -H 'Origin: https://ndt-insco.github.io' \
+            -H 'Access-Control-Request-Method: POST' \
+            -H 'Access-Control-Request-Headers: content-type, accept' \
+            "$BASE/api/ai/tutor")
+          echo "::notice title=cors preflight::$(printf '%s' "$preflight" | head -1 | tr -d '\r')"
+          allow=$(printf '%s' "$preflight" | grep -i '^access-control-allow-origin' | tr -d '\r')
+          echo "::notice title=cors allow-origin::${allow:-none}"
+          vary=$(printf '%s' "$preflight" | grep -i '^vary' | tr -d '\r')
+          echo "::notice title=cors vary::${vary:-none}"
+          foreign=$(curl -s -o /dev/null -w '%{http_code}' -X OPTIONS --max-time 20 \
+            -H 'Origin: https://not-insco.example' \
+            -H 'Access-Control-Request-Method: POST' \
+            "$BASE/api/ai/tutor")
+          echo "::notice title=cors foreign origin::http=$foreign"
+
       - name: Publish what the reader would see
         run: |
           echo "::notice title=tutor deltas::${deltas:-0}"

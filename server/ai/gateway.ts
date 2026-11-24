@@ -11,19 +11,23 @@
  * `edbRoot` is passed in rather than derived: the directory that holds `edb/` is
  * `public` in development and `dist` on the deployed build.
  *
- * The tutor and all site agents have a deterministic, retrieval-grounded path that works
- * without a model key. Optional generation may only be used by the tutor when configured.
+ * Nothing here is faked. Without a key the routes answer with their documented
+ * `no_key` failure instead of inventing an answer.
  */
 import express from 'express';
 import type { Request, Response } from 'express';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, Type } from '@google/genai';
 import {
   AGENT_ENDPOINTS,
+  AGENT_MODELS,
   normaliseCommunityAssistRequest,
   normaliseSiteManagerRequest,
   normaliseUserCopilotRequest,
+  type CommunityAssistResponse,
+  type SiteManagerResponse,
+  type UserCopilotResponse,
 } from '../../src/ai/agentsContract.js';
 import {
   classifyUpstreamError,
@@ -46,9 +50,12 @@ import { buildIndex, searchLibrary, type SearchHit } from '../../src/ai/search.j
 import { composeSelfAnswer } from '../../src/ai/selfAnswer.js';
 import { answerCopilot, answerSiteManager, answerCommunity, copilotSearchQuery } from '../../src/ai/agentBrain.js';
 import { searchPrivateKnowledge } from './privateKnowledge.js';
+import { HOSTED_GATEWAY_URL, PAGES_SITE_ORIGIN } from '../../src/ai/pagesGateway.js';
 import { buildTutorLibrary, type TutorLibrary } from '../tutor/library.js';
 import {
   ChainAttempt,
+  isModelMissing,
+  AGENT_PER_MODEL_TIMEOUT_MS,
   streamTutorText,
   TutorAiClient,
   TutorTransportMode,
@@ -76,8 +83,50 @@ export function isTutorConfigured(env: NodeJS.ProcessEnv): boolean {
   return readAiEnv(env).configured;
 }
 
+/**
+ * Cross-origin access, deliberately narrow.
+ *
+ * The static GitHub Pages build has to call this gateway from another origin, and a JSON
+ * POST is not a "simple" request — the browser sends a preflight first. Answering it is the
+ * difference between "the AI works" and "the AI works on Vercel only".
+ *
+ * Nothing secret travels in the other direction: the key stays on this server, the CORS
+ * grant only lets a page the project owns read answers, and per-IP limits are unchanged.
+ */
+const ALLOWED_ORIGINS = [PAGES_SITE_ORIGIN, HOSTED_GATEWAY_URL];
+
+function allowedOrigin(origin: string | undefined): string | null {
+  if (!origin) return null;
+  const extra = (process.env.AI_ALLOWED_ORIGINS ?? '')
+    .split(',')
+    .map(value => value.trim())
+    .filter(Boolean);
+  if (ALLOWED_ORIGINS.includes(origin) || extra.includes(origin)) return origin;
+  // Preview deployments of this project, and the local dev servers.
+  if (/^https:\/\/inscondteg-[a-z0-9-]+-ndt-insco\.vercel\.app$/i.test(origin)) return origin;
+  if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)) return origin;
+  return null;
+}
+
 export function createAiGateway(edbRoot: string): express.Router {
   const router = express.Router();
+
+  router.use((req, res, next) => {
+    // `Vary` matters: without it a CDN may hand a Pages response to a Vercel caller.
+    res.setHeader('Vary', 'Origin');
+    const origin = allowedOrigin(req.headers.origin);
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization');
+      res.setHeader('Access-Control-Max-Age', '600');
+    }
+    if (req.method === 'OPTIONS') {
+      res.status(origin ? 204 : 403).end();
+      return;
+    }
+    next();
+  });
 
   // A static import on purpose. This used to be `await import('../tutor/reviewedLibrary.js')`,
   // which `tsx` resolves but a bundled serverless runtime does not: the request died with
@@ -274,6 +323,28 @@ function upstreamFailure(
   return { code, signal, detail: safe };
 }
 
+/**
+ * Read JSON out of a model answer that may be fenced, padded, or cut short.
+ *
+ * The copilot asks for one object; models sometimes wrap it in prose or a code fence, and
+ * a truncated answer has no closing brace to forgive. Failing the whole request over a
+ * fence is a worse trade than reading the object between the first brace and the last.
+ */
+function parseModelJson<T>(raw: string): T {
+  const cleaned = raw
+    .trim()
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/```$/, '')
+    .trim();
+  try {
+    return JSON.parse(cleaned) as T;
+  } catch {
+    const start = cleaned.indexOf('{');
+    const end = cleaned.lastIndexOf('}');
+    if (start >= 0 && end > start) return JSON.parse(cleaned.slice(start, end + 1)) as T;
+    throw new Error('The model did not return JSON');
+  }
+}
 
 /**
  * Google does not always refuse a throttled request up front: on the free tier it often
@@ -354,9 +425,7 @@ function toCitation(hit: SearchHit, reviewed: boolean): TutorCitation {
     pageNumber: document.pageNumber,
     courseId: document.courseId,
     score: Math.round(hit.score * 100) / 100,
-    reviewed: reviewed && !document.id.startsWith('drive:'),
-    sourceType: document.id.startsWith('drive:') ? 'private-drive' : 'site-library',
-    ...(document.sourceUrl ? { url: document.sourceUrl } : {}),
+    reviewed,
   };
 }
 
@@ -549,10 +618,39 @@ interface TutorPayload {
   system: string;
   /** Which library produced the citations — echoed to the reader in `meta`. */
   source: 'reviewed' | 'academy' | 'private-drive' | 'mixed' | 'none';
-  /** The retrieved passages behind the citations — kept whole for the library-only path. */
   hits: SearchHit[];
-  /** How many documents the library indexed, reported honestly on the library-only path. */
   documents: number;
+}
+
+function guardAgentRateLimit(req: Request, res: Response, lang: 'ar' | 'en'): boolean {
+  const limit = takeToken(req.ip || req.socket.remoteAddress || 'unknown');
+  if (limit.allowed) return true;
+  const failure = limit.failure;
+  if (failure.code === 'rate_limited' && failure.retryAfterSeconds) {
+    res.setHeader('Retry-After', String(failure.retryAfterSeconds));
+  }
+  res.status(STATUS_CODE[failure.code]).json({
+    error: { ...failure, message: failureMessage(failure.code, lang) },
+  });
+  return false;
+}
+
+function bearerToken(req: Request): string | undefined {
+  const authorization = req.header('authorization') || '';
+  const match = /^Bearer\s+([A-Za-z0-9._-]{20,})$/i.exec(authorization);
+  return match?.[1];
+}
+
+async function privateKnowledgeHits(question: string, token?: string): Promise<SearchHit[]> {
+  const documents = await searchPrivateKnowledge(question, token);
+  if (!documents.length) return [];
+  const index = buildIndex(documents);
+  const result = searchLibrary(question, {
+    index,
+    limit: TUTOR_LIMITS.passages,
+    minScore: TUTOR_LIMITS.minScore,
+  });
+  return result.confident ? result.hits : [];
 }
 
 async function prepare(body: unknown, res: Response, idToken?: string): Promise<TutorPayload | null> {
@@ -566,38 +664,29 @@ async function prepare(body: unknown, res: Response, idToken?: string): Promise<
   const library = await loadAiLibrary();
   const request = parsed.value;
   const question = latestQuestion(request);
-  const hits = [...library.retrieve(question)];
-  const privateDocuments = await searchPrivateKnowledge(question, idToken);
-  if (privateDocuments.length) {
-    const privateIndex = buildIndex(privateDocuments);
-    const privateResult = searchLibrary(question, { index: privateIndex, limit: TUTOR_LIMITS.passages, minScore: TUTOR_LIMITS.minScore });
-    if (privateResult.confident) hits.push(...privateResult.hits);
-  }
-  const uniqueHits = [...new Map(hits.map(hit => [hit.document.id, hit])).values()]
-    .sort((a, b) => b.score - a.score)
-    .slice(0, TUTOR_LIMITS.passages);
+  const publicHits = library.retrieve(question);
+  const privateHits = await privateKnowledgeHits(question, idToken);
+  const hits = [...publicHits, ...privateHits].sort((a, b) => b.score - a.score).slice(0, TUTOR_LIMITS.passages);
   const reviewed = library.source === 'reviewed';
-  const citations = uniqueHits.map(hit => toCitation(hit, reviewed));
-  const context = buildContext(uniqueHits, request.language);
-  const selfHits = uniqueHits;
+  const citations = hits.map(hit => ({
+    ...toCitation(hit, reviewed && !hit.document.id.startsWith('drive:')),
+    ...(hit.document.id.startsWith('drive:') ? { sourceType: 'private-drive' as const } : { sourceType: 'site-library' as const }),
+  }));
+  const source: TutorPayload['source'] = privateHits.length
+    ? (publicHits.length ? 'mixed' : 'private-drive')
+    : library.source;
+  const context = buildContext(hits, request.language);
   const confident = Boolean(context);
   const hint = MODE_HINT[request.mode]?.[request.language] ?? '';
   // The model is told, in the same breath as the passages, that academy material is not
   // reviewed study content — otherwise it would present it as approved reference.
-  const hasDrive = uniqueHits.some(hit => hit.document.id.startsWith('drive:'));
-  const hasSite = uniqueHits.some(hit => !hit.document.id.startsWith('drive:'));
-  const source: TutorPayload['source'] = hasDrive && hasSite ? 'mixed' : hasDrive ? 'private-drive' : library.source;
-  const header = source === 'reviewed'
+  const header = reviewed
     ? request.language === 'ar'
       ? 'مقاطع من مكتبة إنسكو المراجَعة (استخدم معرّفاتها في الاستشهاد):'
       : 'Passages from the reviewed INSCO library (cite these ids):'
-    : source === 'private-drive' || source === 'mixed'
-      ? request.language === 'ar'
-        ? 'مقاطع من مصادر إنسكو، تشمل كتب Drive خاصة مرخصة للاستخدام الداخلي. اقتبسها كمواد غير معتمدة للتطبيق، وأرفق رقم الصفحة:'
-        : 'Passages from INSCO sources, including private Drive books licensed for internal use. Treat as unreviewed study material, not an approved engineering decision; cite the page:'
-      : request.language === 'ar'
-        ? 'مقاطع من مادة الأكاديمية (غير مُراجَعة — استخدم معرّفاتها في الاستشهاد، ووضّح أن الإجابة استرشادية للتعلّم لا مرجع معتمد):'
-        : 'Passages from the academy corpus (NOT reviewed — cite these ids and say the answer is study guidance, not an approved reference):';
+    : request.language === 'ar'
+      ? 'مقاطع من مادة الأكاديمية (غير مُراجَعة — استخدم معرّفاتها في الاستشهاد، ووضّح أن الإجابة استرشادية للتعلّم لا مرجع معتمد):'
+      : 'Passages from the academy corpus (NOT reviewed — cite their ids and say the answer is study guidance, not an approved reference):';
   const prompt = confident
     ? `${header}\n\n${context}\n\n---\n\n${hint}\n\n${
         request.language === 'ar' ? 'السؤال' : 'Question'
@@ -618,8 +707,8 @@ async function prepare(body: unknown, res: Response, idToken?: string): Promise<
     prompt: history ? `${history}\n\n${prompt}` : prompt,
     system: `${SYSTEM[request.language]}\n\n${hint}`,
     source,
-    hits: selfHits,
-    documents: library.documents,
+    hits,
+    documents: library.documents + privateHits.length,
   };
 }
 
@@ -641,13 +730,8 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
   }
 
   if (!ai || payload.source === 'private-drive' || payload.source === 'mixed') {
-    // Private Drive material is never sent to an external model provider, even if
-    // Gemini happens to be configured. It is composed locally from authorized excerpts.
-    // The library is the tutor's own knowledge. It can answer without a model
-    // key: the same retrieval the model path uses, composed honestly from the
-    // passages — no invented words, no citations the corpus does not hold. A
-    // reader without the key still gets a grounded answer and the steps it
-    // took, never a silent refusal that reads as a broken tutor.
+    // Private Drive material is never sent to an external model provider. Without a key,
+    // the public library path is likewise composed from retrieved passages only.
     const selfAnswer = composeSelfAnswer({
       question: payload.question,
       language: payload.language,
@@ -656,7 +740,6 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
       privatePassages: payload.hits.filter(hit => hit.document.id.startsWith('drive:')).length,
     });
     if (!selfAnswer) {
-      // Nothing to answer from: the honest decline, exactly as without a key.
       const emptyLibrary = payload.source === 'none';
       const message = payload.language === 'ar'
         ? emptyLibrary
@@ -669,12 +752,9 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
       res.setHeader('Cache-Control', 'no-store');
       if (!streaming) { res.json({ text: message, content: message, meta }); return; }
       res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
-      res.end(
-        encodeSse({ type: 'meta', meta }) + encodeSse({ type: 'delta', text: message }) + encodeSse({ type: 'done' })
-      );
+      res.end(encodeSse({ type: 'meta', meta }) + encodeSse({ type: 'delta', text: message }) + encodeSse({ type: 'done' }));
       return;
     }
-
     const meta: TutorMeta = {
       model: null,
       citations: payload.citations,
@@ -686,14 +766,9 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
       steps: selfAnswer.steps,
     };
     res.setHeader('Cache-Control', 'no-store');
-    const text = selfAnswer.text;
-    if (!streaming) { res.json({ text, content: text, meta }); return; }
+    if (!streaming) { res.json({ text: selfAnswer.text, content: selfAnswer.text, meta }); return; }
     res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
-    res.end(
-      encodeSse({ type: 'meta', meta }) +
-        encodeSse({ type: 'delta', text }) +
-        encodeSse({ type: 'done' })
-    );
+    res.end(encodeSse({ type: 'meta', meta }) + encodeSse({ type: 'delta', text: selfAnswer.text }) + encodeSse({ type: 'done' }));
     return;
   }
 
@@ -707,7 +782,7 @@ async function handleTutor(req: Request, res: Response, streaming: boolean): Pro
       : emptyLibrary
         ? 'The site library has no matching material. Consult the academy references or a qualified specialist.'
         : 'No passage in the academy material matches this question. Rephrase it with a more specific term.';
-    const meta: TutorMeta = { model: null, citations: [], retrieved: 0, confident: false, elapsedMs: 0, source: payload.source };
+    const meta = { model: MODEL_CHAIN[0], citations: [], retrieved: 0, confident: false, elapsedMs: 0, source: payload.source };
     res.setHeader('Cache-Control', 'no-store');
     if (!streaming) { res.json({ text: message, content: message, meta }); return; }
     res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
@@ -821,13 +896,103 @@ router.post(TUTOR_ENDPOINTS.legacyTutor, (req, res) => {
 /* Dual AI Agents & INSCO Community Copilot                            */
 /* ------------------------------------------------------------------ */
 
-function bearerToken(req: Request): string | undefined {
-  const authorization = req.header('authorization') || '';
-  const match = /^Bearer\s+([A-Za-z0-9._-]{20,})$/i.exec(authorization);
-  return match?.[1];
+async function generateStructuredAgentJson<T>(params: {
+  prompt: string;
+  systemInstruction: string;
+  responseSchema: Record<string, unknown>;
+  signal: AbortSignal;
+}): Promise<{ data: T; model: string }> {
+  if (!ai) throw new Error('AI client is not configured');
+  const candidates = [AGENT_MODELS.primary, AGENT_MODELS.fallback, ...AGENT_MODELS.fallbacks];
+  let lastError: unknown = null;
+
+  /**
+   * The interface Google actually serves, asked first.
+   *
+   * `models.generateContent` is the retired path — one key here answers it with "no longer
+   * available to new users" and another simply never returns. Leading with it cost the
+   * copilot four silent 18-second slices and a 504 before the working interface was even
+   * tried, so the order is now reversed: JSON over `interactions`, legacy only as a last
+   * resort.
+   */
+  const interactionSystem =
+    params.systemInstruction +
+    '\n\nأعد كائن JSON واحداً فقط يطابق هذا المخطط، بلا شرح ولا أسوار كود:\n' +
+    JSON.stringify(params.responseSchema);
+
+  for (const model of candidates) {
+    if (params.signal.aborted) throw lastError ?? new Error('Agent request aborted');
+    const budget = new AbortController();
+    const onAbort = () => budget.abort();
+    params.signal.addEventListener('abort', onAbort, { once: true });
+    // A whole-call slice: an agent answer is one JSON document, so there is no useful
+    // "it started writing" moment to protect — if the document is not done in the slice,
+    // the next model is a better bet than waiting.
+    const timer = setTimeout(() => budget.abort(), AGENT_PER_MODEL_TIMEOUT_MS);
+    try {
+      let raw = '';
+      for await (const delta of streamTutorText(ai as unknown as TutorAiClient, {
+        prompt: params.prompt,
+        system: interactionSystem,
+        signal: budget.signal,
+        models: [model],
+        mode: 'interactions',
+        maxOutputTokens: 1400,
+        log: message => console.warn(message),
+      })) {
+        raw += delta;
+      }
+      const parsed = parseModelJson<T>(raw);
+      console.warn(`[ai] agent answered through interactions on ${model}`);
+      return { data: parsed, model };
+    } catch (err) {
+      lastError = err;
+      if (params.signal.aborted) throw err;
+      console.warn(`[ai] agent interactions on ${model} failed: ${sanitiseUpstreamDetail(err)}`);
+    } finally {
+      clearTimeout(timer);
+      params.signal.removeEventListener('abort', onAbort);
+    }
+  }
+
+  /** Last resort: the legacy call, for a key where Interactions is the broken half. */
+  for (const model of candidates.slice(0, 2)) {
+    if (params.signal.aborted) throw lastError ?? new Error('Agent request aborted');
+    const budget = new AbortController();
+    const onAbort = () => budget.abort();
+    params.signal.addEventListener('abort', onAbort, { once: true });
+    const timer = setTimeout(() => budget.abort(), AGENT_PER_MODEL_TIMEOUT_MS);
+    try {
+      const response = await ai.models.generateContent({
+        model,
+        contents: params.prompt,
+        config: {
+          systemInstruction: params.systemInstruction,
+          responseMimeType: 'application/json',
+          responseSchema: params.responseSchema as never,
+          temperature: 0.35,
+          maxOutputTokens: 1400,
+          abortSignal: budget.signal,
+        },
+      });
+      const rawText = (response.text || '').trim();
+      if (!rawText) throw new Error('Model returned empty structured payload');
+      const parsed = parseModelJson<T>(rawText);
+      return { data: parsed, model };
+    } catch (err) {
+      lastError = err;
+      if (params.signal.aborted) throw err;
+      console.warn(`[ai] agent legacy on ${model} failed: ${sanitiseUpstreamDetail(err)}`);
+    } finally {
+      clearTimeout(timer);
+      params.signal.removeEventListener('abort', onAbort);
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error('All agent models failed');
 }
 
-function guardAgentRateLimit(req: Request, res: Response, lang: 'ar' | 'en'): boolean {
+function guardAgentPreconditions(req: Request, res: Response, lang: 'ar' | 'en'): boolean {
   const limit = takeToken(req.ip || req.socket.remoteAddress || 'unknown');
   if (!limit.allowed) {
     const failure = limit.failure;
@@ -839,20 +1004,31 @@ function guardAgentRateLimit(req: Request, res: Response, lang: 'ar' | 'en'): bo
     });
     return false;
   }
+
+  if (!ai) {
+    res.status(STATUS_CODE.not_configured).json({
+      error: {
+        code: 'not_configured',
+        message: failureMessage('not_configured', lang),
+        detail: 'Set GEMINI_API_KEY on the server hosting /api/ai/agent/*.',
+      },
+    });
+    return false;
+  }
   return true;
 }
 
-/** All three agents use the shared on-site corpus and deterministic rules. */
 router.post(AGENT_ENDPOINTS.userCopilot, async (req: Request, res: Response) => {
   const parsed = normaliseUserCopilotRequest(req.body);
   if (!parsed.ok) {
     res.status(400).json({ error: { code: 'invalid_request', message: parsed.error } });
     return;
   }
-  if (!guardAgentRateLimit(req, res, parsed.value.language)) return;
+  const input = parsed.value;
+  if (!guardAgentRateLimit(req, res, input.language)) return;
+  const privateDocuments = await searchPrivateKnowledge(copilotSearchQuery(input), bearerToken(req));
   res.setHeader('Cache-Control', 'no-store');
-  const privateDocuments = await searchPrivateKnowledge(copilotSearchQuery(parsed.value), bearerToken(req));
-  res.json(answerCopilot(parsed.value, privateDocuments));
+  res.json(answerCopilot(input, privateDocuments));
 });
 
 router.post(AGENT_ENDPOINTS.siteManager, (req: Request, res: Response) => {
@@ -872,12 +1048,13 @@ router.post(AGENT_ENDPOINTS.communityAssist, async (req: Request, res: Response)
     res.status(400).json({ error: { code: 'invalid_request', message: parsed.error } });
     return;
   }
-  if (!guardAgentRateLimit(req, res, parsed.value.language)) return;
-  res.setHeader('Cache-Control', 'no-store');
-  const privateDocuments = parsed.value.action === 'code_check'
-    ? await searchPrivateKnowledge(`${parsed.value.ndtMethod} ${parsed.value.title || ''} ${parsed.value.body}`, bearerToken(req))
+  const input = parsed.value;
+  if (!guardAgentRateLimit(req, res, input.language)) return;
+  const privateDocuments = input.action === 'code_check'
+    ? await searchPrivateKnowledge(`${input.ndtMethod} ${input.title || ''} ${input.body}`, bearerToken(req))
     : [];
-  res.json(answerCommunity(parsed.value, privateDocuments));
+  res.setHeader('Cache-Control', 'no-store');
+  res.json(answerCommunity(input, privateDocuments));
 });
 
   return router;

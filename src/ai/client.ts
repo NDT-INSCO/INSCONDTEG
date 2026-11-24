@@ -11,6 +11,7 @@
  *     as unconfigured.
  */
 import { isStaticPages } from '../utils/staticPages';
+import { resolveGatewayBase } from './pagesGateway';
 import {
   parseSseBuffer,
   TUTOR_ENDPOINTS,
@@ -32,11 +33,15 @@ function env(): Env {
   }
 }
 
-/** Gateway base URL without a trailing slash; empty string means same origin. */
+/**
+ * Gateway base URL without a trailing slash; empty string means same origin.
+ *
+ * On the static GitHub Pages build there is no same-origin API, so the base resolves to the
+ * hosted gateway — otherwise the page would declare itself unconfigured while the service
+ * it needs is one fetch away.
+ */
 export function gatewayBase(): string {
-  const configured = (env().VITE_AI_BASE_URL ?? '').trim();
-  if (configured) return configured.replace(/\/+$/, '');
-  return '';
+  return resolveGatewayBase(env().VITE_AI_BASE_URL, isStaticPages());
 }
 
 export function tutorUrl(path: string): string {

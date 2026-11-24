@@ -34,6 +34,8 @@ import {
 } from '../../../data/workshopAr4dBranchesData';
 import { ArBackdropMode, WorkshopAr4dThreeScene } from './WorkshopAr4dThreeScene';
 import { VtMtPtPwhtAr4dSimulator } from './VtMtPtPwhtAr4dSimulator';
+import { MissingNdtTestsSimulator } from './MissingNdtTestsSimulator';
+import type { MissingNdtMethodId } from '../../../data/missingNdtTestsEngine';
 import type { Ar4dInspectorDisciplineId } from '../../../data/ar4dVtMtPtPwhtEngine';
 
 export interface WorkshopAr4dAllBranchesLabProps {
@@ -76,6 +78,8 @@ export const WorkshopAr4dAllBranchesLab: React.FC<WorkshopAr4dAllBranchesLabProp
   const [selectedBranchId, setSelectedBranchId] = useState<WorkshopAr4dBranchId>(initialBranchId);
   const [deepSuiteDiscipline, setDeepSuiteDiscipline] =
     useState<Ar4dInspectorDisciplineId | null>(null);
+  const [deepMissingMethod, setDeepMissingMethod] =
+    useState<MissingNdtMethodId | null>(null);
   const activeBranch = useMemo(
     () => WORKSHOP_AR4D_BRANCHES.find((b) => b.id === selectedBranchId) ?? WORKSHOP_AR4D_BRANCHES[0],
     [selectedBranchId]
@@ -366,6 +370,32 @@ export const WorkshopAr4dAllBranchesLab: React.FC<WorkshopAr4dAllBranchesLabProp
         initialDiscipline={deepSuiteDiscipline}
         onBackToQuickAr={() => setDeepSuiteDiscipline(null)}
       />
+    );
+  }
+
+  if (deepMissingMethod) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <button
+            type="button"
+            data-testid="ar4d-back-from-missing-ndt-btn"
+            onClick={() => setDeepMissingMethod(null)}
+            className={`px-3.5 py-2 rounded-xl border text-xs font-bold transition cursor-pointer flex items-center gap-2 ${
+              isLight
+                ? 'bg-slate-100 border-slate-300 text-slate-800 hover:bg-slate-200'
+                : 'bg-slate-950 border-slate-700 text-slate-200 hover:border-cyan-400'
+            }`}
+          >
+            <RotateCcw className="w-4 h-4 shrink-0" aria-hidden="true" />
+            <span>{isAr ? 'العودة لشاشة الفروع الثمانية AR + 4D' : 'Back to All-8 Branches AR + 4D'}</span>
+          </button>
+        </div>
+        <MissingNdtTestsSimulator
+          language={language}
+          initialMethodId={deepMissingMethod}
+        />
+      </div>
     );
   }
 
@@ -919,6 +949,36 @@ export const WorkshopAr4dAllBranchesLab: React.FC<WorkshopAr4dAllBranchesLabProp
                   {isAr
                     ? 'فتح استوديو VT · MT · PT · PWHT (AR + 3D/4D + 20 بند كود)'
                     : 'Open Deep VT · MT · PT · PWHT Studio (20 Code Clauses)'}
+                </span>
+              </button>
+            )}
+
+            {(selectedBranchId === 'ut_paut' ||
+              selectedBranchId === 'et_mfl_tubing' ||
+              selectedBranchId === 'welding_hydro' ||
+              selectedBranchId === 'api_coating_corrosion' ||
+              selectedBranchId === 'asset_integrity_irata') && (
+              <button
+                type="button"
+                data-testid="ar4d-open-missing-ndt-suite"
+                onClick={() => {
+                  stopMediaTracks();
+                  const mapped: Record<string, MissingNdtMethodId> = {
+                    ut_paut: 'tofd',
+                    et_mfl_tubing: 'et_rft',
+                    welding_hydro: 'lt_hydro',
+                    api_coating_corrosion: 'coating_holiday',
+                    asset_integrity_irata: 'mfl_api_ffs',
+                  };
+                  setDeepMissingMethod(mapped[selectedBranchId] ?? 'et_rft');
+                }}
+                className="w-full py-2 px-3 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/60 text-cyan-200 font-black text-xs transition cursor-pointer flex items-center justify-center gap-2"
+              >
+                <Compass className="w-4 h-4 shrink-0" aria-hidden="true" />
+                <span>
+                  {isAr
+                    ? 'فتح المحاكي التفصيلي وسيناريوهات الأكواد (ET · LT · TOFD · MFL · الطلاء · PMI)'
+                    : 'Open Dedicated Test Simulator & Code Scenarios (ET · LT · TOFD · MFL · Coating · PMI)'}
                 </span>
               </button>
             )}

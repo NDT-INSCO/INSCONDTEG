@@ -5,7 +5,7 @@ import {
   type AuthenticationResponseJSON, type RegistrationResponseJSON, type WebAuthnCredential,
 } from '@simplewebauthn/server';
 import { decodeClientDataJSON } from '@simplewebauthn/server/helpers';
-import { ADMIN_API, PASSKEY_LABEL_LIMIT, PASSKEY_LIMIT, type PasskeySettings } from '../../src/admin/contract.js';
+import { ADMIN_API, isAdminToken, PASSKEY_LABEL_LIMIT, PASSKEY_LIMIT, type PasskeySettings } from '../../src/admin/contract.js';
 import { clientAddress, fail, readJsonBody, readTokenCookie, runAsync } from './http.js';
 import { CHALLENGE_TTL, type AdminAuthState, type Challenge, type PasswordGrant } from './state.js';
 import type { AdminStore } from './store.js';
@@ -44,12 +44,13 @@ interface PasskeyRouterOptions {
   store: AdminStore;
   state: AdminAuthState;
   now: () => number;
+  pages: boolean;
   requireSession: RequestHandler;
   canManage: (res: Response) => boolean;
   signIn: (req: Request, res: Response, credential: WebAuthnCredential) => Promise<void>;
 }
 
-export function createPasskeyRouter({ origin, store, state, now, requireSession, canManage, signIn }: PasskeyRouterOptions) {
+export function createPasskeyRouter({ origin, store, state, now, pages, requireSession, canManage, signIn }: PasskeyRouterOptions) {
   const router = express.Router();
   const site = passkeySite(origin);
   const normalJson = readJsonBody();
@@ -59,15 +60,20 @@ export function createPasskeyRouter({ origin, store, state, now, requireSession,
     return { httpOnly: true, sameSite: 'strict' as const, secure: Boolean(site?.origin.startsWith('https:')), path: `${ADMIN_API}/passkeys` };
   }
 
-  async function remember(req: Request, res: Response, challenge: Challenge) {
-    const token = await state.rememberChallenge(readTokenCookie(req, COOKIE), challenge, now());
-    res.cookie(COOKIE, token, { ...cookieOptions(), maxAge: CHALLENGE_TTL });
+  async function sendOptions(req: Request, res: Response, options: unknown, challenge: Challenge) {
+    const token = await state.rememberChallenge(pages ? undefined : readTokenCookie(req, COOKIE), challenge, now());
+    if (pages) {
+      // Keep this receipt in the passkey prompt's memory, never in a URL or cookie.
+      res.json({ options, ceremony: token });
+      return;
+    }
+    res.cookie(COOKIE, token, { ...cookieOptions(), maxAge: CHALLENGE_TTL }).json(options);
   }
 
   async function consume(req: Request, res: Response): Promise<Challenge | null> {
-    const token = readTokenCookie(req, COOKIE);
-    if (!token) return null;
-    res.clearCookie(COOKIE, cookieOptions());
+    const token: unknown = pages ? req.body?.ceremony : readTokenCookie(req, COOKIE);
+    if (!isAdminToken(token)) return null;
+    if (!pages) res.clearCookie(COOKIE, cookieOptions());
     return state.consumeChallenge(token, now());
   }
 
@@ -86,8 +92,7 @@ export function createPasskeyRouter({ origin, store, state, now, requireSession,
       return fail(res, 429, 'rate_limited');
     }
     const options = await generateAuthenticationOptions({ rpID: site.rpID, userVerification: 'required', timeout: PROMPT_TIMEOUT });
-    await remember(req, res, { kind: 'authenticate', challenge: options.challenge });
-    res.json(options);
+    await sendOptions(req, res, options, { kind: 'authenticate', challenge: options.challenge });
   }));
 
   router.post('/authenticate/verify', proofJson, runAsync(async (req, res) => {
@@ -133,8 +138,7 @@ export function createPasskeyRouter({ origin, store, state, now, requireSession,
       attestationType: 'none', timeout: PROMPT_TIMEOUT,
       authenticatorSelection: { residentKey: 'required', userVerification: 'required' },
     });
-    await remember(req, res, { kind: 'register', challenge: options.challenge, session: (res.locals.sessionGrant as PasswordGrant).token, label });
-    res.json(options);
+    await sendOptions(req, res, options, { kind: 'register', challenge: options.challenge, session: (res.locals.sessionGrant as PasswordGrant).token, label });
   }));
 
   router.post('/register/verify', proofJson, runAsync(async (req, res) => {

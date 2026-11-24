@@ -1,7 +1,7 @@
 import { createHmac } from 'node:crypto';
 import path from 'node:path';
 import express, { type ErrorRequestHandler } from 'express';
-import { ADMIN_API, ANNOUNCEMENT_API } from '../../src/admin/contract.js';
+import { ADMIN_API, ANNOUNCEMENT_API, INSCO_PAGES_ORIGIN, PAGES_ADMIN_API } from '../../src/admin/contract.js';
 import { createRateLimiter, deliveryFromEnv, handleRfqRequest } from '../../src/rfq/gateway.js';
 import { hostedDatabase, hostedDatabaseConfig } from './database.js';
 import { createFactoryDrafter } from './factory.js';
@@ -18,10 +18,13 @@ interface OperationsOptions {
   baseDir?: string;
   requireHosted?: boolean;
   tutorConfigured?: boolean;
+  pagesAdmin?: boolean;
 }
 
 /** The same API is used by the standalone Node server and the hosted functions. */
-export async function createOperations(env: NodeJS.ProcessEnv, { production, baseDir = process.cwd(), requireHosted, tutorConfigured = false }: OperationsOptions) {
+export async function createOperations(env: NodeJS.ProcessEnv, {
+  production, baseDir = process.cwd(), requireHosted, tutorConfigured = false, pagesAdmin = false,
+}: OperationsOptions) {
   const config = adminConfig(env, production);
   const useHosted = requireHosted || Boolean(env.ADMIN_DATABASE_URL?.trim() || env.TURSO_DATABASE_URL?.trim()
     || env.ADMIN_DATABASE_AUTH_TOKEN?.trim() || env.TURSO_AUTH_TOKEN?.trim());
@@ -53,11 +56,19 @@ export async function createOperations(env: NodeJS.ProcessEnv, { production, bas
   const publicCors = publicSiteCors(httpOrigin(env.PUBLIC_SITE_ORIGIN?.trim()));
   const router = express.Router();
   const draftFactory = config && store ? createFactoryDrafter(env) : null;
-  router.use(ADMIN_API, createAdminRouter({
-    config, store, stateKey: hosted?.stateKey, draftFactory,
-    services: { tutorConfigured, rfqNotificationsConfigured: Boolean(delivery && primary) },
-  }));
-  router.get(ANNOUNCEMENT_API, publicCors, publicAnnouncement(store));
+  const services = { tutorConfigured, rfqNotificationsConfigured: Boolean(delivery && primary) };
+  if (pagesAdmin) {
+    // Reuse the same inbox, announcements and drafting routes. The Pages API
+    // has no local storage/PIN fallback and replaces cookie sign-in on this host.
+    const pagesConfig = config && !config.legacyPin && hosted && requireHosted ? config : null;
+    router.use(PAGES_ADMIN_API, createAdminRouter({
+      config: pagesConfig, store, stateKey: hosted?.stateKey, draftFactory, services, pages: true,
+    }));
+    router.use(ADMIN_API, (_req, res) => fail(res, 404, 'not_found'));
+  } else {
+    router.use(ADMIN_API, createAdminRouter({ config, store, stateKey: hosted?.stateKey, draftFactory, services }));
+  }
+  router.get(ANNOUNCEMENT_API, pagesAdmin ? publicSiteCors(INSCO_PAGES_ORIGIN) : publicCors, publicAnnouncement(store));
 
   // A deployment fingerprint, not a secret. It answers the question "is the code I
   // just merged the code this domain runs, and does this deployment see the AI key?".

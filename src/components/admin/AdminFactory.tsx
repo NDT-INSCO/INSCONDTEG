@@ -1,6 +1,7 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { ArrowDown, ArrowUp, Bot, Braces, CircuitBoard, Clipboard, Download, GitBranch, Inbox, Layers3, LockKeyhole, Play, Plus, ShieldCheck, Sparkles, Trash2 } from 'lucide-react';
-import { adminClient, AdminApiError } from '../../admin/client';
+import { AdminApiError } from '../../admin/client';
+import { useAdminClient } from '../../admin/connection';
 import {
   DEFAULT_FACTORY_NEURON, FACTORY_CELLS, FACTORY_CELL_COPY, FACTORY_LIMITS, FACTORY_OUTPUTS, FACTORY_SAMPLES,
   FACTORY_TASKS, FACTORY_TRIGGERS, factoryBundle, normaliseFactoryRequest, simulateFactory,
@@ -72,6 +73,7 @@ function NeuronControls({ language, neuron, onChange }: { language: Language; ne
 }
 
 export default function AdminFactory({ language, snapshot, aiConfigured, active = true, onSessionError }: FactoryProps) {
+  const adminClient = useAdminClient();
   const ar = language === 'ar';
   const t = (arabic: string, english: string) => ar ? arabic : english;
   const heading = useId();

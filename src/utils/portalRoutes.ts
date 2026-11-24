@@ -14,7 +14,7 @@
  *                    `#academy/<section>`             one journey section
  *                    `#academy/<section>/<tab>`       a section + a tab
  *
- * Legacy links keep working: every one of the 33 bare tab hashes (`#edb`,
+ * Legacy links keep working: every one of the 34 bare tab hashes (`#edb`,
  * `#rt_lab`, `#quiz`…) still resolves to the academy, and the section that owns
  * that tab is derived from the same grouping the journey navigation uses.
  *
@@ -73,6 +73,7 @@ export const ACADEMY_SECTIONS = [
   'test',
   'progress',
   'mentor',
+  'university',
 ] as const;
 
 export type AcademySectionId = (typeof ACADEMY_SECTIONS)[number];
@@ -104,6 +105,7 @@ export const ACADEMY_SECTION_TABS: Record<AcademySectionId, readonly AcademyTab[
   test: ['quiz', 'exam_simulation', 'practical', 'certification_center'],
   progress: ['completion_map', 'roadmap', 'leaderboard', 'certificates'],
   mentor: ['ask_ai', 'video_gen'],
+  university: ['university'],
 };
 
 export const ACADEMY_SECTION_DEFAULT_TAB: Record<AcademySectionId, AcademyTab> = {
@@ -113,6 +115,7 @@ export const ACADEMY_SECTION_DEFAULT_TAB: Record<AcademySectionId, AcademyTab> =
   test: 'quiz',
   progress: 'completion_map',
   mentor: 'ask_ai',
+  university: 'university',
 };
 
 const SECTION_LABELS: Record<AcademySectionId, { ar: string; en: string }> = {
@@ -122,6 +125,7 @@ const SECTION_LABELS: Record<AcademySectionId, { ar: string; en: string }> = {
   test: { ar: 'اختبر نفسك', en: 'Test yourself' },
   progress: { ar: 'تابع إنجازك', en: 'Track progress' },
   mentor: { ar: 'اسأل المدرّس', en: 'Ask the mentor' },
+  university: { ar: 'الجامعة الروبوتية', en: 'Robotic University' },
 };
 
 export function academySectionLabel(section: AcademySectionId, language: 'ar' | 'en'): string {
@@ -153,6 +157,10 @@ export const ACADEMY_SECTION_COPY: Record<AcademySectionId, { ar: string; en: st
   mentor: {
     ar: 'المستشار الأكاديمي المدعوم بالذكاء الاصطناعي وتوليد فيديو المحاكاة.',
     en: 'The AI academic tutor and the simulation video generator.',
+  },
+  university: {
+    ar: 'جامعة إنسكو الروبوتية للإنشاءات الصناعية: 12 تخصصًا علميًا، روبوتات جمع من الإنترنت، خلايا عصبية تذاكر المعرفة الموثقة، روبوت التنظيم والهيكلة للأرشفة العلمية، والمعمل — وحدة تعليم وكلاء الذكاء الاصطناعي.',
+    en: 'INSCO Robotic University for industrial construction: 12 specialisations, internet collector robots, neural cells that digest documented knowledge, the Organising & Structuring robot for scientific archiving, and The Lab — the AI-agent teaching unit.',
   },
 };
 

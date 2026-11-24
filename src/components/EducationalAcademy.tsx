@@ -44,6 +44,7 @@ import {
 } from '../utils/portalRoutes';
 import { NDT_METHODS, EDUCATIONAL_DEFECTS, STANDARDS_LIBRARY, SAMPLE_QUIZZES } from '../data/inscoData';
 import { IndustrialVideoGen } from './IndustrialVideoGen';
+import { InscoUniversity } from './academy/InscoUniversity';
 import { DisciplineCurriculumView } from './academy/DisciplineCurriculumView';
 import { InteractiveWorkshops } from './academy/InteractiveWorkshops';
 import { CurriculumQuizEngine } from './academy/CurriculumQuizEngine';
@@ -127,7 +128,7 @@ interface EducationalAcademyProps {
   onOpenTab?: (tab: AcademyTab) => void;
 }
 
-// The 33 academy tabs grouped into the six stations of the learner journey.
+// The 34 academy tabs grouped into the seven stations of the learner journey.
 const ACADEMY_STATIONS = buildAcademyStations({
   books: NDT_TEXTBOOKS.length,
   documents: NDT_TEXTBOOKS.length + NDE_ED_COURSES.length,
@@ -1545,6 +1546,11 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({
         )}
 
         {/* Sub-Tab 7: Veo Video Generator */}
+        {/* Sub-Tab 7: جامعة إنسكو الروبوتية — The Robotic University */}
+        {activeSubTab === 'university' && (
+          <InscoUniversity language={language} />
+        )}
+
         {activeSubTab === 'video_gen' && (
           <IndustrialVideoGen language={language} />
         )}

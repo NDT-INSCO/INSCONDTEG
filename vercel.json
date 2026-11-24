@@ -24,6 +24,10 @@
     {
       "source": "/api/ai/:path*",
       "destination": "/api/ai"
+    },
+    {
+      "source": "/api/university/:path*",
+      "destination": "/api/university"
     }
   ],
   "headers": [
@@ -48,6 +52,9 @@
     "api/ai.ts": {
       "maxDuration": 60,
       "includeFiles": "public/edb/**"
+    },
+    "api/university.ts": {
+      "maxDuration": 60
     }
   }
 }

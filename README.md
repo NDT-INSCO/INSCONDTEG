@@ -75,6 +75,7 @@ npm run build && npm run site:check
 | `documentation/ADMIN_AR.md` | تفعيل لوحة الإدارة وربطها بالموقع المنشور |
 | `documentation/STATUS_AR.md` | ما نُفِّذ وما بقي وأرقام المشروع |
 | `documentation/AI_STUDIO_AR.md` | المستشار الذكي والتكلفة والنشر |
+| `documentation/UNIVERSITY_AR.md` | الجامعة الروبوتية: التخصصات، روبوتات الجمع، الخلايا العصبية، الأرشفة و«المعمل» |
 | `documentation/EDB_FORMAT_AR.md` | صيغة مكتبة EDB |
 | `documentation/NDE_ED_REVIEW_AR.md` | إجراء مراجعة المحتوى |
 

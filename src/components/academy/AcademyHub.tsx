@@ -3,6 +3,7 @@ import {
   Award,
   BookOpen,
   Compass,
+  GraduationCap,
   Layers,
   ShieldAlert,
   Sparkles,
@@ -30,6 +31,7 @@ const SECTION_ICONS: Record<AcademySectionId, typeof Compass> = {
   test: Award,
   progress: Trophy,
   mentor: Sparkles,
+  university: GraduationCap,
 };
 
 interface AcademyHubProps {
@@ -201,7 +203,7 @@ export const AcademyHub: React.FC<AcademyHubProps> = ({ language, onOpenHash }) 
       </div>
 
       {/*
-        The six journey sections, one under the other.
+        The seven journey sections, one under the other.
 
         They used to sit in a three-column grid: on a narrow screen the cards
         squeezed and their icons and labels ran into each other. As full-width

@@ -15,13 +15,16 @@ import {
 
 type Props = { language: Language; route: string; onOpenHash: (hash: string) => void };
 
-const simulatorForQuestion = (question: string): string => {
+export const simulatorForQuestion = (question: string): string => {
   const q = question.toLowerCase();
-  if (/paut|phased array|مصفوفة/.test(q)) return 'paut_controller';
+  // Route the learner to the simulator that actually demonstrates the topic.
+  if (/paut|phased[ -]?array|مصفوفة|المصفوفات الطورية/.test(q)) return 'paut_controller';
   if (/dac|دك|منحنى/.test(q)) return 'dac_builder';
-  if (/v1|v2|معاير/.test(q)) return 'v1_v2_calibration';
-  if (/(^|[^a-z])rt([^a-z]|$)|radiograph|تصوير|أشعة/.test(q)) return 'rt_lab';
-  if (/weld|لحام|(^|[^a-z])ut([^a-z]|$)|ultrasonic|موجات فوق/.test(q)) return 'weld_simulator';
+  if (/v1|v2|calibrat|معاير|معايرة/.test(q)) return 'v1_v2_calibration';
+  if (/(^|[^a-z])rt([^a-z]|$)|radiograph|radiographic|film|تصوير|أشعة|إشعاعي/.test(q)) return 'rt_lab';
+  // A-scan and general UT topics belong with the ultrasonic/weld UT simulator,
+  // not the RT lab fallback.
+  if (/a[ -]?scan|tofd|weld|لحام|(^|[^a-z])ut([^a-z]|$)|ultrasonic|موجات فوق|فحص بالموجات/.test(q)) return 'weld_simulator';
   return 'sim_labs_rt';
 };
 

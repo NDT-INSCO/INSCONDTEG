@@ -14,7 +14,7 @@ export const VirtualEngineer3D: React.FC<Props> = ({ speaking, thinking }) => {
   useEffect(() => {
     const host = hostRef.current;
     if (!host) return;
-    let renderer: THREE.WebGLRenderer;
+    let renderer: THREE.WebGLRenderer | undefined;
     let frame = 0;
     let resizeObserver: ResizeObserver | undefined;
 

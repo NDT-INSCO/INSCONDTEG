@@ -17,7 +17,8 @@ const MAX_BODY_BYTES = 96 * 1024;
 
 export function createNetlifyHandler(env: NodeJS.ProcessEnv) {
   const origin = httpOrigin(env.ADMIN_ORIGIN?.trim());
-  const dispatch = serverlessHttp(createHostedOperationsHandler(env), { binary: false });
+  const pagesAdmin = env.ADMIN_PAGES_ENABLED === 'true';
+  const dispatch = serverlessHttp(createHostedOperationsHandler(env, false, { pagesAdmin }), { binary: false });
 
   return async (request: Request, context: Pick<Context, 'deploy' | 'ip'>): Promise<Response> => {
     const head = request.method === 'HEAD';
@@ -37,7 +38,7 @@ export function createNetlifyHandler(env: NodeJS.ProcessEnv) {
     // Keep only the headers used by the application. The bridge derives
     // content-length from the copied bytes and req.ip from platform metadata.
     const headers: Record<string, string> = { host: url.host };
-    for (const name of ['content-type', 'cookie', 'origin']) {
+    for (const name of ['content-type', 'cookie', 'origin', 'authorization', 'access-control-request-method', 'access-control-request-headers']) {
       const value = request.headers.get(name);
       if (value !== null) headers[name] = value;
     }

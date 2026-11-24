@@ -17,6 +17,7 @@ export const AGENT_ENDPOINTS = {
   siteManager: '/api/ai/agent/site-manager',
   communityAssist: '/api/ai/community/assist',
   chatgptStream: '/api/ai/agent/chatgpt-stream',
+  webSearch: '/api/ai/research/search',
 } as const;
 
 export type AgentLanguage = 'ar' | 'en';

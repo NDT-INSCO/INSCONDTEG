@@ -128,13 +128,50 @@ export const VirtualEngineer: React.FC<Props> = ({ language, route }) => {
 
   return <div className="ve-root" dir={isAr ? 'rtl' : 'ltr'}>
     {open && <section className="ve-panel" aria-label={isAr ? 'المهندس الافتراضي' : 'Virtual Engineer'}>
-      <header className="ve-header"><div className={`ve-avatar ve-character ${loading ? 'is-thinking' : answer ? 'is-speaking' : ''}`} role="img" aria-label={isAr ? 'المهندس الافتراضي' : 'Virtual engineer'}>
-          <span className="ve-engineer-helmet"/><span className="ve-engineer-face"><i/><i/></span><span className="ve-engineer-body"/>
-        </div><div className="ve-heading"><strong>INSCO Virtual Engineer</strong><small>{isAr ? 'مدرّب الأكاديمية · ' + route : 'Academy tutor · ' + route}</small></div>
+      <header className="ve-header"><div className="ve-avatar"><Bot size={21}/></div><div className="ve-heading"><strong>INSCO Virtual Engineer</strong><small>{isAr ? 'مدرّب الأكاديمية · ' + route : 'Academy tutor · ' + route}</small></div>
         <button type="button" onClick={() => setExpanded(v => !v)} aria-label={isAr ? 'تصغير' : 'Minimize'}><Minimize2 size={17}/></button>
         <button type="button" onClick={handleClose} aria-label={isAr ? 'إغلاق' : 'Close'}><X size={18}/></button></header>
       {expanded && <div className="ve-body">
         <div className="ve-welcome"><Sparkles size={17}/><p>{isAr ? 'أهلاً بك! اسألني عن محتوى الدرس، وسأستخدم مدرس INSCO ومكتبته المتاحة للإجابة.' : 'Welcome! Ask about the lesson and I’ll use the INSCO tutor and its available library.'}</p></div>
+        <div className="ve-classroom" aria-label={isAr ? 'المهندس يشرح على السبورة' : 'Engineer teaching at the whiteboard'}>
+          <div className="ve-board-wrap">
+            <div className="ve-board">
+              <div className="ve-board-top"><b>INSCO NDT ACADEMY</b><span>UT · A-SCAN</span></div>
+              <svg className="ve-ascangraph" viewBox="0 0 420 190" role="img" aria-label={isAr ? 'رسم توضيحي مبسط لإشارة A-Scan' : 'Illustrative A-scan signal'}>
+                <defs><pattern id="ve-grid" width="28" height="24" patternUnits="userSpaceOnUse"><path d="M28 0H0V24" fill="none" stroke="#b9d0d2" strokeWidth="1"/></pattern></defs>
+                <rect width="420" height="190" fill="url(#ve-grid)"/>
+                <path d="M20 154 L55 154 L66 45 L78 154 L175 154 L187 124 L199 154 L255 154 L266 82 L278 154 L400 154" fill="none" stroke="#087e83" strokeWidth="4" strokeLinejoin="round"/>
+                <path d="M20 154H400" stroke="#49616c" strokeWidth="1.5"/>
+                <path d="M66 30V166M266 67V166" stroke="#d18a2d" strokeDasharray="5 5" strokeWidth="2"/>
+                <text x="48" y="22" fill="#9b641e" fontSize="12">Entry</text><text x="245" y="56" fill="#9b641e" fontSize="12">Echo</text>
+                <text x="340" y="178" fill="#49616c" fontSize="11">Time →</text>
+              </svg>
+              <div className="ve-board-notes"><span>① Initial pulse</span><span>② Back-wall / reflector echo</span></div>
+            </div>
+          </div>
+          <div className="ve-instructor" aria-hidden="true">
+            <svg viewBox="0 0 230 300" className="ve-instructor-art">
+              <defs><linearGradient id="ve-skin" x2="1" y2="1"><stop stopColor="#f0c6a3"/><stop offset="1" stopColor="#bd8061"/></linearGradient><linearGradient id="ve-jacket" x2="1" y2="1"><stop stopColor="#e8eef2"/><stop offset="1" stopColor="#8299aa"/></linearGradient></defs>
+              <ellipse cx="119" cy="292" rx="78" ry="7" fill="#081a2a" opacity=".18"/>
+              <path d="M65 171 Q35 188 30 288 L194 288 Q189 190 151 171Z" fill="url(#ve-jacket)" stroke="#39576d" strokeWidth="3"/>
+              <path d="M99 174 L117 207 L137 174 L129 289 L107 289Z" fill="#173b59"/>
+              <path d="M116 206 L117 269" stroke="#e0a944" strokeWidth="3"/>
+              <path d="M68 186 Q33 178 19 130 Q13 112 25 108 Q37 106 43 125 L79 164" fill="none" stroke="#39576d" strokeWidth="23" strokeLinecap="round"/>
+              <path d="M24 116 Q15 105 5 92" stroke="url(#ve-skin)" strokeWidth="15" strokeLinecap="round" fill="none"/>
+              <path d="M151 182 Q172 159 180 127 Q184 112 196 106" stroke="#39576d" strokeWidth="22" strokeLinecap="round" fill="none"/>
+              <path d="M195 108 Q204 96 211 84" stroke="url(#ve-skin)" strokeWidth="14" strokeLinecap="round" fill="none"/>
+              <path d="M201 88 L213 82 L220 85 L211 93" fill="url(#ve-skin)" stroke="#9e684f" strokeWidth="2"/>
+              <path d="M76 85 Q75 34 116 31 Q158 34 157 88 L150 125 Q140 154 116 157 Q89 151 80 125Z" fill="url(#ve-skin)" stroke="#865a46" strokeWidth="2"/>
+              <path d="M72 77 Q65 23 116 17 Q167 20 163 79 L151 68 Q132 53 96 64 L81 84Z" fill="#e8b74e" stroke="#a36d22" strokeWidth="3"/>
+              <path d="M69 77 Q115 65 166 77" fill="none" stroke="#f5d58b" strokeWidth="7" strokeLinecap="round"/>
+              <path d="M100 99 Q106 94 111 99 M127 99 Q133 94 138 99" stroke="#263b4b" strokeWidth="3" fill="none" strokeLinecap="round"/>
+              <path d="M109 125 Q117 131 126 125" stroke="#854c42" strokeWidth="3" fill="none" strokeLinecap="round"/>
+              <path d="M91 164 L116 195 L141 164" fill="#f7fafc" stroke="#8ba0ad" strokeWidth="2"/>
+              <rect x="143" y="207" width="25" height="35" rx="4" fill="#173b59"/><text x="155" y="229" fill="#f4c96a" fontSize="10" textAnchor="middle">INSCO</text>
+            </svg>
+            <div className={`ve-speech-indicator ${loading ? 'is-thinking' : answer ? 'is-speaking' : ''}`}><span/>{loading ? (isAr ? 'بيحضّر الشرح' : 'Preparing') : answer ? (isAr ? 'بيشرح' : 'Explaining') : (isAr ? 'جاهز للشرح' : 'Ready to teach')}</div>
+          </div>
+        </div>
         {status === null && <small className="ve-disclaimer">{isAr ? 'جارٍ التحقق من اتصال المدرّس…' : 'Checking tutor availability…'}</small>}
         {status && !status.configured && status.reason !== 'unreachable' && <small className="ve-disclaimer">{isAr ? 'الرد من مكتبة إنسكو التعليمية عند عدم توفر نموذج خارجي.' : 'The INSCO learning library may answer when no external model is configured.'}</small>}
         <div className="ve-chips">{suggestions[isAr ? 'ar' : 'en'].map(item => <button key={item} type="button" disabled={loading} onClick={() => void ask(item)}>{item}</button>)}</div>

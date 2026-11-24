@@ -130,6 +130,24 @@ test('the status route says plainly that nothing external is involved', async ()
   assert.equal(body.brain?.documents, corpus.length);
 });
 
+test('the GET self-test composes an answer for anyone who types the URL', async () => {
+  const response = await realFetch(`${base}/api/ai/selftest?mode=compare&q=${encodeURIComponent('ما الفرق بين PAUT و TOFD؟')}`);
+  assert.equal(response.status, 200);
+  const body = (await response.json()) as {
+    engine: string;
+    external: boolean;
+    answer: string;
+    usedIds: string[];
+    confident: boolean;
+  };
+  assert.equal(body.engine, 'insco-local-1');
+  assert.equal(body.external, false);
+  assert.equal(body.confident, true);
+  assert.ok(body.usedIds.length >= 2);
+  for (const id of body.usedIds) assert.ok(corpusIds.has(id));
+  assert.match(body.answer, /PAUT/);
+});
+
 /* ------------------------------------------------------------------ */
 /* 2. the tutor answer                                                 */
 /* ------------------------------------------------------------------ */

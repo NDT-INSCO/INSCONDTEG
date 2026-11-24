@@ -702,6 +702,49 @@ router.get('/api/ai/models', async (_req: Request, res: Response) => {
   }
 });
 
+/**
+ * A self-test anyone can run from a browser address bar.
+ *
+ * The claim this deployment now makes — "the agents answer with no outside AI" — is only
+ * worth as much as the ability to check it. A POST-only tutor cannot be checked by typing
+ * a URL, so here is a GET that composes an answer from the corpus and returns it with the
+ * passages it used and the engine's name. It never calls a provider, in any mode, and it
+ * names whatever mode the deployment is in so nobody has to guess.
+ */
+router.get('/api/ai/selftest', async (req: Request, res: Response) => {
+  const question =
+    typeof req.query.q === 'string' && req.query.q.trim()
+      ? req.query.q.trim().slice(0, 300)
+      : 'ما الفرق بين PAUT و TOFD؟';
+  const language = req.query.lang === 'en' ? 'en' : 'ar';
+  const wanted = String(req.query.mode ?? 'compare');
+  const mode = (['explain', 'compare', 'code', 'practice'].includes(wanted) ? wanted : 'compare') as
+    | 'explain'
+    | 'compare'
+    | 'code'
+    | 'practice';
+  const started = Date.now();
+  const library = await loadAiLibrary();
+  const hits = library.retrieve(question);
+  const composed = composeTutorAnswer({ question, hits, language, mode });
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({
+    engine: BRAIN_MODEL,
+    provider: AI_PROVIDER,
+    external: !LOCAL_ONLY,
+    documents: library.documents,
+    source: library.source,
+    question,
+    language,
+    mode,
+    answer: composed?.text ?? tutorRefusal(language, library.source),
+    usedIds: composed?.usedIds ?? [],
+    retrieved: hits.length,
+    confident: Boolean(composed),
+    elapsedMs: Date.now() - started,
+  });
+});
+
 router.get(TUTOR_ENDPOINTS.status, async (_req: Request, res: Response) => {
   const library = await loadAiLibrary();
   // The local brain needs no key but it does need the corpus: without a passage it has

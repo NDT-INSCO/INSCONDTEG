@@ -144,6 +144,10 @@ tsx --test tests/localBrain.test.ts
 curl -s https://inscondteg.vercel.app/api/ai/status | jq '{provider, external, brain}'
 # {"provider":"local","external":false,"brain":{"model":"insco-local-1","documents":132}}
 
+# أو من المتصفح مباشرة، بلا مفتاح وبلا أدوات:
+# https://inscondteg.vercel.app/api/ai/selftest?mode=compare&q=ما%20الفرق%20بين%20PAUT%20و%20TOFD؟
+# يعيد: engine=insco-local-1, external=false, answer مع usedIds من المكتبة.
+
 curl -sN -X POST https://inscondteg.vercel.app/api/ai/tutor \
   -H 'content-type: application/json' \
   -d '{"messages":[{"role":"user","content":"ما الفرق بين PAUT و TOFD؟"}],"language":"ar"}'

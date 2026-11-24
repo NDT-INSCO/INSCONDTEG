@@ -15,9 +15,10 @@ import { TranslatorRobot } from './components/TranslatorRobot';
 import { GeoLocaleBanner } from './components/GeoLocaleBanner';
 import { SeoManager } from './components/SeoManager';
 import { HeaderLanguageSelector } from './components/HeaderLanguageSelector';
-import { getRobotTarget } from './i18n/translationStore';
+import { getRobotTarget, translationRobot } from './i18n/translationStore';
 import { markManualOverride } from './i18n/geoLocale';
 import { reportWebVitals } from './utils/performance';
+import { notifyNativeLanguageChange, subscribeGlobalLanguage } from './i18n/globalLanguageSync';
 import { Language } from './types';
 import { AcademyTab } from './academyTabs';
 import { ADMIN_HASH } from './admin/contract';
@@ -211,6 +212,7 @@ export const App: React.FC = () => {
     try { localStorage.setItem(LANGUAGE_KEY, next); } catch { /* ignore */ }
     markManualOverride();
     setLanguage(next);
+    try { notifyNativeLanguageChange(next); } catch { /* ignore */ }
   }, []);
 
   useEffect(() => {
@@ -226,6 +228,42 @@ export const App: React.FC = () => {
       /* private mode: language simply resets on reload */
     }
   }, [language, isAr]);
+
+  // Global language sync — any page changes language, whole site updates
+  useEffect(() => {
+    const unsub = subscribeGlobalLanguage(detail => {
+      if (detail.source && detail.source !== language) {
+        setLanguage(detail.source);
+      }
+      if (detail.target !== undefined) {
+        const current = getRobotTarget();
+        if (detail.target !== current) {
+          if (detail.target) {
+            // Another tab/page chose a world language — apply it here silently
+            void translationRobot.enable(detail.target, { manual: false });
+          } else if (current) {
+            translationRobot.disable({ manual: false });
+          }
+        }
+      }
+      // Also handle legacy robot-changed custom event for intra-tab
+    });
+    const onRobotChanged = (e: Event) => {
+      const d = (e as CustomEvent<{ target: string | null }>).detail;
+      if (d?.target !== undefined) {
+        const cur = getRobotTarget();
+        if (d.target !== cur) {
+          if (d.target) void translationRobot.enable(d.target, { manual: false });
+          else if (cur) translationRobot.disable({ manual: false });
+        }
+      }
+    };
+    window.addEventListener('insco:robot-changed', onRobotChanged as EventListener);
+    return () => {
+      unsub();
+      window.removeEventListener('insco:robot-changed', onRobotChanged as EventListener);
+    };
+  }, [language]);
 
   // Performance vitals in dev
   useEffect(() => {

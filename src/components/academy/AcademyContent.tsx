@@ -27,7 +27,7 @@ interface AcademyContentProps {
 export const AcademyContent: React.FC<AcademyContentProps> = props => (
   <AcademyAccountScope language={props.language}>
     <AcademyPage {...props} />
-    <VirtualEngineer language={props.language} route={props.route.page} />
+    <VirtualEngineer language={props.language} route={props.route.page} onOpenHash={props.onOpenHash} />
   </AcademyAccountScope>
 );
 

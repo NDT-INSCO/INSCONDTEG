@@ -734,3 +734,9 @@ body {
 
 /* Anchors and programmatic focus must not land under the shared sticky header. */
 html { scroll-padding-block-start: var(--insco-sticky-offset, 0px); }
+
+/* Translator Robot: translated copy must wrap gracefully in every script. */
+body { overflow-wrap: break-word; }
+/* The robot panel keeps its own scrollbar styling inside the dark UI. */
+[data-translator-ui] ::-webkit-scrollbar { width: 6px; }
+[data-translator-ui] ::-webkit-scrollbar-thumb { background: #334155; border-radius: 999px; }

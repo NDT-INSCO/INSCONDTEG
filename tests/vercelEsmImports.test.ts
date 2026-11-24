@@ -15,7 +15,7 @@ import path from 'node:path';
 import { test } from 'node:test';
 
 const ROOT = process.cwd();
-const ENTRIES = ['api/ai.ts', 'api/insco.ts', 'server.ts'];
+const ENTRIES = ['api/ai.ts', 'api/insco.ts', 'api/university.ts', 'server.ts'];
 
 // `import type … from './x'` is erased before Node ever resolves it, so it is not a
 // runtime import and does not need an extension.

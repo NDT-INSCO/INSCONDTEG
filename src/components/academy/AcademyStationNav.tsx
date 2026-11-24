@@ -6,6 +6,7 @@ import {
   Award,
   Trophy,
   Sparkles,
+  GraduationCap,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { AcademyTab } from '../../academyTabs';
@@ -24,6 +25,7 @@ import type { AcademyTab } from '../../academyTabs';
  *   4 test yourself     → quiz, exam simulation, practical, exam center
  *   5 track progress    → completion map, roadmap, leaderboard, statement
  *   6 ask the mentor    → AI tutor, generated video
+ *   7 the university     → the robotic university halls
  *
  * Deep links are untouched: the station is derived from `activeSubTab`, so
  * `#rt_lab`, `#quiz` and friends still open the right content directly.
@@ -42,7 +44,8 @@ export type AcademyStationId =
   | 'practice'
   | 'test'
   | 'progress'
-  | 'tutor';
+  | 'tutor'
+  | 'university';
 
 export interface AcademyStation {
   id: AcademyStationId;
@@ -157,6 +160,16 @@ export function buildAcademyStations({
         { tab: 'video_gen', ar: 'توليد فيديو المحاكاة', en: 'Veo Simulation' },
       ],
     },
+    {
+      id: 'university',
+      ar: 'الجامعة الروبوتية',
+      en: 'Robotic University',
+      icon: GraduationCap,
+      defaultTab: 'university',
+      children: [
+        { tab: 'university', ar: 'جامعة إنسكو الروبوتية للإنشاءات الصناعية', en: 'INSCO Robotic University for Industrial Construction' },
+      ],
+    },
   ];
 }
 
@@ -172,7 +185,7 @@ interface AcademyStationNavProps {
   onSelect: (tab: AcademyTab) => void;
   /**
    * Only this station exists on the current page (the portal gives every
-   * station its own page). The six-station grid is replaced by the station's
+   * station its own page). The seven-station grid is replaced by the station's
    * own tab pills, because switching station is the page navigation's job.
    */
   onlySection?: AcademyStationId;

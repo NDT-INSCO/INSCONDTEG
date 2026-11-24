@@ -1,5 +1,5 @@
 /**
- * P5 guard: the academy must be navigable as a six-station journey without
+ * P5 guard: the academy must be navigable as a seven-station journey without
  * losing a single tab. These tests fail if a tab is dropped, duplicated, or
  * assigned to no station — the exact regression a "tidy up the nav" change
  * usually causes.
@@ -30,10 +30,10 @@ const { render, fireEvent, cleanup } = await import('@testing-library/react');
 
 const stations = buildAcademyStations({ books: 11, documents: 18, courses: 7, paths: 5 });
 
-test('there are exactly six journey stations', () => {
+test('there are exactly seven journey stations', () => {
   assert.deepEqual(
     stations.map(station => station.id),
-    ['choose', 'learn', 'practice', 'test', 'progress', 'tutor']
+    ['choose', 'learn', 'practice', 'test', 'progress', 'tutor', 'university']
   );
 });
 

@@ -44,6 +44,7 @@ import { composeSelfAnswer } from './src/ai/selfAnswer.js';
 import { isModelMissing, streamTutorText, TutorAiClient, TutorTransportMode } from './src/ai/transport.js';
 import { buildTutorLibrary, type TutorLibrary } from './server/tutor/library.js';
 import { createOperations } from './server/admin/operations.js';
+import { createUniversityRouter } from './server/university/gateway.js';
 import {
   buildArchitectureBlueprint,
   buildResponseLogicContract,
@@ -304,6 +305,19 @@ app.disable('x-powered-by');
 const operations = await createOperations(process.env, { production: isProduction, baseDir: __dirname, tutorConfigured: Boolean(ai) });
 app.use(operations.router);
 app.use(express.json({ limit: '6mb' }));
+
+/* ------------------------------- جامعة إنسكو الروبوتية ----------------------
+ * The Robotic University for industrial construction: twelve specialisations,
+ * internet collectors per specialisation, neural cells, the Organising robot
+ * and «المعمل» — the AI-agent teaching unit. Read-through is honest about
+ * live vs reviewed-archive sources; see universityContract.
+ * ------------------------------------------------------------------------ */
+const UNIVERSITY_RATE = Math.max(1, parseInt(process.env.UNIVERSITY_RATE_PER_MINUTE || '10', 10));
+app.use('/api/university', createUniversityRouter({
+  apiKey: process.env.GEMINI_API_KEY || process.env.API_KEY || '',
+  model: (process.env.UNIVERSITY_MODEL || '').trim() || undefined,
+  ratePerMinute: UNIVERSITY_RATE,
+}));
 
 app.get(TUTOR_ENDPOINTS.status, async (_req: Request, res: Response) => {
   const library = await loadAiLibrary();

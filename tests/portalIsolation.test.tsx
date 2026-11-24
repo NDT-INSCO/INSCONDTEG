@@ -133,8 +133,8 @@ test('the corporate home stays hash-free, and an unknown hash is just an anchor'
   assert.equal(routes.routeToHash(unknown), '#not-a-page');
 });
 
-test('all 33 legacy tab links still open the academy, in the section that owns them', () => {
-  assert.equal(ACADEMY_TABS.length, 33);
+test('all 34 legacy tab links still open the academy, in the section that owns them', () => {
+  assert.equal(ACADEMY_TABS.length, 34);
   const seen = new Set<string>();
 
   for (const tab of ACADEMY_TABS) {
@@ -152,7 +152,7 @@ test('all 33 legacy tab links still open the academy, in the section that owns t
 
   assert.deepEqual(
     [...seen].sort(),
-    ['choose', 'learn', 'mentor', 'practice', 'progress', 'test'],
+    ['choose', 'learn', 'mentor', 'practice', 'progress', 'test', 'university'],
     'every section must be reachable through the legacy links'
   );
 });
@@ -307,7 +307,7 @@ test('the academy home stacks its sections one under the other', async () => {
   assert.doesNotMatch(list.className, /grid-cols-3/);
 
   const rows = [...list.querySelectorAll('button')];
-  assert.equal(rows.length, 6, 'six sections, one row each');
+  assert.equal(rows.length, 7, 'seven sections, one row each');
   for (const row of rows) {
     assert.ok(row.className.includes('w-full'), 'a section row spans the page width');
     assert.ok(row.querySelector('svg'), 'each row keeps its icon inside a fixed tile');
@@ -377,7 +377,7 @@ test('a section page shows only the tabs of that section', () => {
   assert.equal(ui.queryByRole('button', { name: 'خريطة الاستكمال' }), null);
   assert.equal(ui.queryByRole('button', { name: /الكتب الدراسية التفاعلية/ }), null);
   assert.equal(ui.queryByRole('button', { name: 'محاكي امتحانات التأهيل (Level 1 & 2)' }), null);
-  // The six-station grid belongs to the hub, not to a section page.
+  // The seven-station grid belongs to the hub, not to a section page.
   assert.equal(ui.queryByTestId('academy-simulation-labs-hub'), null);
 });
 

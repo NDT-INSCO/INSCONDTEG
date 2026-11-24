@@ -30,7 +30,7 @@ test('the research endpoint calls the configured search provider and returns sou
     server = createServer(app as never);
     await new Promise<void>(resolve => server!.listen(0, '127.0.0.1', resolve));
     const { port } = server.address() as AddressInfo;
-    const response = await fetch(`http://127.0.0.1:${port}/api/ai/research/search`, {
+    const response = await realFetch(`http://127.0.0.1:${port}/api/ai/research/search`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query: 'NDT inspection standards', maxResults: 3 }),

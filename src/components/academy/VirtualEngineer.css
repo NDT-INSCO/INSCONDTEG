@@ -44,3 +44,13 @@
 .ve-instructor.ve-3d-ready .ve-instructor-fallback{display:none}
 .ve-instructor .ve-speech-indicator{z-index:3}
 @media(prefers-reduced-motion:reduce){.ve-engineer-3d canvas{animation:none}}
+
+/* Learner-controlled lesson pacing and simulator handoff. */
+.ve-next-actions{display:grid;gap:8px;border:1px solid #365578;border-radius:12px;background:#10223a;padding:10px}
+.ve-next-actions p{margin:0;color:#c9d9ec;font-size:11px;line-height:1.6}
+.ve-next-actions>div{display:flex;flex-wrap:wrap;gap:7px}
+.ve-next-actions button,.ve-stop{border:1px solid #426184;border-radius:9px;background:#193653;color:#e7f4ff;padding:8px 10px;font:inherit;font-size:11px;font-weight:700;cursor:pointer}
+.ve-next-actions button:first-child{background:#0e6670;border-color:#16838a}
+.ve-next-actions button:last-child{background:#263347;border-color:#4b5b70}
+.ve-stop{width:100%;border-color:#a34b58;background:#4a1d2a;color:#ffe4e8}
+.ve-next-actions button:focus-visible,.ve-stop:focus-visible{outline:2px solid #f5c96b;outline-offset:2px}

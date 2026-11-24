@@ -13,20 +13,33 @@ import {
   TutorStatus,
 } from '../../ai/contract';
 
-type Props = { language: Language; route: string };
+type Props = { language: Language; route: string; onOpenHash: (hash: string) => void };
+
+const simulatorForQuestion = (question: string): string => {
+  const q = question.toLowerCase();
+  if (/paut|phased array|مصفوفة/.test(q)) return 'paut_controller';
+  if (/dac|دك|منحنى/.test(q)) return 'dac_builder';
+  if (/v1|v2|معاير/.test(q)) return 'v1_v2_calibration';
+  if (/(^|[^a-z])rt([^a-z]|$)|radiograph|تصوير|أشعة/.test(q)) return 'rt_lab';
+  if (/weld|لحام|(^|[^a-z])ut([^a-z]|$)|ultrasonic|موجات فوق/.test(q)) return 'weld_simulator';
+  return 'sim_labs_rt';
+};
 
 const suggestions = {
   ar: ['اشرح مبدأ UT', 'كيف أقرأ A-Scan؟', 'اشرح معايرة DAC'],
   en: ['Explain UT principles', 'How do I read an A-scan?', 'Explain DAC calibration'],
 };
 
-export const VirtualEngineer: React.FC<Props> = ({ language, route }) => {
+export const VirtualEngineer: React.FC<Props> = ({ language, route, onOpenHash }) => {
   const isAr = language === 'ar';
   const tutorLanguage: TutorLanguage = isAr ? 'ar' : 'en';
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState(true);
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState('');
+  const [sessionEnded, setSessionEnded] = useState(false);
+  const lastQuestion = useRef('');
+  const lessonTopic = useRef('');
   const [lessonFocus, setLessonFocus] = useState<'ascan' | 'dac' | 'ut'>('ascan');
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<TutorStatus | null>(null);
@@ -36,6 +49,8 @@ export const VirtualEngineer: React.FC<Props> = ({ language, route }) => {
   const history = useRef<TutorMessage[]>([]);
   const abortRef = useRef<AbortController | null>(null);
   const answerRef = useRef('');
+  const sentQuestionRef = useRef('');
+  const recordedRef = useRef(false);
 
   useEffect(() => {
     if (!open || status) return;
@@ -50,20 +65,28 @@ export const VirtualEngineer: React.FC<Props> = ({ language, route }) => {
 
   const ask = async (raw: string) => {
     const q = raw.trim();
-    if (!q || loading) return;
+    // The controller is also the "busy" flag: a stopped stream clears it, so
+    // the learner can ask the next question without waiting for the old one.
+    if (!q || abortRef.current) return;
 
     setQuestion('');
-    const normalizedQuestion = q.toLowerCase();
-    setLessonFocus(/dac|calibrat|معاير/.test(normalizedQuestion) ? 'dac' : /principle|مبدأ|مبادئ/.test(normalizedQuestion) ? 'ut' : 'ascan');
+    const continuing = /كمّل من النقطة|continue from where/i.test(q);
+    lastQuestion.current = q;
+    if (!continuing) {
+      lessonTopic.current = q;
+      const normalizedQuestion = q.toLowerCase();
+      setLessonFocus(/dac|calibrat|معاير/.test(normalizedQuestion) ? 'dac' : /principle|مبدأ|مبادئ/.test(normalizedQuestion) ? 'ut' : 'ascan');
+    }
+    setSessionEnded(false);
     setAnswer('');
     answerRef.current = '';
+    recordedRef.current = false;
     setCitations([]);
     setFailure(null);
     setAnswerMeta(null);
     setLoading(true);
 
     const controller = new AbortController();
-    abortRef.current?.abort();
     abortRef.current = controller;
 
     const currentPage = typeof window === 'undefined'
@@ -72,6 +95,7 @@ export const VirtualEngineer: React.FC<Props> = ({ language, route }) => {
     const contextualQuestion = isAr
       ? `سياق المتعلم الحالي داخل أكاديمية INSCO: ${currentPage}. أنت المهندس الافتراضي ومهمتك شرح NDT للتعلم. أجب عن سؤال المتعلم مع ربط الشرح بسياق الصفحة الحالية متى كان ذلك مناسباً. وضّح الافتراضات وحدود الإجابة، ولا تصدر قرار قبول/رفض تشغيلياً ولا تخترع مرجعاً.\n\nسؤال المتعلم: ${q}`
       : `Learner context in INSCO Academy: ${currentPage}. You are the virtual NDT learning engineer. Answer the learner's question and relate the explanation to the current page when relevant. State assumptions and limits; do not issue operational accept/reject decisions or invent references.\n\nLearner question: ${q}`;
+    sentQuestionRef.current = contextualQuestion;
 
     const messages: TutorMessage[] = [
       ...history.current.slice(-18),
@@ -80,26 +104,35 @@ export const VirtualEngineer: React.FC<Props> = ({ language, route }) => {
     const liveStatus = status ?? await fetchTutorStatus();
     setStatus(liveStatus);
     if (!liveStatus.configured && liveStatus.reason === 'unreachable') {
+      abortRef.current = null;
       setFailure({ code: 'not_configured', message: isAr ? 'خدمة المدرّس غير متاحة حالياً من هذا النشر.' : 'The tutor service is not reachable from this deployment.' });
       setLoading(false);
       return;
     }
 
+    // A stopped or replaced stream must never write into a newer answer.
+    const isCurrent = () => abortRef.current === controller;
     await streamTutor(
       { messages, language: tutorLanguage, mode: 'explain' },
       {
         signal: controller.signal,
         onMeta: meta => {
+          if (!isCurrent()) return;
           setCitations(meta.citations);
           setAnswerMeta({ kind: meta.kind, source: meta.source, provider: meta.provider });
         },
         onDelta: chunk => {
+          if (!isCurrent()) return;
           answerRef.current += chunk;
           setAnswer(previous => previous + chunk);
         },
-        onError: next => setFailure(next),
+        onError: next => {
+          if (isCurrent()) setFailure(next);
+        },
         onDone: () => {
-          if (answerRef.current.trim()) {
+          if (!isCurrent()) return;
+          if (answerRef.current.trim() && !recordedRef.current) {
+            recordedRef.current = true;
             history.current = [
               ...messages,
               { role: 'assistant' as const, content: answerRef.current },
@@ -110,8 +143,36 @@ export const VirtualEngineer: React.FC<Props> = ({ language, route }) => {
       }
     );
 
-    if (abortRef.current === controller) abortRef.current = null;
+    if (isCurrent()) {
+      abortRef.current = null;
+      setLoading(false);
+    }
+  };
+
+  const stopExplanation = () => {
+    const controller = abortRef.current;
+    if (!controller) return;
+    controller.abort();
+    abortRef.current = null;
+    if (!recordedRef.current && answerRef.current.trim()) {
+      recordedRef.current = true;
+      history.current = [
+        ...history.current,
+        { role: 'user' as const, content: sentQuestionRef.current },
+        { role: 'assistant' as const, content: answerRef.current },
+      ].slice(-20);
+    }
     setLoading(false);
+    setSessionEnded(true);
+  };
+
+  const continueExplanation = () => {
+    void ask(isAr ? 'كمّل من النقطة التي انتهيت عندها، واشرح الجزء التالي فقط ثم انتظر اختياري.' : 'Continue from where you stopped. Explain only the next part, then wait for my choice.');
+  };
+
+  const showSimulator = () => {
+    const tab = simulatorForQuestion(lessonTopic.current || lastQuestion.current);
+    onOpenHash(`#${tab}`);
   };
 
   const sourceLabel = (source: TutorMeta['source']) => {
@@ -184,6 +245,15 @@ export const VirtualEngineer: React.FC<Props> = ({ language, route }) => {
           {answerMeta?.source && <small className="ve-disclaimer">{sourceLabel(answerMeta.source)}{answerMeta.kind === 'library' ? (isAr ? ' · إجابة مستخرجة من المكتبة' : ' · library-composed answer') : ''}</small>}
           {citations.length > 0 && <div className="ve-citations"><strong>{isAr ? 'المراجع المستخدمة' : 'Sources used'}</strong>{citations.slice(0, 4).map((citation, index) => <span key={citation.id || index}>{citation.title[isAr ? 'ar' : 'en']}</span>)}</div>}
         </div>}
+        {answer && !loading && <div className="ve-next-actions" aria-label={isAr ? 'اختيارات المتعلم' : 'Learner choices'}>
+          <p>{isAr ? (sessionEnded ? 'ينتهي الشرح عند هذه النقطة.' : 'تحب نعمل إيه بعد الجزء ده؟') : (sessionEnded ? 'The explanation ends here.' : 'What would you like to do next?')}</p>
+          <div>
+            <button type="button" onClick={continueExplanation}>{isAr ? 'نكمل الجزء التالي' : 'Continue'}</button>
+            <button type="button" onClick={showSimulator}>{isAr ? 'ورّيني المحاكي' : 'Show me the simulator'}</button>
+            <button type="button" onClick={() => setSessionEnded(true)}>{isAr ? 'نكتفي هنا' : 'That’s enough'}</button>
+          </div>
+        </div>}
+        {loading && <button className="ve-stop" type="button" onClick={stopExplanation}>{isAr ? 'إيقاف الشرح الآن' : 'Stop explanation'}</button>}
         {failure && <p className="ve-error" role="alert">{failureMessage(failure.code, tutorLanguage)}{failure.retryAfterSeconds ? ` (${failure.retryAfterSeconds}s)` : ''}</p>}
         {loading && !answer && <small className="ve-disclaimer">{isAr ? 'المدرّس بيبحث في المصادر وبيجهز الشرح…' : 'The tutor is retrieving sources and preparing an explanation…'}</small>}
         <form className="ve-input" onSubmit={e => { e.preventDefault(); void ask(question); }}><input value={question} onChange={e => setQuestion(e.target.value)} maxLength={4000} placeholder={isAr ? 'اكتب سؤالك هنا…' : 'Ask a question…'} aria-label={isAr ? 'سؤالك' : 'Your question'}/><button type="submit" disabled={!question.trim() || loading} aria-label={isAr ? 'إرسال' : 'Send'}><Send size={17}/></button></form>

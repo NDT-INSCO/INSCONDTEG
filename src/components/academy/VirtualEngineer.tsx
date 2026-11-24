@@ -13,27 +13,91 @@ import {
   TutorStatus,
 } from '../../ai/contract';
 
-type Props = { language: Language; route: string };
+type Props = { language: Language; route: string; onOpenHash: (hash: string) => void };
+
+
+type LessonCheckpoint = {
+  version: 1;
+  language: TutorLanguage;
+  topic: string;
+  answer: string;
+  focus: 'ascan' | 'dac' | 'ut';
+  savedAt: number;
+};
+const LESSON_CHECKPOINT_KEY = 'insco.virtual-engineer.lesson.v1';
+
+export const readLessonCheckpoint = (language: TutorLanguage): LessonCheckpoint | null => {
+  try {
+    if (typeof window === 'undefined') return null;
+    const raw = window.localStorage.getItem(LESSON_CHECKPOINT_KEY);
+    if (!raw) return null;
+    const value = JSON.parse(raw) as Partial<LessonCheckpoint>;
+    if (value.version !== 1 || value.language !== language ||
+        typeof value.topic !== 'string' || !value.topic.trim() ||
+        typeof value.answer !== 'string' || !value.answer.trim() ||
+        !['ascan', 'dac', 'ut'].includes(String(value.focus)) ||
+        typeof value.savedAt !== 'number') return null;
+    return {
+      version: 1, language,
+      topic: value.topic.slice(0, 4000),
+      answer: value.answer.slice(0, 12000),
+      focus: value.focus as LessonCheckpoint['focus'],
+      savedAt: value.savedAt,
+    };
+  } catch { return null; }
+};
+
+export const saveLessonCheckpoint = (checkpoint: Omit<LessonCheckpoint, 'version' | 'savedAt'>): void => {
+  try {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(LESSON_CHECKPOINT_KEY, JSON.stringify({
+      ...checkpoint, version: 1, savedAt: Date.now(),
+    } satisfies LessonCheckpoint));
+  } catch { /* Storage can be disabled or full; tutoring must continue. */ }
+};
+
+export const clearLessonCheckpoint = (): void => {
+  try {
+    if (typeof window !== 'undefined') window.localStorage.removeItem(LESSON_CHECKPOINT_KEY);
+  } catch { /* Ignore unavailable browser storage. */ }
+};
+
+export const simulatorForQuestion = (question: string): string => {
+  const q = question.toLowerCase();
+  // Route the learner to the simulator that actually demonstrates the topic.
+  if (/paut|phased[ -]?array|مصفوفة|المصفوفات الطورية/.test(q)) return 'paut_controller';
+  if (/dac|دك|منحنى/.test(q)) return 'dac_builder';
+  if (/v1|v2|calibrat|معاير|معايرة/.test(q)) return 'v1_v2_calibration';
+  if (/(^|[^a-z])rt([^a-z]|$)|radiograph|radiographic|film|تصوير|أشعة|إشعاعي/.test(q)) return 'rt_lab';
+  // A-scan and general UT topics belong with the ultrasonic/weld UT simulator,
+  // not the RT lab fallback.
+  if (/a[ -]?scan|tofd|weld|لحام|(^|[^a-z])ut([^a-z]|$)|ultrasonic|موجات فوق|فحص بالموجات/.test(q)) return 'weld_simulator';
+  return 'sim_labs_rt';
+};
 
 const suggestions = {
   ar: ['اشرح مبدأ UT', 'كيف أقرأ A-Scan؟', 'اشرح معايرة DAC'],
   en: ['Explain UT principles', 'How do I read an A-scan?', 'Explain DAC calibration'],
 };
 
-export const VirtualEngineer: React.FC<Props> = ({ language, route }) => {
+export const VirtualEngineer: React.FC<Props> = ({ language, route, onOpenHash }) => {
   const isAr = language === 'ar';
   const tutorLanguage: TutorLanguage = isAr ? 'ar' : 'en';
+  const [checkpoint, setCheckpoint] = useState(() => readLessonCheckpoint(tutorLanguage));
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState(true);
   const [question, setQuestion] = useState('');
-  const [answer, setAnswer] = useState('');
-  const [lessonFocus, setLessonFocus] = useState<'ascan' | 'dac' | 'ut'>('ascan');
+  const [answer, setAnswer] = useState(() => checkpoint?.answer ?? '');
+  const [sessionEnded, setSessionEnded] = useState(Boolean(checkpoint));
+  const lastQuestion = useRef(checkpoint?.topic ?? '');
+  const lessonTopic = useRef(checkpoint?.topic ?? '');
+  const [lessonFocus, setLessonFocus] = useState<'ascan' | 'dac' | 'ut'>(checkpoint?.focus ?? 'ascan');
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<TutorStatus | null>(null);
   const [citations, setCitations] = useState<TutorCitation[]>([]);
   const [failure, setFailure] = useState<TutorFailure | null>(null);
   const [answerMeta, setAnswerMeta] = useState<Pick<TutorMeta, 'kind' | 'source' | 'provider'> | null>(null);
-  const history = useRef<TutorMessage[]>([]);
+  const history = useRef<TutorMessage[]>(checkpoint ? [{ role: 'user', content: checkpoint.topic }, { role: 'assistant', content: checkpoint.answer }] : []);
   const abortRef = useRef<AbortController | null>(null);
   const answerRef = useRef('');
 
@@ -53,6 +117,9 @@ export const VirtualEngineer: React.FC<Props> = ({ language, route }) => {
     if (!q || loading) return;
 
     setQuestion('');
+    lastQuestion.current = q;
+    if (!/كمّل من النقطة|continue from where/i.test(q)) lessonTopic.current = q;
+    setSessionEnded(false);
     const normalizedQuestion = q.toLowerCase();
     setLessonFocus(/dac|calibrat|معاير/.test(normalizedQuestion) ? 'dac' : /principle|مبدأ|مبادئ/.test(normalizedQuestion) ? 'ut' : 'ascan');
     setAnswer('');
@@ -100,6 +167,8 @@ export const VirtualEngineer: React.FC<Props> = ({ language, route }) => {
         onError: next => setFailure(next),
         onDone: () => {
           if (answerRef.current.trim()) {
+            saveLessonCheckpoint({ language: tutorLanguage, topic: lessonTopic.current || q, answer: answerRef.current, focus: lessonFocus });
+            setCheckpoint(readLessonCheckpoint(tutorLanguage));
             history.current = [
               ...messages,
               { role: 'assistant' as const, content: answerRef.current },
@@ -112,6 +181,46 @@ export const VirtualEngineer: React.FC<Props> = ({ language, route }) => {
 
     if (abortRef.current === controller) abortRef.current = null;
     setLoading(false);
+  };
+
+  const stopExplanation = () => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    if (answerRef.current.trim()) {
+      saveLessonCheckpoint({ language: tutorLanguage, topic: lessonTopic.current || lastQuestion.current, answer: answerRef.current, focus: lessonFocus });
+      setCheckpoint(readLessonCheckpoint(tutorLanguage));
+      history.current = [
+        ...history.current,
+        { role: 'user' as const, content: lastQuestion.current },
+        { role: 'assistant' as const, content: answerRef.current },
+      ].slice(-20);
+    }
+    setLoading(false);
+    setSessionEnded(true);
+  };
+
+  const continueExplanation = () => {
+    void ask(isAr ? 'كمّل من النقطة التي انتهيت عندها، واشرح الجزء التالي فقط ثم انتظر اختياري.' : 'Continue from where you stopped. Explain only the next part, then wait for my choice.');
+  };
+
+  const showSimulator = () => {
+    const tab = simulatorForQuestion(lessonTopic.current || lastQuestion.current);
+    onOpenHash(`#${tab}`);
+  };
+
+
+  const startNewLesson = () => {
+    clearLessonCheckpoint();
+    setCheckpoint(null);
+    setAnswer('');
+    answerRef.current = '';
+    setCitations([]);
+    setFailure(null);
+    setAnswerMeta(null);
+    setSessionEnded(false);
+    lastQuestion.current = '';
+    lessonTopic.current = '';
+    history.current = [];
   };
 
   const sourceLabel = (source: TutorMeta['source']) => {
@@ -177,6 +286,7 @@ export const VirtualEngineer: React.FC<Props> = ({ language, route }) => {
             <div className={`ve-speech-indicator ${loading ? 'is-thinking' : answer ? 'is-speaking' : ''}`}><span/>{loading ? (isAr ? 'بيحضّر الشرح' : 'Preparing') : answer ? (isAr ? 'بيشرح' : 'Explaining') : (isAr ? 'جاهز للشرح' : 'Ready to teach')}</div>
           </div>
         </div>
+        {checkpoint && <div className="ve-disclaimer" role="status">{isAr ? 'استعدنا آخر نقطة شرح محفوظة على هذا الجهاز.' : 'Your last lesson checkpoint was restored on this device.'} <button type="button" onClick={startNewLesson}>{isAr ? 'بدء درس جديد' : 'Start a new lesson'}</button></div>}
         {status === null && <small className="ve-disclaimer">{isAr ? 'جارٍ التحقق من اتصال المدرّس…' : 'Checking tutor availability…'}</small>}
         {status && !status.configured && status.reason !== 'unreachable' && <small className="ve-disclaimer">{isAr ? 'الرد من مكتبة إنسكو التعليمية عند عدم توفر نموذج خارجي.' : 'The INSCO learning library may answer when no external model is configured.'}</small>}
         <div className="ve-chips">{suggestions[isAr ? 'ar' : 'en'].map(item => <button key={item} type="button" disabled={loading} onClick={() => void ask(item)}>{item}</button>)}</div>
@@ -184,6 +294,15 @@ export const VirtualEngineer: React.FC<Props> = ({ language, route }) => {
           {answerMeta?.source && <small className="ve-disclaimer">{sourceLabel(answerMeta.source)}{answerMeta.kind === 'library' ? (isAr ? ' · إجابة مستخرجة من المكتبة' : ' · library-composed answer') : ''}</small>}
           {citations.length > 0 && <div className="ve-citations"><strong>{isAr ? 'المراجع المستخدمة' : 'Sources used'}</strong>{citations.slice(0, 4).map((citation, index) => <span key={citation.id || index}>{citation.title[isAr ? 'ar' : 'en']}</span>)}</div>}
         </div>}
+        {answer && !loading && <div className="ve-next-actions" aria-label={isAr ? 'اختيارات المتعلم' : 'Learner choices'}>
+          <p>{isAr ? (sessionEnded ? 'تم إيقاف الشرح عند هذه النقطة.' : 'تحب نعمل إيه بعد الجزء ده؟') : (sessionEnded ? 'The explanation is paused here.' : 'What would you like to do next?')}</p>
+          <div>
+            <button type="button" onClick={continueExplanation}>{isAr ? 'نكمل الجزء التالي' : 'Continue'}</button>
+            <button type="button" onClick={showSimulator}>{isAr ? 'ورّيني المحاكي' : 'Show me the simulator'}</button>
+            <button type="button" onClick={() => setSessionEnded(true)}>{isAr ? 'نكتفي هنا' : 'That’s enough'}</button>
+          </div>
+        </div>}
+        {loading && <button className="ve-stop" type="button" onClick={stopExplanation}>{isAr ? 'إيقاف الشرح الآن' : 'Stop explanation'}</button>}
         {failure && <p className="ve-error" role="alert">{failureMessage(failure.code, tutorLanguage)}{failure.retryAfterSeconds ? ` (${failure.retryAfterSeconds}s)` : ''}</p>}
         {loading && !answer && <small className="ve-disclaimer">{isAr ? 'المدرّس بيبحث في المصادر وبيجهز الشرح…' : 'The tutor is retrieving sources and preparing an explanation…'}</small>}
         <form className="ve-input" onSubmit={e => { e.preventDefault(); void ask(question); }}><input value={question} onChange={e => setQuestion(e.target.value)} maxLength={4000} placeholder={isAr ? 'اكتب سؤالك هنا…' : 'Ask a question…'} aria-label={isAr ? 'سؤالك' : 'Your question'}/><button type="submit" disabled={!question.trim() || loading} aria-label={isAr ? 'إرسال' : 'Send'}><Send size={17}/></button></form>

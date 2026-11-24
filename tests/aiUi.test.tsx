@@ -25,15 +25,40 @@ const failingFetch = async (): Promise<Response> => {
 Object.assign(globalThis, { fetch: failingFetch });
 
 const { EducationalAcademy } = await import('../src/components/EducationalAcademy');
-const { VirtualEngineer } = await import('../src/components/academy/VirtualEngineer');
+const { VirtualEngineer, simulatorForQuestion, readLessonCheckpoint, saveLessonCheckpoint, clearLessonCheckpoint } = await import('../src/components/academy/VirtualEngineer');
 const { SemanticSearchBar } = await import('../src/components/academy/SemanticSearchBar');
 const { render, cleanup, fireEvent, waitFor } = await import('@testing-library/react');
 
 const OLD_CANNED_TEXT = 'في تقنيات الفحص غير الإتلافي والمعالجة الحرارية، يتم تطبيق مواصفات ASME';
 
 
+
+
+test('lesson checkpoints persist safely and are scoped to the selected language', () => {
+  clearLessonCheckpoint();
+  assert.equal(readLessonCheckpoint('ar'), null);
+  saveLessonCheckpoint({ language: 'ar', topic: 'شرح معايرة DAC', answer: 'نبدأ بالنبضة المرجعية.', focus: 'dac' });
+  const restored = readLessonCheckpoint('ar');
+  assert.ok(restored);
+  assert.equal(restored.topic, 'شرح معايرة DAC');
+  assert.equal(restored.answer, 'نبدأ بالنبضة المرجعية.');
+  assert.equal(restored.focus, 'dac');
+  assert.equal(readLessonCheckpoint('en'), null);
+  clearLessonCheckpoint();
+  assert.equal(readLessonCheckpoint('ar'), null);
+});
+
+test('the virtual engineer routes lesson topics to the matching simulator', () => {
+  assert.equal(simulatorForQuestion('Explain phased array PAUT'), 'paut_controller');
+  assert.equal(simulatorForQuestion('Explain DAC calibration'), 'dac_builder');
+  assert.equal(simulatorForQuestion('V1/V2 calibration'), 'v1_v2_calibration');
+  assert.equal(simulatorForQuestion('How do I read an A-Scan?'), 'weld_simulator');
+  assert.equal(simulatorForQuestion('UT principles and TOFD'), 'weld_simulator');
+  assert.equal(simulatorForQuestion('RT radiography'), 'rt_lab');
+});
+
 test('the virtual engineer uses the honest tutor gateway status instead of canned answers', async () => {
-  const ui = render(<VirtualEngineer language="ar" route="learn" />);
+  const ui = render(<VirtualEngineer language="ar" route="learn" onOpenHash={() => {}} />);
   const launcher = [...ui.container.querySelectorAll('button')].find(button =>
     /المهندس الافتراضي/.test(button.textContent || '')
   );

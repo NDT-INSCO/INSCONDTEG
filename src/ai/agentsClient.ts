@@ -19,12 +19,18 @@ export function agentUrl(path: string): string {
 export class AgentApiError extends Error {
   readonly status: number;
   readonly code: string;
+  /**
+   * Set when the second engine (Manus) picked the request up but is still working: the
+   * task keeps running after this response, so the reader gets a link that outlives it.
+   */
+  readonly manusTaskUrl?: string;
 
-  constructor(message: string, status: number, code = 'agent_error') {
+  constructor(message: string, status: number, code = 'agent_error', manusTaskUrl?: string) {
     super(message);
     this.name = 'AgentApiError';
     this.status = status;
     this.code = code;
+    this.manusTaskUrl = manusTaskUrl;
   }
 }
 
@@ -51,7 +57,7 @@ async function postAgentJson<TReq, TRes>(
   });
 
   const data = (await res.json().catch(() => ({}))) as {
-    error?: { code?: string; message?: string };
+    error?: { code?: string; message?: string; manus?: { taskId?: string; taskUrl?: string } };
   } & TRes;
 
   if (!res.ok) {
@@ -65,7 +71,7 @@ async function postAgentJson<TReq, TRes>(
         : code === 'not_configured'
           ? 'No GEMINI_API_KEY on the server that hosts /api/ai/*.'
           : `AI service unavailable (HTTP ${res.status}).`);
-    throw new AgentApiError(msg, res.status, code);
+    throw new AgentApiError(msg, res.status, code, data?.error?.manus?.taskUrl);
   }
 
   return data as TRes;

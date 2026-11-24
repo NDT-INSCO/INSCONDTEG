@@ -33,6 +33,9 @@ export const UNIVERSITY_LIMITS = {
 
 export type UniversityMode = 'live' | 'seed' | 'unreachable' | 'not_configured';
 
+/** Where the runtime archive physically lives. */
+export type UniversityStoreBackend = 'firestore' | 'file' | 'memory';
+
 export interface UniversityStatus {
   /** True when an AI gateway (GEMINI_API_KEY) is configured on the server. */
   configured: boolean;
@@ -40,6 +43,8 @@ export interface UniversityStatus {
   model: string | null;
   /** How many records the runtime archive holds right now (seed excluded). */
   runtimeRecords: number;
+  /** Present on newer gateways: firestore (always-on, free-tier), file (host disk) or memory (ephemeral). */
+  store?: UniversityStoreBackend;
   version: string;
 }
 
@@ -104,6 +109,7 @@ export interface UniversitySynthesizeResponse {
   cellId: string;
   mergedCount: number;
   persisted: boolean;
+  store?: UniversityStoreBackend;
   message: { ar: string; en: string };
   records: UniversityCollectedRecordPayload[];
   changes: {
@@ -170,6 +176,7 @@ export interface UniversityArchiveResponse {
   /** Records collected/evolved at runtime — the reviewed seed is bundled separately. */
   records: UniversityCollectedRecordPayload[];
   persisted: boolean;
+  store?: UniversityStoreBackend;
 }
 
 /* ------------------------------ normalisers ------------------------------ */

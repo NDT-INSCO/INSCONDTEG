@@ -53,6 +53,7 @@ import {
 import type {
   UniversityCollectResponse,
   UniversityOrganizeResponse,
+  UniversityStoreBackend,
   UniversitySynthesizeResponse,
 } from '../../ai/universityContract';
 
@@ -616,7 +617,8 @@ export const ArchiveTab: React.FC<{
   organizeError: string | null;
   onOrganize: () => void;
   filtered: KnowledgeRecord[];
-}> = ({ isAr, stats, query, onQueryChange, dept, onDeptChange, statusFilter, onStatusFilterChange, organizing, organizeResult, organizeError, onOrganize, filtered }) => (
+  store?: UniversityStoreBackend;
+}> = ({ isAr, stats, query, onQueryChange, dept, onDeptChange, statusFilter, onStatusFilterChange, organizing, organizeResult, organizeError, onOrganize, filtered, store }) => (
   <div className="space-y-4">
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div className="max-w-2xl">
@@ -731,8 +733,15 @@ export const ArchiveTab: React.FC<{
     </div>
     <p className="text-[9px] text-slate-500">
       {isAr
-        ? `يعرض ${Math.min(filtered.length, 60)} من ${filtered.length} سجلًا مطابقًا. الأرشيف الحي (المجموع من الإنترنت) محفوظ على الخادم المستضيف؛ على النسخة الثابتة تُفهرس البذور الموثقة فقط.`
-        : `Showing ${Math.min(filtered.length, 60)} of ${filtered.length} matching records. The runtime archive lives on the hosting server; the static build indexes the reviewed seed only.`}
+        ? `يعرض ${Math.min(filtered.length, 60)} من ${filtered.length} سجلًا مطابقًا. `
+        : `Showing ${Math.min(filtered.length, 60)} of ${filtered.length} matching records. `}
+      {store === 'firestore'
+        ? (isAr ? 'الأرشيف الحي محفوظ في Firestore (قاعدة بيانات INSCO) — دائم ولا ينمحي مع إعادة النشر، ضمن الطبقة المجانية.' : 'The runtime archive is persisted in Firestore (the INSCO database) — durable across redeploys, within the free tier.')
+        : store === 'file'
+          ? (isAr ? 'الأرشيف الحي محفوظ في ملف على خادم الاستضافة — يدوم ما دام القرص باقيًا.' : 'The runtime archive is persisted to a file on the hosting server — durable as long as the disk remains.')
+          : store === 'memory'
+            ? (isAr ? 'الأرشيف الحي في ذاكرة العملية فقط — ينمحي عند إعادة التشغيل (لا توجد بيانات اعتماد Firestore على هذه النسخة).' : 'The runtime archive lives in process memory — cleared on restart (no Firestore credentials on this build).')
+            : (isAr ? 'الأرشيف الحي محفوظ على الخادم المستضيف؛ على النسخة الثابتة تُفهرس البذور الموثقة فقط.' : 'The runtime archive lives on the hosting server; the static build indexes the reviewed seed only.')}
     </p>
   </div>
 );

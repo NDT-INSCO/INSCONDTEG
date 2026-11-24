@@ -425,6 +425,13 @@ export const InscoUniversity: React.FC<{ language: Language }> = ({ language }) 
                   : (isAr ? 'وضع الأرشيف الموثق (بلا بوابة)' : 'Reviewed-archive mode (no gateway)')}
             </span>
             <p className="text-[10px] font-mono-code text-slate-500">GEMINI_API_KEY → {status?.configured ? (isAr ? 'موجود' : 'present') : (isAr ? 'غير موجود على هذه النسخة' : 'absent on this build')}</p>
+            <p className="text-[10px] font-mono-code text-slate-500">ARCHIVE → {status?.store === 'firestore'
+              ? (isAr ? 'Firestore — دائم (مجاني)' : 'Firestore — durable (free tier)')
+              : status?.store === 'file'
+                ? (isAr ? 'ملف على الخادم — يدوم' : 'host file — durable')
+                : status?.store === 'memory'
+                  ? (isAr ? 'ذاكرة مؤقتة — ينمحي عند إعادة التشغيل' : 'in-memory — cleared on restart')
+                  : (isAr ? '…' : '…')}</p>
           </div>
         </div>
 
@@ -545,6 +552,7 @@ export const InscoUniversity: React.FC<{ language: Language }> = ({ language }) 
           organizeError={organizeError}
           onOrganize={runOrganize}
           filtered={filteredArchive}
+          store={status?.store}
         />
       )}
       {tab === 'lab' && (

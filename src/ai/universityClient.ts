@@ -41,6 +41,7 @@ const offlineStatus = (note: UniversityStatus['mode'] = 'not_configured'): Unive
   mode: note,
   model: null,
   runtimeRecords: 0,
+  store: 'memory',
   version: 'university-1',
 });
 
@@ -58,11 +59,13 @@ export async function fetchUniversityStatus(timeoutMs = 2500): Promise<Universit
     if (!response.ok) return offlineStatus('unreachable');
     const data = (await response.json()) as Partial<UniversityStatus>;
     if (typeof data?.configured !== 'boolean') return offlineStatus('unreachable');
+    const store = data.store === 'firestore' || data.store === 'file' || data.store === 'memory' ? data.store : undefined;
     return {
       configured: data.configured,
       mode: data.mode === 'live' ? 'live' : 'not_configured',
       model: typeof data.model === 'string' ? data.model : null,
       runtimeRecords: typeof data.runtimeRecords === 'number' ? data.runtimeRecords : 0,
+      store,
       version: typeof data.version === 'string' ? data.version : 'university-1',
     };
   } catch {

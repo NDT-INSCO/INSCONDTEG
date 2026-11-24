@@ -1,85 +1,76 @@
 /**
- * Runtime archive persistence for the Robotic University — a small JSON store
- * for knowledge records collected live from the internet or evolved by the
- * neural cells. The reviewed seed ships inside the bundle
- * (`src/data/universitySeed.ts`) and is read directly; this store only holds
- * what the platform itself produced at runtime.
+ * Runtime archive facade for the Robotic University — one promise-shaped API,
+ * three backends selected at first use:
  *
- * Design rules:
- *   - atomic write (tmp + rename), tolerant reads (corrupt file ⇒ empty store,
- *     error logged, never a crash);
- *   - every record read back is re-validated — a poisoned archive file cannot
- *     inject script or non-HTTPS links into the UI;
- *   - on hosts without a writable disk (e.g. serverless), writes fail loudly
- *     and callers report `persisted: false` instead of pretending success.
+ *   firestore  دائم ومجاني (within the Spark quota) — when the host carries a
+ *              service account (FIREBASE_SERVICE_ACCOUNT_JSON or
+ *              GOOGLE_APPLICATION_CREDENTIALS). Survives redeploys on Vercel.
+ *   file       JSON on a writable disk (a self-hosted Node host) — default
+ *              outside serverless when no Firestore credentials exist.
+ *   memory     هذا كل شيء — when there is no port of call at all (serverless
+ *              without Firestore, or a read-only fs). Works; forgets on exit.
+ *
+ * Force a backend with UNIVERSITY_STORE=firestore|file|memory (used by the
+ * tests and available for ops debugging). Every backend re-validates records
+ * on read — see runtimeRecords.ts.
  */
-import { accessSync, constants, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync, accessSync, constants } from 'node:fs';
 import path from 'node:path';
+import type { KnowledgeRecord } from '../../src/data/universityKnowledge.js';
 import {
-  normaliseKnowledgeRecord,
-  type KnowledgeRecord,
-} from '../../src/data/universityKnowledge.js';
+  cleanRuntimeRecords,
+  asRuntimeId,
+  RUNTIME_RECORD_CAP,
+} from './runtimeRecords.js';
+import {
+  createFirestoreUniversityStore,
+  hasFirestoreCredentials,
+  type FirestoreArchiveStore,
+} from './firestoreStore.js';
 
-export const RUNTIME_RECORD_CAP = 500;
+export type UniversityStoreBackend = 'firestore' | 'file' | 'memory';
+export { asRuntimeId, RUNTIME_RECORD_CAP };
 
 const storePath =
   (process.env.UNIVERSITY_ARCHIVE_PATH || '').trim() ||
   path.join(process.cwd(), '.admin-data', 'university-archive.json');
 
-let cache: KnowledgeRecord[] | null = null;
+/* ------------------------- pure backend selection ------------------------- */
 
-function isValidRuntimeRecord(raw: unknown): raw is KnowledgeRecord {
-  if (!raw || typeof raw !== 'object') return false;
-  const record = raw as Record<string, unknown>;
-  const departmentId = typeof record.departmentId === 'string' ? record.departmentId : '';
-  const normalised = normaliseKnowledgeRecord(
-    {
-      titleAr: record.titleAr,
-      titleEn: record.titleEn,
-      summaryAr: record.summaryAr,
-      summaryEn: record.summaryEn,
-      keyPointsAr: record.keyPointsAr,
-      keyPointsEn: record.keyPointsEn,
-      formula: record.formula,
-      sources: record.sources,
-    },
-    { departmentId, collectedBy: 'archive-load', nowIso: '2026-01-01T00:00:00.000Z' }
-  );
-  if (!normalised) return false;
-  return (
-    typeof record.id === 'string' &&
-    typeof record.code === 'string' &&
-    (record.status === 'reviewed' || record.status === 'pending-review') &&
-    typeof record.version === 'number' &&
-    Array.isArray(record.evolvedBy)
-  );
+export function selectBackendName(
+  env: NodeJS.ProcessEnv,
+  firestoreAvailable: boolean,
+  fileWritable: boolean
+): UniversityStoreBackend {
+  const forced = (env.UNIVERSITY_STORE || '').trim().toLowerCase();
+  if (forced === 'memory') return 'memory';
+  if (forced === 'file') return fileWritable ? 'file' : 'memory';
+  if (forced === 'firestore') return firestoreAvailable ? 'firestore' : 'memory';
+  return firestoreAvailable ? 'firestore' : fileWritable ? 'file' : 'memory';
 }
 
-export function loadRuntimeArchive(): KnowledgeRecord[] {
-  if (cache) return cache;
+/* ------------------------------ file backend ------------------------------ */
+
+let fileCache: KnowledgeRecord[] | null = null;
+
+function loadFile(): KnowledgeRecord[] {
+  if (fileCache) return fileCache;
   try {
     if (!existsSync(storePath)) {
-      cache = [];
-      return cache;
+      fileCache = [];
+      return fileCache;
     }
     const parsed = JSON.parse(readFileSync(storePath, 'utf8')) as unknown;
-    const records = Array.isArray(parsed) ? parsed : [];
-    cache = records.filter(isValidRuntimeRecord).slice(0, RUNTIME_RECORD_CAP);
-    return cache;
+    fileCache = cleanRuntimeRecords(Array.isArray(parsed) ? parsed : []);
+    return fileCache;
   } catch (error) {
     console.error('[university] runtime archive unreadable, starting empty:', error);
-    cache = [];
-    return cache;
+    fileCache = [];
+    return fileCache;
   }
 }
 
-export interface SaveResult {
-  records: KnowledgeRecord[];
-  persisted: boolean;
-  evicted: number;
-}
-
-function save(records: KnowledgeRecord[]): SaveResult {
+function saveFile(records: KnowledgeRecord[]): { records: KnowledgeRecord[]; persisted: boolean; evicted: number } {
   const trimmed = records.slice(-RUNTIME_RECORD_CAP);
   const evicted = records.length - trimmed.length;
   try {
@@ -87,40 +78,31 @@ function save(records: KnowledgeRecord[]): SaveResult {
     const tmp = `${storePath}.tmp-${process.pid}`;
     writeFileSync(tmp, JSON.stringify(trimmed, null, 2), 'utf8');
     renameSync(tmp, storePath);
-    cache = trimmed;
+    fileCache = trimmed;
     return { records: trimmed, persisted: true, evicted };
   } catch (error) {
     console.error('[university] runtime archive not writable on this host:', error);
-    cache = trimmed; // keep serving the in-memory copy for this process
+    fileCache = trimmed; // serve the in-memory copy for this process
     return { records: trimmed, persisted: false, evicted };
   }
 }
 
-/** Append new runtime records (collector output). */
-export function appendRuntimeRecords(newRecords: KnowledgeRecord[]): SaveResult {
-  const current = loadRuntimeArchive();
-  return save([...current, ...newRecords]);
-}
+const fileBackend = {
+  async load() {
+    return loadFile();
+  },
+  async append(records: KnowledgeRecord[]) {
+    return saveFile([...loadFile(), ...records]);
+  },
+  async replaceDepartment(departmentId: string, evolved: KnowledgeRecord[]) {
+    const current = loadFile();
+    const kept = current.filter(record => record.departmentId !== departmentId);
+    const result = saveFile([...kept, ...evolved]);
+    return { ...result, kept: kept.length };
+  },
+};
 
-/** Replace the runtime records of one department with evolved ones. */
-export function replaceRuntimeRecords(
-  departmentId: string,
-  evolved: KnowledgeRecord[]
-): SaveResult & { kept: number } {
-  const current = loadRuntimeArchive();
-  const kept = current.filter(record => record.departmentId !== departmentId);
-  const result = save([...kept, ...evolved]);
-  return { ...result, kept: kept.length };
-}
-
-/** Runtime records whose seed counterpart exists are rewritten to live ids on merge. */
-export function asRuntimeId(record: KnowledgeRecord): KnowledgeRecord {
-  if (record.id.includes('-live-')) return record;
-  return { ...record, id: record.id.replace(/^kb-/, 'kb-live-') };
-}
-
-/** True when the host allows writing the archive (probed, cheap). */
-export function storeIsWritable(): boolean {
+function fileIsWritable(): boolean {
   try {
     mkdirSync(path.dirname(storePath), { recursive: true });
     accessSync(path.dirname(storePath), constants.W_OK);
@@ -130,6 +112,118 @@ export function storeIsWritable(): boolean {
   }
 }
 
+/* ----------------------------- memory backend ----------------------------- */
+
+let memoryRecords: KnowledgeRecord[] = [];
+
+const memoryBackend = {
+  async load() {
+    return memoryRecords;
+  },
+  async append(records: KnowledgeRecord[]) {
+    const next = [...memoryRecords, ...records].slice(-RUNTIME_RECORD_CAP);
+    const evicted = memoryRecords.length + records.length - next.length;
+    memoryRecords = next;
+    return { records: next, persisted: false, evicted };
+  },
+  async replaceDepartment(departmentId: string, evolved: KnowledgeRecord[]) {
+    const kept = memoryRecords.filter(record => record.departmentId !== departmentId);
+    const next = [...kept, ...evolved].slice(-RUNTIME_RECORD_CAP);
+    const evicted = Math.max(0, kept.length + evolved.length - next.length);
+    memoryRecords = next;
+    return { records: next, persisted: false, evicted, kept: kept.length };
+  },
+};
+
+/* ------------------------------- the facade ------------------------------- */
+
+interface ResolvedBackend {
+  backend: UniversityStoreBackend;
+  load(): Promise<KnowledgeRecord[]>;
+  append(records: KnowledgeRecord[]): ReturnType<typeof fileBackend.append>;
+  replaceDepartment(
+    departmentId: string,
+    evolved: KnowledgeRecord[]
+  ): ReturnType<typeof fileBackend.replaceDepartment>;
+  isWritable(): Promise<boolean>;
+}
+
+let resolved: ResolvedBackend | null = null;
+
+async function resolveBackend(): Promise<ResolvedBackend> {
+  if (resolved) return resolved;
+
+  const fileWritable = fileIsWritable();
+  let firestore: FirestoreArchiveStore | null = null;
+  if (hasFirestoreCredentials()) {
+    // createFirestoreUniversityStore returns null instead of throwing on any problem.
+    firestore = await createFirestoreUniversityStore(process.env);
+  }
+
+  const backend = selectBackendName(process.env, Boolean(firestore), fileWritable);
+  if (backend === 'firestore' && firestore) {
+    resolved = {
+      backend: 'firestore',
+      load: () => firestore!.load(),
+      append: records => firestore!.append(records),
+      replaceDepartment: (departmentId, evolved) => firestore!.replaceDepartment(departmentId, evolved),
+      isWritable: () => firestore!.isWritable(),
+    };
+    return resolved;
+  }
+  if (backend === 'file') {
+    resolved = {
+      backend: 'file',
+      load: () => fileBackend.load(),
+      append: records => fileBackend.append(records),
+      replaceDepartment: (departmentId, evolved) => fileBackend.replaceDepartment(departmentId, evolved),
+      isWritable: async () => fileIsWritable(),
+    };
+    return resolved;
+  }
+  console.warn('[university] no persistent archive available (no Firestore credentials, no writable disk) — running on in-memory storage for this process.');
+  resolved = {
+    backend: 'memory',
+    load: () => memoryBackend.load(),
+    append: records => memoryBackend.append(records),
+    replaceDepartment: (departmentId, evolved) => memoryBackend.replaceDepartment(departmentId, evolved),
+    isWritable: async () => false,
+  };
+  return resolved;
+}
+
+export async function storeBackend(): Promise<UniversityStoreBackend> {
+  return (await resolveBackend()).backend;
+}
+
+export async function loadRuntimeArchive(): Promise<KnowledgeRecord[]> {
+  return (await resolveBackend()).load();
+}
+
+export async function appendRuntimeRecords(
+  newRecords: KnowledgeRecord[]
+): Promise<{ records: KnowledgeRecord[]; persisted: boolean; evicted: number }> {
+  return (await resolveBackend()).append(newRecords);
+}
+
+export async function replaceRuntimeRecords(
+  departmentId: string,
+  evolved: KnowledgeRecord[]
+): Promise<{ records: KnowledgeRecord[]; persisted: boolean; evicted: number; kept: number }> {
+  return (await resolveBackend()).replaceDepartment(departmentId, evolved);
+}
+
+export async function storeIsWritable(): Promise<boolean> {
+  return (await resolveBackend()).isWritable();
+}
+
 export function runtimeArchivePath(): string {
   return storePath;
+}
+
+/** Test hook: drop the memoised backend and caches (never called in production paths). */
+export function resetUniversityStoreForTests(): void {
+  resolved = null;
+  fileCache = null;
+  memoryRecords = [];
 }

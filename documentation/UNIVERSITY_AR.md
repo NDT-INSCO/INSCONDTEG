@@ -87,7 +87,7 @@ MIT OCW · Iowa State NDE-ED · PRSA · AMA…).
 
 | المسار | الطريقة | الغرض |
 | --- | --- | --- |
-| `/api/university/status` | GET | `{configured, mode, model, runtimeRecords, version}` — فحص البوابة بلا استهلاك |
+| `/api/university/status` | GET | `{configured, mode, model, runtimeRecords, store, version}` — فحص البوابة بلا استهلاك |
 | `/api/university/archive` | GET | سجلات الأرشيف الحي فقط (البذور مضمّنة في الحزمة) |
 | `/api/university/collect` | POST | `{departmentId, query?, collectorId?, language}` — جمع حي من الإنترنت عبر Gemini + بحث Google؛ الرد `pending-review` دائمًا؛ بلا مفتاح ⇒ `mode: 'seed'` |
 | `/api/university/synthesize` | POST | `{departmentId, language}` — مذاكرة الخلية العصبية للقسم (دمج + ترقية إصدار) |
@@ -97,11 +97,44 @@ MIT OCW · Iowa State NDE-ED · PRSA · AMA…).
 المتغيرات البيئية: `GEMINI_API_KEY` (أو `API_KEY`) للجمع الحي · `UNIVERSITY_MODEL`
 (اختياري — الافتراضي سلسلة نماذج الوكلاء) · `UNIVERSITY_RATE_PER_MINUTE` (افتراضي 10) ·
 `UNIVERSITY_ARCHIVE_PATH` (اختياري — افتراضي `.admin-data/university-archive.json`،
-لا يُرفع إلى git ويُعاد إنشاؤه تلقائيًا عند أي استضافة بقرص كتابة).
+لا يُرفع إلى git ويُعاد إنشاؤه تلقائيًا عند أي استضافة بقرص كتابة) ·
+`UNIVERSITY_STORE` (اختياري — `firestore` | `file` | `memory`، يجبر الواجهة الخلفية).
 
-الأرشيف الحي (ما جمعه الروبوت فعليًا) يُحفظ على الخادم فقط. على المضيفات بلا قرص
-كتابة (serverless) تعمل البوابة بالكامل والحفظ يرد `persisted: false` بصراحة، ويعمل
-«الأرشيف» في الذاكرة للجلسة فقط.
+الأرشيف الحي (ما جمعه الروبوت فعليًا) يُحفظ على الخادم فقط — عبر واحدة من ثلاث
+واجهات خلفية تُختار تلقائيًا عند أول استخدام (`storeBackend()`):
+
+| الواجهة | متى تُختار | الدوام |
+| --- | --- | --- |
+| **Firestore** (`universityArchive`) | عند وجود بيانات اعتماد خدمة (`FIREBASE_SERVICE_ACCOUNT_JSON` أو الاسم المكافئ `FIREBASE_SERVICE_ACCOUNT` المستخدم في مشروع Vercel الحقيقي، أو `GOOGLE_APPLICATION_CREDENTIALS` يشير لملف JSON) | **دائم** — ينجو من إعادة النشر على Vercel |
+| ملف JSON على القرص | لا توجد بيانات اعتماد Firestore + قرص قابل للكتابة | دائم ما دام القرص باقيًا (VPS/خادم Node) |
+| الذاكرة | لا هذا ولا ذاك (serverless بلا اعتمادات، أو `/tmp` للقراءة فقط) | ينمحي مع العملية — ويرد `persisted: false` بصراحة |
+
+**Firestore بصيغته الحالية مجاني تمامًا** ضمن طبقة Spark: ١ غيغابايت تخزين،
+٥٠٬٠٠٠ قراءة/يوم، ٢٠٬٠٠٠ كتابة/يوم — والأرشيف الحي محدَّد بـ 500 سجل صغير كحد
+أقصى، وعمليات الكتابة تحدث فقط عند تشغيل جامع/خلية/«المُنظِّم» يدويًا. التكلفة
+المتوقعة: صفر. إن تجاوز التطبيق حدود الطبقة المجانية يتوقف Firestore عن التنفيذ
+بدل أن يفوتر (على Spark)، وترد البوابة `persisted: false` بصراحة بدل ادعاء حفظ.
+
+لتفعيل Firestore على Vercel (أو أي مضيف):
+
+1. Firebase Console → المشروع `ai-studio-applet-webapp-18922` → ⚙️ Project settings
+   → Service accounts → **Generate new private key** (ملف JSON — لا يُرفع إلى git أبدًا).
+2. Vercel → Project → Settings → Environment Variables → أضف
+   `FIREBASE_SERVICE_ACCOUNT_JSON` بقيمة محتوى ملف الـ JSON كاملًا في سطر واحد
+   (Production + Preview). ملاحظة واقعية: مشروع Vercel الحقيقي يحمل بالفعل
+   متغير `FIREBASE_SERVICE_ACCOUNT` (production فقط) — البوابة تقرأ كلا الاسمين،
+   والـ JSON الملصوق بأسطر حقيقية داخل `private_key` يُصلَّح تلقائيًا قبل الفك.
+3. (اختياري) `FIREBASE_FIRESTORE_DATABASE_ID` — الافتراضي قاعدة بيانات INSCO
+   المسماة `ai-studio-inscointeractive-2ab74c2d-acdd-4fa3-a16b-53ea46221179` (نفس
+   المستخدمة في `firebase-applet-config.json`)، و`FIREBASE_PROJECT_ID` إن اختلف المشروع.
+4. أعد النشر — ستظهر `store: 'firestore'` في `/api/university/status` و«ARCHIVE →
+   Firestore — دائم» في واجهة الجامعة.
+
+**الأمان:** الكتابة تتم بصلاحية Admin SDK من الخادم فقط — لا تكتب من المتصفح أبدًا.
+`firestore.rules` تبقى `default-deny` كما هي (لا يفتح بوابة جديدة، ولا تُضعف).
+سجلات الأرشيف تُتحقق بنيويًا عند الكتابة والقراءة (كود، HTTPS، حالة، إصدار) ولا
+يتجاوز حجم المجموعة 500 سجل (الأقدم يُزال بترتيب `updatedAt`). ملف الخدمة لا يُرتكب
+في المستودعر أبدًا — متغيرات البيئة فقط.
 
 النشر: نفس كود البوابة يعمل في ثلاثة مضيفات — `server.ts` (خادم Node للتطوير
 والاستضافة بقرص)، و`api/university.ts` على Vercel (دالة serverless بحد 60 ثانية،

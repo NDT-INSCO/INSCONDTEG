@@ -36,6 +36,7 @@ import {
   asRuntimeId,
   loadRuntimeArchive,
   replaceRuntimeRecords,
+  storeBackend,
   storeIsWritable,
 } from './store.js';
 
@@ -150,22 +151,31 @@ export function createUniversityRouter(options: UniversityGatewayOptions): Route
     : null;
 
   /** Seed + runtime, with runtime records rewritten to archive ids where needed. */
-  const combinedPool = (): KnowledgeRecord[] => [...SEED_KNOWLEDGE, ...loadRuntimeArchive().map(asRuntimeId)];
+  const combinedPool = async (): Promise<KnowledgeRecord[]> => [
+    ...SEED_KNOWLEDGE,
+    ...(await loadRuntimeArchive()).map(asRuntimeId),
+  ];
 
   /* ------------------------------- status -------------------------------- */
-  router.get('/status', (_req, res) => {
+  router.get('/status', async (_req, res) => {
     res.json({
       configured: Boolean(ai),
       mode: ai ? 'live' : 'not_configured',
       model: ai ? modelChain[0] : null,
-      runtimeRecords: loadRuntimeArchive().length,
+      runtimeRecords: (await loadRuntimeArchive()).length,
+      store: await storeBackend(),
       version: 'university-1',
     });
   });
 
   /* ------------------------------ archive -------------------------------- */
-  router.get('/archive', (_req, res) => {
-    res.json({ ok: true, records: loadRuntimeArchive().map(asPayload), persisted: storeIsWritable() });
+  router.get('/archive', async (_req, res) => {
+    res.json({
+      ok: true,
+      records: (await loadRuntimeArchive()).map(asPayload),
+      persisted: await storeIsWritable(),
+      store: await storeBackend(),
+    });
   });
 
   /* ------------------------------ collect -------------------------------- */
@@ -258,13 +268,13 @@ export function createUniversityRouter(options: UniversityGatewayOptions): Route
           // The Organising robot assigns archive codes to everything it stores.
           const { records: organised } = organizeKnowledgeRecords([
             ...SEED_KNOWLEDGE,
-            ...loadRuntimeArchive().map(asRuntimeId),
+            ...(await loadRuntimeArchive()).map(asRuntimeId),
             ...collected,
           ]);
           const collectedCoded = organised.filter(candidate =>
             collected.some(entry => entry.id === candidate.id)
           );
-          const saveResult = appendRuntimeRecords(collectedCoded.map(asRuntimeId));
+          const saveResult = await appendRuntimeRecords(collectedCoded.map(asRuntimeId));
 
           return res.json({
             ok: true,
@@ -299,7 +309,7 @@ export function createUniversityRouter(options: UniversityGatewayOptions): Route
   });
 
   /* ---------------------------- synthesize ------------------------------- */
-  router.post('/synthesize', (req: Request, res: Response) => {
+  router.post('/synthesize', async (req: Request, res: Response) => {
     if (!rateLimit(clientKey(req))) {
       return sendError(res, 429, 'rate_limited', 'Rate limit reached — wait a minute and try again.');
     }
@@ -311,7 +321,7 @@ export function createUniversityRouter(options: UniversityGatewayOptions): Route
     const cell = UNIVERSITY_NEURAL_CELLS.find(candidate => candidate.departmentId === department.id)!;
     const isAr = request.language === 'ar';
 
-    const pool = combinedPool().filter(record => record.departmentId === department.id);
+    const pool = (await combinedPool()).filter(record => record.departmentId === department.id);
     const merged = mergeKnowledgeRecords(pool, cell.id);
 
     // Persist only what this department owns at runtime (rewritten to live ids).
@@ -319,8 +329,8 @@ export function createUniversityRouter(options: UniversityGatewayOptions): Route
       .filter(record => record.id.includes('-live-') || record.evolvedBy.includes(cell.id))
       .map(asRuntimeId);
     const saveResult = runtimeOut.length
-      ? replaceRuntimeRecords(department.id, runtimeOut)
-      : { records: [], persisted: false, evicted: 0, kept: loadRuntimeArchive().length };
+      ? await replaceRuntimeRecords(department.id, runtimeOut)
+      : { records: [], persisted: false, evicted: 0, kept: (await loadRuntimeArchive()).length };
 
     res.json({
       ok: true,
@@ -329,6 +339,7 @@ export function createUniversityRouter(options: UniversityGatewayOptions): Route
       cellId: cell.id,
       mergedCount: merged.mergedCount,
       persisted: saveResult.persisted,
+      store: await storeBackend(),
       message: {
         ar: merged.mergedCount > 0
           ? `الخلية «${cell.ar}» دمجت ${merged.mergedCount} فرق مكررة ورفعت الإصدارات — والنتائج «قيد المراجعة».`
@@ -343,12 +354,12 @@ export function createUniversityRouter(options: UniversityGatewayOptions): Route
   });
 
   /* ------------------------------ organize ------------------------------- */
-  router.post('/organize', (req: Request, res: Response) => {
+  router.post('/organize', async (req: Request, res: Response) => {
     if (!rateLimit(clientKey(req))) {
       return sendError(res, 429, 'rate_limited', 'Rate limit reached — wait a minute and try again.');
     }
     const request = normaliseOrganizeRequest(req.body);
-    const organised = organizeKnowledgeRecords(combinedPool());
+    const organised = organizeKnowledgeRecords(await combinedPool());
     // Persist the runtime slice with the codes/statuses the audit produced.
     const runtimeOut = organised.records
       .filter(record => record.id.includes('-live-'))
@@ -356,7 +367,7 @@ export function createUniversityRouter(options: UniversityGatewayOptions): Route
     if (runtimeOut.length) {
       const departments = [...new Set(runtimeOut.map(record => record.departmentId))];
       for (const departmentId of departments) {
-        replaceRuntimeRecords(
+        await replaceRuntimeRecords(
           departmentId,
           runtimeOut.filter(record => record.departmentId === departmentId)
         );
@@ -381,7 +392,7 @@ export function createUniversityRouter(options: UniversityGatewayOptions): Route
   });
 
   /* -------------------------------- teach -------------------------------- */
-  router.post('/lab/teach', (req: Request, res: Response) => {
+  router.post('/lab/teach', async (req: Request, res: Response) => {
     if (!rateLimit(clientKey(req))) {
       return sendError(res, 429, 'rate_limited', 'Rate limit reached — wait a minute and try again.');
     }
@@ -390,7 +401,7 @@ export function createUniversityRouter(options: UniversityGatewayOptions): Route
       return sendError(res, 400, 'bad_request', 'departmentId and targetId must be valid university specialisations and platform agents.');
     }
     const isAr = request.language !== 'en';
-    const pool = combinedPool().filter(record => record.departmentId === request.departmentId);
+    const pool = (await combinedPool()).filter(record => record.departmentId === request.departmentId);
     const source = pool.length ? pool : [...SEED_KNOWLEDGE];
     const pack = buildLabTeachingPack(request.departmentId, request.targetId as PlatformAgentTargetId, source);
     if (!pack) {

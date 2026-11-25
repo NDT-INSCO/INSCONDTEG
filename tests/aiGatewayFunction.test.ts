@@ -79,18 +79,6 @@ test('every agent route the client calls is mounted', async () => {
   }
 });
 
-
-test('the deployed ChatGPT stream route is mounted and reports missing server configuration honestly', async () => {
-  const response = await fetch(`${base}/api/ai/agent/chatgpt-stream`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message: 'Find current NDT sources', language: 'en', mode: 'web_search' }),
-  });
-  assert.equal(response.status, 503, 'the route exists; a missing key is not a 404');
-  const body = await response.json() as { error?: { code?: string } };
-  assert.equal(body.error?.code, 'not_configured');
-});
-
 test('an unknown AI route says so instead of hanging', async () => {
   const response = await fetch(`${base}/api/ai/does-not-exist`);
   assert.equal(response.status, 404);

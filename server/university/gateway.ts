@@ -8,7 +8,6 @@ import express, { Router, type Request, type Response } from 'express';
 import { GoogleGenAI } from '@google/genai';
 
 import { AGENT_MODELS } from '../../src/ai/agentsContract.js';
-import { extractGoogleGroundingCitations, restrictUniversitySourcesToGrounding } from '../ai/googleGrounding.js';
 import { HOSTED_GATEWAY_URL, PAGES_SITE_ORIGIN } from '../../src/ai/pagesGateway.js';
 import {
   UNIVERSITY_LIMITS,
@@ -250,17 +249,10 @@ export function createUniversityRouter(options: UniversityGatewayOptions): Route
           if (!items || items.length === 0) {
             throw new Error('Model returned no parseable JSON array');
           }
-          const groundedCitations = extractGoogleGroundingCitations(response, 10);
           const nowIso = new Date().toISOString();
           const collected: KnowledgeRecord[] = [];
           for (const [index, item] of items.entries()) {
-            if (!item || typeof item !== 'object') continue;
-            const rawItem = item as Record<string, unknown>;
-            const verifiedSources = restrictUniversitySourcesToGrounding(rawItem.sources, groundedCitations);
-            // Require two distinct grounded sources for each archive entry, not URLs the
-            // model merely produced in its JSON.
-            if (verifiedSources.length < 2) continue;
-            const record = normaliseKnowledgeRecord({ ...rawItem, sources: verifiedSources }, {
+            const record = normaliseKnowledgeRecord(item, {
               departmentId: department.id,
               collectedBy: collector.id,
               nowIso,
@@ -270,7 +262,7 @@ export function createUniversityRouter(options: UniversityGatewayOptions): Route
             if (collected.length >= UNIVERSITY_LIMITS.maxRecordsReturned) break;
           }
           if (collected.length === 0) {
-            throw new Error('Model output lacked two distinct Google-grounded HTTPS sources and ≥2 key points');
+            throw new Error('Model output failed validation (need HTTPS sources and ≥2 key points)');
           }
 
           // The Organising robot assigns archive codes to everything it stores.

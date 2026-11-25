@@ -277,3 +277,28 @@ test('no factory model key never makes drafts look available', async t => {
   assert.equal(res.status, 503);
   assert.deepEqual(await res.json(), { error: 'factory_not_configured' });
 });
+
+
+test('agent proposals persist behind admin auth and require a one-time human review', async t => {
+  const { call, login, store } = await fixture(t, { persisted: true });
+  const path = `${ADMIN_API}/agents/tasks`;
+  assert.equal((await call(path)).status, 401);
+  const { cookie } = await login();
+  assert.equal((await call(path, { cookie, method: 'POST', body: { agent: 'unknown', title: 'Run code', summary: 'unsafe' } })).status, 400);
+  const created = await call(path, { cookie, method: 'POST', body: {
+    agent: 'site-manager', title: 'Review broken navigation', summary: 'Prepare a report for the administrator.',
+  } });
+  assert.equal(created.status, 201);
+  const task = await created.json();
+  assert.equal(task.status, 'proposed');
+  assert.equal(typeof task.id, 'string');
+  assert.equal((await call(path, { cookie })).status, 200);
+  const approved = await call(`${path}/${task.id}`, { cookie, method: 'PATCH', body: { decision: 'approved' } });
+  assert.equal(approved.status, 200);
+  assert.equal((await approved.json()).status, 'approved');
+  assert.equal((await call(`${path}/${task.id}`, { cookie, method: 'PATCH', body: { decision: 'rejected' } })).status, 409);
+  assert.deepEqual(await store!.agentTaskEvents(task.id), [
+    { event: 'proposed', actor: 'site-manager', createdAt: task.createdAt },
+    { event: 'approved', actor: 'admin-session', createdAt: (await store!.agentTask(task.id))!.reviewedAt },
+  ]);
+});

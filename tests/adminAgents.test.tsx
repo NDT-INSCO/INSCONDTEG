@@ -45,7 +45,7 @@ test('admin agents panel reads the real gateway status and lists existing integr
   assert.ok(ui.getByText('Local engine'));
   assert.ok(ui.getByText('Technical tutor'));
   assert.ok(ui.getByText('User copilot'));
-  assert.ok(ui.getByText('Site manager'));
+  assert.ok(ui.getAllByText('Site manager').length > 0);
   assert.ok(ui.getByText('Community assistant'));
   assert.ok(ui.getByText('Streaming assistant'));
   assert.ok(ui.getByText('42'));

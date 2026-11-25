@@ -24,7 +24,9 @@ afterEach(() => {
 
 test('admin agents panel reads the real gateway status and lists existing integrated capabilities', async () => {
   globalThis.fetch = async input => {
-    assert.equal(String(input), '/api/ai/status');
+    const url = String(input);
+    if (url === '/api/admin/agents/tasks') return Response.json({ items: [] });
+    assert.equal(url, '/api/ai/status');
     return Response.json({
       configured: true,
       reason: 'ok',

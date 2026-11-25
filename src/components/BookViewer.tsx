@@ -120,8 +120,18 @@ export const BookViewer: React.FC<BookViewerProps> = ({
     const target = NDT_TEXTBOOKS.find(book => book.id === initialBookId);
     if (!target) return;
     setSelectedBookId(target.id);
-    const index = Math.min(Math.max((initialPageNumber || 1) - 1, 0), target.pages.length - 1);
-    setCurrentPageIndex(index);
+    if (Number.isInteger(initialPageNumber) && (initialPageNumber || 0) > 0) {
+      const index = Math.min(Math.max((initialPageNumber as number) - 1, 0), target.pages.length - 1);
+      setCurrentPageIndex(index);
+      return;
+    }
+    try {
+      const saved = JSON.parse(localStorage.getItem('insco_book_reading_progress') || '{}');
+      const savedPage = Number(saved[target.id]);
+      setCurrentPageIndex(Number.isInteger(savedPage) && savedPage >= 1 && savedPage <= target.pages.length ? savedPage - 1 : 0);
+    } catch {
+      setCurrentPageIndex(0);
+    }
   }, [initialBookId, initialPageNumber, navigationNonce]);
 
   // 3D Flip animation state

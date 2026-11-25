@@ -42,7 +42,8 @@
   -webkit-user-select: text;
   box-shadow: 0 5px 24px rgba(32,24,15,.13), inset 0 0 42px rgba(139,94,60,.07);
 }
-.insco-book-page > div:first-child {
+.insco-book-page > div:first-child,
+.insco-book-page > div:nth-child(2) {
   max-width: 850px;
   width: 100%;
   margin-inline: auto;

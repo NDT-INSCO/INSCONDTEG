@@ -373,7 +373,7 @@ textarea.ad-input { resize: vertical; line-height: 1.65; }
   .ad-sidebar-bottom .ad-nav-button { min-width: 42px; justify-content: center; }
   .ad-sidebar-nav { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .ad-sidebar-nav .ad-nav-button { grid-column: span 2; }
-  .ad-sidebar-nav .ad-nav-button:nth-last-child(-n + 2) { grid-column: span 3; }
+  .ad-sidebar-nav .ad-nav-button:nth-last-child(-n + 2) { grid-column: span 2; }
   .ad-welcome-art { display: none; }
   .ad-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .ad-metric { padding: 12px; }

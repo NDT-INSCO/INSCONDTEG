@@ -298,20 +298,24 @@ test('the academy bar is a bounded grid, so its icons cannot leave the page', as
   });
 });
 
-test('the academy home stacks its sections one under the other', async () => {
+test('the academy home presents six core journey steps and a separate university destination', async () => {
   const { AcademyHub } = await import('../src/components/academy/AcademyHub');
-  const ui = render(<AcademyHub language="ar" onOpenHash={() => {}} />);
+  const opened: string[] = [];
+  const ui = render(<AcademyHub language="ar" onOpenHash={hash => opened.push(hash)} />);
 
-  const list = ui.getByRole('region', { name: 'أقسام الأكاديمية' });
-  assert.ok(list.className.includes('space-y-2'), 'the sections are a vertical list');
+  const list = ui.getByRole('region', { name: 'رحلة التعلم الأساسية' });
+  assert.ok(list.className.includes('space-y-2'), 'the core journey is a vertical list');
   assert.doesNotMatch(list.className, /grid-cols-3/);
 
   const rows = [...list.querySelectorAll('button')];
-  assert.equal(rows.length, 7, 'seven sections, one row each');
+  assert.equal(rows.length, 6, 'six sequential learning steps, one row each');
   for (const row of rows) {
-    assert.ok(row.className.includes('w-full'), 'a section row spans the page width');
+    assert.ok(row.className.includes('w-full'), 'a journey row spans the page width');
     assert.ok(row.querySelector('svg'), 'each row keeps its icon inside a fixed tile');
   }
+
+  fireEvent.click(ui.getByTestId('academy-university-destination'));
+  assert.deepEqual(opened, ['#academy/university']);
 });
 
 /* ------------------------------ the hierarchy ----------------------------- */

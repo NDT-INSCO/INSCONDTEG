@@ -27,6 +27,7 @@ const { AcademyStationNav, buildAcademyStations, stationForTab } = await import(
   '../src/components/academy/AcademyStationNav'
 );
 const { render, fireEvent, cleanup } = await import('@testing-library/react');
+const { AcademyHub } = await import('../src/components/academy/AcademyHub');
 
 const stations = buildAcademyStations({ books: 11, documents: 18, courses: 7, paths: 5 });
 
@@ -96,5 +97,19 @@ test('clicking a station opens its default tab', () => {
   fireEvent.click(ui.getByRole('button', { name: /تابع إنجازك|Track progress/ }));
 
   assert.deepEqual(opened, ['sim_labs_rt', 'completion_map']);
+  cleanup();
+});
+
+
+test('the academy hub presents six sequential learner steps and the university separately', () => {
+  const opened: string[] = [];
+  const ui = render(<AcademyHub language="ar" onOpenHash={hash => opened.push(hash)} />);
+
+  const journey = ui.container.querySelector('section[aria-label="رحلة التعلم الأساسية"]');
+  assert.ok(journey, 'the core learning journey must be visible');
+  assert.equal(journey.querySelectorAll('button').length, 6, 'the learner journey must contain six sequential steps');
+
+  fireEvent.click(ui.getByTestId('academy-university-destination'));
+  assert.deepEqual(opened, ['#academy/university']);
   cleanup();
 });

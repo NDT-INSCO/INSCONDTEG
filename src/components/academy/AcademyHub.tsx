@@ -18,7 +18,7 @@ import { useUserCourseProgress } from '../../utils/userCourseProgressStore';
 import { AcademyPageHeader } from './AcademyShell';
 import {
   ACADEMY_SECTION_COPY,
-  ACADEMY_SECTIONS,
+  ACADEMY_JOURNEY_SECTIONS,
   academySectionLabel,
   disciplineHash,
   type AcademySectionId,
@@ -203,24 +203,24 @@ export const AcademyHub: React.FC<AcademyHubProps> = ({ language, onOpenHash }) 
       </div>
 
       {/*
-        The seven journey sections, one under the other.
+        The six core journey sections, one under the other.
 
         They used to sit in a three-column grid: on a narrow screen the cards
         squeezed and their icons and labels ran into each other. As full-width
         rows every icon has a fixed tile, the text has room to breathe, and the
         order of the journey is read top-to-bottom like a table of contents.
       */}
-      <section aria-label={isAr ? 'أقسام الأكاديمية' : 'Academy sections'} className="space-y-2">
+      <section aria-label={isAr ? 'رحلة التعلم الأساسية' : 'Core learning journey'} className="space-y-2">
         <div className="flex items-center justify-between gap-3 px-1">
           <h3 className="text-sm font-bold text-white">
-            {isAr ? 'أقسام الأكاديمية · رحلة المتعلم' : 'Academy sections · the learner journey'}
+            {isAr ? 'رحلة التعلم الأساسية' : 'Core learning journey'}
           </h3>
           <span className="text-[11px] text-slate-500 tabular-nums">
-            {ACADEMY_SECTIONS.length} {isAr ? 'أقسام' : 'sections'}
+            {ACADEMY_JOURNEY_SECTIONS.length} {isAr ? 'محطات' : 'steps'}
           </span>
         </div>
 
-        {ACADEMY_SECTIONS.map((section, index) => {
+        {ACADEMY_JOURNEY_SECTIONS.map((section, index) => {
           const Icon = SECTION_ICONS[section];
           return (
             <button
@@ -247,6 +247,36 @@ export const AcademyHub: React.FC<AcademyHubProps> = ({ language, onOpenHash }) 
             </button>
           );
         })}
+      </section>
+
+      <section aria-labelledby="academy-university-title" className="rounded-2xl border border-violet-500/30 bg-gradient-to-r from-[#17132b] to-[#10132b] p-4 sm:p-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-start gap-3 min-w-0">
+            <span className="inline-flex shrink-0 items-center justify-center w-10 h-10 rounded-xl bg-violet-500/15 border border-violet-400/30 text-violet-300">
+              <GraduationCap className="w-5 h-5" aria-hidden="true" />
+            </span>
+            <div className="min-w-0 space-y-1">
+              <div className="text-[10px] font-mono uppercase tracking-wider text-violet-300">
+                {isAr ? 'وجهة تعليمية مستقلة' : 'Independent learning destination'}
+              </div>
+              <h3 id="academy-university-title" className="text-sm font-bold text-white">
+                {academySectionLabel('university', isAr ? 'ar' : 'en')}
+              </h3>
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                {isAr ? ACADEMY_SECTION_COPY.university.ar : ACADEMY_SECTION_COPY.university.en}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            data-testid="academy-university-destination"
+            onClick={() => onOpenHash('#academy/university')}
+            className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-violet-400/40 bg-violet-500/10 px-3.5 py-2 text-xs font-bold text-violet-200 hover:bg-violet-500/20 transition cursor-pointer"
+          >
+            <span>{isAr ? 'افتح الجامعة الروبوتية' : 'Open Robotic University'}</span>
+            <ArrowIcon className="w-3.5 h-3.5" aria-hidden="true" />
+          </button>
+        </div>
       </section>
     </div>
   );

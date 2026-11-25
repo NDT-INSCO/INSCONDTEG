@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import './BookViewer.css';
 import { clickable, clickableRow } from '../utils/a11y';
 import { 
   BookOpen, 

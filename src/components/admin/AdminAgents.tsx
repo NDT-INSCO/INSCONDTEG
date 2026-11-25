@@ -147,8 +147,8 @@ export function AdminAgents({ language, active }: AdminAgentsProps) {
 
       <section className="ad-panel">
         <div className="ad-panel-heading">
-          <div><h2><Activity size={19} aria-hidden="true" />{ar ? 'طابور مقترحات الوكلاء' : 'Agent proposal queue'}</h2>
-            <p>{ar ? 'المقترحات محفوظة في قاعدة بيانات الإدارة. الموافقة تسجل القرار فقط ولا تشغّل كودًا أو تنشر تغييرات تلقائيًا.' : 'Proposals are stored in the admin database. Approval records the decision only; it does not run code or publish changes.'}</p></div>
+          <div><h2><Activity size={19} aria-hidden="true" />{ar ? 'مقترحات مهام الوكلاء (إدخال إداري)' : 'Agent task proposals (admin-created)'}</h2>
+            <p>{ar ? 'يمكن للمشرف تسجيل مقترح باسم أحد الوكلاء لمراجعته. الموافقة تسجل القرار فقط ولا تشغّل كودًا أو تنشر تغييرات تلقائيًا.' : 'An administrator can record a proposal under an agent role for review. Approval records the decision only; it does not run code or publish changes.'}</p></div>
           <button type="button" className="ad-button ad-button-muted" onClick={() => void loadTasks()} disabled={tasksLoading}>{ar ? 'تحديث' : 'Refresh'}</button>
         </div>
         <form className="ad-agent-task-form" onSubmit={submitTask}>

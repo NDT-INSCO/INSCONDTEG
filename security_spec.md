@@ -26,3 +26,15 @@
 11. **Tampering Historical Attendance Logs**: Any user attempting `PATCH /companies/co1/attendance/log1` -> `PERMISSION_DENIED`.
 12. **PII & Impersonation in INSCO Community**: Any post/comment/opportunity under `/community_posts`, `/community_connections`, `/community_opportunities` MUST isolate PII (`authorUid == request.auth.uid` on create), force `isPinnedAnnouncement == false` for non-admins, and prevent spoofing `likesCount`/`commentsCount` outside bounded ±1 reaction/comment transitions.
 
+## 3. INSCO Professional Network Security Invariants & Adversarial Guards
+10. **Three-Track Verification Integrity**: `community_verifications` separates `'identity'`, `'organization'`, and `'credential'` tracks. Non-admins may ONLY create requests with `status == 'pending'`; ONLY `isAdmin()` may transition `status` to `'approved'` or `'rejected'`, and non-admins cannot mutate verification flags (`identityVerified`, `organizationVerified`, `credentialVerified`) on `/community_workspaces/{userId}`.
+11. **Employee Affiliation Consent**: Creating a company affiliation under `/community_companies/{companyId}/affiliations/{affiliationId}` by a company admin MUST default `status == 'invited'`. ONLY the target employee (`employeeUid == request.auth.uid`) may update `status` to `'accepted'` or `'declined'`.
+12. **Private DM, Notification & Bookmark Isolation**: `/community_message_threads/{threadId}` and `/messages` are strictly readable/writable only by `participantUids`, `/community_notification_prefs/{uid}` and `/community_bookmarks/{id}` are strictly owner-only, and `/community_job_applications/{id}` is accessible only to `applicantUid`, `employerUid`, or `isAdmin()`.
+13. **Academy Privacy Isolation**: `user_module_progress` remains strictly owner-scoped in Firestore rules; community display happens strictly client-side when the owner toggles `shareAcademyProgress == true`.
+
+### Network Adversarial Payloads Blocked
+- Self-approving verification track (`status: 'approved'` by non-admin) -> `PERMISSION_DENIED`.
+- Self-setting `credentialVerified: true` on `community_workspaces` -> `PERMISSION_DENIED`.
+- Company owner forcing `affiliations.status: 'accepted'` without employee consent -> `PERMISSION_DENIED`.
+- Reading another user's `/community_message_threads`, `/community_bookmarks`, `/community_notification_prefs`, or `/community_job_applications` -> `PERMISSION_DENIED`.
+- Non-admin dismissing/resolving `/community_reports` -> `PERMISSION_DENIED`.

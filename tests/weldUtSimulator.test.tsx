@@ -15,6 +15,7 @@ import { BeamConeAndDefectExplorer } from '../src/components/academy/virtuallab/
 import {
   ALL_WELD_DEFECTS_CATALOG,
   INSPECTION_CODES_META,
+  computeRayReflectionBreakdown,
   computeUltrasonicBeamCone,
   drawUltrasonicBeamCone2D,
   getAllDefectsCodeToleranceSchedule,
@@ -624,4 +625,152 @@ test('UT Snell simulator, PAUT beam steering, and V1/V2 Calibration Lab apply CS
   const v1v2Ui = render(<V1V2CalibrationLab language="en" />);
   assert.ok(v1v2Ui.container.querySelectorAll('.ut-beam-flow').length >= 1);
   assert.ok(v1v2Ui.container.querySelectorAll('.ut-interface-ripple').length >= 1);
+});
+
+test('computeRayReflectionBreakdown computes exact Full vs Partial incident/reflected/bypass energy splits and drawUltrasonicBeamCone2D renders Longitudinal & Shear waveforms', () => {
+  // 1) Backwall full reflection (clear path)
+  const straightBackwall = computeRayReflectionBreakdown({
+    isHit: false,
+    isStraightZeroBeam: true,
+  });
+  assert.equal(straightBackwall.regime, 'backwall_full');
+  assert.equal(straightBackwall.reflectedToProbePct, 100);
+  assert.equal(straightBackwall.transmittedBypassPct, 0);
+  assert.equal(straightBackwall.shadowZoneActive, false);
+
+  const angleBackwall = computeRayReflectionBreakdown({
+    isHit: false,
+    isStraightZeroBeam: false,
+  });
+  assert.equal(angleBackwall.regime, 'backwall_full');
+  assert.equal(angleBackwall.reflectedOffAxisPct, 100);
+
+  // 2) Full flaw reflection with acoustic shadow
+  const fullFlaw = computeRayReflectionBreakdown({
+    isHit: true,
+    beamOcclusionRatio: 0.92,
+    scatterMode: 'corner_trap',
+    angleDiffDeg: 0,
+    regimeOverride: 'full',
+  });
+  assert.equal(fullFlaw.regime, 'flaw_full');
+  assert.equal(fullFlaw.shadowZoneActive, true);
+  assert.equal(fullFlaw.transmittedBypassPct, 0);
+  assert.equal(fullFlaw.reflectedToProbePct + fullFlaw.reflectedOffAxisPct, 100);
+
+  // 3) Partial flaw reflection with bypassed forward energy + off-axis scatter
+  const partialFlaw = computeRayReflectionBreakdown({
+    isHit: true,
+    beamOcclusionRatio: 0.45,
+    scatterMode: 'volumetric_scatter',
+    angleDiffDeg: 10,
+    regimeOverride: 'partial',
+  });
+  assert.equal(partialFlaw.regime, 'flaw_partial');
+  assert.equal(partialFlaw.shadowZoneActive, false);
+  assert.ok(partialFlaw.transmittedBypassPct > 0);
+  assert.equal(
+    partialFlaw.reflectedToProbePct + partialFlaw.reflectedOffAxisPct + partialFlaw.transmittedBypassPct,
+    100
+  );
+
+  // 4) Canvas rendering for both longitudinal & shear wave modes across full & partial regimes
+  const cone = computeUltrasonicBeamCone({
+    frequencyMhz: 4.0,
+    velocityMs: 5920,
+    crystalDiameterMm: 10,
+  });
+  for (const waveMode of ['longitudinal', 'shear'] as const) {
+    for (const breakdown of [fullFlaw, partialFlaw]) {
+      let strokes = 0;
+      let fills = 0;
+      const waveCtx = {
+        save: () => {},
+        restore: () => {},
+        beginPath: () => {},
+        closePath: () => {},
+        moveTo: () => {},
+        lineTo: () => {},
+        arc: () => {},
+        ellipse: () => {},
+        quadraticCurveTo: () => {},
+        bezierCurveTo: () => {},
+        stroke: () => {
+          strokes++;
+        },
+        fill: () => {
+          fills++;
+        },
+        setLineDash: () => {},
+        createLinearGradient: () => ({ addColorStop: () => {} }),
+        createRadialGradient: () => ({ addColorStop: () => {} }),
+      } as unknown as CanvasRenderingContext2D;
+
+      drawUltrasonicBeamCone2D({
+        ctx: waveCtx,
+        entryX: 90,
+        entryY: 50,
+        bounceX: 200,
+        bounceY: 175,
+        leg2EndX: 310,
+        leg2EndY: 50,
+        scalePxPerMm: 4.2,
+        coneMetrics: cone,
+        showWavefronts: true,
+        showNearField: true,
+        isHit: true,
+        animationPhase: 1.2,
+        waveMode,
+        reflectionBreakdown: breakdown,
+        defectImpact: {
+          x: 155,
+          y: 122,
+          hit: true,
+          scatterMode: waveMode === 'longitudinal' ? 'lamination' : 'specular_planar',
+          leg: 1,
+        },
+      });
+      assert.ok(strokes > 10 && fills > 4, `${waveMode}/${breakdown.regime} should render wavefronts and arrows`);
+    }
+  }
+});
+
+test('UT simulators expose Longitudinal/Shear wave toggles, Full/Partial reflection regimes, and live directional ray telemetry', () => {
+  // 1) ComprehensiveWeldUtSimulator (Arabic)
+  const arUi = render(<ComprehensiveWeldUtSimulator language="ar" />);
+  const panelAr = arUi.getByTestId('ut-wave-reflection-panel');
+  assert.ok(panelAr.textContent?.includes('الأشعة المرسلة ▶'));
+  assert.ok(panelAr.textContent?.includes('مرتدة للمجس ◀'));
+
+  const longBtnAr = arUi.getByRole('button', { name: /موجة طولية ⇄/i });
+  const shearBtnAr = arUi.getByRole('button', { name: /موجة مستعرضة ⇅/i });
+  assert.equal(shearBtnAr.getAttribute('aria-pressed'), 'true');
+  fireEvent.click(longBtnAr);
+  assert.equal(longBtnAr.getAttribute('aria-pressed'), 'true');
+  assert.ok(panelAr.textContent?.includes('انضغاط وتخلخل'));
+
+  const fullBtnAr = arUi.getByRole('button', { name: /ارتداد كلي/i });
+  const partialBtnAr = arUi.getByRole('button', { name: /ارتداد جزئي/i });
+  fireEvent.click(partialBtnAr);
+  assert.equal(partialBtnAr.getAttribute('aria-pressed'), 'true');
+  fireEvent.click(fullBtnAr);
+  assert.equal(fullBtnAr.getAttribute('aria-pressed'), 'true');
+  assert.ok(panelAr.textContent?.includes('0% (ظل صوتي)'));
+  cleanup();
+
+  // 2) UtFlawDetectorDevice & BeamConeAndDefectExplorer (English)
+  const utUi = render(<UtFlawDetectorDevice language="en" />);
+  fireEvent.click(utUi.getByRole('button', { name: /Flat Butt Weld/i }));
+  const sWaveUt = utUi.getByRole('button', { name: /S-Wave ⇅/i });
+  const lWaveUt = utUi.getByRole('button', { name: /L-Wave ⇄/i });
+  assert.equal(sWaveUt.getAttribute('aria-pressed'), 'true');
+  fireEvent.click(lWaveUt);
+  assert.equal(lWaveUt.getAttribute('aria-pressed'), 'true');
+  assert.ok(utUi.getByText(/TX ▶ 100%/i));
+  cleanup();
+
+  const explorerUi = render(<BeamConeAndDefectExplorer language="en" />);
+  fireEvent.click(explorerUi.getByRole('button', { name: /L-Wave ⇄/i }));
+  fireEvent.click(explorerUi.getByRole('button', { name: 'Partial' }));
+  assert.ok(explorerUi.getByText(/TX ▶ 100%/i));
 });

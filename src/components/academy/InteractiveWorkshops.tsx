@@ -9,6 +9,7 @@ import { SimulationLabsRtTechniquesWorkbench } from './SimulationLabsRtTechnique
 import { GeRadiographicExposureTimeApp } from './virtuallab/GeRadiographicExposureTimeApp';
 import { WorkshopTrainingResultsPanel } from './virtuallab/WorkshopTrainingResultsPanel';
 import { VirtualLab } from './VirtualLab';
+import { DriveSimulatorRunner } from './DriveSimulatorRunner';
 
 export type SimulationLabsSectionId =
   | 'rt_panorama_ellipse_street'
@@ -220,6 +221,12 @@ export const InteractiveWorkshops: React.FC<InteractiveWorkshopsProps> = ({
       ) : (
         <NdtVirtualLabWorkbench language={language} />
       )}
+
+      <DriveSimulatorRunner
+        language={language}
+        onSelectLabSection={setActiveSection}
+        onOpenFullRtLab={onOpenFullRtLab}
+      />
     </div>
   );
 };

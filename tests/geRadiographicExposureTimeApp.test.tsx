@@ -60,6 +60,9 @@ const {
   interpolateBeamDecayAtNorm,
   compute4dDecayShiftSnapshot
 } = await import('../src/components/academy/virtuallab/GeRadiographicExposureTimeApp');
+const { computeLongitudinalPenetrationModel } = await import(
+  '../src/components/academy/virtuallab/LongitudinalWavePenetrationSim'
+);
 const { NdtVirtualLabWorkbench } = await import('../src/components/academy/virtuallab/NdtVirtualLabWorkbench');
 const { RadiographicTestingLab } = await import('../src/components/academy/virtuallab/RadiographicTestingLab');
 const { InteractiveWorkshops } = await import('../src/components/academy/InteractiveWorkshops');
@@ -610,7 +613,7 @@ test('GeRadiographicExposureTimeApp renders dynamic unit conversion tooltips nex
   assert.ok(sfdTooltipBtn.getAttribute('title')?.includes('1 ft = 12 in = 30.48 cm'));
 });
 
-test('GeRadiographicExposureTimeApp records up to 5 conversions in the Conversion Log inside the unit toggler', () => {
+test('GeRadiographicExposureTimeApp records up to 5 conversions in the Conversion Log inside the unit toggler', async () => {
   localStorage.removeItem('ge_app_unit_system');
   localStorage.removeItem('ge_app_conversion_log');
 
@@ -627,9 +630,11 @@ test('GeRadiographicExposureTimeApp records up to 5 conversions in the Conversio
   assert.ok(ui.getByTestId('ge-conversion-log-panel'));
   assert.ok(ui.getByTestId('ge-conversion-log-empty'));
 
-  // Close panel
+  // Close panel (waits for Framer Motion AnimatePresence slide-out transition)
   fireEvent.click(ui.getByTestId('ge-conversion-log-close-btn'));
-  assert.equal(ui.queryByTestId('ge-conversion-log-panel'), null);
+  await waitFor(() => {
+    assert.equal(ui.queryByTestId('ge-conversion-log-panel'), null);
+  });
 
   // 2. Switch Metric -> Imperial (Conversion #1: 12 mm -> 0.472 in)
   fireEvent.click(imperialBtn);
@@ -662,7 +667,9 @@ test('GeRadiographicExposureTimeApp records up to 5 conversions in the Conversio
 
   // 4. Restore an earlier conversion (entry4: 25.4 mm / metric)
   fireEvent.click(ui.getByTestId('ge-conversion-log-restore-4'));
-  assert.equal(ui.queryByTestId('ge-conversion-log-panel'), null, 'Panel should close after applying snapshot');
+  await waitFor(() => {
+    assert.equal(ui.queryByTestId('ge-conversion-log-panel'), null, 'Panel should close after applying snapshot');
+  });
   const restoredThickness = ui.getByTestId('ge-thickness-number-input') as HTMLInputElement;
   assert.equal(restoredThickness.value, '25.4');
 
@@ -2513,3 +2520,215 @@ test('GeRadiographicExposureTimeApp exports the current unit conversion log as a
     removeIfExists();
   }
 });
+
+test('GeRadiographicExposureTimeApp groups quick industry presets into categorized tabs, optgroup dropdown, and filters by name or source type', () => {
+  const ui = render(<GeRadiographicExposureTimeApp language="en" />);
+
+  // Default tab is 'pipe', keeping pipe presets immediately visible while hiding clutter from other categories
+  const pipeTab = ui.getByTestId('ge-preset-tab-pipe');
+  const plateTab = ui.getByTestId('ge-preset-tab-plate');
+  const vesselTab = ui.getByTestId('ge-preset-tab-vessel');
+  const xrayTab = ui.getByTestId('ge-preset-tab-xray');
+
+  assert.equal(pipeTab.getAttribute('aria-selected'), 'true');
+  assert.ok(ui.getByTestId('preset-pipe-2in'));
+  assert.ok(ui.getByTestId('preset-pipe-6in'));
+  assert.equal(ui.queryByTestId('preset-plate-se75'), null);
+  assert.equal(ui.queryByTestId('preset-vessel-co60'), null);
+  assert.equal(ui.queryByTestId('preset-tube-xray'), null);
+
+  // Switch tabs to Plate, Vessel, X-Ray
+  fireEvent.click(plateTab);
+  assert.equal(plateTab.getAttribute('aria-selected'), 'true');
+  assert.ok(ui.getByTestId('preset-plate-se75'));
+  assert.equal(ui.queryByTestId('preset-pipe-2in'), null);
+
+  fireEvent.click(vesselTab);
+  assert.ok(ui.getByTestId('preset-vessel-co60'));
+
+  fireEvent.click(xrayTab);
+  assert.ok(ui.getByTestId('preset-tube-xray'));
+
+  // Categorized <select> optgroups jump directly and load preset
+  const presetSelect = ui.getByTestId('ge-preset-category-select') as HTMLSelectElement;
+  assert.equal(presetSelect.querySelectorAll('optgroup').length, 4);
+  fireEvent.change(presetSelect, { target: { value: 'vessel_co60' } });
+  assert.equal((ui.getByTestId('ge-select-source-type') as HTMLSelectElement).value, 'co60');
+  assert.equal(ui.getByTestId('ge-preset-tab-vessel').getAttribute('aria-selected'), 'true');
+
+  // CSS selector check requested for preset bar search input
+  const bar = ui.container.querySelector(
+    '#ge-exposure-calculator-app .flex-wrap.items-center.gap-2:has(.font-bold.text-slate-600)'
+  );
+  assert.ok(bar, 'Expected categorized preset bar to preserve selector match');
+  const searchInput = ui.getByTestId('ge-preset-search-input') as HTMLInputElement;
+  assert.ok(bar?.contains(searchInput));
+
+  // Filter by source type across categories (Se-75)
+  fireEvent.change(searchInput, { target: { value: 'Se-75' } });
+  assert.ok(ui.getByTestId('preset-plate-se75'));
+  assert.equal(ui.queryByTestId('preset-pipe-2in'), null);
+  assert.equal(ui.queryByTestId('preset-vessel-co60'), null);
+
+  // Filter by name (Vessel)
+  fireEvent.change(searchInput, { target: { value: 'Vessel' } });
+  assert.ok(ui.getByTestId('preset-vessel-co60'));
+  assert.equal(ui.queryByTestId('preset-plate-se75'), null);
+
+  // Empty search state + clear button
+  fireEvent.change(searchInput, { target: { value: 'nonexistent-isotope-999' } });
+  assert.ok(ui.getByTestId('ge-preset-search-empty'));
+  fireEvent.click(ui.getByTestId('ge-preset-search-clear'));
+  assert.equal(searchInput.value, '');
+  assert.ok(ui.getByTestId('preset-vessel-co60'));
+
+  // Arabic localization check
+  cleanup();
+  const uiAr = render(<GeRadiographicExposureTimeApp language="ar" />);
+  assert.ok(uiAr.getByTestId('ge-preset-tab-pipe').textContent?.includes('أنابيب'));
+  assert.ok(uiAr.getByTestId('ge-preset-search-input'));
+});
+
+test('GeRadiographicExposureTimeApp slides the conversion log panel in from the side with Framer Motion on toggle open and close', async () => {
+  localStorage.removeItem('ge_app_conversion_log');
+
+  // LTR: slides in from the right side (x: 32 -> 0)
+  const uiEn = render(<GeRadiographicExposureTimeApp language="en" />);
+  const toggleEn = uiEn.getByTestId('ge-conversion-log-toggle');
+  assert.equal(uiEn.queryByTestId('ge-conversion-log-panel'), null);
+
+  fireEvent.click(toggleEn);
+  const panelEn = uiEn.getByTestId('ge-conversion-log-panel');
+  assert.equal(panelEn.style.opacity, '0');
+  assert.match(panelEn.style.transform, /translateX\(32px\)/);
+
+  await new Promise((resolve) => setTimeout(resolve, 350));
+  assert.equal(Number(panelEn.style.opacity || '0'), 1);
+
+  fireEvent.click(toggleEn);
+  await waitFor(() => {
+    assert.equal(uiEn.queryByTestId('ge-conversion-log-panel'), null);
+  });
+
+  // RTL: slides in from the left side (x: -32 -> 0)
+  cleanup();
+  const uiAr = render(<GeRadiographicExposureTimeApp language="ar" />);
+  const toggleAr = uiAr.getByTestId('ge-conversion-log-toggle');
+  fireEvent.click(toggleAr);
+  const panelAr = uiAr.getByTestId('ge-conversion-log-panel');
+  assert.equal(panelAr.style.opacity, '0');
+  assert.match(panelAr.style.transform, /translateX\(-32px\)/);
+
+  await new Promise((resolve) => setTimeout(resolve, 350));
+  assert.equal(Number(panelAr.style.opacity || '0'), 1);
+
+  fireEvent.click(uiAr.getByTestId('ge-conversion-log-close-btn'));
+  await waitFor(() => {
+    assert.equal(uiAr.queryByTestId('ge-conversion-log-panel'), null);
+  });
+});
+
+test('computeLongitudinalPenetrationModel calculates wavelength shift, acoustic impedance mismatch, and density attenuation across penetration', () => {
+  const steelModel = computeLongitudinalPenetrationModel({
+    materialId: 'carbon_steel',
+    thicknessMm: 25,
+    frequencyMhz: 4.0,
+    couplantId: 'glycerin',
+    flawMode: 'none'
+  });
+
+  // 1920 / 4000 = 0.48 mm in glycerin -> 5920 / 4000 = 1.48 mm in carbon steel
+  assert.equal(steelModel.couplantWavelengthMm, 0.48);
+  assert.equal(steelModel.specimenWavelengthMm, 1.48);
+  assert.ok(steelModel.wavelengthExpansionRatio > 3.0);
+  assert.ok(steelModel.transmissionEnergyPct > 15 && steelModel.transmissionEnergyPct < 25);
+  assert.ok(steelModel.backWallEnergyDensityPct < steelModel.transmissionEnergyPct);
+
+  // Air gap without couplant blocks nearly all ultrasonic longitudinal wave transmission
+  const airGapModel = computeLongitudinalPenetrationModel({
+    materialId: 'carbon_steel',
+    thicknessMm: 25,
+    frequencyMhz: 4.0,
+    couplantId: 'air_gap',
+    flawMode: 'none'
+  });
+  assert.ok(airGapModel.reflectionEnergyPct > 99.9);
+  assert.ok(airGapModel.transmissionEnergyPct < 0.1);
+
+  // Perspex (2730 m/s) -> Lead (2160 m/s) compacts wavelength upon penetration
+  const leadModel = computeLongitudinalPenetrationModel({
+    materialId: 'lead',
+    thicknessMm: 25,
+    frequencyMhz: 4.0,
+    couplantId: 'perspex',
+    flawMode: 'none'
+  });
+  assert.ok(leadModel.wavelengthExpansionRatio < 1);
+  assert.ok(leadModel.spatialWavefrontDensityPerCm > steelModel.spatialWavefrontDensityPerCm);
+
+  // Internal crack drops retained exit wave density sharply
+  const crackedSteel = computeLongitudinalPenetrationModel({
+    materialId: 'carbon_steel',
+    thicknessMm: 25,
+    frequencyMhz: 4.0,
+    couplantId: 'glycerin',
+    flawMode: 'planar_crack'
+  });
+  assert.ok(crackedSteel.backWallEnergyDensityPct < steelModel.backWallEnergyDensityPct * 0.1);
+});
+
+test('GeRadiographicExposureTimeApp exposes Longitudinal Waves option inside #ge-exposure-calculator-app with wave shape and penetration density controls (AR & EN)', () => {
+  const uiAr = render(<GeRadiographicExposureTimeApp language="ar" />);
+  const appRoot = uiAr.container.querySelector('#ge-exposure-calculator-app') as HTMLElement;
+  assert.ok(appRoot, 'Expected #ge-exposure-calculator-app container');
+
+  const longitudinalOptionBtn = uiAr.getByTestId('ge-longitudinal-wave-option-btn');
+  assert.ok(appRoot.contains(longitudinalOptionBtn));
+  assert.ok(longitudinalOptionBtn.textContent?.includes('الموجات الطولية'));
+  assert.equal(longitudinalOptionBtn.getAttribute('aria-pressed'), 'false');
+  assert.equal(uiAr.queryByTestId('ge-longitudinal-wave-simulator'), null);
+
+  // Activate Longitudinal Waves simulator
+  fireEvent.click(longitudinalOptionBtn);
+  assert.equal(longitudinalOptionBtn.getAttribute('aria-pressed'), 'true');
+
+  const sim = uiAr.getByTestId('ge-longitudinal-wave-simulator');
+  assert.ok(appRoot.contains(sim), 'Expected Longitudinal Waves simulator inside #ge-exposure-calculator-app');
+  assert.ok(uiAr.getByTestId('ge-longitudinal-wave-svg'));
+  assert.ok(uiAr.getByTestId('ge-longitudinal-compression-bands').querySelectorAll('rect').length > 20);
+  assert.ok(uiAr.getByTestId('ge-longitudinal-particle-field').querySelectorAll('circle').length > 100);
+  assert.ok(uiAr.getByTestId('ge-longitudinal-waveform-path').getAttribute('d')?.startsWith('M '));
+  assert.ok(uiAr.getByTestId('ge-longitudinal-envelope-upper').getAttribute('d')?.startsWith('M '));
+
+  // Initial Carbon Steel telemetry
+  assert.ok(uiAr.getByTestId('ge-longitudinal-velocity-readout').textContent?.includes('5,920'));
+  assert.ok(uiAr.getByTestId('ge-longitudinal-density-readout').textContent?.includes('7.85'));
+  const initialExitDensity = uiAr.getByTestId('ge-longitudinal-exit-density-readout').textContent ?? '';
+
+  // Changing frequency increases wavefront density & alters wavelength
+  fireEvent.change(uiAr.getByTestId('ge-longitudinal-freq-slider'), { target: { value: '8' } });
+  assert.equal(uiAr.getByTestId('ge-longitudinal-freq-value').textContent, '8.0 MHz');
+  assert.ok(uiAr.getByTestId('ge-longitudinal-wavelength-readout').textContent?.includes('0.74 mm'));
+
+  // Changing material inside simulator syncs with calculator material select
+  fireEvent.change(uiAr.getByTestId('ge-longitudinal-material-select'), { target: { value: 'aluminum' } });
+  assert.equal((uiAr.getByTestId('ge-select-material') as HTMLSelectElement).value, 'aluminum');
+  assert.ok(uiAr.getByTestId('ge-longitudinal-velocity-readout').textContent?.includes('6,320'));
+  assert.ok(uiAr.getByTestId('ge-longitudinal-density-readout').textContent?.includes('2.70'));
+
+  // Enabling internal planar crack adds flaw marker and lowers exit density
+  fireEvent.click(uiAr.getByTestId('ge-longitudinal-flaw-planar_crack'));
+  assert.ok(uiAr.getByTestId('ge-longitudinal-flaw-marker'));
+  const crackedExitDensity = uiAr.getByTestId('ge-longitudinal-exit-density-readout').textContent ?? '';
+  assert.notEqual(crackedExitDensity, initialExitDensity);
+
+  // Switching couplant to dry air_gap shows impedance block status
+  fireEvent.change(uiAr.getByTestId('ge-longitudinal-couplant-select'), { target: { value: 'air_gap' } });
+  assert.ok(uiAr.getByTestId('ge-longitudinal-coupling-status').textContent?.includes('انعكاس شبه كلي'));
+
+  // Playback controls: pause & step phase without throwing
+  fireEvent.click(uiAr.getByTestId('ge-longitudinal-play-pause-btn'));
+  fireEvent.click(uiAr.getByTestId('ge-longitudinal-step-btn'));
+  assert.ok(uiAr.getByTestId('ge-longitudinal-waveform-path').getAttribute('d'));
+});
+

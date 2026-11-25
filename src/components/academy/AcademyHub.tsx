@@ -84,10 +84,24 @@ export const AcademyHub: React.FC<AcademyHubProps> = ({ language, onOpenHash }) 
       <nav aria-label={isAr ? 'أدوات التعلّم' : 'Learning tools'} className="flex flex-wrap gap-2">
         {[
           ['#edb', 'مكتبة EDB', 'EDB library'],
+          ['#academy/learn/edb', 'علوم Drive (تعليم مهني ومحاكيات)', 'Drive Sciences (Vocational & Labs)'],
           ['#standards', 'المراجع والأكواد', 'References & standards'],
           ['#ask_ai', 'المستشار التعليمي', 'AI tutor'],
         ].map(([hash, ar, en]) => (
-          <a key={hash} href={hash} className="inline-flex min-h-10 items-center rounded-lg border border-slate-700 bg-slate-900 px-3 text-sm font-semibold text-sky-200 hover:border-sky-400">{isAr ? ar : en}</a>
+          <a
+            key={hash}
+            href={hash}
+            onClick={() => {
+              if (hash === '#academy/learn/edb') {
+                setTimeout(() => {
+                  document.getElementById('insco-drive-organizer')?.scrollIntoView({ behavior: 'smooth' });
+                }, 150);
+              }
+            }}
+            className="inline-flex min-h-10 items-center rounded-lg border border-slate-700 bg-slate-900 px-3 text-sm font-semibold text-sky-200 hover:border-sky-400"
+          >
+            {isAr ? ar : en}
+          </a>
         ))}
       </nav>
 

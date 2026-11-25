@@ -22,11 +22,13 @@ import {
   validateRecommendation,
   type RecommendationDraft,
 } from '../../network/networkSkills';
+import { useTheme } from '../../utils/themeStore';
+import { networkSurface } from './networkTheme';
 
-const chip =
-  'inline-flex min-w-0 items-center gap-1 rounded-full border border-[#2a2a4d] bg-[#0b0b18] px-2 py-0.5 text-[10px] text-slate-200';
-const smallButton =
-  'inline-flex items-center gap-1 rounded-full border border-violet-500/40 bg-violet-500/10 px-1.5 py-0.5 text-[9px] font-bold text-violet-200 transition hover:border-violet-400 disabled:opacity-50';
+const smallButtonFor = (isLight: boolean) =>
+  isLight
+    ? 'inline-flex items-center gap-1 rounded-full border border-violet-300 bg-violet-50 px-1.5 py-0.5 text-[9px] font-bold text-violet-700 transition hover:border-violet-500 disabled:opacity-50'
+    : 'inline-flex items-center gap-1 rounded-full border border-violet-500/40 bg-violet-500/10 px-1.5 py-0.5 text-[9px] font-bold text-violet-200 transition hover:border-violet-400 disabled:opacity-50';
 
 const shortDate = (value: unknown, isAr: boolean): string => {
   const raw = value as { toDate?: () => Date } | string | number | null | undefined;
@@ -56,6 +58,12 @@ interface PanelProps {
  */
 export const NetworkSkillsPanel: React.FC<PanelProps> = ({ profile, language, self = false, onOpenProfile }) => {
   const isAr = language === 'ar';
+  const { isLight } = useTheme();
+  const s = networkSurface(isLight);
+  const chip = `inline-flex min-w-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] ${
+    isLight ? 'border border-slate-200 bg-slate-50 text-slate-800' : 'border border-[#2a2a4d] bg-[#0b0b18] text-slate-200'
+  }`;
+  const smallButton = smallButtonFor(isLight);
   const account = useOptionalSiteAccount();
   const viewerUid = account?.user?.uid ?? null;
   const verified = account?.verified ?? false;
@@ -128,13 +136,13 @@ export const NetworkSkillsPanel: React.FC<PanelProps> = ({ profile, language, se
 
   if (declared.length === 0) {
     return (
-      <div data-testid="network-skills-empty" className="rounded-xl border border-[#232345] bg-[#0f0f22] p-3">
-        <p className="text-[10px] leading-relaxed text-slate-400">
+      <div data-testid="network-skills-empty" className={`${s.card} p-3`}>
+        <p className={`text-[10px] leading-relaxed ${s.subtext}`}>
           {isAr ? 'لم يُعلن أي مهارة بعد.' : 'No skills declared yet.'}
         </p>
         {self && onOpenProfile ? (
           <button type="button" onClick={onOpenProfile} className={`${smallButton} mt-2`}>
-            <Plus className="h-3 w-3" aria-hidden="true" />
+            <Plus className="h-3 w-3 shrink-0" aria-hidden="true" />
             {isAr ? 'أعلن مهاراتك من ملفك' : 'Declare skills on your profile'}
           </button>
         ) : null}
@@ -143,21 +151,21 @@ export const NetworkSkillsPanel: React.FC<PanelProps> = ({ profile, language, se
   }
 
   return (
-    <div data-testid="network-skills-panel" className="rounded-xl border border-[#232345] bg-[#0f0f22] p-3">
+    <div data-testid="network-skills-panel" className={`${s.card} p-3`}>
       <div className="flex flex-wrap items-center gap-1.5">
-        <h3 className="text-[11px] font-bold text-slate-200">{isAr ? 'المهارات' : 'Skills'}</h3>
-        <span className="rounded bg-amber-500/10 px-1 text-[8px] font-bold text-amber-300">
+        <h3 className={`text-[11px] font-bold ${s.heading}`}>{isAr ? 'المهارات' : 'Skills'}</h3>
+        <span className={`rounded px-1 text-[8px] font-bold ${isLight ? 'bg-amber-50 text-amber-800' : 'bg-amber-500/10 text-amber-300'}`}>
           {isAr ? 'تزكيات زملاء — ليست شهادة' : 'peer endorsements — not certification'}
         </span>
         {!verified ? (
-          <span data-testid="network-skills-signin" className="text-[9px] text-slate-500">
+          <span data-testid="network-skills-signin" className={`text-[9px] ${s.muted}`}>
             {isAr ? 'سجّل الدخول لرؤية التزكيات.' : 'Sign in to see endorsements.'}
           </span>
         ) : null}
       </div>
 
       {loading ? (
-        <p role="status" className="mt-1.5 flex items-center gap-2 text-[10px] text-slate-400">
+        <p role="status" className={`mt-1.5 flex items-center gap-2 text-[10px] ${s.subtext}`}>
           <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden="true" />
           {isAr ? 'جارٍ تحميل التزكيات…' : 'Loading endorsements…'}
         </p>
@@ -182,7 +190,7 @@ export const NetworkSkillsPanel: React.FC<PanelProps> = ({ profile, language, se
               <span className="max-w-[190px] truncate">{label}</span>
               <span
                 data-testid="network-skill-endorsements"
-                className="rounded-full bg-violet-500/15 px-1 text-[9px] font-bold text-violet-200"
+                className={`rounded-full px-1 text-[9px] font-bold ${isLight ? 'bg-violet-100 text-violet-800' : 'bg-violet-500/15 text-violet-200'}`}
                 title={
                   count === 0
                     ? isAr
@@ -195,8 +203,8 @@ export const NetworkSkillsPanel: React.FC<PanelProps> = ({ profile, language, se
               </span>
               {!self && verified ? (
                 already ? (
-                  <span className="inline-flex items-center gap-0.5 text-[8px] font-bold text-emerald-300">
-                    <BadgeCheck className="h-2.5 w-2.5" aria-hidden="true" />
+                  <span className={`inline-flex items-center gap-0.5 text-[8px] font-bold ${isLight ? 'text-emerald-700' : 'text-emerald-300'}`}>
+                    <BadgeCheck className="h-2.5 w-2.5 shrink-0" aria-hidden="true" />
                     {isAr ? 'زكّيتها' : 'endorsed'}
                   </span>
                 ) : (
@@ -209,9 +217,9 @@ export const NetworkSkillsPanel: React.FC<PanelProps> = ({ profile, language, se
                     className={smallButton}
                   >
                     {busy === skillId ? (
-                      <Loader2 className="h-2.5 w-2.5 animate-spin" aria-hidden="true" />
+                      <Loader2 className="h-2.5 w-2.5 shrink-0 animate-spin" aria-hidden="true" />
                     ) : (
-                      <Plus className="h-2.5 w-2.5" aria-hidden="true" />
+                      <Plus className="h-2.5 w-2.5 shrink-0" aria-hidden="true" />
                     )}
                     {isAr ? 'زكِّ' : 'Endorse'}
                   </button>
@@ -247,6 +255,9 @@ export const NetworkRecommendationsPanel: React.FC<PanelProps> = ({
   self = false,
 }) => {
   const isAr = language === 'ar';
+  const { isLight } = useTheme();
+  const s = networkSurface(isLight);
+  const smallButton = smallButtonFor(isLight);
   const account = useOptionalSiteAccount();
   const viewerUid = account?.user?.uid ?? null;
   const verified = account?.verified ?? false;
@@ -344,28 +355,28 @@ export const NetworkRecommendationsPanel: React.FC<PanelProps> = ({
   }, []);
 
   return (
-    <div data-testid="network-recommendations-panel" className="rounded-xl border border-[#232345] bg-[#0f0f22] p-3">
+    <div data-testid="network-recommendations-panel" className={`${s.card} p-3`}>
       <div className="flex flex-wrap items-center gap-1.5">
-        <MessageSquareQuote className="h-3.5 w-3.5 shrink-0 text-violet-300" aria-hidden="true" />
-        <h3 className="text-[11px] font-bold text-slate-200">{isAr ? 'توصيات مكتوبة' : 'Written recommendations'}</h3>
-        <span className="text-[9px] text-slate-500">
+        <MessageSquareQuote className="h-3.5 w-3.5 shrink-0 text-violet-400" aria-hidden="true" />
+        <h3 className={`text-[11px] font-bold ${s.heading}`}>{isAr ? 'توصيات مكتوبة' : 'Written recommendations'}</h3>
+        <span className={`text-[9px] ${s.muted}`}>
           {isAr ? 'من عضو إلى عضو — الكلمة لكاتبها' : 'Member to member — the words belong to their author'}
         </span>
       </div>
 
       {!verified ? (
-        <p data-testid="network-recommendations-signin" className="mt-1.5 text-[10px] leading-relaxed text-slate-500">
+        <p data-testid="network-recommendations-signin" className={`mt-1.5 text-[10px] leading-relaxed ${s.muted}`}>
           {isAr
             ? 'التوصيات تُقرأ للأعضاء المؤكَّدين فقط — هذا قرار القواعد، لا إخفاء واجهة.'
             : 'Recommendations are readable by confirmed members only — that is the rules, not a hidden button.'}
         </p>
       ) : loading ? (
-        <p role="status" className="mt-1.5 flex items-center gap-2 text-[10px] text-slate-400">
+        <p role="status" className={`mt-1.5 flex items-center gap-2 text-[10px] ${s.subtext}`}>
           <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden="true" />
           {isAr ? 'جارٍ تحميل التوصيات…' : 'Loading recommendations…'}
         </p>
       ) : rows.length === 0 ? (
-        <p data-testid="network-recommendations-empty" className="mt-1.5 text-[10px] leading-relaxed text-slate-500">
+        <p data-testid="network-recommendations-empty" className={`mt-1.5 text-[10px] leading-relaxed ${s.muted}`}>
           {isAr ? 'لا توصيات بعد.' : 'No recommendations yet.'}
         </p>
       ) : (
@@ -373,13 +384,13 @@ export const NetworkRecommendationsPanel: React.FC<PanelProps> = ({
           {rows.map(row => {
             const manageable = canManageRecommendation(row, viewerUid);
             return (
-              <li key={row.id} data-testid="network-recommendation" className="min-w-0 rounded-lg border border-[#232345] bg-[#0b0b18] p-2">
+              <li key={row.id} data-testid="network-recommendation" className={`min-w-0 ${s.subCard} p-2`}>
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-[10px] font-bold text-white">{row.fromName}</span>
-                  <span className="rounded bg-[#14142a] px-1.5 py-0.5 text-[9px] text-slate-400">
+                  <span className={`text-[10px] font-bold ${s.heading}`}>{row.fromName}</span>
+                  <span className={s.chip}>
                     {relationLabel(row.relation, isAr)}
                   </span>
-                  <span className="text-[9px] text-slate-500">{shortDate(row.createdAt, isAr)}</span>
+                  <span className={`text-[9px] ${s.muted}`}>{shortDate(row.createdAt, isAr)}</span>
                   {manageable ? (
                     <span className="ms-auto flex items-center gap-1">
                       {row.fromUid === viewerUid ? (
@@ -390,7 +401,7 @@ export const NetworkRecommendationsPanel: React.FC<PanelProps> = ({
                             setEditing(true);
                             setDraft({ relation: row.relation as RecommendationDraft['relation'], body: row.body });
                           }}
-                          className="text-[9px] font-bold text-violet-300 underline decoration-dotted"
+                          className="text-[9px] font-bold text-violet-400 underline decoration-dotted"
                         >
                           {isAr ? 'تعديل' : 'Edit'}
                         </button>
@@ -400,14 +411,14 @@ export const NetworkRecommendationsPanel: React.FC<PanelProps> = ({
                         data-testid="network-recommendation-delete"
                         onClick={() => void remove(row)}
                         title={isAr ? 'حذف التوصية' : 'Delete recommendation'}
-                        className="text-[9px] font-bold text-rose-300"
+                        className="text-[9px] font-bold text-rose-400"
                       >
-                        <Trash2 className="h-3 w-3" aria-hidden="true" />
+                        <Trash2 className="h-3 w-3 shrink-0" aria-hidden="true" />
                       </button>
                     </span>
                   ) : null}
                 </div>
-                <p className="mt-1 whitespace-pre-wrap text-[10px] leading-relaxed text-slate-300">{row.body}</p>
+                <p className={`mt-1 whitespace-pre-wrap text-[10px] leading-relaxed ${s.subtext}`}>{row.body}</p>
               </li>
             );
           })}
@@ -415,17 +426,17 @@ export const NetworkRecommendationsPanel: React.FC<PanelProps> = ({
       )}
 
       {verified && !self ? (
-        <form onSubmit={submit} data-testid="network-recommendation-form" className="mt-2 min-w-0 rounded-lg border border-[#2a2a4d] bg-[#0b0b18] p-2">
+        <form onSubmit={submit} data-testid="network-recommendation-form" className={`mt-2 min-w-0 ${s.subCard} p-2`}>
           <div className="flex flex-wrap items-center gap-1.5">
-            <Users className="h-3 w-3 shrink-0 text-slate-400" aria-hidden="true" />
-            <label className="text-[9px] font-bold text-slate-400" htmlFor="recommendation-relation">
+            <Users className={`h-3 w-3 shrink-0 ${s.subtext}`} aria-hidden="true" />
+            <label className={`text-[9px] font-bold ${s.subtext}`} htmlFor="recommendation-relation">
               {isAr ? 'علاقتك به' : 'Your relation'}
             </label>
             <select
               id="recommendation-relation"
               value={draft.relation}
               onChange={event => setDraft(current => ({ ...current, relation: event.target.value as RecommendationDraft['relation'] }))}
-              className="rounded border border-[#2a2a4d] bg-[#0f0f22] px-1.5 py-0.5 text-[10px] text-slate-200"
+              className={`${s.input} w-auto px-1.5 py-0.5 text-[10px]`}
             >
               {RECOMMENDATION_RELATIONS.map(relation => (
                 <option key={relation.id} value={relation.id}>
@@ -447,18 +458,18 @@ export const NetworkRecommendationsPanel: React.FC<PanelProps> = ({
                 ? 'مثال: عملنا معاً في فحص لحامات خط ١٢ بوصة، وكان مسؤولاً عن تقييم العيوب بدقة…'
                 : 'Example: we worked together on the 12-inch line, and he sized the defects precisely…'
             }
-            className="mt-1.5 w-full min-w-0 rounded border border-[#2a2a4d] bg-[#0f0f22] px-2 py-1.5 text-[10px] text-slate-200 placeholder:text-slate-600 focus:border-violet-400 focus:outline-none"
+            className={`${s.input} mt-1.5 text-[10px]`}
           />
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
             <button type="submit" disabled={saving || blocked} data-testid="network-recommendation-submit" className={smallButton}>
-              {saving ? <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" /> : null}
+              {saving ? <Loader2 className="h-3 w-3 shrink-0 animate-spin" aria-hidden="true" /> : null}
               {mineRow ? (isAr ? 'احفظ التعديل' : 'Save changes') : isAr ? 'أضف توصية' : 'Add recommendation'}
             </button>
-            <span className="text-[9px] text-slate-500">
+            <span className={`text-[9px] ${s.muted}`}>
               {draft.body.trim().length}/{NETWORK_SKILL_LIMITS.recommendationMax}
             </span>
             {errors.length > 0 && draft.body.trim().length > 0 ? (
-              <span role="alert" data-testid="network-recommendation-error" className="text-[9px] text-rose-300">
+              <span role="alert" data-testid="network-recommendation-error" className="text-[9px] text-rose-400">
                 {isAr ? errors[0].ar : errors[0].en}
               </span>
             ) : null}

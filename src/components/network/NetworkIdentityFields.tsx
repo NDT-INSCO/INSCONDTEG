@@ -12,6 +12,8 @@ import {
 } from '../../network/networkIdentity';
 import type { NetworkProfileDraft } from '../../network/networkProfileForm';
 import { renderBannerBlob } from '../../network/bannerCanvas';
+import { useTheme } from '../../utils/themeStore';
+import { networkSurface } from './networkTheme';
 
 interface NetworkIdentityFieldsProps {
   language: Language;
@@ -22,19 +24,11 @@ interface NetworkIdentityFieldsProps {
   onChange: <K extends keyof NetworkProfileDraft>(key: K, value: NetworkProfileDraft[K]) => void;
 }
 
-const fieldClass =
-  'w-full min-w-0 rounded-lg border border-[#2a2a4d] bg-[#0b0b18] px-2 py-1.5 text-[11px] text-slate-200 placeholder:text-slate-600 focus:border-violet-400 focus:outline-none';
-
 type Status = { tone: 'ok' | 'error' | 'busy'; text: string } | null;
 
 /**
- * Photo, banner, LinkedIn and audience — the parts of the card that only exist for
- * the public page.
- *
- * Three honest routes for a banner: upload one, generate one from the card, or paste
- * a link. Uploading needs Firebase Storage; when it is not provisioned the button
- * says so, and generating still works — the banner is drawn in the browser and can be
- * downloaded, instead of a silent failure that looks like a broken feature.
+ * Photo, banner, LinkedIn and audience — the parts of the card that build the
+ * Facebook-style public engineering page.
  */
 export const NetworkIdentityFields: React.FC<NetworkIdentityFieldsProps> = ({
   language,
@@ -45,6 +39,8 @@ export const NetworkIdentityFields: React.FC<NetworkIdentityFieldsProps> = ({
   onChange,
 }) => {
   const isAr = language === 'ar';
+  const { isLight } = useTheme();
+  const s = networkSurface(isLight);
   const [status, setStatus] = useState<Status>(null);
   const [busy, setBusy] = useState<NetworkMediaKind | 'generate' | null>(null);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
@@ -142,17 +138,17 @@ export const NetworkIdentityFields: React.FC<NetworkIdentityFieldsProps> = ({
   };
 
   return (
-    <section data-testid="network-identity-fields" className="min-w-0 rounded-lg border border-[#232345] bg-[#0b0b18] p-2.5">
-      <h4 className="flex items-center gap-1.5 text-[11px] font-bold text-slate-200">
-        <Sparkles className="h-3.5 w-3.5 shrink-0 text-violet-300" aria-hidden="true" />
-        {isAr ? 'هويتك على صفحتك العامة' : 'Your public-page identity'}
+    <section id="np-identity-section" data-testid="network-identity-fields" className={`min-w-0 ${s.subCard} p-3`}>
+      <h4 className={`flex items-center gap-1.5 text-[11px] font-bold ${s.heading}`}>
+        <Sparkles className="h-3.5 w-3.5 shrink-0 text-violet-400" aria-hidden="true" />
+        {isAr ? 'هويتك على صفحتك العامة (البانر والصورة)' : 'Your public-page identity (Banner & Photo)'}
       </h4>
 
       {/* ------------------------------- banner ------------------------------- */}
       <div className="mt-2">
-        <span className="block text-[10px] font-bold text-slate-400">{isAr ? 'البانر' : 'Banner'}</span>
+        <span className={`block text-[10px] font-bold ${s.subtext}`}>{isAr ? 'البانر (صورة الغلاف)' : 'Banner (Cover Photo)'}</span>
         <div
-          className="relative mt-1 overflow-hidden rounded-lg border border-[#2a2a4d]"
+          className={`relative mt-1 overflow-hidden rounded-lg border ${s.divider}`}
           style={{ aspectRatio: `${NETWORK_MEDIA_LIMITS.bannerWidth} / ${NETWORK_MEDIA_LIMITS.bannerHeight}` }}
         >
           {draft.bannerURL ? (
@@ -165,8 +161,8 @@ export const NetworkIdentityFields: React.FC<NetworkIdentityFieldsProps> = ({
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#120b2e] via-[#241a4d] to-[#3b1d7a]">
-              <span className="flex items-center gap-2 text-[10px] text-violet-200/80">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full border border-violet-400/60 text-[10px] font-bold text-violet-100">
+              <span className="flex items-center gap-2 text-[10px] text-violet-200/85">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-violet-400/60 text-[10px] font-bold text-violet-100">
                   {initialsOf(draft.displayName)}
                 </span>
                 {isAr ? 'لا بانر بعد — ولّد واحداً أو ارفع صورة' : 'No banner yet — generate one or upload an image'}
@@ -180,7 +176,7 @@ export const NetworkIdentityFields: React.FC<NetworkIdentityFieldsProps> = ({
             type="button"
             onClick={() => bannerInput.current?.click()}
             disabled={busy !== null}
-            className="inline-flex items-center gap-1 rounded-md border border-[#2a2a4d] bg-[#14142a] px-2 py-0.5 text-[10px] font-bold text-slate-300 transition cursor-pointer hover:border-violet-400/50 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+            className={`${s.buttonSecondary} disabled:cursor-not-allowed disabled:opacity-60`}
           >
             {busy === 'banner' ? <Loader2 className="h-3 w-3 shrink-0 animate-spin" aria-hidden="true" /> : <Upload className="h-3 w-3 shrink-0" aria-hidden="true" />}
             {isAr ? 'رفع بانر' : 'Upload a banner'}
@@ -190,7 +186,7 @@ export const NetworkIdentityFields: React.FC<NetworkIdentityFieldsProps> = ({
             onClick={() => void generate()}
             disabled={busy !== null}
             data-testid="network-generate-banner"
-            className="inline-flex items-center gap-1 rounded-md border border-violet-400/50 bg-violet-500/10 px-2 py-0.5 text-[10px] font-bold text-violet-200 transition cursor-pointer hover:border-violet-300 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center gap-1 rounded-lg border border-violet-400/50 bg-violet-500/10 px-2.5 py-1 text-[10px] font-bold text-violet-400 transition cursor-pointer hover:border-violet-300 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {busy === 'generate' ? <Loader2 className="h-3 w-3 shrink-0 animate-spin" aria-hidden="true" /> : <Sparkles className="h-3 w-3 shrink-0" aria-hidden="true" />}
             {isAr ? 'توليد بانر احترافي' : 'Generate a banner'}
@@ -199,7 +195,7 @@ export const NetworkIdentityFields: React.FC<NetworkIdentityFieldsProps> = ({
             <button
               type="button"
               onClick={() => remove('banner')}
-              className="inline-flex items-center gap-1 rounded-md border border-[#2a2a4d] bg-[#14142a] px-2 py-0.5 text-[10px] font-bold text-slate-400 transition cursor-pointer hover:border-rose-400/50 hover:text-rose-200"
+              className={s.buttonSecondary}
             >
               <Trash2 className="h-3 w-3 shrink-0" aria-hidden="true" />
               {isAr ? 'إزالة' : 'Remove'}
@@ -210,7 +206,7 @@ export const NetworkIdentityFields: React.FC<NetworkIdentityFieldsProps> = ({
               href={downloadUrl}
               download="insco-banner.jpg"
               data-testid="network-banner-download"
-              className="inline-flex items-center gap-1 rounded-md border border-emerald-400/50 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-200"
+              className="inline-flex items-center gap-1 rounded-md border border-emerald-400/50 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400"
             >
               {isAr ? 'تنزيل البانر' : 'Download the banner'}
             </a>
@@ -226,7 +222,7 @@ export const NetworkIdentityFields: React.FC<NetworkIdentityFieldsProps> = ({
           tabIndex={-1}
         />
         {errors.get('bannerURL') ? (
-          <p role="alert" className="mt-1 text-[10px] text-rose-300">{errors.get('bannerURL')}</p>
+          <p role="alert" className="mt-1 text-[10px] text-rose-400">{errors.get('bannerURL')}</p>
         ) : null}
       </div>
 
@@ -239,11 +235,11 @@ export const NetworkIdentityFields: React.FC<NetworkIdentityFieldsProps> = ({
                 src={draft.photoURL}
                 alt={isAr ? 'صورتك الشخصية' : 'Your photo'}
                 data-testid="network-identity-photo"
-                className="h-14 w-14 rounded-full border-2 border-violet-400/60 object-cover"
+                className="h-14 w-14 shrink-0 rounded-full border-2 border-violet-400/60 object-cover"
                 loading="lazy"
               />
             ) : (
-              <div className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-dashed border-[#3a3a5d] text-[13px] font-bold text-slate-400">
+              <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-violet-500/40 text-[13px] font-bold ${s.muted}`}>
                 {initialsOf(draft.displayName)}
               </div>
             )}
@@ -253,7 +249,7 @@ export const NetworkIdentityFields: React.FC<NetworkIdentityFieldsProps> = ({
               type="button"
               onClick={() => photoInput.current?.click()}
               disabled={busy !== null}
-              className="inline-flex items-center gap-1 rounded-md border border-[#2a2a4d] bg-[#14142a] px-2 py-0.5 text-[10px] font-bold text-slate-300 transition cursor-pointer hover:border-violet-400/50 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+              className={`${s.buttonSecondary} disabled:cursor-not-allowed disabled:opacity-60`}
             >
               {busy === 'photo' ? <Loader2 className="h-3 w-3 shrink-0 animate-spin" aria-hidden="true" /> : <ImagePlus className="h-3 w-3 shrink-0" aria-hidden="true" />}
               {isAr ? 'صورة شخصية' : 'Profile photo'}
@@ -262,7 +258,7 @@ export const NetworkIdentityFields: React.FC<NetworkIdentityFieldsProps> = ({
               <button
                 type="button"
                 onClick={() => remove('photo')}
-                className="inline-flex items-center gap-1 rounded-md border border-[#2a2a4d] bg-[#14142a] px-2 py-0.5 text-[10px] font-bold text-slate-400 transition cursor-pointer hover:border-rose-400/50 hover:text-rose-200"
+                className={s.buttonSecondary}
               >
                 <Trash2 className="h-3 w-3 shrink-0" aria-hidden="true" />
                 {isAr ? 'إزالة' : 'Remove'}
@@ -281,8 +277,8 @@ export const NetworkIdentityFields: React.FC<NetworkIdentityFieldsProps> = ({
         </div>
 
         <label className="min-w-0">
-          <span className="flex items-center gap-1 text-[10px] font-bold text-slate-400">
-            <Linkedin className="h-3 w-3 shrink-0 text-sky-300" aria-hidden="true" />
+          <span className={`flex items-center gap-1 text-[10px] font-bold ${s.subtext}`}>
+            <Linkedin className="h-3 w-3 shrink-0 text-sky-400" aria-hidden="true" />
             {isAr ? 'رابط LinkedIn (اختياري)' : 'LinkedIn URL (optional)'}
           </span>
           <input
@@ -290,14 +286,14 @@ export const NetworkIdentityFields: React.FC<NetworkIdentityFieldsProps> = ({
             onChange={event => onChange('linkedInUrl', event.target.value)}
             maxLength={NETWORK_MEDIA_LIMITS.urlMax}
             dir="ltr"
-            className={`${fieldClass} mt-0.5`}
+            className={`${s.input} mt-0.5`}
             placeholder="https://www.linkedin.com/in/your-name"
             aria-label={isAr ? 'رابط LinkedIn' : 'LinkedIn URL'}
           />
           {errors.get('linkedInUrl') ? (
-            <p role="alert" className="mt-0.5 text-[10px] text-rose-300">{errors.get('linkedInUrl')}</p>
+            <p role="alert" className="mt-0.5 text-[10px] text-rose-400">{errors.get('linkedInUrl')}</p>
           ) : (
-            <p className="mt-0.5 text-[9px] text-slate-500">
+            <p className={`mt-0.5 text-[9px] ${s.muted}`}>
               {isAr ? 'يظهر كزر على صفحتك العامة — نقبل linkedin.com فقط.' : 'Shown as a button on your page — LinkedIn hosts only.'}
             </p>
           )}
@@ -305,8 +301,8 @@ export const NetworkIdentityFields: React.FC<NetworkIdentityFieldsProps> = ({
       </div>
 
       {/* -------------------------- paste-a-link route ------------------------- */}
-      <details className="mt-2 rounded border border-[#232345] bg-[#101024] px-2 py-1.5">
-        <summary className="cursor-pointer text-[10px] font-bold text-slate-400">
+      <details className={`mt-2 ${s.subCard} px-2 py-1.5`}>
+        <summary className={`cursor-pointer text-[10px] font-bold ${s.subtext}`}>
           {isAr ? 'أو الصق رابط صورة جاهز' : 'Or paste an image link'}
         </summary>
         <div className="mt-1.5 grid min-w-0 gap-1.5">
@@ -314,7 +310,7 @@ export const NetworkIdentityFields: React.FC<NetworkIdentityFieldsProps> = ({
             value={draft.photoURL}
             onChange={event => onChange('photoURL', event.target.value)}
             dir="ltr"
-            className={fieldClass}
+            className={s.input}
             placeholder="https://…/photo.jpg"
             aria-label={isAr ? 'رابط الصورة الشخصية' : 'Photo URL'}
           />
@@ -322,11 +318,11 @@ export const NetworkIdentityFields: React.FC<NetworkIdentityFieldsProps> = ({
             value={draft.bannerURL}
             onChange={event => onChange('bannerURL', event.target.value)}
             dir="ltr"
-            className={fieldClass}
+            className={s.input}
             placeholder="https://…/banner.jpg"
             aria-label={isAr ? 'رابط البانر' : 'Banner URL'}
           />
-          <p className="text-[9px] leading-relaxed text-slate-500">
+          <p className={`text-[9px] leading-relaxed ${s.muted}`}>
             {isAr
               ? `روابط https فقط، وألا تتجاوز ${NETWORK_MEDIA_LIMITS.urlMax} حرفاً — القواعد ترفض غير ذلك.`
               : `HTTPS links only, at most ${NETWORK_MEDIA_LIMITS.urlMax} characters — the rules reject anything else.`}
@@ -336,7 +332,7 @@ export const NetworkIdentityFields: React.FC<NetworkIdentityFieldsProps> = ({
 
       {/* ------------------------------- audience ------------------------------ */}
       <fieldset className="mt-2.5">
-        <legend className="text-[10px] font-bold text-slate-400">{isAr ? 'من يرى صفحتك العامة؟' : 'Who can open your page?'}</legend>
+        <legend className={`text-[10px] font-bold ${s.subtext}`}>{isAr ? 'من يرى صفحتك العامة؟' : 'Who can open your page?'}</legend>
         <div className="mt-1 grid min-w-0 gap-1 sm:grid-cols-2">
           {NETWORK_PROFILE_VISIBILITY.map(option => {
             const checked = draft.profileVisibility === option.id;
@@ -345,8 +341,10 @@ export const NetworkIdentityFields: React.FC<NetworkIdentityFieldsProps> = ({
                 key={option.id}
                 className={`flex min-w-0 cursor-pointer items-start gap-1.5 rounded-lg border p-1.5 text-[10px] leading-relaxed transition ${
                   checked
-                    ? 'border-violet-400/60 bg-violet-500/10 text-slate-200'
-                    : 'border-[#2a2a4d] bg-[#101024] text-slate-400 hover:border-violet-400/40'
+                    ? isLight
+                      ? 'border-violet-500 bg-violet-50 text-slate-900'
+                      : 'border-violet-400/60 bg-violet-500/10 text-slate-200'
+                    : `${s.subCard} ${s.subtext} hover:border-violet-400/40`
                 }`}
               >
                 <input
@@ -360,7 +358,7 @@ export const NetworkIdentityFields: React.FC<NetworkIdentityFieldsProps> = ({
                 />
                 <span className="min-w-0">
                   <span className="block font-bold">{isAr ? option.ar : option.en}</span>
-                  <span className="block text-[9px] text-slate-500">{isAr ? option.hintAr : option.hintEn}</span>
+                  <span className={`block text-[9px] ${s.muted}`}>{isAr ? option.hintAr : option.hintEn}</span>
                 </span>
               </label>
             );
@@ -369,7 +367,7 @@ export const NetworkIdentityFields: React.FC<NetworkIdentityFieldsProps> = ({
       </fieldset>
 
       {!uploadEnabled ? (
-        <p className="mt-2 flex items-start gap-1 rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[9px] leading-relaxed text-amber-100">
+        <p className="mt-2 flex items-start gap-1 rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[9px] leading-relaxed text-amber-400">
           <CircleAlert className="mt-0.5 h-3 w-3 shrink-0" aria-hidden="true" />
           {isAr
             ? 'رفع الصور يحتاج تهيئة Firebase Storage — لم تُهيَّأ في هذه النسخة، لذلك الرفع معطّل بصراحة. التوليد والروابط تعمل.'
@@ -382,7 +380,7 @@ export const NetworkIdentityFields: React.FC<NetworkIdentityFieldsProps> = ({
           role={status.tone === 'error' ? 'alert' : 'status'}
           data-testid="network-identity-status"
           className={`mt-2 text-[10px] leading-relaxed ${
-            status.tone === 'error' ? 'text-rose-300' : status.tone === 'ok' ? 'text-emerald-300' : 'text-slate-400'
+            status.tone === 'error' ? 'text-rose-400' : status.tone === 'ok' ? 'text-emerald-400' : s.muted
           }`}
         >
           {status.text}

@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { CircleAlert, Loader2, RefreshCw, ShieldCheck, WifiOff } from 'lucide-react';
 import type { Language } from '../../types';
 import type { RulesProbeResult } from '../../client/rulesProbe';
+import { useTheme } from '../../utils/themeStore';
+import { networkSurface } from './networkTheme';
 
 const RULES_EDITOR =
   'https://console.firebase.google.com/project/ai-studio-applet-webapp-18922/firestore/rules';
@@ -20,6 +22,8 @@ interface NetworkRulesStatusProps {
  */
 export function NetworkRulesStatus({ language, probe }: NetworkRulesStatusProps) {
   const isAr = language === 'ar';
+  const { isLight } = useTheme();
+  const s = networkSurface(isLight);
   const [result, setResult] = useState<RulesProbeResult | null>(null);
   const [checking, setChecking] = useState(true);
 
@@ -46,16 +50,20 @@ export function NetworkRulesStatus({ language, probe }: NetworkRulesStatusProps)
       data-testid="network-rules-recheck"
       onClick={() => void run()}
       disabled={checking}
-      className="ms-auto inline-flex items-center gap-1 rounded border border-white/20 px-1.5 py-0.5 font-bold text-white/90 transition hover:border-white/40 disabled:opacity-50"
+      className={`ms-auto inline-flex items-center gap-1 rounded border px-1.5 py-0.5 font-bold transition disabled:opacity-50 ${
+        isLight
+          ? 'border-slate-300 bg-white/80 text-slate-800 hover:border-slate-400'
+          : 'border-white/20 text-white/90 hover:border-white/40'
+      }`}
     >
-      <RefreshCw className={`h-3 w-3 ${checking ? 'animate-spin' : ''}`} aria-hidden="true" />
+      <RefreshCw className={`h-3 w-3 shrink-0 ${checking ? 'animate-spin' : ''}`} aria-hidden="true" />
       {isAr ? 'أعد الفحص' : 'Check again'}
     </button>
   );
 
   if (checking && !result) {
     return (
-      <div data-testid="network-rules-checking" className={`${shell} border-[#232345] bg-[#0f0f22] text-slate-400`}>
+      <div data-testid="network-rules-checking" className={`${shell} ${s.card} ${s.subtext}`}>
         <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden="true" />
         {isAr ? 'جارٍ فحص القواعد المنشورة…' : 'Checking the published rules…'}
       </div>
@@ -73,7 +81,11 @@ export function NetworkRulesStatus({ language, probe }: NetworkRulesStatusProps)
             ? 'قراءة واحدة على مستند غير موجود: نجاحها يعني أن القواعد المنشورة تعرف مسار الجروبات — لا أنه يسمح بكل كتابة.'
             : 'A single read of a document that does not exist: success means the published rules know the groups path — not that every write is allowed.'
         }
-        className={`${shell} border-emerald-500/30 bg-emerald-500/10 text-emerald-200`}
+        className={`${shell} ${
+          isLight
+            ? 'border-emerald-300 bg-emerald-50 text-emerald-800'
+            : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'
+        }`}
       >
         <ShieldCheck className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
         {isAr
@@ -86,7 +98,14 @@ export function NetworkRulesStatus({ language, probe }: NetworkRulesStatusProps)
 
   if (result.state === 'offline') {
     return (
-      <div data-testid="network-rules-offline" className={`${shell} border-amber-500/30 bg-amber-500/10 text-amber-200`}>
+      <div
+        data-testid="network-rules-offline"
+        className={`${shell} ${
+          isLight
+            ? 'border-amber-300 bg-amber-50 text-amber-900'
+            : 'border-amber-500/30 bg-amber-500/10 text-amber-200'
+        }`}
+      >
         <WifiOff className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
         {isAr ? 'تعذّر الفحص بسبب الشبكة — لم يُحكم على القواعد.' : 'The check could not reach the server — no verdict on the rules.'}
         {recheck}
@@ -96,7 +115,7 @@ export function NetworkRulesStatus({ language, probe }: NetworkRulesStatusProps)
 
   if (result.state === 'unknown') {
     return (
-      <div data-testid="network-rules-unknown" className={`${shell} border-[#232345] bg-[#0f0f22] text-slate-400`}>
+      <div data-testid="network-rules-unknown" className={`${shell} ${s.card} ${s.subtext}`}>
         <CircleAlert className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
         {isAr ? 'لم يتمكّن الفحص من الحكم على القواعد.' : 'The check could not decide.'}
         {recheck}

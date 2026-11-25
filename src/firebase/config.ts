@@ -18,8 +18,9 @@ let auth: Auth | null = null;
 if (isFirebaseConfigured) {
   try {
     app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-    db = firebaseConfig.firestoreDatabaseId
-      ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
+    const firestoreDatabaseId = (firebaseConfig as { firestoreDatabaseId?: string }).firestoreDatabaseId;
+    db = firestoreDatabaseId
+      ? getFirestore(app, firestoreDatabaseId)
       : getFirestore(app);
     auth = getAuth(app);
   } catch (err) {

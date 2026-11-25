@@ -683,6 +683,23 @@
         },
         "followersCount": { "type": "number" },
         "endorsementsCount": { "type": "number" },
+        "photoURL": { "type": "string", "maxLength": 500 },
+        "bannerURL": { "type": "string", "maxLength": 500 },
+        "linkedInUrl": { "type": "string", "maxLength": 500 },
+        "profileVisibility": { "type": "string", "enum": ["public", "members"] },
+        "skills": { "type": "string", "maxLength": 700 },
+        "professionalRole": { "type": "string", "maxLength": 60 },
+        "relatedFields": { "type": "string", "maxLength": 400 },
+        "languages": { "type": "string", "maxLength": 200 },
+        "experienceSummary": { "type": "string", "maxLength": 1200 },
+        "educationSummary": { "type": "string", "maxLength": 600 },
+        "projectsSummary": { "type": "string", "maxLength": 800 },
+        "shareAcademyProgress": { "type": "boolean" },
+        "messagePolicy": { "type": "string", "enum": ["everyone", "connections", "none"] },
+        "identityVerified": { "type": "boolean" },
+        "organizationVerified": { "type": "boolean" },
+        "credentialVerified": { "type": "boolean" },
+        "verifiedOrganizationId": { "type": "string", "maxLength": 128 },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
@@ -821,6 +838,146 @@
         "createdAt",
         "updatedAt"
       ]
+    },
+    "CommunityCompany": {
+      "title": "CommunityCompany",
+      "description": "Public engineering company page inside INSCO Professional Network with services, branches, specializations, and verification track",
+      "type": "object",
+      "properties": {
+        "ownerUid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "name": { "type": "string", "minLength": 2, "maxLength": 160 },
+        "nameAr": { "type": "string", "maxLength": 160 },
+        "industry": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "description": { "type": "string", "minLength": 5, "maxLength": 1500 },
+        "headquarters": { "type": "string", "maxLength": 160 },
+        "branches": { "type": "string", "maxLength": 400 },
+        "website": { "type": "string", "maxLength": 300 },
+        "contactEmail": { "type": "string", "maxLength": 160 },
+        "services": { "type": "string", "maxLength": 500 },
+        "specializations": { "type": "string", "maxLength": 400 },
+        "projectsSummary": { "type": "string", "maxLength": 1000 },
+        "logoURL": { "type": "string", "maxLength": 500 },
+        "coverURL": { "type": "string", "maxLength": 500 },
+        "verificationStatus": { "type": "string", "enum": ["unverified", "pending", "verified"] },
+        "followersCount": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerUid", "name", "industry", "description", "verificationStatus", "followersCount", "createdAt", "updatedAt"]
+    },
+    "CommunityCompanyDepartment": {
+      "title": "CommunityCompanyDepartment",
+      "description": "Interactive organizational chart node/department inside a CommunityCompany",
+      "type": "object",
+      "properties": {
+        "companyId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "parentDeptId": { "type": "string", "maxLength": 128 },
+        "levelRank": { "type": "number" },
+        "levelTitle": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "name": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "description": { "type": "string", "maxLength": 600 },
+        "managerUid": { "type": "string", "maxLength": 128 },
+        "managerName": { "type": "string", "maxLength": 120 },
+        "specializations": { "type": "string", "maxLength": 300 },
+        "services": { "type": "string", "maxLength": 300 },
+        "projectsSummary": { "type": "string", "maxLength": 600 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["companyId", "levelRank", "levelTitle", "name", "createdAt", "updatedAt"]
+    },
+    "CommunityCompanyAffiliation": {
+      "title": "CommunityCompanyAffiliation",
+      "description": "Employee-company link requiring explicit employee acceptance before becoming active",
+      "type": "object",
+      "properties": {
+        "companyId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "companyName": { "type": "string", "minLength": 2, "maxLength": 160 },
+        "employeeUid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "employeeName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "roleTitle": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "departmentId": { "type": "string", "maxLength": 128 },
+        "departmentName": { "type": "string", "maxLength": 120 },
+        "status": { "type": "string", "enum": ["invited", "accepted", "declined", "removed"] },
+        "invitedByUid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["companyId", "companyName", "employeeUid", "employeeName", "roleTitle", "status", "invitedByUid", "createdAt", "updatedAt"]
+    },
+    "CommunityEvent": {
+      "title": "CommunityEvent",
+      "description": "Engineering webinar, conference, workshop, or networking event",
+      "type": "object",
+      "properties": {
+        "organizerUid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "organizerName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "organizerOrg": { "type": "string", "minLength": 2, "maxLength": 160 },
+        "companyId": { "type": "string", "maxLength": 128 },
+        "eventType": { "type": "string", "enum": ["conference", "webinar", "workshop", "seminar", "training", "career_fair", "networking"] },
+        "title": { "type": "string", "minLength": 3, "maxLength": 180 },
+        "description": { "type": "string", "minLength": 5, "maxLength": 2000 },
+        "speakers": { "type": "string", "maxLength": 300 },
+        "dateIso": { "type": "string", "minLength": 8, "maxLength": 40 },
+        "venueOrLink": { "type": "string", "minLength": 2, "maxLength": 300 },
+        "capacity": { "type": "number" },
+        "attendeesCount": { "type": "number" },
+        "academyCourseId": { "type": "string", "maxLength": 80 },
+        "postEventResources": { "type": "string", "maxLength": 800 },
+        "status": { "type": "string", "enum": ["upcoming", "completed", "cancelled"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["organizerUid", "organizerName", "organizerOrg", "eventType", "title", "description", "dateIso", "venueOrLink", "capacity", "attendeesCount", "status", "createdAt", "updatedAt"]
+    },
+    "CommunityVerification": {
+      "title": "CommunityVerification",
+      "description": "Three-track manual verification workflow (identity, organization, credential)",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "memberName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "track": { "type": "string", "enum": ["identity", "organization", "credential"] },
+        "subjectTitle": { "type": "string", "minLength": 2, "maxLength": 180 },
+        "issuerOrCompany": { "type": "string", "minLength": 2, "maxLength": 180 },
+        "evidenceNote": { "type": "string", "minLength": 4, "maxLength": 1000 },
+        "evidenceUrl": { "type": "string", "maxLength": 500 },
+        "companyId": { "type": "string", "maxLength": 128 },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "reviewerUid": { "type": "string", "maxLength": 128 },
+        "reviewerName": { "type": "string", "maxLength": 120 },
+        "reviewerNote": { "type": "string", "maxLength": 600 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "memberName", "track", "subjectTitle", "issuerOrCompany", "evidenceNote", "status", "createdAt", "updatedAt"]
+    },
+    "CommunityEmail": {
+      "title": "CommunityEmail",
+      "description": "Internal member-to-member engineering email inside INSCO Engineering Network (no external PII exposed)",
+      "type": "object",
+      "properties": {
+        "participantUids": { "type": "array", "items": { "type": "string" } },
+        "senderUid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "senderName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "senderOrg": { "type": "string", "maxLength": 160 },
+        "recipientUid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "recipientName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "subject": { "type": "string", "minLength": 2, "maxLength": 180 },
+        "category": { "type": "string", "enum": ["general", "technical_inquiry", "inspection_coordination", "job_inquiry", "academy"] },
+        "priority": { "type": "string", "enum": ["normal", "urgent"] },
+        "body": { "type": "string", "minLength": 1, "maxLength": 5000 },
+        "attachmentUrl": { "type": "string", "maxLength": 500 },
+        "replyToEmailId": { "type": "string", "maxLength": 128 },
+        "recipientRead": { "type": "boolean" },
+        "senderStarred": { "type": "boolean" },
+        "recipientStarred": { "type": "boolean" },
+        "senderFolder": { "type": "string", "enum": ["sent", "archive"] },
+        "recipientFolder": { "type": "string", "enum": ["inbox", "archive"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["participantUids", "senderUid", "senderName", "recipientUid", "recipientName", "subject", "category", "priority", "body", "recipientRead", "senderStarred", "recipientStarred", "senderFolder", "recipientFolder", "createdAt", "updatedAt"]
     }
   },
   "firestore": {
@@ -875,6 +1032,30 @@
     "/community_opportunities/{opportunityId}": {
       "schema": { "$ref": "#/entities/CommunityOpportunity" },
       "description": "NDT careers, tenders, and equipment opportunities board (zero PII)"
+    },
+    "/community_companies/{companyId}": {
+      "schema": { "$ref": "#/entities/CommunityCompany" },
+      "description": "Public engineering company pages with organization verification state"
+    },
+    "/community_companies/{companyId}/departments/{deptId}": {
+      "schema": { "$ref": "#/entities/CommunityCompanyDepartment" },
+      "description": "Interactive organizational chart nodes & department mini-pages"
+    },
+    "/community_companies/{companyId}/affiliations/{affiliationId}": {
+      "schema": { "$ref": "#/entities/CommunityCompanyAffiliation" },
+      "description": "Explicit employee affiliation requests & consent records"
+    },
+    "/community_events/{eventId}": {
+      "schema": { "$ref": "#/entities/CommunityEvent" },
+      "description": "Community workshops, webinars, conferences, and networking events"
+    },
+    "/community_verifications/{verificationId}": {
+      "schema": { "$ref": "#/entities/CommunityVerification" },
+      "description": "Three-track manual verification requests (identity, organization, credential)"
+    },
+    "/community_emails/{emailId}": {
+      "schema": { "$ref": "#/entities/CommunityEmail" },
+      "description": "Internal platform emails exchanged between verified community members"
     }
   }
 }

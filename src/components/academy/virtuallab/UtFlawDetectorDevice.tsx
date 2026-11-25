@@ -5,6 +5,9 @@ import {
   ExtendedWeldFlawId,
   INSPECTION_CODES_META,
   InspectionCodeId,
+  UltrasonicReflectionRegime,
+  UltrasonicWaveMode,
+  computeRayReflectionBreakdown,
   computeUltrasonicBeamCone,
   drawComprehensiveDefectMorphology,
   drawUltrasonicBeamCone2D,
@@ -89,6 +92,8 @@ export const UtFlawDetectorDevice: React.FC<UtFlawDetectorDeviceProps> = ({ lang
   const [corrosionStepIndex, setCorrosionStepIndex] = useState<number>(2);
   const [showBeamCone, setShowBeamCone] = useState<boolean>(true);
   const [showWavefronts, setShowWavefronts] = useState<boolean>(true);
+  const [waveMode, setWaveMode] = useState<UltrasonicWaveMode>('longitudinal');
+  const [reflectionRegime, setReflectionRegime] = useState<UltrasonicReflectionRegime>('auto');
   const [isDraggingWorkProbe, setIsDraggingWorkProbe] = useState<boolean>(false);
   const [traineeVerdictChoice, setTraineeVerdictChoice] = useState<'ACCEPT' | 'REJECT'>('REJECT');
   const [selectedCode, setSelectedCode] = useState<InspectionCodeId>('asme_viii');
@@ -296,6 +301,48 @@ export const UtFlawDetectorDevice: React.FC<UtFlawDetectorDeviceProps> = ({ lang
   // AWS D1.1 Indication Rating D = A - B - C
   const awsAttenuationC = Math.max(0, 2 * (Math.max(25.4, soundPathMeasured) / 25.4 - 1));
   const awsRatingD = Number((gainDb - 42.0 - awsAttenuationC).toFixed(1));
+
+  const workScatterMode: 'specular_planar' | 'corner_trap' | 'volumetric_scatter' | 'tip_diffraction' | 'lamination' =
+    currentDefect.id === 'base_lamination'
+      ? 'lamination'
+      : currentDefect.echoWaveformType === 'sharp_spike_tip'
+      ? 'tip_diffraction'
+      : currentDefect.id === 'root_crack' ||
+        currentDefect.id === 'root_lof' ||
+        currentDefect.id === 'incomplete_penetration'
+      ? 'corner_trap'
+      : currentDefect.category === 'Volumetric'
+      ? 'volumetric_scatter'
+      : 'specular_planar';
+
+  const isWorkFlawHit =
+    (activeSpecimen === 'weld_butt' || activeSpecimen === 'weld_curved_pipe') &&
+    gateAMaxAmp >= gateAThresholdPct;
+  const workFlawDepthMm = currentDefect.nominalDepthRatio * plateThicknessMm;
+  const workConeW = Math.max(4, coneMetrics.width6dBAtDepthMm(Math.max(4, workFlawDepthMm / Math.max(0.2, Math.cos(rad)))));
+  const workOcclusion = isWorkFlawHit
+    ? Math.min(1, Math.max(0.25, (currentDefect.heightMm * 1.4) / workConeW))
+    : 0;
+  const utReflectionBreakdown = computeRayReflectionBreakdown({
+    isHit:
+      activeSpecimen === 'iiw_v1'
+        ? iiwPosition === 'C'
+        : activeSpecimen === 'corrosion_step'
+        ? true
+        : isWorkFlawHit,
+    beamOcclusionRatio: activeSpecimen === 'corrosion_step' ? 1 : workOcclusion,
+    scatterMode:
+      activeSpecimen === 'iiw_v1'
+        ? iiwPosition === 'C'
+          ? 'volumetric_scatter'
+          : 'lamination'
+        : activeSpecimen === 'corrosion_step'
+        ? 'lamination'
+        : workScatterMode,
+    angleDiffDeg: Math.abs(probeAngleDeg - currentDefect.optimalAngleDeg),
+    isStraightZeroBeam: probeAngleDeg === 0,
+    regimeOverride: reflectionRegime,
+  });
 
   // ---------------------------------------------------------------------------
   // 1. Render Realistic Industrial A-Scan CRT/LCD Screen
@@ -632,6 +679,8 @@ export const UtFlawDetectorDevice: React.FC<UtFlawDetectorDeviceProps> = ({ lang
               showNearField: true,
               isHit: isFlawHit,
               animationPhase: phaseSec,
+              waveMode,
+              reflectionBreakdown: utReflectionBreakdown,
               defectImpact: {
                 x: defX,
                 y: defY,
@@ -642,14 +691,30 @@ export const UtFlawDetectorDevice: React.FC<UtFlawDetectorDeviceProps> = ({ lang
             });
           }
 
-          // Central Ray Spine
+          // Central Ray Spine (Incident Leg 1 + Shadow/Bypass Leg 2)
           ctx.strokeStyle = isFlawHit ? 'rgba(239, 68, 68, 0.72)' : 'rgba(56, 189, 248, 0.75)';
           ctx.lineWidth = 1.6;
           ctx.beginPath();
           ctx.moveTo(entryX, topY);
           ctx.lineTo(bounceX, bottomY);
-          if (leg2X !== undefined) ctx.lineTo(leg2X, topY);
           ctx.stroke();
+
+          if (leg2X !== undefined) {
+            if (isFlawHit && legNumber === 1 && utReflectionBreakdown.shadowZoneActive) {
+              ctx.strokeStyle = 'rgba(100, 116, 139, 0.25)';
+              ctx.setLineDash([3, 4]);
+              ctx.lineWidth = 1.0;
+            } else {
+              const bypassAlpha = isFlawHit && legNumber === 1 ? Math.max(0.28, utReflectionBreakdown.transmittedBypassPct / 100) : 0.75;
+              ctx.strokeStyle = `rgba(245, 158, 11, ${bypassAlpha.toFixed(2)})`;
+              ctx.lineWidth = 1.5;
+            }
+            ctx.beginPath();
+            ctx.moveTo(bounceX, bottomY);
+            ctx.lineTo(leg2X, topY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+          }
 
           // Physical Probe + Perspex Wedge + Piezo Refraction + Coax BNC
           ctx.fillStyle = '#0284c7';
@@ -739,6 +804,8 @@ export const UtFlawDetectorDevice: React.FC<UtFlawDetectorDeviceProps> = ({ lang
               showNearField: true,
               isHit: isFlawHit,
               animationPhase: phaseSec,
+              waveMode,
+              reflectionBreakdown: utReflectionBreakdown,
               defectImpact: {
                 x: defX,
                 y: defY,
@@ -824,6 +891,8 @@ export const UtFlawDetectorDevice: React.FC<UtFlawDetectorDeviceProps> = ({ lang
             showWavefronts,
             showNearField: true,
             animationPhase: phaseSec,
+            waveMode,
+            reflectionBreakdown: utReflectionBreakdown,
             defectImpact:
               iiwPosition === 'C'
                 ? { x: targetX, y: targetY, hit: true, scatterMode: 'volumetric_scatter', leg: 1 }
@@ -873,6 +942,8 @@ export const UtFlawDetectorDevice: React.FC<UtFlawDetectorDeviceProps> = ({ lang
                 showWavefronts,
                 showNearField: false,
                 animationPhase: phaseSec,
+                waveMode,
+                reflectionBreakdown: utReflectionBreakdown,
                 defectImpact: { x: cx, y: baseBottom, hit: true, scatterMode: 'lamination', leg: 1 },
               });
             }
@@ -911,6 +982,12 @@ export const UtFlawDetectorDevice: React.FC<UtFlawDetectorDeviceProps> = ({ lang
     gateAThresholdPct,
     isFrozen,
     legNumber,
+    waveMode,
+    reflectionRegime,
+    utReflectionBreakdown.regime,
+    utReflectionBreakdown.reflectedToProbePct,
+    utReflectionBreakdown.transmittedBypassPct,
+    utReflectionBreakdown.shadowZoneActive,
   ]);
 
   const handleWorkCanvasPointer = (clientX: number) => {
@@ -987,6 +1064,7 @@ export const UtFlawDetectorDevice: React.FC<UtFlawDetectorDeviceProps> = ({ lang
                 setProbeAngleDeg(spec.angle);
                 setRangeMm(spec.range);
                 setVelocityMs(spec.angle === 0 ? 5920 : 3240);
+                setWaveMode(spec.angle === 0 ? 'longitudinal' : 'shear');
                 setLogFeedbackMsg(null);
               }}
               className={`p-2 rounded-xl border text-start transition cursor-pointer ${
@@ -1488,6 +1566,7 @@ export const UtFlawDetectorDevice: React.FC<UtFlawDetectorDeviceProps> = ({ lang
                             onClick={() => {
                               setProbeAngleDeg(deg);
                               setVelocityMs(deg === 0 ? 5920 : 3240);
+                              setWaveMode(deg === 0 ? 'longitudinal' : 'shear');
                             }}
                             className={`py-1 rounded border cursor-pointer ${
                               probeAngleDeg === deg ? 'bg-amber-600 text-white border-amber-400 font-bold' : 'bg-slate-900 text-slate-400 border-slate-800'
@@ -1625,6 +1704,81 @@ export const UtFlawDetectorDevice: React.FC<UtFlawDetectorDeviceProps> = ({ lang
             className="w-full h-56 rounded-xl bg-slate-950 border border-slate-800 cursor-ew-resize select-none"
           />
 
+          {/* Compact Wave Mode & Incident/Reflected Ray Breakdown Strip */}
+          <div className="p-2 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5 font-mono text-[10px]">
+            <div className="flex flex-wrap items-center justify-between gap-1.5">
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  aria-pressed={waveMode === 'longitudinal'}
+                  onClick={() => {
+                    setWaveMode('longitudinal');
+                    setVelocityMs(5920);
+                  }}
+                  className={`px-2 py-0.5 rounded border cursor-pointer font-bold ${
+                    waveMode === 'longitudinal'
+                      ? 'bg-emerald-600 text-white border-emerald-400'
+                      : 'bg-slate-900 text-slate-300 border-slate-800'
+                  }`}
+                >
+                  {isAr ? 'طولية ⇄' : 'L-Wave ⇄'}
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={waveMode === 'shear'}
+                  onClick={() => {
+                    setWaveMode('shear');
+                    setVelocityMs(3240);
+                  }}
+                  className={`px-2 py-0.5 rounded border cursor-pointer font-bold ${
+                    waveMode === 'shear'
+                      ? 'bg-cyan-600 text-white border-cyan-400'
+                      : 'bg-slate-900 text-slate-300 border-slate-800'
+                  }`}
+                >
+                  {isAr ? 'مستعرضة ⇅' : 'S-Wave ⇅'}
+                </button>
+              </div>
+
+              <div className="flex items-center gap-1">
+                {(
+                  [
+                    { id: 'auto', ar: 'تلقائي', en: 'Auto' },
+                    { id: 'full', ar: 'كلي', en: 'Full' },
+                    { id: 'partial', ar: 'جزئي', en: 'Partial' },
+                  ] as const
+                ).map((reg) => (
+                  <button
+                    key={reg.id}
+                    type="button"
+                    aria-pressed={reflectionRegime === reg.id}
+                    onClick={() => setReflectionRegime(reg.id)}
+                    className={`px-1.5 py-0.5 rounded border cursor-pointer ${
+                      reflectionRegime === reg.id
+                        ? 'bg-amber-500 text-slate-950 border-amber-300 font-bold'
+                        : 'bg-slate-900 text-slate-400 border-slate-800'
+                    }`}
+                  >
+                    {isAr ? reg.ar : reg.en}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-2 text-[9.5px] tabular-nums text-slate-300">
+              <span className="text-sky-300">TX ▶ {utReflectionBreakdown.incidentPct}%</span>
+              <span className="text-emerald-300">ECHO ◀ {utReflectionBreakdown.reflectedToProbePct}%</span>
+              <span className="text-amber-300">OFF-AXIS ↗ {utReflectionBreakdown.reflectedOffAxisPct}%</span>
+              <span className={utReflectionBreakdown.shadowZoneActive ? 'text-rose-300 font-bold' : 'text-cyan-300'}>
+                {utReflectionBreakdown.shadowZoneActive
+                  ? isAr
+                    ? 'ظل صوتي 0%'
+                    : 'SHADOW 0%'
+                  : `PASS ▶ ${utReflectionBreakdown.transmittedBypassPct}%`}
+              </span>
+            </div>
+          </div>
+
           {/* Dynamic Specimen Manipulation Controls */}
           <div className="space-y-3 font-mono text-xs">
             {(activeSpecimen === 'weld_butt' || activeSpecimen === 'weld_curved_pipe') && (
@@ -1643,6 +1797,7 @@ export const UtFlawDetectorDevice: React.FC<UtFlawDetectorDeviceProps> = ({ lang
                         if (spec) {
                           setProbeAngleDeg(spec.optimalAngleDeg);
                           setVelocityMs(spec.optimalAngleDeg === 0 ? 5920 : 3240);
+                          setWaveMode(spec.optimalAngleDeg === 0 ? 'longitudinal' : 'shear');
                         }
                         if (autoAlertOnDefectSelect) {
                           setIsToleranceModalOpen(true);

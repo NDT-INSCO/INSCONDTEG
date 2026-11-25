@@ -7,6 +7,8 @@ import { ACADEMY_CASES } from '../../data/academyCases';
 import { AcademyDevelopmentRoadmap } from './AcademyDevelopmentRoadmap';
 import { getKnowledgeLessonQuizPack } from '../../data/curriculumLessonQuizzes';
 import { PostLessonQuizPanel } from './PostLessonQuizPanel';
+import { useDriveAcademyLibrary } from '../../utils/driveAcademyStore';
+import type { ImportedVocationalBookEntry } from '../../utils/driveAcademyImporter';
 
 const STORAGE_KEY = 'insco_knowledge_read_v1';
 const normalize = (value: string) => value.toLowerCase().normalize('NFKD').replace(/[\u064B-\u065F\u0670]/g, '').replace(/[أإآ]/g, 'ا').replace(/ى/g, 'ي');
@@ -22,13 +24,18 @@ export function AcademyKnowledgeLibrary({ language, onCurriculum, onOpenLeaderbo
   const [query, setQuery] = useState('');
   const [discipline, setDiscipline] = useState('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedVocationalId, setSelectedVocationalId] = useState<string | null>(null);
   const [mode, setMode] = useState<'lessons' | 'sources' | 'roadmap' | 'cases'>('lessons');
   const [read, setRead] = useState(readProgress);
   const [storageWarning, setStorageWarning] = useState(false);
   const [choice, setChoice] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const driveLibrary = useDriveAcademyLibrary();
   const selected = KNOWLEDGE_LESSONS.find(l => l.id === selectedId);
+  const selectedVocational: ImportedVocationalBookEntry | undefined = driveLibrary.books.find(
+    b => b.indexEntry.id === selectedVocationalId
+  );
   useEffect(() => {
     const sync = (e: StorageEvent) => { if (e.key === STORAGE_KEY || e.key === null) setRead(readProgress()); };
     window.addEventListener('storage', sync);
@@ -75,7 +82,45 @@ export function AcademyKnowledgeLibrary({ language, onCurriculum, onOpenLeaderbo
       {(['lessons', 'sources'] as const).map(tab => <button key={tab} onClick={() => { setMode(tab); setSelectedId(null); }} aria-pressed={mode === tab} className={`px-4 py-2 rounded-lg font-bold text-sm ${mode === tab ? 'bg-amber-500 text-slate-950' : 'bg-[#151a38] text-slate-200'}`}>{tab === 'lessons' ? (isAr ? 'الدروس ومسار القراءة' : 'Lessons & reading path') : (isAr ? 'مكتبة المصادر' : 'Source library')}</button>)}
     <button onClick={() => { setMode('roadmap'); setSelectedId(null); }} aria-pressed={mode === 'roadmap'} className={`px-4 py-2 rounded-lg font-bold text-sm ${mode === 'roadmap' ? 'bg-amber-500 text-slate-950' : 'bg-[#151a38] text-slate-200'}`}>{isAr ? 'خطة تطوير الأكاديمية' : 'Development roadmap'}</button>
     </div>
-    {mode === 'roadmap' ? <AcademyDevelopmentRoadmap language={language} onOpenLesson={(id: string) => { setSelectedId(id); setMode('lessons'); }} onOpenCases={() => setMode('cases')} /> : mode === 'cases' ? <div className="rounded-2xl border border-[#29315b] bg-[#10132b] p-5 space-y-3"><h4 className="text-white font-bold text-xl">{isAr ? 'دفتر الحالات' : 'Case workbook'}</h4><p className="text-slate-300 text-sm">{isAr ? 'الحالات المراجعة: ' : 'Cases reviewed: '}0/{ACADEMY_CASES.length}</p></div> : mode === 'sources' ? <div className="space-y-4"><h4 className="text-white font-bold text-xl">{isAr ? 'مصادر للقراءة والتوسع' : 'Further reading sources'}</h4><p className="text-sm text-slate-400">{isAr ? 'تاريخ البحث التحريري: 16 أكتوبر 2026. الروابط لا تعني شراكة أو اعتماداً للأكاديمية. الملخصات تعليمية وليست نقلاً لنصوص المواصفات؛ بعض الوثائق تتطلب شراءً أو تسجيلاً، وقد تتغير روابطها ومتطلباتها.' : 'Editorial research: 16 October 2026. Links do not imply partnership or academy accreditation. Notes are educational, not reproductions of standards; some documents require purchase or registration, and links or requirements can change.'}</p>{sourceCards}</div> : selected ? <article className="rounded-2xl border border-[#29315b] bg-[#10132b] p-5 sm:p-8 space-y-6">
+    {mode === 'roadmap' ? <AcademyDevelopmentRoadmap language={language} onOpenLesson={(id: string) => { setSelectedId(id); setMode('lessons'); }} onOpenCases={() => setMode('cases')} /> : mode === 'cases' ? <div className="rounded-2xl border border-[#29315b] bg-[#10132b] p-5 space-y-3"><h4 className="text-white font-bold text-xl">{isAr ? 'دفتر الحالات' : 'Case workbook'}</h4><p className="text-slate-300 text-sm">{isAr ? 'الحالات المراجعة: ' : 'Cases reviewed: '}0/{ACADEMY_CASES.length}</p></div> : mode === 'sources' ? <div className="space-y-4"><h4 className="text-white font-bold text-xl">{isAr ? 'مصادر للقراءة والتوسع' : 'Further reading sources'}</h4><p className="text-sm text-slate-400">{isAr ? 'تاريخ البحث التحريري: 16 أكتوبر 2026. الروابط لا تعني شراكة أو اعتماداً للأكاديمية. الملخصات تعليمية وليست نقلاً لنصوص المواصفات؛ بعض الوثائق تتطلب شراءً أو تسجيلاً، وقد تتغير روابطها ومتطلباتها.' : 'Editorial research: 16 October 2026. Links do not imply partnership or academy accreditation. Notes are educational, not reproductions of standards; some documents require purchase or registration, and links or requirements can change.'}</p>{sourceCards}</div> : selectedVocational ? <article className="rounded-2xl border border-amber-500/35 bg-[#10132b] p-5 sm:p-8 space-y-6">
+      <button onClick={() => setSelectedVocationalId(null)} className="text-amber-400 text-sm flex items-center gap-2 cursor-pointer">{isAr ? <ArrowRight className="w-4 h-4 shrink-0" /> : <ArrowLeft className="w-4 h-4 shrink-0" />}{isAr ? 'العودة إلى الدروس ووحدات التعليم المهني' : 'Back to lessons & vocational modules'}</button>
+      <header>
+        <div className="text-xs font-mono text-amber-300 mb-1">{selectedVocational.discipline} · {isAr ? 'تعليم مهني داخل المنصة' : 'In-Platform Vocational Education'}</div>
+        <h4 className="text-2xl font-black text-white">{selectedVocational.book.metadata.title[language]}</h4>
+        <p className="text-slate-400 text-sm mt-1">{selectedVocational.book.metadata.subtitle[language]}</p>
+      </header>
+      <div className="space-y-4">
+        {selectedVocational.book.pages.map(page => (
+          <section key={page.id} className="rounded-xl border border-[#29315b] bg-[#0b0d1e] p-4 space-y-2">
+            <h5 className="text-amber-300 font-bold text-sm">{page.title[language]}</h5>
+            {page.blocks.map((block, bIdx) => {
+              if (block.type === 'paragraph' || block.type === 'heading') {
+                return <p key={bIdx} className="text-slate-200 text-sm leading-relaxed whitespace-pre-line">{block.text[language]}</p>;
+              }
+              if (block.type === 'formula') {
+                return <div key={bIdx} dir="ltr" className="rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 font-mono text-xs text-cyan-300">{block.expression}</div>;
+              }
+              if (block.type === 'callout') {
+                return <div key={bIdx} className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">{block.text[language]}</div>;
+              }
+              if (block.type === 'experiment') {
+                return (
+                  <button
+                    key={bIdx}
+                    type="button"
+                    onClick={() => { window.location.hash = `#${block.experimentId}`; }}
+                    className="inline-flex items-center gap-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 px-3 py-1.5 text-xs font-black text-slate-950 cursor-pointer"
+                  >
+                    {block.label[language]}
+                  </button>
+                );
+              }
+              return null;
+            })}
+          </section>
+        ))}
+      </div>
+    </article> : selected ? <article className="rounded-2xl border border-[#29315b] bg-[#10132b] p-5 sm:p-8 space-y-6">
       <button onClick={() => setSelectedId(null)} className="text-amber-400 text-sm flex items-center gap-2">{isAr ? <ArrowRight className="w-4 h-4" /> : <ArrowLeft className="w-4 h-4" />}{isAr ? 'العودة إلى الدروس' : 'Back to lessons'}</button>
       <header><h4 ref={headingRef} tabIndex={-1} className="text-2xl font-black text-white outline-none">{selected.title[language]}</h4><p className="text-slate-400 text-sm mt-2">{isAr ? 'المتطلبات السابقة: ' : 'Prerequisites: '}{selected.prerequisites[language]}</p><p className="text-slate-400 text-xs mt-2">{isAr ? 'زمن دراسة مقترح يشمل التمرين: نحو ' : 'Suggested study time including practice: about '}{selected.minutes} {isAr ? 'دقائق' : 'minutes'}</p></header>
       {selected.sections.map((section, i) => <section key={i}><h5 className="text-amber-300 font-bold mb-2">{section.heading[language]}</h5><p className="text-slate-200 text-sm sm:text-base leading-loose whitespace-pre-line">{section.body[language]}</p></section>)}
@@ -88,6 +133,31 @@ export function AcademyKnowledgeLibrary({ language, onCurriculum, onOpenLeaderbo
       <section className="space-y-3"><h5 className="text-white font-bold">{isAr ? 'مراجع هذا الدرس للقراءة والتوسع' : 'Supporting reading for this lesson'}</h5>{sourceCards}</section>
       <div className="flex flex-wrap gap-3"><button aria-pressed={read.includes(selected.id)} onClick={() => toggleRead(selected.id)} className="bg-amber-500 text-slate-950 rounded-lg px-4 py-3 text-sm font-bold flex items-center gap-2"><CheckCircle2 className="w-4 h-4" />{read.includes(selected.id) ? (isAr ? 'إلغاء علامة القراءة' : 'Mark as unread') : (isAr ? 'قرأت وفهمت الدرس' : 'Mark as read')}</button><button onClick={() => onCurriculum(selected.discipline)} className="border border-[#343d65] text-slate-100 rounded-lg px-4 py-3 text-sm">{isAr ? 'فتح المنهج المرتبط' : 'Open related curriculum'}</button>{KNOWLEDGE_LESSONS.findIndex(l => l.id === selected.id) < KNOWLEDGE_LESSONS.length - 1 && <button onClick={() => setSelectedId(KNOWLEDGE_LESSONS[KNOWLEDGE_LESSONS.findIndex(l => l.id === selected.id) + 1].id)} className="text-amber-300 text-sm px-3">{isAr ? 'الدرس التالي ←' : 'Next lesson →'}</button>}</div>
     </article> : <>
+      {driveLibrary.books.length > 0 && (
+        <section className="rounded-2xl border border-amber-500/35 bg-[#10132b] p-4 space-y-3" data-testid="knowledge-vocational-modules">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h4 className="text-amber-300 font-black text-sm sm:text-base">{isAr ? 'وحدات التعليم المهني المدمجة داخل المنصة' : 'In-Platform Vocational Education Modules'}</h4>
+            <span className="text-xs font-mono text-slate-300">{driveLibrary.books.length}</span>
+          </div>
+          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-3">
+            {driveLibrary.books.map(entry => (
+              <button
+                key={entry.indexEntry.id}
+                type="button"
+                onClick={() => setSelectedVocationalId(entry.indexEntry.id)}
+                className="text-start rounded-xl border border-[#29315b] bg-[#0b0d1e] hover:border-amber-400 p-4 transition space-y-2 cursor-pointer"
+              >
+                <div className="flex items-center justify-between text-[11px] font-mono text-amber-400">
+                  <span>{entry.discipline}</span>
+                  <span>{entry.indexEntry.pages} {isAr ? 'صفحة' : 'pp'}</span>
+                </div>
+                <p className="font-bold text-white text-sm line-clamp-2">{entry.book.metadata.title[language]}</p>
+                <p className="text-xs text-slate-400 line-clamp-2">{entry.book.metadata.subtitle[language]}</p>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
       <div className="rounded-xl border border-[#29315b] bg-[#10132b] p-4"><h4 className="text-white font-bold mb-3">{isAr ? 'البداية المقترحة لكل متعلم' : 'Suggested starting sequence'}</h4><div className="flex gap-2 flex-wrap">{['safety', 'measurement', 'qualification', 'waves'].map((id, i) => <button key={id} onClick={() => setSelectedId(id)} className="rounded-lg bg-[#1c2344] px-3 py-2 text-amber-200 text-xs">{i + 1}. {KNOWLEDGE_LESSONS.find(l => l.id === id)!.title[language]}</button>)}</div></div>
       <div className="grid sm:grid-cols-[1fr_280px] gap-3"><label className="relative"><span className="sr-only">{isAr ? 'ابحث في الدروس' : 'Search lessons'}</span><Search className="absolute top-3 start-3 w-5 h-5 text-slate-400" /><input value={query} onChange={e => setQuery(e.target.value)} placeholder={isAr ? 'ابحث عن موضوع، تقنية أو مصطلح…' : 'Search a topic, technique or term…'} className="w-full bg-[#0b0d1e] border border-[#29315b] rounded-xl py-3 ps-10 pe-3 text-white text-sm" /></label><label><span className="sr-only">{isAr ? 'تصفية حسب المسار' : 'Filter by discipline'}</span><select value={discipline} onChange={e => setDiscipline(e.target.value)} className="w-full bg-[#0b0d1e] border border-[#29315b] rounded-xl p-3 text-white text-sm"><option value="all">{isAr ? 'كل المسارات' : 'All disciplines'}</option>{ENGINEERING_DISCIPLINES.map(d => <option key={d.id} value={d.id}>{isAr ? d.titleAr : d.titleEn}</option>)}</select></label></div>
       <p role="status" className="text-slate-400 text-xs">{filtered.length} {isAr ? 'درساً مطابقاً' : 'matching lessons'}</p>

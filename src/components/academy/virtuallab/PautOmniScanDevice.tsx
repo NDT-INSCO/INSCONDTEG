@@ -5,6 +5,9 @@ import {
   ExtendedWeldFlawId,
   INSPECTION_CODES_META,
   InspectionCodeId,
+  UltrasonicReflectionRegime,
+  UltrasonicWaveMode,
+  computeRayReflectionBreakdown,
   computeUltrasonicBeamCone,
   drawComprehensiveDefectMorphology,
   drawUltrasonicBeamCone2D,
@@ -66,6 +69,8 @@ export const PautOmniScanDevice: React.FC<PautOmniScanDeviceProps> = ({ language
   const [bevelAngleDeg, setBevelAngleDeg] = useState<number>(30);
   const [showSizingCaliper, setShowSizingCaliper] = useState<boolean>(true);
   const [showPhasedCone, setShowPhasedCone] = useState<boolean>(true);
+  const [waveMode, setWaveMode] = useState<UltrasonicWaveMode>('shear');
+  const [reflectionRegime, setReflectionRegime] = useState<UltrasonicReflectionRegime>('auto');
   const [isDraggingWorkProbe, setIsDraggingWorkProbe] = useState<boolean>(false);
 
   const [caliperY1Mm, setCaliperY1Mm] = useState<number>(16);
@@ -152,7 +157,7 @@ export const PautOmniScanDevice: React.FC<PautOmniScanDeviceProps> = ({ language
 
   const coneMetrics = computeUltrasonicBeamCone({
     frequencyMhz: 5.0,
-    velocityMs: 3240,
+    velocityMs: waveMode === 'longitudinal' ? 5920 : 3240,
     isPaut: true,
     pautApertureElements: apertureElements,
     pautPitchMm: 0.6,
@@ -204,6 +209,37 @@ export const PautOmniScanDevice: React.FC<PautOmniScanDeviceProps> = ({ language
             isPlanar: currentFlaw.asmeVerdict === 'REJECT' && currentFlaw.heightMm >= 1.5,
             baseIntensity: yLongitudinalFactor,
           },
+  });
+
+  const pautScatterMode: 'specular_planar' | 'corner_trap' | 'volumetric_scatter' | 'tip_diffraction' | 'lamination' =
+    activeFlawTarget === 'base_lamination'
+      ? 'lamination'
+      : catalogMatch?.echoWaveformType === 'sharp_spike_tip'
+      ? 'tip_diffraction'
+      : activeFlawTarget === 'root_crack' ||
+        activeFlawTarget === 'root_lof' ||
+        activeFlawTarget === 'incomplete_penetration'
+      ? 'corner_trap'
+      : catalogMatch?.category === 'Volumetric'
+      ? 'volumetric_scatter'
+      : 'specular_planar';
+
+  const pautProj = sectorProjectionSummary.primaryActiveProjection;
+  const isPautFlawHit =
+    activeFlawTarget !== 'sound_weld' &&
+    yLongitudinalFactor > 0.08 &&
+    Boolean(pautProj?.isInsideSector);
+  const pautConeW = Math.max(3, coneMetrics.width6dBAtDepthMm(Math.max(4, currentFlaw.depthMm / Math.max(0.2, Math.cos((selectedAngleDeg * Math.PI) / 180)))));
+  const pautOcclusion = isPautFlawHit
+    ? Math.min(1, Math.max(0.26, (currentFlaw.heightMm * 1.45) / pautConeW))
+    : 0;
+  const pautReflectionBreakdown = computeRayReflectionBreakdown({
+    isHit: isPautFlawHit,
+    beamOcclusionRatio: pautOcclusion,
+    scatterMode: pautScatterMode,
+    angleDiffDeg: Math.abs(selectedAngleDeg - currentFlaw.optimalAngleDeg),
+    isStraightZeroBeam: false,
+    regimeOverride: reflectionRegime,
   });
 
   // ---------------------------------------------------------------------------
@@ -448,7 +484,7 @@ export const PautOmniScanDevice: React.FC<PautOmniScanDeviceProps> = ({ language
   ]);
 
   // ---------------------------------------------------------------------------
-  // 3. Render Side-by-Side Live PAUT Physical Specimen + Phased Beam Cone
+  // 3. Render Side-by-Side Live PAUT Physical Specimen + Animated Phased Beam Cone
   // ---------------------------------------------------------------------------
   useEffect(() => {
     const canvas = workSimCanvasRef.current;
@@ -456,199 +492,254 @@ export const PautOmniScanDevice: React.FC<PautOmniScanDeviceProps> = ({ language
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const w = canvas.width;
-    const h = canvas.height;
-    ctx.fillStyle = '#040814';
-    ctx.fillRect(0, 0, w, h);
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const shouldAnimate = showPhasedCone && !isFrozen && !prefersReducedMotion;
+    let rafId = 0;
+    const startMs = Date.now();
 
-    const originX = w * 0.36;
-    const scale = 4.3;
-    const topY = 56;
-    const bottomY = topY + plateThicknessMm * scale;
+    const renderPautWorkFrame = (phaseSec: number) => {
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.fillStyle = '#040814';
+      ctx.fillRect(0, 0, w, h);
 
-    if (specimenGeometry === 'flat') {
-      ctx.fillStyle = '#131c36';
-      ctx.strokeStyle = '#334155';
-      ctx.lineWidth = 1.5;
-      ctx.fillRect(16, topY, w - 32, plateThicknessMm * scale);
-      ctx.strokeRect(16, topY, w - 32, plateThicknessMm * scale);
+      const originX = w * 0.36;
+      const scale = 4.3;
+      const topY = 56;
+      const bottomY = topY + plateThicknessMm * scale;
+      const hitLegNum: 1 | 2 = pautProj?.leg === 2 ? 2 : 1;
 
-      ctx.fillStyle = '#1e293b';
-      ctx.strokeStyle = '#f59e0b';
-      ctx.beginPath();
-      const simSteps = 12;
-      for (let i = 0; i <= simSteps; i++) {
-        const z = (i / simSteps) * plateThicknessMm;
-        const hw = computeWeldBevelHalfWidthAtDepthMm(z, plateThicknessMm, {
-          grooveType: weldGrooveType,
-          bevelAngleDeg,
-          rootGapMm: 2.0,
-          rootFaceMm: 1.8,
-          hazWidthMm: 2.4,
-          capReinforcementMm: 1.5,
-        });
-        const px = originX - hw * scale;
-        const py = topY + z * scale;
-        if (i === 0) ctx.moveTo(px, py);
-        else ctx.lineTo(px, py);
-      }
-      for (let i = simSteps; i >= 0; i--) {
-        const z = (i / simSteps) * plateThicknessMm;
-        const hw = computeWeldBevelHalfWidthAtDepthMm(z, plateThicknessMm, {
-          grooveType: weldGrooveType,
-          bevelAngleDeg,
-          rootGapMm: 2.0,
-          rootFaceMm: 1.8,
-          hazWidthMm: 2.4,
-          capReinforcementMm: 1.5,
-        });
-        ctx.lineTo(originX + hw * scale, topY + z * scale);
-      }
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
+      if (specimenGeometry === 'flat') {
+        ctx.fillStyle = '#131c36';
+        ctx.strokeStyle = '#334155';
+        ctx.lineWidth = 1.5;
+        ctx.fillRect(16, topY, w - 32, plateThicknessMm * scale);
+        ctx.strokeRect(16, topY, w - 32, plateThicknessMm * scale);
 
-      if (activeFlawTarget !== 'sound_weld') {
-        drawComprehensiveDefectMorphology(
-          ctx,
-          activeFlawTarget,
-          originX + currentFlaw.offsetXMm * scale,
-          topY + currentFlaw.depthMm * scale,
-          topY,
-          bottomY,
-          scale,
-          true
-        );
-      }
-
-      const entryX = originX + probeIndexOffsetMm * scale;
-
-      // Draw Sectorial Fan Rays (40° to 70°)
-      for (let fanDeg = 40; fanDeg <= 70; fanDeg += 6) {
-        const fRad = (fanDeg * Math.PI) / 180;
-        const fEndX = entryX - plateThicknessMm * Math.tan(fRad) * scale;
-        ctx.strokeStyle = 'rgba(245, 158, 11, 0.16)';
-        ctx.lineWidth = 1;
+        ctx.fillStyle = '#1e293b';
+        ctx.strokeStyle = '#f59e0b';
         ctx.beginPath();
-        ctx.moveTo(entryX, topY);
-        ctx.lineTo(fEndX, bottomY);
+        const simSteps = 12;
+        for (let i = 0; i <= simSteps; i++) {
+          const z = (i / simSteps) * plateThicknessMm;
+          const hw = computeWeldBevelHalfWidthAtDepthMm(z, plateThicknessMm, {
+            grooveType: weldGrooveType,
+            bevelAngleDeg,
+            rootGapMm: 2.0,
+            rootFaceMm: 1.8,
+            hazWidthMm: 2.4,
+            capReinforcementMm: 1.5,
+          });
+          const px = originX - hw * scale;
+          const py = topY + z * scale;
+          if (i === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        for (let i = simSteps; i >= 0; i--) {
+          const z = (i / simSteps) * plateThicknessMm;
+          const hw = computeWeldBevelHalfWidthAtDepthMm(z, plateThicknessMm, {
+            grooveType: weldGrooveType,
+            bevelAngleDeg,
+            rootGapMm: 2.0,
+            rootFaceMm: 1.8,
+            hazWidthMm: 2.4,
+            capReinforcementMm: 1.5,
+          });
+          ctx.lineTo(originX + hw * scale, topY + z * scale);
+        }
+        ctx.closePath();
+        ctx.fill();
         ctx.stroke();
+
+        const defX = originX + currentFlaw.offsetXMm * scale;
+        const defY = topY + currentFlaw.depthMm * scale;
+        if (activeFlawTarget !== 'sound_weld') {
+          drawComprehensiveDefectMorphology(
+            ctx,
+            activeFlawTarget,
+            defX,
+            defY,
+            topY,
+            bottomY,
+            scale,
+            isPautFlawHit
+          );
+        }
+
+        const entryX = originX + probeIndexOffsetMm * scale;
+
+        // Draw Sectorial Fan Rays (40° to 70°)
+        for (let fanDeg = 40; fanDeg <= 70; fanDeg += 6) {
+          const fRad = (fanDeg * Math.PI) / 180;
+          const fEndX = entryX - plateThicknessMm * Math.tan(fRad) * scale;
+          ctx.strokeStyle = 'rgba(245, 158, 11, 0.16)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(entryX, topY);
+          ctx.lineTo(fEndX, bottomY);
+          ctx.stroke();
+        }
+
+        // Draw Focused Phased Array Cone ("كوم الأشعة الطوري الممركز") along selectedAngleDeg
+        const selRad = (selectedAngleDeg * Math.PI) / 180;
+        const bounceX = entryX - plateThicknessMm * Math.tan(selRad) * scale;
+        const leg2X = bounceX - plateThicknessMm * Math.tan(selRad) * scale;
+
+        if (showPhasedCone) {
+          drawUltrasonicBeamCone2D({
+            ctx,
+            entryX,
+            entryY: topY,
+            bounceX,
+            bounceY: bottomY,
+            leg2EndX: leg2X,
+            leg2EndY: topY,
+            scalePxPerMm: scale,
+            coneMetrics,
+            isPaut: true,
+            focalDepthMm,
+            showWavefronts: true,
+            showNearField: true,
+            isHit: isPautFlawHit,
+            animationPhase: phaseSec,
+            waveMode,
+            reflectionBreakdown: pautReflectionBreakdown,
+            defectImpact:
+              activeFlawTarget !== 'sound_weld'
+                ? {
+                    x: defX,
+                    y: defY,
+                    hit: isPautFlawHit,
+                    scatterMode: pautScatterMode,
+                    leg: hitLegNum,
+                  }
+                : undefined,
+          });
+        }
+
+        // Multi-Element PAUT Wedge + Encoder Wheel
+        ctx.fillStyle = 'rgba(245, 158, 11, 0.25)';
+        ctx.strokeStyle = '#f59e0b';
+        ctx.fillRect(entryX - 4, topY - 18, 34, 18);
+        ctx.strokeRect(entryX - 4, topY - 18, 34, 18);
+        for (let el = 0; el < 8; el++) {
+          ctx.fillStyle = '#fbbf24';
+          ctx.fillRect(entryX - 1 + el * 3.8, topY - 15, 2.4, 5);
+        }
+        // Wheel Encoder attached behind PAUT Wedge
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.arc(entryX + 38, topY - 7, 7, 0, Math.PI * 2);
+        ctx.stroke();
+      } else {
+        // Curved Pipe Specimen
+        const visOuterR = 205;
+        const thkPx = plateThicknessMm * scale * 0.9;
+        const visInnerR = visOuterR - thkPx;
+        const cx = originX;
+        const cy = 54 + visOuterR;
+
+        ctx.fillStyle = '#131c36';
+        ctx.strokeStyle = '#334155';
+        ctx.beginPath();
+        ctx.arc(cx, cy, visOuterR, -Math.PI / 2 - 0.62, -Math.PI / 2 + 0.78);
+        ctx.arc(cx, cy, visInnerR, -Math.PI / 2 + 0.78, -Math.PI / 2 - 0.62, true);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        const defX = cx + currentFlaw.offsetXMm * scale * 0.85;
+        const defY = cy - visOuterR + (currentFlaw.depthMm / plateThicknessMm) * thkPx;
+        if (activeFlawTarget !== 'sound_weld') {
+          drawComprehensiveDefectMorphology(
+            ctx,
+            activeFlawTarget,
+            defX,
+            defY,
+            cy - visOuterR,
+            cy - visInnerR,
+            scale * 0.9,
+            isPautFlawHit
+          );
+        }
+
+        const gamma = (probeIndexOffsetMm * scale) / visOuterR;
+        const pAng = -Math.PI / 2 + gamma;
+        const entryX = cx + visOuterR * Math.cos(pAng);
+        const entryY = cy + visOuterR * Math.sin(pAng);
+        const selRad = (selectedAngleDeg * Math.PI) / 180;
+        const idAng = pAng - (plateThicknessMm * Math.tan(selRad) * scale) / visOuterR;
+        const bounceX = cx + visInnerR * Math.cos(idAng);
+        const bounceY = cy + visInnerR * Math.sin(idAng);
+
+        if (showPhasedCone) {
+          drawUltrasonicBeamCone2D({
+            ctx,
+            entryX,
+            entryY,
+            bounceX,
+            bounceY,
+            scalePxPerMm: scale * 0.9,
+            coneMetrics,
+            isPaut: true,
+            focalDepthMm,
+            showWavefronts: true,
+            showNearField: true,
+            isHit: isPautFlawHit,
+            animationPhase: phaseSec,
+            waveMode,
+            reflectionBreakdown: pautReflectionBreakdown,
+            defectImpact:
+              activeFlawTarget !== 'sound_weld'
+                ? {
+                    x: defX,
+                    y: defY,
+                    hit: isPautFlawHit,
+                    scatterMode: pautScatterMode,
+                    leg: hitLegNum,
+                  }
+                : undefined,
+          });
+        }
+
+        ctx.fillStyle = '#f59e0b';
+        ctx.beginPath();
+        ctx.arc(entryX, entryY - 5, 9, 0, Math.PI * 2);
+        ctx.fill();
       }
 
-      // Draw Focused Phased Array Cone ("كوم الأشعة الطوري الممركز") along selectedAngleDeg
-      const selRad = (selectedAngleDeg * Math.PI) / 180;
-      const bounceX = entryX - plateThicknessMm * Math.tan(selRad) * scale;
-      const leg2X = bounceX - plateThicknessMm * Math.tan(selRad) * scale;
+      // Bottom Focal Law Delay Bar HUD inside Work Simulator
+      const hudY = h - 38;
+      ctx.fillStyle = '#090f20';
+      ctx.strokeStyle = '#1e293b';
+      ctx.fillRect(16, hudY, w - 32, 26);
+      ctx.strokeRect(16, hudY, w - 32, 26);
+      ctx.fillStyle = '#fbbf24';
+      ctx.font = 'bold 9.5px monospace';
+      const modeTag = waveMode === 'longitudinal' ? 'L-WAVE ⇄' : 'S-WAVE ⇅';
+      ctx.fillText(
+        `${modeTag} · ${apertureElements}E (#${startElement}..#${startElement + apertureElements - 1}) · Focus=${focalDepthMm}mm · Echo=${pautReflectionBreakdown.reflectedToProbePct}%`,
+        24,
+        hudY + 16
+      );
+    };
 
-      if (showPhasedCone) {
-        drawUltrasonicBeamCone2D({
-          ctx,
-          entryX,
-          entryY: topY,
-          bounceX,
-          bounceY: bottomY,
-          leg2EndX: leg2X,
-          leg2EndY: topY,
-          scalePxPerMm: scale,
-          coneMetrics,
-          isPaut: true,
-          focalDepthMm,
-          showWavefronts: true,
-          showNearField: true,
-          isHit: activeFlawTarget !== 'sound_weld',
-        });
+    const tick = () => {
+      const elapsedSec = (Date.now() - startMs) / 1000;
+      renderPautWorkFrame(elapsedSec);
+      if (shouldAnimate) {
+        rafId = requestAnimationFrame(tick);
       }
+    };
 
-      // Multi-Element PAUT Wedge + Encoder Wheel
-      ctx.fillStyle = 'rgba(245, 158, 11, 0.25)';
-      ctx.strokeStyle = '#f59e0b';
-      ctx.fillRect(entryX - 4, topY - 18, 34, 18);
-      ctx.strokeRect(entryX - 4, topY - 18, 34, 18);
-      for (let el = 0; el < 8; el++) {
-        ctx.fillStyle = '#fbbf24';
-        ctx.fillRect(entryX - 1 + el * 3.8, topY - 15, 2.4, 5);
-      }
-      // Wheel Encoder attached behind PAUT Wedge
-      ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = 1.6;
-      ctx.beginPath();
-      ctx.arc(entryX + 38, topY - 7, 7, 0, Math.PI * 2);
-      ctx.stroke();
-    } else {
-      // Curved Pipe Specimen
-      const visOuterR = 205;
-      const thkPx = plateThicknessMm * scale * 0.9;
-      const visInnerR = visOuterR - thkPx;
-      const cx = originX;
-      const cy = 54 + visOuterR;
-
-      ctx.fillStyle = '#131c36';
-      ctx.strokeStyle = '#334155';
-      ctx.beginPath();
-      ctx.arc(cx, cy, visOuterR, -Math.PI / 2 - 0.62, -Math.PI / 2 + 0.78);
-      ctx.arc(cx, cy, visInnerR, -Math.PI / 2 + 0.78, -Math.PI / 2 - 0.62, true);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-
-      if (activeFlawTarget !== 'sound_weld') {
-        drawComprehensiveDefectMorphology(
-          ctx,
-          activeFlawTarget,
-          cx + currentFlaw.offsetXMm * scale * 0.85,
-          cy - visOuterR + (currentFlaw.depthMm / plateThicknessMm) * thkPx,
-          cy - visOuterR,
-          cy - visInnerR,
-          scale * 0.9,
-          true
-        );
-      }
-
-      const gamma = (probeIndexOffsetMm * scale) / visOuterR;
-      const pAng = -Math.PI / 2 + gamma;
-      const entryX = cx + visOuterR * Math.cos(pAng);
-      const entryY = cy + visOuterR * Math.sin(pAng);
-      const selRad = (selectedAngleDeg * Math.PI) / 180;
-      const idAng = pAng - (plateThicknessMm * Math.tan(selRad) * scale) / visOuterR;
-      const bounceX = cx + visInnerR * Math.cos(idAng);
-      const bounceY = cy + visInnerR * Math.sin(idAng);
-
-      if (showPhasedCone) {
-        drawUltrasonicBeamCone2D({
-          ctx,
-          entryX,
-          entryY,
-          bounceX,
-          bounceY,
-          scalePxPerMm: scale * 0.9,
-          coneMetrics,
-          isPaut: true,
-          focalDepthMm,
-          showWavefronts: true,
-          showNearField: true,
-          isHit: activeFlawTarget !== 'sound_weld',
-        });
-      }
-
-      ctx.fillStyle = '#f59e0b';
-      ctx.beginPath();
-      ctx.arc(entryX, entryY - 5, 9, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // Bottom Focal Law Delay Bar HUD inside Work Simulator
-    const hudY = h - 38;
-    ctx.fillStyle = '#090f20';
-    ctx.strokeStyle = '#1e293b';
-    ctx.fillRect(16, hudY, w - 32, 26);
-    ctx.strokeRect(16, hudY, w - 32, 26);
-    ctx.fillStyle = '#fbbf24';
-    ctx.font = 'bold 9.5px monospace';
-    ctx.fillText(
-      `FOCAL LAW CONE: ${apertureElements}E (#${startElement}..#${startElement + apertureElements - 1}) · Focus=${focalDepthMm}mm · Waist=${coneMetrics.focalWaistWidthMm.toFixed(1)}mm`,
-      24,
-      hudY + 16
-    );
+    tick();
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+    };
   }, [
     specimenGeometry,
     probeIndexOffsetMm,
@@ -663,6 +754,16 @@ export const PautOmniScanDevice: React.FC<PautOmniScanDeviceProps> = ({ language
     coneMetrics,
     currentFlaw.depthMm,
     currentFlaw.offsetXMm,
+    waveMode,
+    reflectionRegime,
+    isFrozen,
+    isPautFlawHit,
+    pautScatterMode,
+    pautProj?.leg,
+    pautReflectionBreakdown.regime,
+    pautReflectionBreakdown.reflectedToProbePct,
+    pautReflectionBreakdown.transmittedBypassPct,
+    pautReflectionBreakdown.shadowZoneActive,
   ]);
 
   const handleWorkCanvasPointer = (clientX: number) => {
@@ -1216,6 +1317,73 @@ export const PautOmniScanDevice: React.FC<PautOmniScanDeviceProps> = ({ language
             onMouseLeave={() => setIsDraggingWorkProbe(false)}
             className="w-full h-56 rounded-xl bg-slate-950 border border-slate-800 cursor-ew-resize select-none"
           />
+
+          {/* Compact Wave Mode & Incident/Reflected Ray Breakdown Strip */}
+          <div className="p-2 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5 font-mono text-[10px]">
+            <div className="flex flex-wrap items-center justify-between gap-1.5">
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  aria-pressed={waveMode === 'longitudinal'}
+                  onClick={() => setWaveMode('longitudinal')}
+                  className={`px-2 py-0.5 rounded border cursor-pointer font-bold ${
+                    waveMode === 'longitudinal'
+                      ? 'bg-emerald-600 text-white border-emerald-400'
+                      : 'bg-slate-900 text-slate-300 border-slate-800'
+                  }`}
+                >
+                  {isAr ? 'طولية ⇄' : 'L-Wave ⇄'}
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={waveMode === 'shear'}
+                  onClick={() => setWaveMode('shear')}
+                  className={`px-2 py-0.5 rounded border cursor-pointer font-bold ${
+                    waveMode === 'shear'
+                      ? 'bg-cyan-600 text-white border-cyan-400'
+                      : 'bg-slate-900 text-slate-300 border-slate-800'
+                  }`}
+                >
+                  {isAr ? 'مستعرضة ⇅' : 'S-Wave ⇅'}
+                </button>
+              </div>
+              <div className="flex items-center gap-1">
+                {(
+                  [
+                    { id: 'auto', ar: 'تلقائي', en: 'Auto' },
+                    { id: 'full', ar: 'كلي', en: 'Full' },
+                    { id: 'partial', ar: 'جزئي', en: 'Partial' },
+                  ] as const
+                ).map((reg) => (
+                  <button
+                    key={reg.id}
+                    type="button"
+                    aria-pressed={reflectionRegime === reg.id}
+                    onClick={() => setReflectionRegime(reg.id)}
+                    className={`px-1.5 py-0.5 rounded border cursor-pointer ${
+                      reflectionRegime === reg.id
+                        ? 'bg-amber-500 text-slate-950 border-amber-300 font-bold'
+                        : 'bg-slate-900 text-slate-400 border-slate-800'
+                    }`}
+                  >
+                    {isAr ? reg.ar : reg.en}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2 text-[9.5px] tabular-nums text-slate-300">
+              <span className="text-sky-300">TX ▶ {pautReflectionBreakdown.incidentPct}%</span>
+              <span className="text-emerald-300">ECHO ◀ {pautReflectionBreakdown.reflectedToProbePct}%</span>
+              <span className="text-amber-300">OFF-AXIS ↗ {pautReflectionBreakdown.reflectedOffAxisPct}%</span>
+              <span className={pautReflectionBreakdown.shadowZoneActive ? 'text-rose-300 font-bold' : 'text-cyan-300'}>
+                {pautReflectionBreakdown.shadowZoneActive
+                  ? isAr
+                    ? 'ظل صوتي 0%'
+                    : 'SHADOW 0%'
+                  : `PASS ▶ ${pautReflectionBreakdown.transmittedBypassPct}%`}
+              </span>
+            </div>
+          </div>
 
           {/* Probe Standoff X + Encoder Wheel Y Sliders */}
           <div className="grid grid-cols-2 gap-3 font-mono text-xs">

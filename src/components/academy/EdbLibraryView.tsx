@@ -28,6 +28,12 @@ import {
   textOf,
 } from '../../utils/edbLibrary';
 import { EdbFlipbook } from './EdbFlipbook';
+import { GoogleDriveOrganizer } from './GoogleDriveOrganizer';
+import { DriveSimulatorRunner } from './DriveSimulatorRunner';
+import {
+  removeImportedVocationalBook,
+  useDriveAcademyLibrary,
+} from '../../utils/driveAcademyStore';
 
 interface EdbLibraryViewProps {
   language: Language;
@@ -99,6 +105,7 @@ export const EdbLibraryView: React.FC<EdbLibraryViewProps> = ({ language, initia
   const [importError, setImportError] = useState('');
   const [progress, setProgress] = useState<Record<string, ReturnType<typeof getEdbProgress>>>({});
   const fileInput = useRef<HTMLInputElement>(null);
+  const driveLibrary = useDriveAcademyLibrary();
 
   useEffect(() => {
     let active = true;
@@ -257,6 +264,81 @@ export const EdbLibraryView: React.FC<EdbLibraryViewProps> = ({ language, initia
           </div>
         ))}
       </div>
+
+      <GoogleDriveOrganizer
+        language={language}
+        onOpenLab={onOpenLab}
+        onOpenImportedBook={(importedDoc, importedEntry) => {
+          setBook(importedDoc);
+          setOpenEntry(importedEntry);
+        }}
+      />
+
+      {driveLibrary.books.length > 0 && (
+        <section
+          data-testid="drive-vocational-books-section"
+          className="space-y-3 rounded-3xl border border-amber-500/35 bg-[#0e132b] p-5"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-sm sm:text-base font-black text-amber-300 flex items-center gap-2">
+              <BookOpen className="w-4 h-4 shrink-0" aria-hidden="true" />
+              <span>
+                {isAr
+                  ? 'مسار التعليم المهني المستورد من Google Drive'
+                  : 'Vocational Education Track (Imported from Google Drive)'}
+              </span>
+            </h3>
+            <span className="text-xs font-mono text-slate-300">
+              {driveLibrary.books.length} {isAr ? 'وحدة مهنية' : 'modules'}
+            </span>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {driveLibrary.books.map(entry => {
+              const p = progress[entry.indexEntry.id] || getEdbProgress(entry.indexEntry.id);
+              const pct = Math.round((p.readPages.length / entry.indexEntry.pages) * 100);
+              return (
+                <article key={entry.indexEntry.id} className="rounded-2xl border border-[#29315b] bg-[#10132b] p-3 space-y-3">
+                  <BookCover entry={entry.indexEntry} language={language} />
+                  <div className="flex items-center justify-between gap-2 text-[10px] text-slate-400">
+                    <span className="flex items-center gap-1"><Clock className="w-3 h-3 shrink-0" />{entry.indexEntry.estimatedMinutes} {isAr ? 'دقيقة' : 'min'}</span>
+                    <span className="font-mono">{entry.discipline} · {pct}%</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setBook(entry.book);
+                        setOpenEntry(entry.indexEntry);
+                      }}
+                      className="flex-1 rounded-lg bg-amber-500 hover:bg-amber-400 px-3 py-2 text-xs font-black text-slate-950 cursor-pointer"
+                    >
+                      {isAr ? 'اقرأ بالتقليب (تعليم مهني)' : 'Read Vocational EDB'}
+                    </button>
+                    {onOpenLab && (
+                      <button
+                        type="button"
+                        onClick={() => onOpenLab(entry.suggestedLabTab)}
+                        className="rounded-lg border border-emerald-400/40 px-2.5 py-2 text-xs font-bold text-emerald-300 hover:bg-emerald-400/10 cursor-pointer"
+                      >
+                        {isAr ? 'المحاكي' : 'Simulator'}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeImportedVocationalBook(entry.indexEntry.id)}
+                      className="rounded-lg border border-rose-500/40 px-2.5 py-2 text-xs font-bold text-rose-300 hover:bg-rose-500/10 cursor-pointer"
+                    >
+                      {isAr ? 'إزالة' : 'Remove'}
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      <DriveSimulatorRunner language={language} onOpenFullRtLab={() => onOpenLab?.('rt_lab')} />
 
       <div className="flex flex-wrap items-center gap-2">
         <label className="relative min-w-[220px] flex-1">

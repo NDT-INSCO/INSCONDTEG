@@ -23,6 +23,9 @@ import {
   DefectFamily,
   ExtendedWeldFlawId,
   INSPECTION_CODES_META,
+  UltrasonicReflectionRegime,
+  UltrasonicWaveMode,
+  computeRayReflectionBreakdown,
   computeUltrasonicBeamCone,
   drawComprehensiveDefectMorphology,
   drawUltrasonicBeamCone2D,
@@ -96,9 +99,11 @@ export const ComprehensiveWeldUtSimulator: React.FC<ComprehensiveWeldUtSimulator
       : ALL_WELD_DEFECTS_CATALOG.filter((f) => f.family === defectFamilyFilter);
   const flawNominalDepthMm = Number((currentFlaw.nominalDepthRatio * plateThicknessMm).toFixed(1));
 
-  // --- Beam Cone ("كوم الأشعة") & Near-Field (Fresnel) Live Controls ---
+  // --- Beam Cone ("كوم الأشعة"), Wave Mode & Reflection Regime Live Controls ---
   const [showBeamConeOverlay, setShowBeamConeOverlay] = useState<boolean>(true);
   const [showNearFieldAndWavefronts, setShowNearFieldAndWavefronts] = useState<boolean>(true);
+  const [waveMode, setWaveMode] = useState<UltrasonicWaveMode>('shear');
+  const [reflectionRegime, setReflectionRegime] = useState<UltrasonicReflectionRegime>('auto');
   const [crystalDiameterMm, setCrystalDiameterMm] = useState<number>(10);
   const [wedgeTravelMm, setWedgeTravelMm] = useState<number>(10);
   const [showQuickToleranceMatrix, setShowQuickToleranceMatrix] = useState<boolean>(false);
@@ -310,6 +315,38 @@ export const ComprehensiveWeldUtSimulator: React.FC<ComprehensiveWeldUtSimulator
   }
 
   const isHit = isCrossSectionHit && longitudinalFactor >= 0.15;
+
+  const flawScatterMode: 'specular_planar' | 'corner_trap' | 'volumetric_scatter' | 'tip_diffraction' | 'lamination' =
+    currentFlaw.id === 'base_lamination'
+      ? 'lamination'
+      : currentFlaw.echoWaveformType === 'sharp_spike_tip'
+      ? 'tip_diffraction'
+      : currentFlaw.id === 'root_crack' ||
+        currentFlaw.id === 'root_lof' ||
+        currentFlaw.id === 'incomplete_penetration'
+      ? 'corner_trap'
+      : currentFlaw.category === 'Volumetric'
+      ? 'volumetric_scatter'
+      : 'specular_planar';
+
+  const beamDiameterAtFlawMm = Math.max(2.0, beamHalfWidthAtDepthMm * 2);
+  const effectiveFlawSpanMm =
+    currentFlaw.category === 'Planar' ? currentFlaw.heightMm * 1.45 : currentFlaw.heightMm * 1.1;
+  const alignmentOcclusion = isHit
+    ? Math.max(0.25, 1 - transverseOffsetMm / Math.max(1, beamHalfWidthAtDepthMm * 1.35))
+    : 0;
+  const beamOcclusionRatio = isHit
+    ? Math.min(1, Math.max(0.22, (effectiveFlawSpanMm / beamDiameterAtFlawMm) * alignmentOcclusion))
+    : 0;
+
+  const reflectionBreakdown = computeRayReflectionBreakdown({
+    isHit,
+    beamOcclusionRatio,
+    scatterMode: flawScatterMode,
+    angleDiffDeg: Math.abs(effectiveBeamAngleDeg - currentFlaw.optimalAngleDeg),
+    isStraightZeroBeam,
+    regimeOverride: reflectionRegime,
+  });
 
   // Sound path & true depth calculation (incorporating velocity calibration accuracy & curved geometry)
   const nominalRefVelocity = isStraightZeroBeam ? 5920 : 3240;
@@ -596,19 +633,6 @@ export const ComprehensiveWeldUtSimulator: React.FC<ComprehensiveWeldUtSimulator
     let rafId = 0;
     const startMs = Date.now();
 
-    const flawScatterMode: 'specular_planar' | 'corner_trap' | 'volumetric_scatter' | 'tip_diffraction' | 'lamination' =
-      currentFlaw.id === 'base_lamination'
-        ? 'lamination'
-        : currentFlaw.echoWaveformType === 'sharp_spike_tip'
-        ? 'tip_diffraction'
-        : currentFlaw.id === 'root_crack' ||
-          currentFlaw.id === 'root_lof' ||
-          currentFlaw.id === 'incomplete_penetration'
-        ? 'corner_trap'
-        : currentFlaw.category === 'Volumetric'
-        ? 'volumetric_scatter'
-        : 'specular_planar';
-
     const renderWeldFrame = (phaseSec: number) => {
       const width = canvas.width;
       const height = canvas.height;
@@ -772,6 +796,8 @@ export const ComprehensiveWeldUtSimulator: React.FC<ComprehensiveWeldUtSimulator
             showWavefronts: showNearFieldAndWavefronts,
             isHit,
             animationPhase: phaseSec,
+            waveMode,
+            reflectionBreakdown,
             defectImpact: {
               x: flawCanvasX,
               y: flawCanvasY,
@@ -796,7 +822,7 @@ export const ComprehensiveWeldUtSimulator: React.FC<ComprehensiveWeldUtSimulator
           }
         }
 
-        // Central Leg 1 Ray
+        // Central Leg 1 Incident Ray
         ctx.strokeStyle = activeLeg === 1 && isHit ? 'rgba(239, 68, 68, 0.85)' : 'rgba(56, 189, 248, 0.85)';
         ctx.lineWidth = 2.0;
         ctx.beginPath();
@@ -804,21 +830,33 @@ export const ComprehensiveWeldUtSimulator: React.FC<ComprehensiveWeldUtSimulator
         ctx.lineTo(leg1EndX, leg1EndY);
         ctx.stroke();
 
-        // Central Leg 2 Ray (Full Skip)
+        // Central Leg 2 Ray (Full Skip or Partial Bypass; shadowed when Full Flaw Reflection on Leg 1)
         if (!isStraightZeroBeam && leg2EndX !== undefined && leg2EndY !== undefined) {
-          ctx.strokeStyle = activeLeg === 2 && isHit ? 'rgba(239, 68, 68, 0.85)' : 'rgba(245, 158, 11, 0.85)';
-          ctx.lineWidth = 1.8;
+          if (isHit && activeLeg === 1 && reflectionBreakdown.shadowZoneActive) {
+            ctx.strokeStyle = 'rgba(100, 116, 139, 0.26)';
+            ctx.setLineDash([3, 4]);
+            ctx.lineWidth = 1.1;
+          } else {
+            const bypassAlpha = isHit && activeLeg === 1 ? Math.max(0.28, reflectionBreakdown.transmittedBypassPct / 100) : 0.85;
+            ctx.strokeStyle =
+              activeLeg === 2 && isHit
+                ? `rgba(239, 68, 68, ${bypassAlpha.toFixed(2)})`
+                : `rgba(245, 158, 11, ${bypassAlpha.toFixed(2)})`;
+            ctx.lineWidth = 1.8;
+          }
           ctx.beginPath();
           ctx.moveTo(leg1EndX, leg1EndY);
           ctx.lineTo(leg2EndX, leg2EndY);
           ctx.stroke();
+          ctx.setLineDash([]);
         }
 
         // Return Echo Bounce Ray when Flaw is Hit
         if (isHit) {
-          ctx.strokeStyle = 'rgba(34, 197, 94, 0.82)';
+          const echoAlpha = Math.max(0.45, Math.min(0.95, reflectionBreakdown.reflectedToProbePct / 100));
+          ctx.strokeStyle = `rgba(34, 197, 94, ${echoAlpha.toFixed(2)})`;
           ctx.setLineDash([4, 3]);
-          ctx.lineWidth = 2.0;
+          ctx.lineWidth = reflectionBreakdown.shadowZoneActive ? 2.4 : 1.9;
           ctx.beginPath();
           if (activeLeg === 1) {
             ctx.moveTo(flawCanvasX, flawCanvasY);
@@ -970,6 +1008,8 @@ export const ComprehensiveWeldUtSimulator: React.FC<ComprehensiveWeldUtSimulator
             showWavefronts: showNearFieldAndWavefronts,
             isHit,
             animationPhase: phaseSec,
+            waveMode,
+            reflectionBreakdown,
             defectImpact: {
               x: flawCanvasX,
               y: flawCanvasY,
@@ -1004,18 +1044,30 @@ export const ComprehensiveWeldUtSimulator: React.FC<ComprehensiveWeldUtSimulator
 
         // Leg 2 Ray off Curved Inner Wall
         if (!isStraightZeroBeam) {
-          ctx.strokeStyle = activeLeg === 2 && isHit ? 'rgba(239, 68, 68, 0.85)' : 'rgba(245, 158, 11, 0.85)';
-          ctx.lineWidth = 1.8;
+          if (isHit && activeLeg === 1 && reflectionBreakdown.shadowZoneActive) {
+            ctx.strokeStyle = 'rgba(100, 116, 139, 0.26)';
+            ctx.setLineDash([3, 4]);
+            ctx.lineWidth = 1.1;
+          } else {
+            const bypassAlpha = isHit && activeLeg === 1 ? Math.max(0.28, reflectionBreakdown.transmittedBypassPct / 100) : 0.85;
+            ctx.strokeStyle =
+              activeLeg === 2 && isHit
+                ? `rgba(239, 68, 68, ${bypassAlpha.toFixed(2)})`
+                : `rgba(245, 158, 11, ${bypassAlpha.toFixed(2)})`;
+            ctx.lineWidth = 1.8;
+          }
           ctx.beginPath();
           ctx.moveTo(idBounceX, idBounceY);
           ctx.lineTo(odBounceX, odBounceY);
           ctx.stroke();
+          ctx.setLineDash([]);
         }
 
         if (isHit) {
-          ctx.strokeStyle = 'rgba(34, 197, 94, 0.82)';
+          const echoAlpha = Math.max(0.45, Math.min(0.95, reflectionBreakdown.reflectedToProbePct / 100));
+          ctx.strokeStyle = `rgba(34, 197, 94, ${echoAlpha.toFixed(2)})`;
           ctx.setLineDash([4, 3]);
-          ctx.lineWidth = 2.0;
+          ctx.lineWidth = reflectionBreakdown.shadowZoneActive ? 2.4 : 1.9;
           ctx.beginPath();
           if (activeLeg === 1) {
             ctx.moveTo(flawCanvasX, flawCanvasY);
@@ -1030,14 +1082,20 @@ export const ComprehensiveWeldUtSimulator: React.FC<ComprehensiveWeldUtSimulator
         }
       }
 
-      // Bottom HUD Strip inside Weld Canvas showing Beam Cone & Skip Info
+      // Bottom HUD Strip inside Weld Canvas showing Beam Cone, Wave Mode & Reflection Info
       ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
       ctx.fillRect(10, height - 26, width - 20, 20);
       ctx.fillStyle = '#94a3b8';
       ctx.font = '10px monospace';
       ctx.textAlign = 'left';
+      const waveTag = waveMode === 'longitudinal' ? 'L-WAVE ⇄' : 'S-WAVE ⇅';
+      const reflTag = reflectionBreakdown.shadowZoneActive
+        ? `FULL REFL ${reflectionBreakdown.reflectedToProbePct}%`
+        : reflectionBreakdown.regime === 'flaw_partial'
+        ? `PARTIAL ${reflectionBreakdown.reflectedToProbePct}% / PASS ${reflectionBreakdown.transmittedBypassPct}%`
+        : 'BACKWALL 100%';
       ctx.fillText(
-        `N_total=${beamConeMetrics.nearFieldLengthMm.toFixed(1)}mm · N_eff=${beamConeMetrics.effectiveNearFieldInSpecimenMm.toFixed(1)}mm · -6dB=±${beamConeMetrics.halfAngleMinus6dBDeg.toFixed(1)}° · Skip/2=${halfSkipSurfaceMm.toFixed(1)}mm`,
+        `${waveTag} · ${reflTag} · N_eff=${beamConeMetrics.effectiveNearFieldInSpecimenMm.toFixed(1)}mm · -6dB=±${beamConeMetrics.halfAngleMinus6dBDeg.toFixed(1)}°`,
         18,
         height - 13
       );
@@ -1077,6 +1135,14 @@ export const ComprehensiveWeldUtSimulator: React.FC<ComprehensiveWeldUtSimulator
     halfSkipSurfaceMm,
     fullSkipSurfaceMm,
     isFrozen,
+    waveMode,
+    reflectionRegime,
+    flawScatterMode,
+    reflectionBreakdown.regime,
+    reflectionBreakdown.reflectedToProbePct,
+    reflectionBreakdown.reflectedOffAxisPct,
+    reflectionBreakdown.transmittedBypassPct,
+    reflectionBreakdown.shadowZoneActive,
   ]);
 
   // ---------------------------------------------------------------------------
@@ -1951,6 +2017,7 @@ export const ComprehensiveWeldUtSimulator: React.FC<ComprehensiveWeldUtSimulator
                     setProbeAngleDeg(flaw.optimalAngleDeg);
                     setPautCursorAngleDeg(flaw.optimalAngleDeg === 0 ? 45 : flaw.optimalAngleDeg);
                     setVelocityMs(flaw.optimalAngleDeg === 0 ? 5920 : 3240);
+                    setWaveMode(flaw.optimalAngleDeg === 0 ? 'longitudinal' : 'shear');
                     if (autoAlertOnDefectSelect) {
                       setIsToleranceModalOpen(true);
                     }
@@ -2027,6 +2094,7 @@ export const ComprehensiveWeldUtSimulator: React.FC<ComprehensiveWeldUtSimulator
                         setProbeAngleDeg(defect.optimalAngleDeg);
                         setPautCursorAngleDeg(defect.optimalAngleDeg === 0 ? 45 : defect.optimalAngleDeg);
                         setVelocityMs(defect.optimalAngleDeg === 0 ? 5920 : 3240);
+                        setWaveMode(defect.optimalAngleDeg === 0 ? 'longitudinal' : 'shear');
                         if (autoAlertOnDefectSelect) {
                           setIsToleranceModalOpen(true);
                         }
@@ -2197,6 +2265,124 @@ export const ComprehensiveWeldUtSimulator: React.FC<ComprehensiveWeldUtSimulator
                       ))}
                     </div>
                   )}
+                </div>
+              </div>
+
+              {/* Wave Propagation Mode (Longitudinal ⇄ vs Shear ⇅) & Incident/Reflected Ray Breakdown Bar */}
+              <div
+                data-testid="ut-wave-reflection-panel"
+                className="mt-2.5 p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2.5 font-mono text-[11px]"
+              >
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-[10px] text-slate-400 font-bold">
+                      {isAr ? 'شكل الموجة المنتشرة في اللحام:' : 'Weld Wave Shape:'}
+                    </span>
+                    <button
+                      type="button"
+                      aria-pressed={waveMode === 'longitudinal'}
+                      onClick={() => {
+                        setWaveMode('longitudinal');
+                        setVelocityMs(5920);
+                      }}
+                      className={`px-2.5 py-1 rounded-lg border text-[10.5px] font-bold transition cursor-pointer ${
+                        waveMode === 'longitudinal'
+                          ? 'bg-emerald-600 text-white border-emerald-400'
+                          : 'bg-slate-900 text-slate-300 border-slate-800 hover:text-white'
+                      }`}
+                    >
+                      {isAr ? 'موجة طولية ⇄ (5920 m/s)' : 'Longitudinal ⇄ (5920 m/s)'}
+                    </button>
+                    <button
+                      type="button"
+                      aria-pressed={waveMode === 'shear'}
+                      onClick={() => {
+                        setWaveMode('shear');
+                        setVelocityMs(3240);
+                      }}
+                      className={`px-2.5 py-1 rounded-lg border text-[10.5px] font-bold transition cursor-pointer ${
+                        waveMode === 'shear'
+                          ? 'bg-cyan-600 text-white border-cyan-400'
+                          : 'bg-slate-900 text-slate-300 border-slate-800 hover:text-white'
+                      }`}
+                    >
+                      {isAr ? 'موجة مستعرضة ⇅ (3240 m/s)' : 'Shear Transverse ⇅ (3240 m/s)'}
+                    </button>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-[10px] text-slate-400 font-bold">
+                      {isAr ? 'نظام الارتداد:' : 'Reflection:'}
+                    </span>
+                    {(
+                      [
+                        { id: 'auto', ar: 'تلقائي', en: 'Auto' },
+                        { id: 'full', ar: 'ارتداد كلي', en: 'Full 100%' },
+                        { id: 'partial', ar: 'ارتداد جزئي', en: 'Partial' },
+                      ] as const
+                    ).map((reg) => (
+                      <button
+                        key={reg.id}
+                        type="button"
+                        aria-pressed={reflectionRegime === reg.id}
+                        onClick={() => setReflectionRegime(reg.id)}
+                        className={`px-2 py-1 rounded-lg border text-[10px] font-bold transition cursor-pointer ${
+                          reflectionRegime === reg.id
+                            ? 'bg-amber-500 text-slate-950 border-amber-300'
+                            : 'bg-slate-900 text-slate-300 border-slate-800 hover:text-white'
+                        }`}
+                      >
+                        {isAr ? reg.ar : reg.en}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Live Directional Energy Split Telemetry (Incident ▶ vs Echo ◀ vs Off-Axis ↗ vs Bypass ▶) */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 tabular-nums">
+                  <div className="px-2.5 py-1.5 rounded-lg bg-slate-900/90 border border-sky-500/30">
+                    <span className="text-[9.5px] text-slate-400 block">
+                      {isAr ? 'الأشعة المرسلة ▶ (Incident)' : 'Incident TX ▶'}
+                    </span>
+                    <span className="text-sky-300 font-black">{reflectionBreakdown.incidentPct}%</span>
+                  </div>
+                  <div className="px-2.5 py-1.5 rounded-lg bg-slate-900/90 border border-emerald-500/30">
+                    <span className="text-[9.5px] text-slate-400 block">
+                      {isAr ? 'مرتدة للمجس ◀ (Echo)' : 'Reflected Echo ◀'}
+                    </span>
+                    <span className="text-emerald-300 font-black">{reflectionBreakdown.reflectedToProbePct}%</span>
+                  </div>
+                  <div className="px-2.5 py-1.5 rounded-lg bg-slate-900/90 border border-amber-500/30">
+                    <span className="text-[9.5px] text-slate-400 block">
+                      {isAr ? 'ارتداد جانبي ↗ (Off-Axis)' : 'Off-Axis / Skip ↗'}
+                    </span>
+                    <span className="text-amber-300 font-black">{reflectionBreakdown.reflectedOffAxisPct}%</span>
+                  </div>
+                  <div className="px-2.5 py-1.5 rounded-lg bg-slate-900/90 border border-slate-700">
+                    <span className="text-[9.5px] text-slate-400 block">
+                      {isAr ? 'نافذة خلف العيب ▶ (Pass)' : 'Bypass / Shadow'}
+                    </span>
+                    <span className={reflectionBreakdown.shadowZoneActive ? 'text-rose-300 font-black' : 'text-cyan-300 font-black'}>
+                      {reflectionBreakdown.shadowZoneActive
+                        ? isAr
+                          ? '0% (ظل صوتي)'
+                          : '0% (Shadow)'
+                        : `${reflectionBreakdown.transmittedBypassPct}%`}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] text-slate-300 pt-1 border-t border-slate-800/80">
+                  <span>
+                    {waveMode === 'longitudinal'
+                      ? isAr
+                        ? 'اهتزاز جزيئات المعدن موازٍ لاتجاه الانتشار ⇄ (مناطق انضغاط وتخلخل)'
+                        : 'Particle oscillation parallel ⇄ to wave propagation (compression & rarefaction)'
+                      : isAr
+                      ? 'اهتزاز جزيئات المعدن عمودي على اتجاه الانتشار ⇅ (موجة قصية جيبية)'
+                      : 'Particle oscillation perpendicular ⇅ to wave propagation (transverse sinusoidal shear)'}
+                  </span>
+                  <span className="text-amber-300 font-bold">{reflectionBreakdown.summaryLabel[language]}</span>
                 </div>
               </div>
 
@@ -2847,6 +3033,7 @@ export const ComprehensiveWeldUtSimulator: React.FC<ComprehensiveWeldUtSimulator
                     onClick={() => {
                       setProbeAngleDeg(0);
                       setVelocityMs(5920);
+                      setWaveMode('longitudinal');
                     }}
                     className={`py-1.5 rounded border font-bold transition cursor-pointer text-[11px] ${
                       effectiveBeamAngleDeg === 0
@@ -2864,6 +3051,7 @@ export const ComprehensiveWeldUtSimulator: React.FC<ComprehensiveWeldUtSimulator
                         setProbeAngleDeg(deg);
                         setPautCursorAngleDeg(deg);
                         setVelocityMs(3240);
+                        setWaveMode('shear');
                       }}
                       className={`py-1.5 rounded border font-bold transition cursor-pointer text-[11px] ${
                         effectiveBeamAngleDeg === deg

@@ -1455,12 +1455,31 @@ export async function upsertCommunityWorkspace(
     linkedInUrl?: string;
     profileVisibility?: 'public' | 'members';
     skills?: string;
+    professionalRole?: string;
+    relatedFields?: string[] | string;
+    languages?: string[] | string;
+    experienceSummary?: string;
+    educationSummary?: string;
+    projectsSummary?: string;
+    shareAcademyProgress?: boolean;
+    messagePolicy?: 'everyone' | 'connections' | 'none';
   },
   existing: CommunityWorkspaceProfile | null
 ): Promise<void> {
   if (!db) throw new Error('Firestore not initialized');
   const path = `community_workspaces/${user.uid}`;
   const docRef = doc(db, 'community_workspaces', user.uid);
+
+  const relatedFieldsStr = Array.isArray(input.relatedFields)
+    ? input.relatedFields.join(',')
+    : typeof input.relatedFields === 'string'
+      ? input.relatedFields
+      : undefined;
+  const languagesStr = Array.isArray(input.languages)
+    ? input.languages.join(',')
+    : typeof input.languages === 'string'
+      ? input.languages
+      : undefined;
 
   const sharedFields = {
     displayName: clampStr(input.displayName, BLUEPRINT_LIMITS.SHORT_NAME_MAX),
@@ -1503,6 +1522,28 @@ export async function upsertCommunityWorkspace(
         .slice(0, 700)
         .replace(/,+$/, ''),
     }),
+    ...(input.professionalRole !== undefined && input.professionalRole.trim()
+      ? { professionalRole: clampStr(input.professionalRole, 60) }
+      : {}),
+    ...(relatedFieldsStr !== undefined && relatedFieldsStr.trim()
+      ? { relatedFields: clampStr(relatedFieldsStr, 400) }
+      : {}),
+    ...(languagesStr !== undefined && languagesStr.trim()
+      ? { languages: clampStr(languagesStr, 200) }
+      : {}),
+    ...(input.experienceSummary !== undefined && input.experienceSummary.trim()
+      ? { experienceSummary: clampStr(input.experienceSummary, 1200) }
+      : {}),
+    ...(input.educationSummary !== undefined && input.educationSummary.trim()
+      ? { educationSummary: clampStr(input.educationSummary, 600) }
+      : {}),
+    ...(input.projectsSummary !== undefined && input.projectsSummary.trim()
+      ? { projectsSummary: clampStr(input.projectsSummary, 800) }
+      : {}),
+    ...(input.shareAcademyProgress !== undefined
+      ? { shareAcademyProgress: Boolean(input.shareAcademyProgress) }
+      : {}),
+    ...(input.messagePolicy !== undefined ? { messagePolicy: input.messagePolicy } : {}),
     updatedAt: serverTimestamp(),
   };
 
@@ -1672,6 +1713,21 @@ export async function createCommunityPost(
     aiSummary?: string;
     visibility?: 'public' | 'members_only';
     isPinnedAnnouncement?: boolean;
+    postFormat?: string;
+    categoryTag?: string;
+    pollOptions?: string[];
+    mediaUrl?: string;
+    documentUrl?: string;
+    externalLink?: string;
+    linkUrl?: string;
+    academyCourseId?: string;
+    academyLessonTitle?: string;
+    academyCourseTitle?: string;
+    companyId?: string;
+    companyName?: string;
+    groupId?: string;
+    aiGenerated?: boolean;
+    isAiAssisted?: boolean;
   }
 ): Promise<CommunityPost> {
   if (!db) throw new Error('Firestore not initialized');
@@ -1684,6 +1740,21 @@ export async function createCommunityPost(
     .slice(0, BLUEPRINT_LIMITS.COMMUNITY_MAX_TAGS);
 
   const allowPinned = isVerifiedAdminUser(user) && Boolean(input.isPinnedAnnouncement);
+
+  const formatMap: Record<string, string> = {
+    standard: 'general',
+    question: 'question',
+    case_study: 'case_study',
+    poll: 'poll',
+    article: 'article',
+    academy_share: 'academy',
+    company_update: 'company_update',
+    event_share: 'event',
+  };
+  const resolvedCategoryTag =
+    input.categoryTag ?? (input.postFormat ? formatMap[input.postFormat] : undefined);
+  const resolvedLinkUrl = input.linkUrl ?? input.externalLink;
+  const resolvedCourseTitle = input.academyCourseTitle ?? input.academyLessonTitle;
 
   const payload: Omit<CommunityPost, 'id'> = {
     authorUid: user.uid,
@@ -1706,6 +1777,31 @@ export async function createCommunityPost(
     ...(input.aiSummary && {
       aiSummary: clampStr(input.aiSummary, BLUEPRINT_LIMITS.COMMUNITY_AI_SUMMARY_MAX),
     }),
+    ...(resolvedCategoryTag && {
+      categoryTag: resolvedCategoryTag as CommunityPost['categoryTag'],
+    }),
+    ...(input.mediaUrl && /^https:\/\//i.test(input.mediaUrl) && {
+      mediaUrl: clampStr(input.mediaUrl, 500),
+    }),
+    ...(input.documentUrl && /^https:\/\//i.test(input.documentUrl) && {
+      documentUrl: clampStr(input.documentUrl, 500),
+    }),
+    ...(resolvedLinkUrl && /^https:\/\//i.test(resolvedLinkUrl) && {
+      linkUrl: clampStr(resolvedLinkUrl, 500),
+    }),
+    ...(input.academyCourseId && {
+      academyCourseId: clampStr(input.academyCourseId, 80),
+    }),
+    ...(resolvedCourseTitle && {
+      academyCourseTitle: clampStr(resolvedCourseTitle, 180),
+    }),
+    ...(Array.isArray(input.pollOptions) && input.pollOptions.length >= 2 && {
+      pollOptions: input.pollOptions.map(o => clampStr(o, 120)).filter(Boolean).slice(0, 6),
+    }),
+    ...(input.companyId && { companyId: clampStr(input.companyId, 128) }),
+    ...(input.companyName && { companyName: clampStr(input.companyName, 160) }),
+    ...(input.groupId && { groupId: clampStr(input.groupId, 128) }),
+    ...((input.isAiAssisted || input.aiGenerated) && { isAiAssisted: true }),
     likesCount: 0,
     commentsCount: 0,
     visibility: input.visibility ?? 'public',
@@ -1907,6 +2003,7 @@ export async function addCommunityPostComment(
     authorName: string;
     authorHeadline?: string;
     body: string;
+    parentCommentId?: string;
     isAiAssisted?: boolean;
   }
 ): Promise<void> {
@@ -1921,6 +2018,9 @@ export async function addCommunityPostComment(
     authorName: clampStr(input.authorName, BLUEPRINT_LIMITS.SHORT_NAME_MAX),
     ...(input.authorHeadline && {
       authorHeadline: clampStr(input.authorHeadline, BLUEPRINT_LIMITS.COMMUNITY_HEADLINE_MAX),
+    }),
+    ...(input.parentCommentId && {
+      parentCommentId: clampStr(input.parentCommentId, 128),
     }),
     body: clampStr(input.body, BLUEPRINT_LIMITS.COMMUNITY_COMMENT_MAX),
     isAiAssisted: Boolean(input.isAiAssisted),
@@ -2030,6 +2130,9 @@ export async function createCommunityOpportunity(
     authorOrg: string;
     companyCode?: string;
     opportunityType: CommunityOpportunityType;
+    employmentType?: string;
+    experienceLevel?: string;
+    salaryRange?: string;
     title: string;
     location: string;
     methods: string[];
@@ -2051,6 +2154,9 @@ export async function createCommunityOpportunity(
     authorOrg: clampStr(input.authorOrg, 160),
     ...(input.companyCode && { companyCode: sanitizeUpperCode(input.companyCode) }),
     opportunityType: input.opportunityType,
+    ...(input.employmentType && { employmentType: input.employmentType as CommunityOpportunity['employmentType'] }),
+    ...(input.experienceLevel && { experienceLevel: clampStr(input.experienceLevel, 80) as CommunityOpportunity['experienceLevel'] }),
+    ...(input.salaryRange && { salaryRange: clampStr(input.salaryRange, 80) }),
     title: clampStr(input.title, 180),
     location: clampStr(input.location, 140),
     methods,

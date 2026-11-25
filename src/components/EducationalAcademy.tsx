@@ -496,6 +496,20 @@ export const EducationalAcademy: React.FC<EducationalAcademyProps> = ({
               ? 'أدوات محاكاة تفاعلية لفحص عيوب اللحام، محاكي منحنيات المعالجة الحرارية PWHT، بنك أسئلة وتأهيل لاختبارات ASNT، ومستشار أكاديمي مدعوم بالذكاء الاصطناعي.'
               : 'Interactive weld defect simulator, PWHT thermal curve calculator, ASNT practice exams, and ASME/API code explorer.'}
           </p>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+            <a
+              href="#network/feed"
+              onClick={e => {
+                e.preventDefault();
+                window.location.hash = '#network/feed';
+              }}
+              data-testid="academy-open-network"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-violet-400/40 bg-violet-500/15 px-4 py-2 text-xs font-bold text-violet-200 transition hover:border-violet-300 hover:bg-violet-500/25"
+            >
+              <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              {isAr ? 'ناقش وشارك إنجازك في مجتمع إنسكو' : 'Discuss & share in INSCO Network'}
+            </a>
+          </div>
         </div>
 
         )}

@@ -23,15 +23,10 @@ service cloud.firestore {
     }
 
     function isVerifiedUser() {
-      // Keys are checked before they are read — a token without them errors out
-      // the whole rule. (A phone-verified token may not carry `email_verified`.)
       return isSignedIn() && (
-        ('email_verified' in request.auth.token
-          && request.auth.token.email_verified == true)
+        request.auth.token.email_verified == true
         || (
-          'firebase' in request.auth.token
-          && 'phone_number' in request.auth.token
-          && request.auth.token.firebase.sign_in_provider == 'phone'
+          request.auth.token.firebase.sign_in_provider == 'phone'
           && request.auth.token.phone_number is string
           && request.auth.token.phone_number.size() >= 5
         )
@@ -53,8 +48,6 @@ service cloud.firestore {
     // Zero-lookup admin check (strictly requires verified email, never phone auth)
     function isAdminEmail() {
       return isSignedIn()
-        && 'email' in request.auth.token
-        && 'email_verified' in request.auth.token
         && request.auth.token.email_verified == true
         && request.auth.token.email == 'inscondtco@gmail.com';
     }
@@ -307,6 +300,11 @@ service cloud.firestore {
           'isPublished', 'headline', 'certifications', 'yearsExperience',
           'availabilityStatus', 'followersCount', 'endorsementsCount',
           'photoURL', 'bannerURL', 'linkedInUrl', 'profileVisibility', 'skills',
+          'professionalRole', 'relatedFields', 'languages',
+          'experienceSummary', 'educationSummary', 'projectsSummary',
+          'shareAcademyProgress', 'messagePolicy',
+          'identityVerified', 'organizationVerified', 'credentialVerified',
+          'verifiedOrganizationId',
           'createdAt', 'updatedAt'
         ])
         && isValidId(data.uid) && data.uid == userId
@@ -320,14 +318,9 @@ service cloud.firestore {
         && (!('headline' in data) || (data.headline is string && data.headline.size() <= 160))
         && (!('certifications' in data) || (data.certifications is string && data.certifications.size() <= 240))
         && (!('yearsExperience' in data) || (data.yearsExperience is number && data.yearsExperience >= 0 && data.yearsExperience <= 70))
-        // Declared skills: a comma-separated list of catalogue ids, at most 20 — the
-        // same cap the picker enforces in `networkSkills.ts`. Declaring a skill is a
-        // claim, not a proof; endorsements live in their own collection below.
         && (!('skills' in data) || (
           data.skills is string
           && data.skills.size() <= 700
-          // An empty string is the deliberate "I cleared my list" write; leaving the
-          // field out on an update would silently keep the old list instead.
           && (data.skills == '' || data.skills.matches('^[a-z0-9_]{1,40}(,[a-z0-9_]{1,40}){0,19}$'))
         ))
         && (!('availabilityStatus' in data) || data.availabilityStatus in ['active_field', 'open_to_work', 'hiring', 'offering_services'])
@@ -335,9 +328,6 @@ service cloud.firestore {
         && (!('endorsementsCount' in data) || (data.endorsementsCount is number && data.endorsementsCount >= 0 && data.endorsementsCount <= 1000000))
         && data.companiesManaged is number && data.companiesManaged >= 0 && data.companiesManaged <= 10000
         && data.isPublished is bool
-        // Photos and the LinkedIn button. HTTPS only: an http:// image would be
-        // blocked as mixed content on the HTTPS site, and the LinkedIn check keeps
-        // that button from becoming a redirect to anywhere else.
         && (!('photoURL' in data) || (data.photoURL is string && data.photoURL.matches('https://.*') && data.photoURL.size() <= 500))
         && (!('bannerURL' in data) || (data.bannerURL is string && data.bannerURL.matches('https://.*') && data.bannerURL.size() <= 500))
         && (!('linkedInUrl' in data) || (
@@ -345,9 +335,19 @@ service cloud.firestore {
           && data.linkedInUrl.matches('https://([a-z0-9-]+[.])*(linkedin[.]com|lnkd[.]in)/.*')
           && data.linkedInUrl.size() <= 500
         ))
-        // Absence means public: every card written before this field existed keeps
-        // working, and no member is silently hidden by an upgrade.
         && (!('profileVisibility' in data) || data.profileVisibility in ['public', 'members'])
+        && (!('professionalRole' in data) || (data.professionalRole is string && data.professionalRole.size() <= 60))
+        && (!('relatedFields' in data) || (data.relatedFields is string && data.relatedFields.size() <= 400))
+        && (!('languages' in data) || (data.languages is string && data.languages.size() <= 200))
+        && (!('experienceSummary' in data) || (data.experienceSummary is string && data.experienceSummary.size() <= 1200))
+        && (!('educationSummary' in data) || (data.educationSummary is string && data.educationSummary.size() <= 600))
+        && (!('projectsSummary' in data) || (data.projectsSummary is string && data.projectsSummary.size() <= 800))
+        && (!('shareAcademyProgress' in data) || data.shareAcademyProgress is bool)
+        && (!('messagePolicy' in data) || data.messagePolicy in ['everyone', 'connections', 'none'])
+        && (!('identityVerified' in data) || data.identityVerified is bool)
+        && (!('organizationVerified' in data) || data.organizationVerified is bool)
+        && (!('credentialVerified' in data) || data.credentialVerified is bool)
+        && (!('verifiedOrganizationId' in data) || (data.verifiedOrganizationId is string && data.verifiedOrganizationId.size() <= 128))
         && data.createdAt is timestamp
         && data.updatedAt is timestamp;
     }
@@ -362,7 +362,11 @@ service cloud.firestore {
           'authorUid', 'authorName', 'authorHeadline', 'authorOrg', 'authorCompanyCode',
           'postType', 'ndtMethod', 'title', 'body', 'tags', 'technicalSnippet',
           'aiSummary', 'likesCount', 'commentsCount', 'visibility',
-          'aiModerationStatus', 'isPinnedAnnouncement', 'createdAt', 'updatedAt'
+          'aiModerationStatus', 'isPinnedAnnouncement',
+          'categoryTag', 'mediaUrl', 'documentUrl', 'linkUrl',
+          'academyCourseId', 'academyCourseTitle', 'pollOptions',
+          'companyId', 'companyName', 'groupId', 'isAiAssisted',
+          'createdAt', 'updatedAt'
         ])
         && isValidId(data.authorUid)
         && data.authorName is string && data.authorName.size() >= 2 && data.authorName.size() <= 120
@@ -370,7 +374,7 @@ service cloud.firestore {
         && data.authorOrg is string && data.authorOrg.size() >= 2 && data.authorOrg.size() <= 160
         && (!('authorCompanyCode' in data) || (data.authorCompanyCode is string && data.authorCompanyCode.size() <= 32))
         && data.postType in ['technical_case', 'job_tender', 'discussion', 'equipment_review', 'announcement']
-        && data.ndtMethod in ['GENERAL', 'RT', 'UT', 'PAUT', 'MT', 'PT', 'VT', 'PWHT', 'AR']
+        && data.ndtMethod in ['GENERAL', 'RT', 'UT', 'PAUT', 'TOFD', 'MT', 'PT', 'VT', 'ET', 'PWHT', 'AR']
         && data.title is string && data.title.size() >= 3 && data.title.size() <= 180
         && data.body is string && data.body.size() >= 5 && data.body.size() <= 3000
         && (!('tags' in data) || (data.tags is list && data.tags.size() <= 6 && (data.tags.size() == 0 || (data.tags[0] is string && data.tags[0].size() <= 32))))
@@ -381,6 +385,17 @@ service cloud.firestore {
         && data.visibility in ['public', 'members_only']
         && data.aiModerationStatus in ['approved', 'flagged']
         && data.isPinnedAnnouncement is bool
+        && (!('categoryTag' in data) || data.categoryTag in ['general', 'article', 'question', 'case_study', 'media', 'poll', 'job', 'company_update', 'academy', 'event'])
+        && (!('mediaUrl' in data) || (data.mediaUrl is string && data.mediaUrl.matches('https://.*') && data.mediaUrl.size() <= 500))
+        && (!('documentUrl' in data) || (data.documentUrl is string && data.documentUrl.matches('https://.*') && data.documentUrl.size() <= 500))
+        && (!('linkUrl' in data) || (data.linkUrl is string && data.linkUrl.matches('https://.*') && data.linkUrl.size() <= 500))
+        && (!('academyCourseId' in data) || (data.academyCourseId is string && data.academyCourseId.size() <= 80))
+        && (!('academyCourseTitle' in data) || (data.academyCourseTitle is string && data.academyCourseTitle.size() <= 180))
+        && (!('pollOptions' in data) || (data.pollOptions is list && data.pollOptions.size() <= 6))
+        && (!('companyId' in data) || (data.companyId is string && data.companyId.size() <= 128))
+        && (!('companyName' in data) || (data.companyName is string && data.companyName.size() <= 160))
+        && (!('groupId' in data) || (data.groupId is string && data.groupId.size() <= 128))
+        && (!('isAiAssisted' in data) || data.isAiAssisted is bool)
         && data.createdAt is timestamp
         && data.updatedAt is timestamp;
     }
@@ -391,12 +406,13 @@ service cloud.firestore {
         ])
         && data.keys().hasOnly([
           'postId', 'authorUid', 'authorName', 'authorHeadline',
-          'body', 'isAiAssisted', 'createdAt'
+          'parentCommentId', 'body', 'isAiAssisted', 'createdAt'
         ])
         && isValidId(data.postId) && data.postId == parentPostId
         && isValidId(data.authorUid)
         && data.authorName is string && data.authorName.size() >= 2 && data.authorName.size() <= 120
         && (!('authorHeadline' in data) || (data.authorHeadline is string && data.authorHeadline.size() <= 160))
+        && (!('parentCommentId' in data) || (data.parentCommentId is string && data.parentCommentId.size() <= 128))
         && data.body is string && data.body.size() >= 1 && data.body.size() <= 1500
         && data.isAiAssisted is bool
         && data.createdAt is timestamp;
@@ -512,7 +528,8 @@ service cloud.firestore {
         && data.keys().hasOnly([
           'authorUid', 'authorName', 'authorOrg', 'companyCode',
           'opportunityType', 'title', 'location', 'methods',
-          'requirements', 'status', 'visibility', 'createdAt', 'updatedAt'
+          'requirements', 'employmentType', 'experienceLevel',
+          'salaryRange', 'companyId', 'status', 'visibility', 'createdAt', 'updatedAt'
         ])
         && isValidId(data.authorUid)
         && data.authorName is string && data.authorName.size() >= 2 && data.authorName.size() <= 120
@@ -524,6 +541,10 @@ service cloud.firestore {
         && data.methods is list && data.methods.size() >= 1 && data.methods.size() <= 8
         && data.methods[0] is string && data.methods[0].size() <= 32
         && data.requirements is string && data.requirements.size() >= 5 && data.requirements.size() <= 1500
+        && (!('employmentType' in data) || data.employmentType in ['full_time', 'part_time', 'contract', 'shutdown', 'freelance', 'internship', 'training', 'project_based'])
+        && (!('experienceLevel' in data) || (data.experienceLevel is string && data.experienceLevel.size() <= 80))
+        && (!('salaryRange' in data) || (data.salaryRange is string && data.salaryRange.size() <= 80))
+        && (!('companyId' in data) || (data.companyId is string && data.companyId.size() <= 128))
         && data.status in ['open', 'closed']
         && data.visibility in ['public']
         && data.createdAt is timestamp
@@ -573,8 +594,7 @@ service cloud.firestore {
     // append-only reason and case ID, short server-timed authorization.
     // -------------------------------------------------------------------------
     function isAccountReviewer() {
-      return isSignedIn() && 'email_verified' in request.auth.token
-        && request.auth.token.email_verified == true
+      return isSignedIn() && request.auth.token.email_verified == true
         && get(/databases/$(database)/documents/account_reviewers/$(request.auth.uid)).data.enabled == true;
     }
 
@@ -608,8 +628,7 @@ service cloud.firestore {
 
     // Membership is assigned/revoked only by a trusted operator using IAM.
     match /account_reviewers/{reviewerUid} {
-      allow get: if isOwner(reviewerUid) && 'email_verified' in request.auth.token
-        && request.auth.token.email_verified == true;
+      allow get: if isOwner(reviewerUid) && request.auth.token.email_verified == true;
     }
 
     match /account_review_audit/{auditId} {
@@ -684,13 +703,13 @@ service cloud.firestore {
         && isValidId(userId)
         && isOwner(userId)
         && isValidCommunityWorkspace(incoming(), userId)
+        && (!('identityVerified' in incoming()) || incoming().identityVerified == false)
+        && (!('organizationVerified' in incoming()) || incoming().organizationVerified == false)
+        && (!('credentialVerified' in incoming()) || incoming().credentialVerified == false)
+        && (!('verifiedOrganizationId' in incoming()) || incoming().verifiedOrganizationId == '')
         && incoming().createdAt == request.time
         && incoming().updatedAt == request.time;
 
-      // The validator is evaluated once — the two `isValidCommunityWorkspace`
-      // calls that used to sit in the two branches pushed this rule over the
-      // emulator's 1000-expression cap, so no workspace update could ever
-      // succeed. Both branches require the same shape; only the writer differs.
       allow update: if isVerifiedUser()
         && isValidId(userId)
         && isValidCommunityWorkspace(incoming(), userId)
@@ -698,8 +717,16 @@ service cloud.firestore {
         && incoming().createdAt == existing().createdAt
         && incoming().updatedAt == request.time
         && (
-          isOwner(userId)
+          isAdmin()
+          || (
+            isOwner(userId)
+            && !incoming().diff(existing()).affectedKeys().hasAny([
+              'identityVerified', 'organizationVerified', 'credentialVerified',
+              'verifiedOrganizationId', 'uid', 'createdAt'
+            ])
+          )
           || incoming().diff(existing()).affectedKeys().hasOnly(['endorsementsCount', 'updatedAt'])
+          || incoming().diff(existing()).affectedKeys().hasOnly(['followersCount', 'updatedAt'])
         );
 
       allow delete: if isValidId(userId) && (isOwner(userId) || isAdmin());
@@ -834,7 +861,11 @@ service cloud.firestore {
             && incoming().diff(existing()).affectedKeys().hasOnly([
               'authorName', 'authorHeadline', 'authorOrg', 'authorCompanyCode',
               'postType', 'ndtMethod', 'title', 'body', 'tags',
-              'technicalSnippet', 'aiSummary', 'visibility', 'updatedAt'
+              'technicalSnippet', 'aiSummary', 'visibility',
+              'categoryTag', 'mediaUrl', 'documentUrl', 'linkUrl',
+              'academyCourseId', 'academyCourseTitle', 'pollOptions',
+              'companyId', 'companyName', 'groupId', 'isAiAssisted',
+              'updatedAt'
             ])
           )
           || (
@@ -883,6 +914,91 @@ service cloud.firestore {
           && isValidId(postId)
           && isValidId(userId)
           && (isOwner(userId) || isAdmin());
+      }
+
+      match /answers/{answerId} {
+        allow get: if isValidId(postId) && isValidId(answerId);
+        allow list: if isValidId(postId);
+
+        allow create: if isVerifiedUser()
+          && isValidId(postId)
+          && isValidId(answerId)
+          && exists(/databases/$(database)/documents/community_posts/$(postId))
+          && incoming().keys().hasAll(['postId', 'authorUid', 'authorName', 'body', 'upvotesCount', 'isAccepted', 'expertReviewed', 'isAiAssisted', 'createdAt', 'updatedAt'])
+          && incoming().keys().hasOnly(['postId', 'authorUid', 'authorName', 'authorHeadline', 'body', 'references', 'academyCourseId', 'upvotesCount', 'isAccepted', 'expertReviewed', 'reviewerUid', 'reviewerName', 'isAiAssisted', 'createdAt', 'updatedAt'])
+          && incoming().postId == postId
+          && incoming().authorUid == request.auth.uid
+          && incoming().authorName is string && incoming().authorName.size() >= 2 && incoming().authorName.size() <= 120
+          && incoming().body is string && incoming().body.size() >= 5 && incoming().body.size() <= 3000
+          && (!('authorHeadline' in incoming()) || (incoming().authorHeadline is string && incoming().authorHeadline.size() <= 160))
+          && (!('references' in incoming()) || (incoming().references is string && incoming().references.size() <= 500))
+          && (!('academyCourseId' in incoming()) || (incoming().academyCourseId is string && incoming().academyCourseId.size() <= 80))
+          && incoming().upvotesCount == 0
+          && incoming().isAccepted == false
+          && incoming().expertReviewed == false
+          && !('reviewerUid' in incoming())
+          && !('reviewerName' in incoming())
+          && incoming().isAiAssisted is bool
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time;
+
+        allow update: if isVerifiedUser()
+          && isValidId(postId)
+          && isValidId(answerId)
+          && incoming().postId == existing().postId
+          && incoming().authorUid == existing().authorUid
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && (
+            isAdmin()
+            || (
+              existing().authorUid == request.auth.uid
+              && incoming().diff(existing()).affectedKeys().hasOnly(['body', 'references', 'academyCourseId', 'updatedAt'])
+              && incoming().body is string && incoming().body.size() >= 5 && incoming().body.size() <= 3000
+            )
+            || (
+              get(/databases/$(database)/documents/community_posts/$(postId)).data.authorUid == request.auth.uid
+              && incoming().diff(existing()).affectedKeys().hasOnly(['isAccepted', 'updatedAt'])
+              && incoming().isAccepted is bool
+            )
+            || (
+              incoming().diff(existing()).affectedKeys().hasOnly(['expertReviewed', 'reviewerUid', 'reviewerName', 'updatedAt'])
+              && incoming().expertReviewed is bool
+              && incoming().reviewerUid == request.auth.uid
+              && incoming().reviewerName is string && incoming().reviewerName.size() >= 2 && incoming().reviewerName.size() <= 120
+            )
+            || (
+              incoming().diff(existing()).affectedKeys().hasOnly(['upvotesCount', 'updatedAt'])
+              && (incoming().upvotesCount == existing().upvotesCount + 1 || incoming().upvotesCount == existing().upvotesCount - 1)
+            )
+          );
+
+        allow delete: if isValidId(postId) && isValidId(answerId)
+          && (isAdmin() || (isVerifiedUser() && existing().authorUid == request.auth.uid));
+
+        match /votes/{userId} {
+          allow get: if isValidId(postId) && isValidId(answerId) && isValidId(userId);
+          allow list: if isValidId(postId) && isValidId(answerId);
+          allow create: if isVerifiedUser() && isOwner(userId)
+            && incoming().keys().hasAll(['uid', 'createdAt'])
+            && incoming().keys().hasOnly(['uid', 'createdAt'])
+            && incoming().uid == request.auth.uid
+            && incoming().createdAt == request.time;
+          allow delete: if isVerifiedUser() && (isOwner(userId) || isAdmin());
+        }
+      }
+
+      match /poll_votes/{userId} {
+        allow get: if isValidId(postId) && isValidId(userId);
+        allow list: if isValidId(postId);
+        allow create: if isVerifiedUser() && isOwner(userId)
+          && incoming().keys().hasAll(['postId', 'uid', 'optionIndex', 'createdAt'])
+          && incoming().keys().hasOnly(['postId', 'uid', 'optionIndex', 'createdAt'])
+          && incoming().postId == postId
+          && incoming().uid == request.auth.uid
+          && incoming().optionIndex is number && incoming().optionIndex >= 0 && incoming().optionIndex <= 5
+          && incoming().createdAt == request.time;
+        allow delete: if isVerifiedUser() && (isOwner(userId) || isAdmin());
       }
     }
 
@@ -1083,6 +1199,527 @@ service cloud.firestore {
           || isGroupOwnerOf(groupId)
           || isAdmin()
         );
+    }
+
+    match /community_groups/{groupId}/resources/{resourceId} {
+      allow get: if isValidId(groupId) && isValidId(resourceId) && (isApprovedGroupMember(groupId) || isAdmin());
+      allow list: if isApprovedGroupMember(groupId) || isAdmin();
+      allow create: if isVerifiedUser()
+        && isValidId(groupId)
+        && isValidId(resourceId)
+        && isApprovedGroupMember(groupId)
+        && (groupData(groupId).postPolicy == 'members' || groupData(groupId).ownerUid == request.auth.uid)
+        && incoming().keys().hasAll(['groupId', 'authorUid', 'authorName', 'kind', 'title', 'description', 'createdAt'])
+        && incoming().keys().hasOnly(['groupId', 'authorUid', 'authorName', 'kind', 'title', 'description', 'url', 'eventDateIso', 'createdAt'])
+        && incoming().groupId == groupId
+        && incoming().authorUid == request.auth.uid
+        && incoming().authorName is string && incoming().authorName.size() >= 2 && incoming().authorName.size() <= 120
+        && incoming().kind in ['document', 'announcement', 'event']
+        && incoming().title is string && incoming().title.size() >= 3 && incoming().title.size() <= 160
+        && incoming().description is string && incoming().description.size() >= 3 && incoming().description.size() <= 1000
+        && (!('url' in incoming()) || (incoming().url is string && incoming().url.matches('https://.*') && incoming().url.size() <= 500))
+        && (!('eventDateIso' in incoming()) || (incoming().eventDateIso is string && incoming().eventDateIso.size() <= 40))
+        && incoming().createdAt == request.time;
+      allow delete: if isVerifiedUser() && (existing().authorUid == request.auth.uid || isGroupOwnerOf(groupId) || isAdmin());
+    }
+
+    // -------------------------------------------------------------------------
+    // INSCO Professional Network Companies, Org Charts & Employee Consent
+    // -------------------------------------------------------------------------
+    match /community_companies/{companyId} {
+      allow get: if isValidId(companyId);
+      allow list: if true;
+
+      allow create: if isVerifiedUser()
+        && isValidId(companyId)
+        && incoming().keys().hasAll(['ownerUid', 'name', 'industry', 'description', 'verificationStatus', 'followersCount', 'createdAt', 'updatedAt'])
+        && incoming().keys().hasOnly(['ownerUid', 'name', 'nameAr', 'industry', 'description', 'headquarters', 'branches', 'website', 'contactEmail', 'services', 'specializations', 'projectsSummary', 'logoURL', 'coverURL', 'verificationStatus', 'followersCount', 'createdAt', 'updatedAt'])
+        && incoming().ownerUid == request.auth.uid
+        && incoming().name is string && incoming().name.size() >= 2 && incoming().name.size() <= 160
+        && (!('nameAr' in incoming()) || (incoming().nameAr is string && incoming().nameAr.size() <= 160))
+        && incoming().industry is string && incoming().industry.size() >= 2 && incoming().industry.size() <= 120
+        && incoming().description is string && incoming().description.size() >= 5 && incoming().description.size() <= 1500
+        && (!('headquarters' in incoming()) || (incoming().headquarters is string && incoming().headquarters.size() <= 160))
+        && (!('branches' in incoming()) || (incoming().branches is string && incoming().branches.size() <= 400))
+        && (!('website' in incoming()) || (incoming().website is string && incoming().website.size() <= 300))
+        && (!('contactEmail' in incoming()) || (incoming().contactEmail is string && incoming().contactEmail.size() <= 160))
+        && (!('services' in incoming()) || (incoming().services is string && incoming().services.size() <= 500))
+        && (!('specializations' in incoming()) || (incoming().specializations is string && incoming().specializations.size() <= 400))
+        && (!('projectsSummary' in incoming()) || (incoming().projectsSummary is string && incoming().projectsSummary.size() <= 1000))
+        && (!('logoURL' in incoming()) || (incoming().logoURL is string && incoming().logoURL.matches('https://.*') && incoming().logoURL.size() <= 500))
+        && (!('coverURL' in incoming()) || (incoming().coverURL is string && incoming().coverURL.matches('https://.*') && incoming().coverURL.size() <= 500))
+        && (isAdmin() || incoming().verificationStatus in ['unverified', 'pending'])
+        && incoming().followersCount == 0
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isVerifiedUser()
+        && isValidId(companyId)
+        && incoming().ownerUid == existing().ownerUid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin()
+          || (
+            existing().ownerUid == request.auth.uid
+            && !incoming().diff(existing()).affectedKeys().hasAny(['ownerUid', 'verificationStatus', 'followersCount', 'createdAt'])
+          )
+          || (
+            incoming().diff(existing()).affectedKeys().hasOnly(['followersCount', 'updatedAt'])
+            && (incoming().followersCount == existing().followersCount + 1 || incoming().followersCount == existing().followersCount - 1)
+          )
+        );
+
+      allow delete: if isValidId(companyId) && (isAdmin() || (isVerifiedUser() && existing().ownerUid == request.auth.uid));
+
+      match /departments/{deptId} {
+        allow get, list: if isValidId(companyId);
+
+        allow create, update: if isVerifiedUser()
+          && isValidId(companyId)
+          && isValidId(deptId)
+          && exists(/databases/$(database)/documents/community_companies/$(companyId))
+          && (isAdmin() || get(/databases/$(database)/documents/community_companies/$(companyId)).data.ownerUid == request.auth.uid)
+          && incoming().keys().hasAll(['companyId', 'levelRank', 'levelTitle', 'name', 'createdAt', 'updatedAt'])
+          && incoming().keys().hasOnly(['companyId', 'parentDeptId', 'levelRank', 'levelTitle', 'name', 'description', 'managerUid', 'managerName', 'specializations', 'services', 'projectsSummary', 'createdAt', 'updatedAt'])
+          && incoming().companyId == companyId
+          && incoming().levelRank is number && incoming().levelRank >= 0 && incoming().levelRank <= 20
+          && incoming().levelTitle is string && incoming().levelTitle.size() >= 2 && incoming().levelTitle.size() <= 80
+          && incoming().name is string && incoming().name.size() >= 2 && incoming().name.size() <= 120
+          && incoming().updatedAt == request.time;
+
+        allow delete: if isVerifiedUser()
+          && isValidId(companyId)
+          && isValidId(deptId)
+          && (isAdmin() || get(/databases/$(database)/documents/community_companies/$(companyId)).data.ownerUid == request.auth.uid);
+      }
+
+      match /affiliations/{affiliationId} {
+        allow get: if isValidId(companyId) && isValidId(affiliationId);
+        allow list: if isValidId(companyId);
+
+        // Company owner invites an employee (forced 'invited'); employee CANNOT force 'accepted' on create.
+        allow create: if isVerifiedUser()
+          && isValidId(companyId)
+          && isValidId(affiliationId)
+          && exists(/databases/$(database)/documents/community_companies/$(companyId))
+          && (isAdmin() || get(/databases/$(database)/documents/community_companies/$(companyId)).data.ownerUid == request.auth.uid)
+          && incoming().keys().hasAll(['companyId', 'companyName', 'employeeUid', 'employeeName', 'roleTitle', 'status', 'invitedByUid', 'createdAt', 'updatedAt'])
+          && incoming().keys().hasOnly(['companyId', 'companyName', 'employeeUid', 'employeeName', 'roleTitle', 'departmentId', 'departmentName', 'status', 'invitedByUid', 'createdAt', 'updatedAt'])
+          && incoming().companyId == companyId
+          && affiliationId == (companyId + '_' + incoming().employeeUid)
+          && isValidId(incoming().employeeUid)
+          && incoming().invitedByUid == request.auth.uid
+          && incoming().status == 'invited'
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time;
+
+        // Only the target employee may accept or decline affiliation.
+        allow update: if isVerifiedUser()
+          && isValidId(companyId)
+          && isValidId(affiliationId)
+          && incoming().companyId == existing().companyId
+          && incoming().employeeUid == existing().employeeUid
+          && incoming().invitedByUid == existing().invitedByUid
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && (
+            (
+              existing().employeeUid == request.auth.uid
+              && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])
+              && incoming().status in ['accepted', 'declined']
+            )
+            || (
+              get(/databases/$(database)/documents/community_companies/$(companyId)).data.ownerUid == request.auth.uid
+              && incoming().diff(existing()).affectedKeys().hasOnly(['roleTitle', 'departmentId', 'departmentName', 'status', 'updatedAt'])
+              && incoming().status == 'removed'
+            )
+            || isAdmin()
+          );
+
+        allow delete: if isVerifiedUser()
+          && (isAdmin() || existing().employeeUid == request.auth.uid || get(/databases/$(database)/documents/community_companies/$(companyId)).data.ownerUid == request.auth.uid);
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // Events Center & Live Registrations
+    // -------------------------------------------------------------------------
+    match /community_events/{eventId} {
+      allow get: if isValidId(eventId);
+      allow list: if true;
+
+      allow create: if isVerifiedUser()
+        && isValidId(eventId)
+        && incoming().keys().hasAll(['organizerUid', 'organizerName', 'organizerOrg', 'eventType', 'title', 'description', 'dateIso', 'venueOrLink', 'capacity', 'attendeesCount', 'status', 'createdAt', 'updatedAt'])
+        && incoming().keys().hasOnly(['organizerUid', 'organizerName', 'organizerOrg', 'companyId', 'eventType', 'title', 'description', 'speakers', 'dateIso', 'venueOrLink', 'capacity', 'attendeesCount', 'academyCourseId', 'postEventResources', 'status', 'createdAt', 'updatedAt'])
+        && incoming().organizerUid == request.auth.uid
+        && incoming().eventType in ['conference', 'webinar', 'workshop', 'seminar', 'training', 'career_fair', 'networking']
+        && incoming().title is string && incoming().title.size() >= 3 && incoming().title.size() <= 180
+        && incoming().description is string && incoming().description.size() >= 5 && incoming().description.size() <= 2000
+        && incoming().capacity is number && incoming().capacity >= 1 && incoming().capacity <= 50000
+        && incoming().attendeesCount == 0
+        && incoming().status in ['upcoming', 'completed', 'cancelled']
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isVerifiedUser()
+        && isValidId(eventId)
+        && incoming().organizerUid == existing().organizerUid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin()
+          || existing().organizerUid == request.auth.uid
+          || (
+            incoming().diff(existing()).affectedKeys().hasOnly(['attendeesCount', 'updatedAt'])
+            && (incoming().attendeesCount == existing().attendeesCount + 1 || incoming().attendeesCount == existing().attendeesCount - 1)
+          )
+        );
+
+      allow delete: if isValidId(eventId) && (isAdmin() || (isVerifiedUser() && existing().organizerUid == request.auth.uid));
+
+      match /registrations/{userId} {
+        allow get: if isValidId(eventId) && isValidId(userId) && (isOwner(userId) || isAdmin() || get(/databases/$(database)/documents/community_events/$(eventId)).data.organizerUid == request.auth.uid);
+        allow list: if isVerifiedUser();
+        allow create, update: if isVerifiedUser()
+          && isValidId(eventId)
+          && isOwner(userId)
+          && incoming().keys().hasAll(['eventId', 'uid', 'displayName', 'status', 'createdAt', 'updatedAt'])
+          && incoming().keys().hasOnly(['eventId', 'uid', 'displayName', 'status', 'createdAt', 'updatedAt'])
+          && incoming().eventId == eventId
+          && incoming().uid == request.auth.uid
+          && incoming().status in ['registered', 'cancelled']
+          && incoming().updatedAt == request.time;
+        allow delete: if isVerifiedUser() && (isOwner(userId) || isAdmin());
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // Follows (Member / Company), Bookmarks & Job Applications
+    // -------------------------------------------------------------------------
+    match /community_follows/{followId} {
+      allow get: if isVerifiedUser() && isValidId(followId);
+      allow list: if isAdminEmail() || (isVerifiedUser() && (existing().followerUid == request.auth.uid || existing().targetId == request.auth.uid));
+      allow create: if isVerifiedUser()
+        && isValidId(followId)
+        && incoming().keys().hasAll(['followerUid', 'targetType', 'targetId', 'targetName', 'createdAt'])
+        && incoming().keys().hasOnly(['followerUid', 'targetType', 'targetId', 'targetName', 'createdAt'])
+        && incoming().followerUid == request.auth.uid
+        && incoming().targetType in ['member', 'company']
+        && isValidId(incoming().targetId)
+        && followId == (request.auth.uid + '_' + incoming().targetType + '_' + incoming().targetId)
+        && incoming().targetName is string && incoming().targetName.size() <= 160
+        && incoming().createdAt == request.time;
+      allow update: if false;
+      allow delete: if isVerifiedUser() && (existing().followerUid == request.auth.uid || isAdmin());
+    }
+
+    match /community_bookmarks/{bookmarkId} {
+      allow get: if isVerifiedUser() && existing().uid == request.auth.uid;
+      allow list: if isVerifiedUser() && existing().uid == request.auth.uid;
+      allow create: if isVerifiedUser()
+        && isValidId(bookmarkId)
+        && incoming().keys().hasAll(['uid', 'postId', 'postTitle', 'createdAt'])
+        && incoming().keys().hasOnly(['uid', 'postId', 'postTitle', 'createdAt'])
+        && incoming().uid == request.auth.uid
+        && isValidId(incoming().postId)
+        && bookmarkId == (request.auth.uid + '_' + incoming().postId)
+        && incoming().postTitle is string && incoming().postTitle.size() <= 180
+        && incoming().createdAt == request.time;
+      allow update: if false;
+      allow delete: if isVerifiedUser() && (existing().uid == request.auth.uid || isAdmin());
+    }
+
+    match /community_job_applications/{applicationId} {
+      allow get: if isVerifiedUser() && isValidId(applicationId)
+        && (isAdmin() || existing().applicantUid == request.auth.uid || existing().employerUid == request.auth.uid);
+      allow list: if isAdminEmail()
+        || (isVerifiedUser() && (existing().applicantUid == request.auth.uid || existing().employerUid == request.auth.uid));
+
+      allow create: if isVerifiedUser()
+        && isValidId(applicationId)
+        && incoming().keys().hasAll(['opportunityId', 'opportunityTitle', 'employerUid', 'applicantUid', 'applicantName', 'coverNote', 'status', 'createdAt', 'updatedAt'])
+        && incoming().keys().hasOnly(['opportunityId', 'opportunityTitle', 'employerUid', 'applicantUid', 'applicantName', 'applicantHeadline', 'applicantOrg', 'coverNote', 'cvSummary', 'status', 'createdAt', 'updatedAt'])
+        && isValidId(incoming().opportunityId)
+        && isValidId(incoming().employerUid)
+        && incoming().applicantUid == request.auth.uid
+        && incoming().employerUid != request.auth.uid
+        && applicationId == (incoming().opportunityId + '_' + request.auth.uid)
+        && incoming().status == 'submitted'
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isVerifiedUser()
+        && isValidId(applicationId)
+        && incoming().opportunityId == existing().opportunityId
+        && incoming().applicantUid == existing().applicantUid
+        && incoming().employerUid == existing().employerUid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin()
+          || (
+            existing().employerUid == request.auth.uid
+            && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])
+            && incoming().status in ['submitted', 'shortlisted', 'contacted', 'rejected']
+          )
+        );
+
+      allow delete: if isVerifiedUser() && (isAdmin() || existing().applicantUid == request.auth.uid);
+    }
+
+    // -------------------------------------------------------------------------
+    // Private Direct Messaging & Blocking
+    // -------------------------------------------------------------------------
+    match /community_message_threads/{threadId} {
+      allow get: if isVerifiedUser() && isValidId(threadId) && (request.auth.uid in existing().participantUids || isAdmin());
+      allow list: if isAdminEmail() || (isVerifiedUser() && request.auth.uid in existing().participantUids);
+
+      allow create: if isVerifiedUser()
+        && isValidId(threadId)
+        && incoming().keys().hasAll(['participantUids', 'participantNames', 'lastMessage', 'lastSenderUid', 'createdAt', 'updatedAt'])
+        && incoming().keys().hasOnly(['participantUids', 'participantNames', 'lastMessage', 'lastSenderUid', 'createdAt', 'updatedAt'])
+        && incoming().participantUids is list && incoming().participantUids.size() == 2
+        && request.auth.uid in incoming().participantUids
+        && incoming().lastSenderUid == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isVerifiedUser()
+        && isValidId(threadId)
+        && request.auth.uid in existing().participantUids
+        && incoming().participantUids == existing().participantUids
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+
+      match /messages/{messageId} {
+        allow get: if isVerifiedUser() && isValidId(threadId) && isValidId(messageId)
+          && request.auth.uid in get(/databases/$(database)/documents/community_message_threads/$(threadId)).data.participantUids;
+        allow list: if isVerifiedUser() && isValidId(threadId)
+          && request.auth.uid in get(/databases/$(database)/documents/community_message_threads/$(threadId)).data.participantUids;
+
+        allow create: if isVerifiedUser()
+          && isValidId(threadId)
+          && isValidId(messageId)
+          && request.auth.uid in get(/databases/$(database)/documents/community_message_threads/$(threadId)).data.participantUids
+          && incoming().keys().hasAll(['threadId', 'senderUid', 'senderName', 'recipientUid', 'body', 'isRead', 'createdAt'])
+          && incoming().keys().hasOnly(['threadId', 'senderUid', 'senderName', 'recipientUid', 'body', 'attachmentUrl', 'isRead', 'createdAt'])
+          && incoming().threadId == threadId
+          && incoming().senderUid == request.auth.uid
+          && incoming().recipientUid != request.auth.uid
+          && incoming().recipientUid in get(/databases/$(database)/documents/community_message_threads/$(threadId)).data.participantUids
+          && !exists(/databases/$(database)/documents/community_blocks/$(incoming().recipientUid + '_' + request.auth.uid))
+          && incoming().body is string && incoming().body.size() >= 1 && incoming().body.size() <= 2000
+          && (!('attachmentUrl' in incoming()) || (incoming().attachmentUrl is string && incoming().attachmentUrl.matches('https://.*') && incoming().attachmentUrl.size() <= 500))
+          && incoming().isRead == false
+          && incoming().createdAt == request.time;
+
+        allow update: if isVerifiedUser()
+          && isValidId(threadId)
+          && isValidId(messageId)
+          && existing().recipientUid == request.auth.uid
+          && incoming().diff(existing()).affectedKeys().hasOnly(['isRead'])
+          && incoming().isRead == true;
+      }
+    }
+
+    match /community_blocks/{blockId} {
+      allow get: if isVerifiedUser() && existing().blockerUid == request.auth.uid;
+      allow list: if isVerifiedUser() && existing().blockerUid == request.auth.uid;
+      allow create: if isVerifiedUser()
+        && isValidId(blockId)
+        && incoming().keys().hasAll(['blockerUid', 'blockedUid', 'createdAt'])
+        && incoming().keys().hasOnly(['blockerUid', 'blockedUid', 'reason', 'createdAt'])
+        && incoming().blockerUid == request.auth.uid
+        && isValidId(incoming().blockedUid)
+        && incoming().blockedUid != request.auth.uid
+        && blockId == (request.auth.uid + '_' + incoming().blockedUid)
+        && incoming().createdAt == request.time;
+      allow delete: if isVerifiedUser() && existing().blockerUid == request.auth.uid;
+    }
+
+    // -------------------------------------------------------------------------
+    // Internal Platform Engineering Email (/community_emails/{emailId})
+    // -------------------------------------------------------------------------
+    function isValidCommunityEmail(data) {
+      return data.keys().hasAll([
+          'participantUids', 'senderUid', 'senderName', 'recipientUid', 'recipientName',
+          'subject', 'category', 'priority', 'body',
+          'recipientRead', 'senderStarred', 'recipientStarred',
+          'senderFolder', 'recipientFolder', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'participantUids', 'senderUid', 'senderName', 'senderOrg',
+          'recipientUid', 'recipientName',
+          'subject', 'category', 'priority', 'body', 'attachmentUrl', 'replyToEmailId',
+          'recipientRead', 'senderStarred', 'recipientStarred',
+          'senderFolder', 'recipientFolder', 'createdAt', 'updatedAt'
+        ])
+        && data.participantUids is list
+        && data.participantUids.size() == 2
+        && isValidId(data.senderUid)
+        && isValidId(data.recipientUid)
+        && data.senderUid != data.recipientUid
+        && data.senderUid in data.participantUids
+        && data.recipientUid in data.participantUids
+        && data.senderName is string && data.senderName.size() >= 1 && data.senderName.size() <= 120
+        && (!('senderOrg' in data) || (data.senderOrg is string && data.senderOrg.size() <= 160))
+        && data.recipientName is string && data.recipientName.size() >= 1 && data.recipientName.size() <= 120
+        && data.subject is string && data.subject.size() >= 2 && data.subject.size() <= 180
+        && data.category in ['general', 'technical_inquiry', 'inspection_coordination', 'job_inquiry', 'academy']
+        && data.priority in ['normal', 'urgent']
+        && data.body is string && data.body.size() >= 1 && data.body.size() <= 5000
+        && (!('attachmentUrl' in data) || (data.attachmentUrl is string && data.attachmentUrl.matches('https://.*') && data.attachmentUrl.size() <= 500))
+        && (!('replyToEmailId' in data) || isValidId(data.replyToEmailId))
+        && data.recipientRead is bool
+        && data.senderStarred is bool
+        && data.recipientStarred is bool
+        && data.senderFolder in ['sent', 'archive']
+        && data.recipientFolder in ['inbox', 'archive']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    match /community_emails/{emailId} {
+      allow get: if isVerifiedUser() && isValidId(emailId)
+        && (request.auth.uid in existing().participantUids || isAdmin());
+      allow list: if isAdminEmail()
+        || (isVerifiedUser() && request.auth.uid in existing().participantUids);
+
+      allow create: if isVerifiedUser()
+        && isValidId(emailId)
+        && isValidCommunityEmail(incoming())
+        && incoming().senderUid == request.auth.uid
+        && !exists(/databases/$(database)/documents/community_blocks/$(incoming().recipientUid + '_' + request.auth.uid))
+        && incoming().recipientRead == false
+        && incoming().senderStarred == false
+        && incoming().recipientStarred == false
+        && incoming().senderFolder == 'sent'
+        && incoming().recipientFolder == 'inbox'
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isVerifiedUser()
+        && isValidId(emailId)
+        && isValidCommunityEmail(incoming())
+        && incoming().participantUids == existing().participantUids
+        && incoming().senderUid == existing().senderUid
+        && incoming().recipientUid == existing().recipientUid
+        && incoming().subject == existing().subject
+        && incoming().category == existing().category
+        && incoming().priority == existing().priority
+        && incoming().body == existing().body
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          (
+            existing().senderUid == request.auth.uid
+            && incoming().diff(existing()).affectedKeys().hasOnly(['senderStarred', 'senderFolder', 'updatedAt'])
+          )
+          || (
+            existing().recipientUid == request.auth.uid
+            && incoming().diff(existing()).affectedKeys().hasOnly(['recipientRead', 'recipientStarred', 'recipientFolder', 'updatedAt'])
+          )
+        );
+
+      allow delete: if isVerifiedUser() && isValidId(emailId) && isAdmin();
+    }
+
+    // -------------------------------------------------------------------------
+    // Notifications & Preferences
+    // -------------------------------------------------------------------------
+    match /community_notifications/{notificationId} {
+      allow get: if isVerifiedUser() && isValidId(notificationId) && (existing().recipientUid == request.auth.uid || isAdmin());
+      allow list: if isAdminEmail() || (isVerifiedUser() && existing().recipientUid == request.auth.uid);
+
+      allow create: if isVerifiedUser()
+        && isValidId(notificationId)
+        && incoming().keys().hasAll(['recipientUid', 'actorUid', 'actorName', 'category', 'title', 'body', 'isRead', 'createdAt'])
+        && incoming().keys().hasOnly(['recipientUid', 'actorUid', 'actorName', 'category', 'title', 'body', 'linkSection', 'linkEntryId', 'isRead', 'createdAt'])
+        && isValidId(incoming().recipientUid)
+        && incoming().actorUid == request.auth.uid
+        && incoming().category in ['connection', 'comment', 'reaction', 'group', 'job', 'message', 'academy', 'verification', 'event']
+        && incoming().isRead == false
+        && incoming().createdAt == request.time;
+
+      allow update: if isVerifiedUser()
+        && (existing().recipientUid == request.auth.uid || isAdmin())
+        && incoming().diff(existing()).affectedKeys().hasOnly(['isRead'])
+        && incoming().isRead is bool;
+
+      allow delete: if isVerifiedUser() && (existing().recipientUid == request.auth.uid || isAdmin());
+    }
+
+    match /community_notification_prefs/{userId} {
+      allow get: if isValidId(userId) && isOwner(userId);
+      allow create, update: if isVerifiedUser()
+        && isValidId(userId)
+        && isOwner(userId)
+        && incoming().keys().hasAll(['connections', 'comments', 'groups', 'jobs', 'messages', 'events', 'academy', 'weeklyDigest', 'updatedAt'])
+        && incoming().keys().hasOnly(['connections', 'comments', 'groups', 'jobs', 'messages', 'events', 'academy', 'weeklyDigest', 'updatedAt'])
+        && incoming().connections is bool
+        && incoming().comments is bool
+        && incoming().groups is bool
+        && incoming().jobs is bool
+        && incoming().messages is bool
+        && incoming().events is bool
+        && incoming().academy is bool
+        && incoming().weeklyDigest is bool
+        && incoming().updatedAt == request.time;
+    }
+
+    // -------------------------------------------------------------------------
+    // Three-Track Verification Queue & Moderation Reports (Admin Audited)
+    // -------------------------------------------------------------------------
+    match /community_verifications/{verificationId} {
+      allow get: if isVerifiedUser() && isValidId(verificationId) && (isAdmin() || existing().uid == request.auth.uid);
+      allow list: if isAdminEmail() || (isVerifiedUser() && existing().uid == request.auth.uid);
+
+      // Default state is ALWAYS pending; non-admin cannot self-approve or pick reviewer fields.
+      allow create: if isVerifiedUser()
+        && isValidId(verificationId)
+        && incoming().keys().hasAll(['uid', 'memberName', 'track', 'subjectTitle', 'issuerOrCompany', 'evidenceNote', 'status', 'createdAt', 'updatedAt'])
+        && incoming().keys().hasOnly(['uid', 'memberName', 'track', 'subjectTitle', 'issuerOrCompany', 'evidenceNote', 'evidenceUrl', 'companyId', 'status', 'createdAt', 'updatedAt'])
+        && incoming().uid == request.auth.uid
+        && incoming().track in ['identity', 'organization', 'credential']
+        && incoming().status == 'pending'
+        && (!('evidenceUrl' in incoming()) || (incoming().evidenceUrl is string && incoming().evidenceUrl.matches('https://.*') && incoming().evidenceUrl.size() <= 500))
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isAdmin()
+        && isValidId(verificationId)
+        && incoming().uid == existing().uid
+        && incoming().track == existing().track
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().status in ['pending', 'approved', 'rejected'];
+
+      allow delete: if isVerifiedUser() && (isAdmin() || (existing().uid == request.auth.uid && existing().status == 'pending'));
+    }
+
+    match /community_reports/{reportId} {
+      allow get: if isVerifiedUser() && isValidId(reportId) && (isAdmin() || existing().reporterUid == request.auth.uid);
+      allow list: if isAdminEmail() || (isVerifiedUser() && existing().reporterUid == request.auth.uid);
+
+      allow create: if isVerifiedUser()
+        && isValidId(reportId)
+        && incoming().keys().hasAll(['reporterUid', 'reporterName', 'targetType', 'targetId', 'targetTitle', 'reason', 'status', 'createdAt', 'updatedAt'])
+        && incoming().keys().hasOnly(['reporterUid', 'reporterName', 'targetType', 'targetId', 'targetTitle', 'reason', 'status', 'createdAt', 'updatedAt'])
+        && incoming().reporterUid == request.auth.uid
+        && incoming().targetType in ['post', 'comment', 'answer', 'company', 'job', 'user', 'message']
+        && incoming().status == 'open'
+        && incoming().reason is string && incoming().reason.size() >= 4 && incoming().reason.size() <= 800
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isAdmin()
+        && isValidId(reportId)
+        && incoming().reporterUid == existing().reporterUid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().status in ['open', 'reviewed', 'dismissed', 'action_taken'];
     }
 
     // -------------------------------------------------------------------------

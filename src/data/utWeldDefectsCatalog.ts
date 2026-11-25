@@ -1095,6 +1095,130 @@ export function drawComprehensiveDefectMorphology(
   ctx.restore();
 }
 
+export type UltrasonicWaveMode = 'longitudinal' | 'shear';
+export type UltrasonicReflectionRegime = 'auto' | 'full' | 'partial';
+
+export interface UltrasonicRayReflectionBreakdown {
+  regime: 'backwall_full' | 'flaw_full' | 'flaw_partial';
+  incidentPct: number;
+  reflectedToProbePct: number;
+  reflectedOffAxisPct: number;
+  transmittedBypassPct: number;
+  shadowZoneActive: boolean;
+  summaryLabel: { ar: string; en: string };
+}
+
+export function computeRayReflectionBreakdown(params: {
+  isHit: boolean;
+  beamOcclusionRatio?: number;
+  scatterMode?: 'specular_planar' | 'corner_trap' | 'volumetric_scatter' | 'tip_diffraction' | 'lamination';
+  angleDiffDeg?: number;
+  isStraightZeroBeam?: boolean;
+  regimeOverride?: UltrasonicReflectionRegime;
+}): UltrasonicRayReflectionBreakdown {
+  const {
+    isHit,
+    beamOcclusionRatio = 0.65,
+    scatterMode = 'specular_planar',
+    angleDiffDeg = 0,
+    isStraightZeroBeam = false,
+    regimeOverride = 'auto',
+  } = params;
+
+  if (!isHit) {
+    if (isStraightZeroBeam) {
+      return {
+        regime: 'backwall_full',
+        incidentPct: 100,
+        reflectedToProbePct: 100,
+        reflectedOffAxisPct: 0,
+        transmittedBypassPct: 0,
+        shadowZoneActive: false,
+        summaryLabel: {
+          ar: 'ارتداد كلي 100% من القاع للمجس (حدود فولاذ / هواء)',
+          en: '100% Full Backwall Reflection to Probe (Steel/Air Interface)',
+        },
+      };
+    }
+    return {
+      regime: 'backwall_full',
+      incidentPct: 100,
+      reflectedToProbePct: 0,
+      reflectedOffAxisPct: 100,
+      transmittedBypassPct: 0,
+      shadowZoneActive: false,
+      summaryLabel: {
+        ar: 'ارتداد مرآوي كلي 100% من القاع نحو المسار الثاني (Leg 2)',
+        en: '100% Full Specular Backwall Bounce (Leg 1 → Leg 2)',
+      },
+    };
+  }
+
+  const occlusion = Math.max(0.18, Math.min(1.0, beamOcclusionRatio));
+  const absAngleDiff = Math.abs(angleDiffDeg);
+
+  const autoIsFull =
+    (scatterMode === 'lamination' && occlusion >= 0.72) ||
+    (scatterMode === 'corner_trap' && occlusion >= 0.78 && absAngleDiff <= 14) ||
+    occlusion >= 0.88;
+
+  const isFull =
+    regimeOverride === 'full' ? true : regimeOverride === 'partial' ? false : autoIsFull;
+
+  if (isFull) {
+    const directAlignment =
+      scatterMode === 'corner_trap' || scatterMode === 'lamination'
+        ? Math.max(0.76, 1 - absAngleDiff / 80)
+        : Math.max(0.42, 1 - absAngleDiff / 42);
+    const reflectedToProbePct = Math.min(100, Math.max(40, Math.round(100 * directAlignment)));
+    const reflectedOffAxisPct = 100 - reflectedToProbePct;
+    return {
+      regime: 'flaw_full',
+      incidentPct: 100,
+      reflectedToProbePct,
+      reflectedOffAxisPct,
+      transmittedBypassPct: 0,
+      shadowZoneActive: true,
+      summaryLabel: {
+        ar: `ارتداد كلي من العيب (${reflectedToProbePct}% للمجس · منطقة ظل صوتي خلف العيب)`,
+        en: `Full Flaw Reflection (${reflectedToProbePct}% to Probe · Acoustic Shadow Zone Behind Flaw)`,
+      },
+    };
+  }
+
+  // Partial reflection: part reflects to probe, part scatters/reflects off-axis, part transmits/bypasses past flaw
+  const interceptedPct =
+    regimeOverride === 'partial'
+      ? Math.min(68, Math.max(40, Math.round(occlusion * 66)))
+      : Math.min(76, Math.max(28, Math.round(occlusion * 74)));
+  const transmittedBypassPct = 100 - interceptedPct;
+
+  let probeShare = 0.6;
+  if (scatterMode === 'volumetric_scatter') {
+    probeShare = 0.52;
+  } else if (scatterMode === 'corner_trap' || scatterMode === 'lamination') {
+    probeShare = 0.74;
+  } else {
+    probeShare = Math.max(0.35, 0.85 - absAngleDiff / 50);
+  }
+
+  const reflectedToProbePct = Math.max(12, Math.min(interceptedPct - 6, Math.round(interceptedPct * probeShare)));
+  const reflectedOffAxisPct = Math.max(0, interceptedPct - reflectedToProbePct);
+
+  return {
+    regime: 'flaw_partial',
+    incidentPct: 100,
+    reflectedToProbePct,
+    reflectedOffAxisPct,
+    transmittedBypassPct,
+    shadowZoneActive: false,
+    summaryLabel: {
+      ar: `ارتداد جزئي (${reflectedToProbePct}% للمجس + ${reflectedOffAxisPct}% جانبي) ونفاذ ${transmittedBypassPct}% خلف العيب`,
+      en: `Partial Reflection (${reflectedToProbePct}% Echo + ${reflectedOffAxisPct}% Off-Axis) · ${transmittedBypassPct}% Bypass Forward`,
+    },
+  };
+}
+
 export interface UltrasonicDefectImpactSpec {
   x: number;
   y: number;
@@ -1107,10 +1231,9 @@ export interface UltrasonicDefectImpactSpec {
  * Renders the full 2D Ultrasonic Radiation Cone ("كوم الأشعة") with real-time animated waves:
  * - -20 dB Outer Beam Divergence Cone & -6 dB Sizing Core Energy Cone
  * - Fresnel Near-Field (NF) Interference Maxima/Minima Fringes & Far-Field Transition Gate
- * - Propagating curved ultrasonic wavefront crests along Leg 1 & specular-reflected Leg 2
- * - Multi-ray acoustic vectors with traveling energy packets & bottom-wall bounce flash
- * - Physical defect scattering (planar specular/corner-trap vs volumetric omnidirectional scatter)
- *   and returning echo wavelets propagating back to the transducer crystal
+ * - True Longitudinal (parallel compression/rarefaction ⇄) vs Shear/Transverse (perpendicular sinusoidal ⇅) wave propagation
+ * - Explicit directional arrows for Incident/Transmitted rays (▶), Returning Reflected Echo rays (◀),
+ *   Off-Axis Specular/Scatter reflections (↗), and Full vs. Partial Acoustic Shadow / Bypass zones
  */
 export function drawUltrasonicBeamCone2D(params: {
   ctx: CanvasRenderingContext2D;
@@ -1128,6 +1251,8 @@ export function drawUltrasonicBeamCone2D(params: {
   showNearField?: boolean;
   isHit?: boolean;
   animationPhase?: number;
+  waveMode?: UltrasonicWaveMode;
+  reflectionBreakdown?: UltrasonicRayReflectionBreakdown;
   defectImpact?: UltrasonicDefectImpactSpec;
 }): void {
   const {
@@ -1145,6 +1270,8 @@ export function drawUltrasonicBeamCone2D(params: {
     showNearField = true,
     isHit = false,
     animationPhase = 0,
+    waveMode,
+    reflectionBreakdown,
     defectImpact,
   } = params;
 
@@ -1179,10 +1306,69 @@ export function drawUltrasonicBeamCone2D(params: {
   const w2_20Px = hasLeg2 ? (coneMetrics.width20dBAtDepthMm(totalLenMm) * scalePxPerMm) / 2 : w1_20Px;
 
   const effectiveHit = Boolean(isHit || defectImpact?.hit);
+  const activeWaveMode: UltrasonicWaveMode =
+    waveMode ?? (coneMetrics.wavelengthMm > 1.15 || !hasLeg2 ? 'longitudinal' : 'shear');
+  const activeReflection: UltrasonicRayReflectionBreakdown =
+    reflectionBreakdown ??
+    computeRayReflectionBreakdown({
+      isHit: effectiveHit,
+      scatterMode: defectImpact?.scatterMode,
+      isStraightZeroBeam: !hasLeg2,
+    });
+
   const phase = Number.isFinite(animationPhase) ? animationPhase : 0;
-  // Spatial wavefront spacing scaled realistically to wavelength (higher frequency = denser crests)
-  const waveSpacingPx = Math.max(6.5, Math.min(18, coneMetrics.wavelengthMm * 10.5 * (scalePxPerMm / 4.2)));
-  const travelOffsetPx = ((phase * 36) % waveSpacingPx + waveSpacingPx) % waveSpacingPx;
+  // Longitudinal waves propagate ~1.83x faster (5920 vs 3240 m/s) with longer wavelength
+  const speedMultiplier = activeWaveMode === 'longitudinal' ? 48 : 32;
+  const waveSpacingPx = Math.max(
+    7,
+    Math.min(22, coneMetrics.wavelengthMm * (activeWaveMode === 'longitudinal' ? 9.5 : 11.5) * (scalePxPerMm / 4.2))
+  );
+  const travelOffsetPx = ((phase * speedMultiplier) % waveSpacingPx + waveSpacingPx) % waveSpacingPx;
+
+  // Locate where defect intercepts Leg 1 or Leg 2 along propagation axis
+  const hitLeg = defectImpact?.leg === 2 && hasLeg2 ? 2 : 1;
+  const rawHitProjLeg1 =
+    effectiveHit && defectImpact
+      ? Math.max(8, Math.min(leg1LenPx, (defectImpact.x - entryX) * ux1 + (defectImpact.y - entryY) * uy1))
+      : leg1LenPx;
+  const rawHitProjLeg2 =
+    effectiveHit && defectImpact && hasLeg2
+      ? Math.max(8, Math.min(leg2LenPx, (defectImpact.x - bounceX) * ux2 + (defectImpact.y - bounceY) * uy2))
+      : leg2LenPx;
+
+  // Forward transmission attenuation after flaw strike (0 in Full Reflection shadow, partial ratio otherwise)
+  const postFlawTransmitFactor = !effectiveHit
+    ? 1
+    : activeReflection.shadowZoneActive
+    ? 0
+    : Math.max(0.22, activeReflection.transmittedBypassPct / 100);
+
+  // Helper: Draw a crisp directional arrowhead along unit vector (ux, uy)
+  const drawDirectionalArrow = (
+    tipX: number,
+    tipY: number,
+    ux: number,
+    uy: number,
+    sizePx: number,
+    fillStyle: string,
+    strokeStyle?: string
+  ) => {
+    const nx = -uy;
+    const ny = ux;
+    ctx.fillStyle = fillStyle;
+    ctx.beginPath();
+    ctx.moveTo(tipX + ux * sizePx * 0.55, tipY + uy * sizePx * 0.55);
+    ctx.lineTo(tipX - ux * sizePx * 0.75 + nx * sizePx * 0.55, tipY - uy * sizePx * 0.75 + ny * sizePx * 0.55);
+    ctx.lineTo(tipX - ux * sizePx * 0.42, tipY - uy * sizePx * 0.42);
+    ctx.lineTo(tipX - ux * sizePx * 0.75 - nx * sizePx * 0.55, tipY - uy * sizePx * 0.75 - ny * sizePx * 0.55);
+    ctx.closePath();
+    ctx.fill();
+    if (strokeStyle) {
+      ctx.strokeStyle = strokeStyle;
+      ctx.lineWidth = 0.85;
+      ctx.stroke();
+    }
+  };
 
   // Helper to draw a curved acoustic wavefront arc clipped analytically to the cone width
   const drawClippedWavefrontArc = (
@@ -1218,6 +1404,175 @@ export function drawUltrasonicBeamCone2D(params: {
     ctx.stroke();
   };
 
+  // Helper: Draw physically distinct Longitudinal (compression/rarefaction slabs + parallel ⇄ particles)
+  // OR Shear/Transverse (perpendicular sinusoidal wave + transverse ⇅ particles) along a beam segment
+  const drawWaveModePropagation = (opts: {
+    startX: number;
+    startY: number;
+    ux: number;
+    uy: number;
+    nx: number;
+    ny: number;
+    segLenPx: number;
+    halfWStart: number;
+    halfWEnd: number;
+    phaseOffsetPx: number;
+    intensity: number;
+    isReflectedLeg?: boolean;
+  }) => {
+    const {
+      startX,
+      startY,
+      ux,
+      uy,
+      nx,
+      ny,
+      segLenPx,
+      halfWStart,
+      halfWEnd,
+      phaseOffsetPx,
+      intensity,
+      isReflectedLeg = false,
+    } = opts;
+    if (segLenPx < 6 || intensity <= 0.04) return;
+
+    if (activeWaveMode === 'longitudinal') {
+      // LONGITUDINAL WAVE (L-Wave): Compressional density bands + particle motion PARALLEL (⇄) to propagation
+      for (let d = Math.max(3.5, phaseOffsetPx); d < segLenPx - 2; d += waveSpacingPx) {
+        const t = d / segLenPx;
+        const hw = halfWStart + (halfWEnd - halfWStart) * t;
+        const alpha = Math.min(0.85, (0.55 - t * 0.16) * intensity);
+
+        // Dense compression cluster (3 closely-packed parallel fronts representing high pressure)
+        for (const subOffset of [-1.8, 0, 1.8]) {
+          const sd = d + subOffset;
+          if (sd > 1 && sd < segLenPx - 1) {
+            drawClippedWavefrontArc(
+              startX,
+              startY,
+              ux,
+              uy,
+              nx,
+              ny,
+              sd,
+              hw * 0.9,
+              1.1,
+              isReflectedLeg
+                ? `rgba(16, 185, 129, ${(alpha * (subOffset === 0 ? 1 : 0.45)).toFixed(2)})`
+                : `rgba(52, 211, 153, ${(alpha * (subOffset === 0 ? 1 : 0.48)).toFixed(2)})`,
+              subOffset === 0 ? 2.1 : 1.0
+            );
+          }
+        }
+      }
+
+      // Parallel-oscillating material particles along the beam spine & core edges
+      const particleStep = Math.max(12, waveSpacingPx * 1.15);
+      const waveK = (Math.PI * 2) / Math.max(8, waveSpacingPx);
+      const omegaPhase = phase * (speedMultiplier / Math.max(8, waveSpacingPx)) * Math.PI * 2;
+      for (let baseD = 10; baseD < segLenPx - 6; baseD += particleStep) {
+        const t = baseD / segLenPx;
+        const hw = (halfWStart + (halfWEnd - halfWStart) * t) * 0.52;
+        const disp = Math.sin(baseD * waveK - omegaPhase) * 3.4;
+        for (const latFrac of [-0.65, 0, 0.65]) {
+          const bx = startX + ux * (baseD + disp) + nx * hw * latFrac;
+          const by = startY + uy * (baseD + disp) + ny * hw * latFrac;
+          ctx.fillStyle = isReflectedLeg
+            ? `rgba(110, 231, 183, ${(0.88 * intensity).toFixed(2)})`
+            : `rgba(167, 243, 208, ${(0.92 * intensity).toFixed(2)})`;
+          ctx.beginPath();
+          ctx.arc(bx, by, latFrac === 0 ? 2.1 : 1.5, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Tiny parallel oscillation guide bar (⇄) along (ux, uy) on centerline particles
+          if (latFrac === 0) {
+            ctx.strokeStyle = `rgba(167, 243, 208, ${(0.45 * intensity).toFixed(2)})`;
+            ctx.lineWidth = 0.9;
+            ctx.beginPath();
+            ctx.moveTo(bx - ux * 4.5, by - uy * 4.5);
+            ctx.lineTo(bx + ux * 4.5, by + uy * 4.5);
+            ctx.stroke();
+          }
+        }
+      }
+    } else {
+      // SHEAR / TRANSVERSE WAVE (S-Wave): Transverse sinusoidal shear waveform + particle motion PERPENDICULAR (⇅)
+      const waveK = (Math.PI * 2) / Math.max(9, waveSpacingPx * 1.15);
+      const omegaPhase = phase * (speedMultiplier / Math.max(8, waveSpacingPx)) * Math.PI * 2;
+      const steps = Math.max(16, Math.floor(segLenPx / 3));
+
+      // Draw continuous transverse sinusoidal shear wave snaking perpendicular to propagation vector
+      ctx.strokeStyle = isReflectedLeg
+        ? `rgba(251, 191, 36, ${(0.9 * intensity).toFixed(2)})`
+        : isPaut
+        ? `rgba(253, 224, 71, ${(0.88 * intensity).toFixed(2)})`
+        : `rgba(125, 211, 252, ${(0.9 * intensity).toFixed(2)})`;
+      ctx.lineWidth = 1.9;
+      ctx.beginPath();
+      for (let i = 0; i <= steps; i++) {
+        const d = (i / steps) * segLenPx;
+        const t = d / segLenPx;
+        const hw = halfWStart + (halfWEnd - halfWStart) * t;
+        const env = Math.sin(Math.min(1, t * 4) * (Math.PI / 2));
+        const shearAmp = Math.min(hw * 0.68, 7.5) * env;
+        const offset = Math.sin(d * waveK - omegaPhase) * shearAmp;
+        const wx = startX + ux * d + nx * offset;
+        const wy = startY + uy * d + ny * offset;
+        if (i === 0) ctx.moveTo(wx, wy);
+        else ctx.lineTo(wx, wy);
+      }
+      ctx.stroke();
+
+      // Secondary counter-phase envelope for volumetric shear wave clarity
+      ctx.strokeStyle = isReflectedLeg
+        ? `rgba(251, 191, 36, ${(0.28 * intensity).toFixed(2)})`
+        : `rgba(56, 189, 248, ${(0.28 * intensity).toFixed(2)})`;
+      ctx.lineWidth = 1.0;
+      ctx.beginPath();
+      for (let i = 0; i <= steps; i++) {
+        const d = (i / steps) * segLenPx;
+        const t = d / segLenPx;
+        const hw = halfWStart + (halfWEnd - halfWStart) * t;
+        const env = Math.sin(Math.min(1, t * 4) * (Math.PI / 2));
+        const shearAmp = Math.min(hw * 0.52, 5.5) * env;
+        const offset = -Math.sin(d * waveK - omegaPhase) * shearAmp;
+        const wx = startX + ux * d + nx * offset;
+        const wy = startY + uy * d + ny * offset;
+        if (i === 0) ctx.moveTo(wx, wy);
+        else ctx.lineTo(wx, wy);
+      }
+      ctx.stroke();
+
+      // Perpendicularly-oscillating shear particles (⇅ along nx, ny)
+      const particleStep = Math.max(11, waveSpacingPx);
+      for (let baseD = 9; baseD < segLenPx - 5; baseD += particleStep) {
+        const t = baseD / segLenPx;
+        const hw = halfWStart + (halfWEnd - halfWStart) * t;
+        const shearAmp = Math.min(hw * 0.68, 7.5);
+        const disp = Math.sin(baseD * waveK - omegaPhase) * shearAmp;
+        const ax = startX + ux * baseD;
+        const ay = startY + uy * baseD;
+        const px = ax + nx * disp;
+        const py = ay + ny * disp;
+
+        // Faint perpendicular shear displacement tether from axis to oscillating particle
+        ctx.strokeStyle = `rgba(186, 230, 253, ${(0.38 * intensity).toFixed(2)})`;
+        ctx.lineWidth = 0.85;
+        ctx.beginPath();
+        ctx.moveTo(ax, ay);
+        ctx.lineTo(px, py);
+        ctx.stroke();
+
+        ctx.fillStyle = isReflectedLeg
+          ? `rgba(253, 224, 71, ${(0.95 * intensity).toFixed(2)})`
+          : `rgba(224, 242, 254, ${(0.95 * intensity).toFixed(2)})`;
+        ctx.beginPath();
+        ctx.arc(px, py, 2.0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  };
+
   // 1. Draw -20 dB Outer Radiation Cone (Leg 1)
   ctx.fillStyle = isPaut ? 'rgba(245, 158, 11, 0.08)' : 'rgba(56, 189, 248, 0.08)';
   ctx.strokeStyle = isPaut ? 'rgba(245, 158, 11, 0.30)' : 'rgba(56, 189, 248, 0.30)';
@@ -1238,7 +1593,10 @@ export function drawUltrasonicBeamCone2D(params: {
   if (effectiveHit) {
     coreGrad.addColorStop(0, 'rgba(244, 63, 94, 0.34)');
     coreGrad.addColorStop(0.55, 'rgba(245, 158, 11, 0.24)');
-    coreGrad.addColorStop(1, 'rgba(244, 63, 94, 0.14)');
+    coreGrad.addColorStop(1, activeReflection.shadowZoneActive && hitLeg === 1 ? 'rgba(15, 23, 42, 0.08)' : 'rgba(244, 63, 94, 0.14)');
+  } else if (activeWaveMode === 'longitudinal') {
+    coreGrad.addColorStop(0, 'rgba(16, 185, 129, 0.30)');
+    coreGrad.addColorStop(1, 'rgba(14, 165, 233, 0.12)');
   } else if (isPaut) {
     coreGrad.addColorStop(0, 'rgba(251, 191, 36, 0.34)');
     coreGrad.addColorStop(1, 'rgba(245, 158, 11, 0.14)');
@@ -1258,11 +1616,33 @@ export function drawUltrasonicBeamCone2D(params: {
   ctx.fill();
   ctx.stroke();
 
-  // 3. Draw Leg 2 Reflected Cone (Skip Bounce) if coordinates provided
+  // 2B. Acoustic Shadow Zone behind defect on Full Reflection (no transmitted bypass energy)
+  if (effectiveHit && activeReflection.shadowZoneActive && hitLeg === 1 && rawHitProjLeg1 < leg1LenPx - 6) {
+    const tHit = rawHitProjLeg1 / leg1LenPx;
+    const hitW6 = w0_6Px + (w1_6Px - w0_6Px) * tHit;
+    const hx = entryX + ux1 * rawHitProjLeg1;
+    const hy = entryY + uy1 * rawHitProjLeg1;
+    ctx.fillStyle = 'rgba(2, 6, 23, 0.68)';
+    ctx.strokeStyle = 'rgba(100, 116, 139, 0.45)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(hx + nx1 * hitW6, hy + ny1 * hitW6);
+    ctx.lineTo(bounceX + nx1 * w1_6Px, bounceY + ny1 * w1_6Px);
+    ctx.lineTo(bounceX - nx1 * w1_6Px, bounceY - ny1 * w1_6Px);
+    ctx.lineTo(hx - nx1 * hitW6, hy - ny1 * hitW6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // 3. Draw Leg 2 Reflected Cone (Skip Bounce) if coordinates provided and not completely shadowed on Leg 1
   if (hasLeg2 && leg2EndX !== undefined && leg2EndY !== undefined) {
+    const leg2OpacityScale = effectiveHit && hitLeg === 1 ? postFlawTransmitFactor : 1;
     // Leg 2 -20 dB outer spread
-    ctx.fillStyle = 'rgba(245, 158, 11, 0.055)';
-    ctx.strokeStyle = 'rgba(245, 158, 11, 0.24)';
+    ctx.fillStyle = `rgba(245, 158, 11, ${(0.055 * leg2OpacityScale).toFixed(3)})`;
+    ctx.strokeStyle = `rgba(245, 158, 11, ${(0.24 * Math.max(0.25, leg2OpacityScale)).toFixed(2)})`;
     ctx.setLineDash([3, 3]);
     ctx.beginPath();
     ctx.moveTo(bounceX + nx2 * w1_20Px, bounceY + ny2 * w1_20Px);
@@ -1276,10 +1656,13 @@ export function drawUltrasonicBeamCone2D(params: {
 
     // Leg 2 -6 dB core cone with gradient attenuation
     const leg2Grad = ctx.createLinearGradient(bounceX, bounceY, leg2EndX, leg2EndY);
-    leg2Grad.addColorStop(0, effectiveHit ? 'rgba(245, 158, 11, 0.24)' : 'rgba(245, 158, 11, 0.17)');
-    leg2Grad.addColorStop(1, 'rgba(245, 158, 11, 0.05)');
+    leg2Grad.addColorStop(
+      0,
+      `rgba(245, 158, 11, ${((effectiveHit ? 0.24 : 0.17) * leg2OpacityScale).toFixed(3)})`
+    );
+    leg2Grad.addColorStop(1, `rgba(245, 158, 11, ${(0.05 * leg2OpacityScale).toFixed(3)})`);
     ctx.fillStyle = leg2Grad;
-    ctx.strokeStyle = 'rgba(245, 158, 11, 0.42)';
+    ctx.strokeStyle = `rgba(245, 158, 11, ${(0.42 * Math.max(0.25, leg2OpacityScale)).toFixed(2)})`;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(bounceX + nx2 * w1_6Px, bounceY + ny2 * w1_6Px);
@@ -1334,7 +1717,6 @@ export function drawUltrasonicBeamCone2D(params: {
         const ry = entryY + uy1 * distPx;
         const pulse = 0.5 + 0.5 * Math.sin(phase * 5.2 - i * 1.35);
 
-        // Cross-aperture interference fringes (Huygens edge-wave overlapping center-wave)
         ctx.strokeStyle = `rgba(216, 180, 254, ${(0.22 + pulse * 0.38).toFixed(2)})`;
         ctx.lineWidth = 1.05;
         ctx.beginPath();
@@ -1342,14 +1724,12 @@ export function drawUltrasonicBeamCone2D(params: {
         ctx.quadraticCurveTo(rx + ux1 * (3 + pulse * 3), ry + uy1 * (3 + pulse * 3), rx + nx1 * rw, ry + ny1 * rw);
         ctx.stroke();
 
-        // Axial interference hot-spot / null node indicator
         ctx.fillStyle = pulse > 0.55 ? 'rgba(233, 213, 255, 0.78)' : 'rgba(126, 34, 206, 0.45)';
         ctx.beginPath();
         ctx.arc(rx, ry, 1.4 + pulse * 1.4, 0, Math.PI * 2);
         ctx.fill();
       }
 
-      // If Near Field completes within Leg 1, draw the exact NF Boundary Gate; otherwise continue into Leg 2
       if (effectiveNfMm <= leg1LenMm) {
         ctx.strokeStyle = '#c084fc';
         ctx.lineWidth = 2.0;
@@ -1358,12 +1738,14 @@ export function drawUltrasonicBeamCone2D(params: {
         ctx.lineTo(nfX + nx1 * (nfHalfWEnd + 6), nfY + ny1 * (nfHalfWEnd + 6));
         ctx.stroke();
 
-        ctx.fillStyle = '#e9d5ff';
-        ctx.font = 'bold 8.5px monospace';
-        ctx.fillText(`NF=${effectiveNfMm.toFixed(1)}mm`, nfX + 6, nfY - 5);
-        ctx.fillStyle = 'rgba(56, 189, 248, 0.85)';
-        ctx.font = '8px monospace';
-        ctx.fillText('Far Field →', nfX + 6, nfY + 6);
+        if (typeof ctx.fillText === 'function') {
+          ctx.fillStyle = '#e9d5ff';
+          ctx.font = 'bold 8.5px monospace';
+          ctx.fillText(`NF=${effectiveNfMm.toFixed(1)}mm`, nfX + 6, nfY - 5);
+          ctx.fillStyle = 'rgba(56, 189, 248, 0.85)';
+          ctx.font = '8px monospace';
+          ctx.fillText('Far Field →', nfX + 6, nfY + 6);
+        }
       } else if (hasLeg2 && leg2EndX !== undefined && leg2EndY !== undefined) {
         const remNfPx = Math.min(leg2LenPx * 0.92, (effectiveNfMm - leg1LenMm) * scalePxPerMm);
         const nf2X = bounceX + ux2 * remNfPx;
@@ -1386,14 +1768,16 @@ export function drawUltrasonicBeamCone2D(params: {
         ctx.lineTo(nf2X + nx2 * (nf2HalfW + 5), nf2Y + ny2 * (nf2HalfW + 5));
         ctx.stroke();
 
-        ctx.fillStyle = '#e9d5ff';
-        ctx.font = 'bold 8.5px monospace';
-        ctx.fillText(`NF=${effectiveNfMm.toFixed(1)}mm`, nf2X + 5, nf2Y - 4);
+        if (typeof ctx.fillText === 'function') {
+          ctx.fillStyle = '#e9d5ff';
+          ctx.font = 'bold 8.5px monospace';
+          ctx.fillText(`NF=${effectiveNfMm.toFixed(1)}mm`, nf2X + 5, nf2Y - 4);
+        }
       }
     }
   }
 
-  // 5. Animated Acoustic Wavefront Crests & Ray Traces Inside the Weld
+  // 5. Animated Longitudinal / Shear Wave Propagation & Incident/Reflected Ray Vectors
   if (showWavefronts) {
     // 5A. Fine multi-ray acoustic filaments (-6 dB boundaries + inner core rays)
     const rayOffsets = [-0.88, -0.44, 0.44, 0.88];
@@ -1402,15 +1786,22 @@ export function drawUltrasonicBeamCone2D(params: {
       ctx.lineWidth = 0.85;
       ctx.beginPath();
       ctx.moveTo(entryX + nx1 * w0_6Px * frac, entryY + ny1 * w0_6Px * frac);
-      ctx.lineTo(bounceX + nx1 * w1_6Px * frac, bounceY + ny1 * w1_6Px * frac);
-      if (hasLeg2 && leg2EndX !== undefined && leg2EndY !== undefined) {
-        ctx.lineTo(leg2EndX + nx2 * w2_6Px * frac, leg2EndY + ny2 * w2_6Px * frac);
+      if (effectiveHit && hitLeg === 1 && activeReflection.shadowZoneActive) {
+        const tHit = rawHitProjLeg1 / leg1LenPx;
+        const hwHit = w0_6Px + (w1_6Px - w0_6Px) * tHit;
+        ctx.lineTo(entryX + ux1 * rawHitProjLeg1 + nx1 * hwHit * frac, entryY + uy1 * rawHitProjLeg1 + ny1 * hwHit * frac);
+      } else {
+        ctx.lineTo(bounceX + nx1 * w1_6Px * frac, bounceY + ny1 * w1_6Px * frac);
+        if (hasLeg2 && leg2EndX !== undefined && leg2EndY !== undefined && postFlawTransmitFactor > 0.05) {
+          ctx.lineTo(leg2EndX + nx2 * w2_6Px * frac, leg2EndY + ny2 * w2_6Px * frac);
+        }
       }
       ctx.stroke();
     }
 
-    // 5B. Propagating curved wavefront crests along Leg 1 (continuous motion outward!)
-    for (let r = Math.max(3.5, travelOffsetPx); r < leg1LenPx - 1; r += waveSpacingPx) {
+    // 5B. Propagating curved wavefront crests + True Longitudinal/Shear Waveform along Leg 1
+    const leg1WaveEndPx = effectiveHit && hitLeg === 1 ? rawHitProjLeg1 : leg1LenPx;
+    for (let r = Math.max(3.5, travelOffsetPx); r < leg1WaveEndPx - 1; r += waveSpacingPx) {
       const tLeg1 = r / leg1LenPx;
       const distMm = r / Math.max(0.1, scalePxPerMm);
       const inFresnel = distMm <= effectiveNfMm;
@@ -1418,12 +1809,10 @@ export function drawUltrasonicBeamCone2D(params: {
       const halfW20 = w0_20Px + (w1_20Px - w0_20Px) * tLeg1;
       const sagPx = inFresnel ? 1.4 : Math.min(6.5, 1.8 + tLeg1 * 4.5);
 
-      // Pulse packet emphasis every 3rd wave crest
-      const waveIdx = Math.floor((r - travelOffsetPx + phase * 36) / waveSpacingPx);
+      const waveIdx = Math.floor((r - travelOffsetPx + phase * speedMultiplier) / waveSpacingPx);
       const isStrongPacket = waveIdx % 3 === 0;
-      const attenuation = 1 - tLeg1 * 0.28;
+      const attenuation = 1 - tLeg1 * 0.25;
 
-      // Outer -20 dB faint wavefront extension
       drawClippedWavefrontArc(
         entryX,
         entryY,
@@ -1440,8 +1829,7 @@ export function drawUltrasonicBeamCone2D(params: {
         0.9
       );
 
-      // Core -6 dB crisp luminous wavefront arc
-      const coreAlpha = (isStrongPacket ? 0.88 : 0.48) * attenuation;
+      const coreAlpha = (isStrongPacket ? 0.85 : 0.45) * attenuation;
       const coreStroke = effectiveHit
         ? `rgba(254, 215, 170, ${coreAlpha.toFixed(2)})`
         : inFresnel
@@ -1461,19 +1849,57 @@ export function drawUltrasonicBeamCone2D(params: {
         halfW6 * 0.98,
         sagPx,
         coreStroke,
-        isStrongPacket ? 2.0 : 1.15
+        isStrongPacket ? 1.9 : 1.1
       );
     }
 
-    // 5C. Propagating curved wavefront crests along Leg 2 (after bottom-wall reflection!)
-    if (hasLeg2 && leg2EndX !== undefined && leg2EndY !== undefined && leg2LenPx > 4) {
-      const bounceOffsetPx = ((phase * 36 - leg1LenPx) % waveSpacingPx + waveSpacingPx) % waveSpacingPx;
-      for (let r2 = Math.max(3.5, bounceOffsetPx); r2 < leg2LenPx - 1; r2 += waveSpacingPx) {
+    // Active Longitudinal (⇄ compression) or Shear (⇅ transverse sinusoidal) wave shape along Leg 1 incident ray
+    drawWaveModePropagation({
+      startX: entryX,
+      startY: entryY,
+      ux: ux1,
+      uy: uy1,
+      nx: nx1,
+      ny: ny1,
+      segLenPx: leg1WaveEndPx,
+      halfWStart: w0_6Px,
+      halfWEnd: w0_6Px + (w1_6Px - w0_6Px) * (leg1WaveEndPx / leg1LenPx),
+      phaseOffsetPx: travelOffsetPx,
+      intensity: 1.0,
+    });
+
+    // If Partial Reflection on Leg 1: continue transmitting the bypassed wave fraction past the flaw!
+    if (effectiveHit && hitLeg === 1 && !activeReflection.shadowZoneActive && rawHitProjLeg1 < leg1LenPx - 6) {
+      const hx = entryX + ux1 * rawHitProjLeg1;
+      const hy = entryY + uy1 * rawHitProjLeg1;
+      const tHit = rawHitProjLeg1 / leg1LenPx;
+      const hwHit = w0_6Px + (w1_6Px - w0_6Px) * tHit;
+      drawWaveModePropagation({
+        startX: hx,
+        startY: hy,
+        ux: ux1,
+        uy: uy1,
+        nx: nx1,
+        ny: ny1,
+        segLenPx: leg1LenPx - rawHitProjLeg1,
+        halfWStart: hwHit * 0.85,
+        halfWEnd: w1_6Px * 0.85,
+        phaseOffsetPx: ((travelOffsetPx - rawHitProjLeg1) % waveSpacingPx + waveSpacingPx) % waveSpacingPx,
+        intensity: postFlawTransmitFactor,
+      });
+    }
+
+    // 5C. Propagating curved wavefront crests + Wave Shape along Leg 2 (after bottom-wall specular reflection!)
+    if (hasLeg2 && leg2EndX !== undefined && leg2EndY !== undefined && leg2LenPx > 4 && postFlawTransmitFactor > 0.05) {
+      const leg2WaveEndPx =
+        effectiveHit && hitLeg === 2 ? rawHitProjLeg2 : leg2LenPx;
+      const bounceOffsetPx = ((phase * speedMultiplier - leg1LenPx) % waveSpacingPx + waveSpacingPx) % waveSpacingPx;
+      for (let r2 = Math.max(3.5, bounceOffsetPx); r2 < leg2WaveEndPx - 1; r2 += waveSpacingPx) {
         const tLeg2 = r2 / leg2LenPx;
         const halfW6_2 = w1_6Px + (w2_6Px - w1_6Px) * tLeg2;
         const halfW20_2 = w1_20Px + (w2_20Px - w1_20Px) * tLeg2;
         const sagPx2 = Math.min(7.5, 4.2 + tLeg2 * 3.0);
-        const atten2 = 0.72 * (1 - tLeg2 * 0.38);
+        const atten2 = 0.72 * (1 - tLeg2 * 0.35) * (hitLeg === 1 ? postFlawTransmitFactor : 1);
 
         drawClippedWavefrontArc(
           bounceX,
@@ -1485,7 +1911,7 @@ export function drawUltrasonicBeamCone2D(params: {
           r2,
           halfW20_2 * 0.94,
           sagPx2 * 1.1,
-          `rgba(251, 191, 36, ${(0.16 * atten2).toFixed(2)})`,
+          `rgba(251, 191, 36, ${(0.18 * atten2).toFixed(2)})`,
           0.85
         );
 
@@ -1499,86 +1925,129 @@ export function drawUltrasonicBeamCone2D(params: {
           r2,
           halfW6_2 * 0.96,
           sagPx2,
-          effectiveHit
-            ? `rgba(253, 186, 116, ${(0.78 * atten2).toFixed(2)})`
-            : `rgba(253, 224, 71, ${(0.62 * atten2).toFixed(2)})`,
+          `rgba(253, 224, 71, ${(0.72 * atten2).toFixed(2)})`,
           1.45
         );
       }
 
+      drawWaveModePropagation({
+        startX: bounceX,
+        startY: bounceY,
+        ux: ux2,
+        uy: uy2,
+        nx: nx2,
+        ny: ny2,
+        segLenPx: leg2WaveEndPx,
+        halfWStart: w1_6Px,
+        halfWEnd: w1_6Px + (w2_6Px - w1_6Px) * (leg2WaveEndPx / leg2LenPx),
+        phaseOffsetPx: bounceOffsetPx,
+        intensity: hitLeg === 1 ? postFlawTransmitFactor : 1.0,
+        isReflectedLeg: true,
+      });
+
       // Bottom-wall specular reflection pulse flash at (bounceX, bounceY)
       const bouncePulse = 0.5 + 0.5 * Math.sin(phase * 7.5);
       const bounceRadius = Math.max(3.5, w1_6Px * (0.45 + bouncePulse * 0.35));
-      ctx.strokeStyle = `rgba(251, 191, 36, ${(0.35 + bouncePulse * 0.45).toFixed(2)})`;
+      ctx.strokeStyle = `rgba(251, 191, 36, ${((0.35 + bouncePulse * 0.45) * (hitLeg === 1 ? postFlawTransmitFactor : 1)).toFixed(2)})`;
       ctx.lineWidth = 1.6;
       ctx.beginPath();
       ctx.arc(bounceX, bounceY, bounceRadius, Math.PI, Math.PI * 2);
       ctx.stroke();
+
+      // Fixed directional arrow along Leg 2 reflected path (▶ upward toward top surface)
+      const l2MidX = bounceX + ux2 * (leg2WaveEndPx * 0.55);
+      const l2MidY = bounceY + uy2 * (leg2WaveEndPx * 0.55);
+      drawDirectionalArrow(
+        l2MidX,
+        l2MidY,
+        ux2,
+        uy2,
+        8.5,
+        `rgba(251, 191, 36, ${(0.92 * (hitLeg === 1 ? postFlawTransmitFactor : 1)).toFixed(2)})`,
+        '#0f172a'
+      );
     }
 
-    // 5D. Traveling Photon / Acoustic Energy Pulse Beads along Central Ray
-    const totalPathPx = leg1LenPx + leg2LenPx;
+    // 5D. Traveling Photon / Acoustic Energy Pulse Beads + Forward Directional Arrows along Incident Ray
+    const totalPathPx =
+      effectiveHit && activeReflection.shadowZoneActive
+        ? hitLeg === 1
+          ? rawHitProjLeg1
+          : leg1LenPx + rawHitProjLeg2
+        : leg1LenPx + leg2LenPx;
+
     for (let pIdx = 0; pIdx < 3; pIdx++) {
       const normPos = ((phase * 0.65 + pIdx / 3) % 1 + 1) % 1;
-      const distTotal = normPos * totalPathPx;
+      const distTotal = normPos * Math.max(12, totalPathPx);
       let bx = entryX;
       let by = entryY;
       let bux = ux1;
       let buy = uy1;
+      let isAfterFlawBypass = false;
+
       if (distTotal <= leg1LenPx || !hasLeg2) {
         const d = Math.min(distTotal, leg1LenPx);
         bx = entryX + ux1 * d;
         by = entryY + uy1 * d;
+        if (effectiveHit && hitLeg === 1 && d > rawHitProjLeg1) {
+          isAfterFlawBypass = true;
+        }
       } else {
         const d2 = distTotal - leg1LenPx;
         bx = bounceX + ux2 * d2;
         by = bounceY + uy2 * d2;
         bux = ux2;
         buy = uy2;
+        if (effectiveHit && hitLeg === 1) {
+          isAfterFlawBypass = true;
+        }
       }
 
+      const beadOpacity = isAfterFlawBypass ? Math.max(0.35, postFlawTransmitFactor) : 1.0;
       const glow = ctx.createRadialGradient(bx, by, 0.5, bx, by, 7.5);
-      glow.addColorStop(0, effectiveHit ? 'rgba(254, 240, 138, 0.95)' : 'rgba(224, 242, 254, 0.95)');
-      glow.addColorStop(0.45, isPaut ? 'rgba(245, 158, 11, 0.55)' : 'rgba(34, 211, 238, 0.55)');
+      glow.addColorStop(0, `rgba(224, 242, 254, ${(0.95 * beadOpacity).toFixed(2)})`);
+      glow.addColorStop(
+        0.45,
+        isAfterFlawBypass
+          ? `rgba(251, 191, 36, ${(0.55 * beadOpacity).toFixed(2)})`
+          : `rgba(34, 211, 238, ${(0.6 * beadOpacity).toFixed(2)})`
+      );
       glow.addColorStop(1, 'rgba(34, 211, 238, 0)');
       ctx.fillStyle = glow;
       ctx.beginPath();
       ctx.arc(bx, by, 7.5, 0, Math.PI * 2);
       ctx.fill();
 
-      // Tiny directional arrowhead along propagation vector
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 1.4;
-      ctx.beginPath();
-      ctx.moveTo(bx - bux * 4 - buy * 3, by - buy * 4 + bux * 3);
-      ctx.lineTo(bx + bux * 2, by + buy * 2);
-      ctx.lineTo(bx - bux * 4 + buy * 3, by - buy * 4 - bux * 3);
-      ctx.stroke();
+      drawDirectionalArrow(bx, by, bux, buy, 7.5, `rgba(255, 255, 255, ${beadOpacity.toFixed(2)})`);
     }
+
+    // Static reference directional arrow on Leg 1 incident ray
+    const incMidX = entryX + ux1 * (leg1WaveEndPx * 0.48);
+    const incMidY = entryY + uy1 * (leg1WaveEndPx * 0.48);
+    drawDirectionalArrow(incMidX, incMidY, ux1, uy1, 8.5, '#38bdf8', '#0f172a');
   }
 
-  // 6. Defect Interaction Scattering & Returning Echo Wavelets (when flaw is struck!)
+  // 6. Defect Interaction Scattering, Off-Axis Specular Reflection & Returning Echo Wavelets
   if (defectImpact?.hit) {
     const defX = defectImpact.x;
     const defY = defectImpact.y;
     const scatterMode = defectImpact.scatterMode || 'specular_planar';
+    const echoStrength = Math.max(0.32, activeReflection.reflectedToProbePct / 100);
 
     // 6A. Expanding scattering / corner-trap wavelets right at the defect
     for (let ringIdx = 0; ringIdx < 3; ringIdx++) {
       const ringProgress = ((phase * 1.15 + ringIdx / 3) % 1 + 1) % 1;
       const maxScatterR = scatterMode === 'volumetric_scatter' ? 24 : 20;
       const scatterR = 3 + ringProgress * maxScatterR;
-      const alpha = (1 - ringProgress) * 0.78;
+      const alpha = (1 - ringProgress) * 0.82;
 
       if (scatterMode === 'volumetric_scatter') {
-        // Omnidirectional 360° scatter ripples around porosity / slag / tungsten
         ctx.strokeStyle = `rgba(56, 189, 248, ${alpha.toFixed(2)})`;
         ctx.lineWidth = 1.4;
         ctx.beginPath();
         ctx.arc(defX, defY, scatterR, 0, Math.PI * 2);
         ctx.stroke();
       } else {
-        // Directed back-scatter cone & corner-trap arcs toward the transducer
         const backAng = Math.atan2(entryY - defY, entryX - defX);
         ctx.strokeStyle =
           scatterMode === 'corner_trap'
@@ -1591,7 +2060,46 @@ export function drawUltrasonicBeamCone2D(params: {
       }
     }
 
-    // 6B. Returning Echo Wavelets racing BACK to the Transducer Crystal
+    // 6A-bis. Off-Axis Specular / Scattered Reflected Rays (↗) when partial or angled reflection occurs
+    if (activeReflection.reflectedOffAxisPct >= 8) {
+      const offAxisStrength = Math.min(1, activeReflection.reflectedOffAxisPct / 55);
+      const specRayLen = 28 + offAxisStrength * 22;
+      const incUx = hitLeg === 2 && hasLeg2 ? ux2 : ux1;
+      const incUy = hitLeg === 2 && hasLeg2 ? uy2 : uy1;
+      const offAngles =
+        scatterMode === 'volumetric_scatter'
+          ? [-0.95, 0.95, 2.2]
+          : [-0.68];
+
+      for (const deltaAng of offAngles) {
+        const baseAng = Math.atan2(-incUy, -incUx) + deltaAng;
+        const oux = Math.cos(baseAng);
+        const ouy = Math.sin(baseAng);
+        const endOx = defX + oux * specRayLen;
+        const endOy = defY + ouy * specRayLen;
+
+        ctx.strokeStyle = `rgba(251, 146, 60, ${(0.65 * offAxisStrength).toFixed(2)})`;
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(defX, defY);
+        ctx.lineTo(endOx, endOy);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        drawDirectionalArrow(
+          defX + oux * (specRayLen * 0.72),
+          defY + ouy * (specRayLen * 0.72),
+          oux,
+          ouy,
+          7,
+          `rgba(251, 146, 60, ${(0.9 * offAxisStrength).toFixed(2)})`,
+          '#0f172a'
+        );
+      }
+    }
+
+    // 6B. Returning Echo Wavelets + Explicit Reverse Directional Arrows (◀) Racing Back to Transducer
     const returnWaypoints: Array<{ x: number; y: number }> =
       defectImpact.leg === 2 && hasLeg2
         ? [
@@ -1624,6 +2132,34 @@ export function drawUltrasonicBeamCone2D(params: {
       totalRetPx += len;
     }
 
+    // Draw crisp reflected return ray path + fixed reverse arrow (◀ toward probe)
+    ctx.strokeStyle = `rgba(52, 211, 153, ${(0.72 * echoStrength + 0.18).toFixed(2)})`;
+    ctx.lineWidth = activeReflection.regime === 'flaw_full' ? 2.4 : 1.7;
+    ctx.setLineDash([5, 3]);
+    ctx.beginPath();
+    retWaypointsLoop: for (let i = 0; i < returnWaypoints.length; i++) {
+      const pt = returnWaypoints[i];
+      if (i === 0) ctx.moveTo(pt.x, pt.y);
+      else ctx.lineTo(pt.x, pt.y);
+      if (i > 10) break retWaypointsLoop;
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    for (const seg of retSegments) {
+      if (seg.len > 14) {
+        drawDirectionalArrow(
+          seg.x0 + seg.ux * (seg.len * 0.52),
+          seg.y0 + seg.uy * (seg.len * 0.52),
+          seg.ux,
+          seg.uy,
+          activeReflection.regime === 'flaw_full' ? 9.5 : 8.0,
+          '#34d399',
+          '#052e16'
+        );
+      }
+    }
+
     for (let echoIdx = 0; echoIdx < 3; echoIdx++) {
       const retNorm = ((phase * 0.85 + echoIdx / 3) % 1 + 1) % 1;
       let rem = retNorm * totalRetPx;
@@ -1634,7 +2170,6 @@ export function drawUltrasonicBeamCone2D(params: {
           const enx = -seg.uy;
           const eny = seg.ux;
 
-          // Returning emerald/rose echo wavefront arc
           drawClippedWavefrontArc(
             seg.x0,
             seg.y0,
@@ -1645,11 +2180,10 @@ export function drawUltrasonicBeamCone2D(params: {
             rem,
             7 + (rem / Math.max(1, totalRetPx)) * 5,
             2.2,
-            `rgba(52, 211, 153, ${(0.92 * (1 - retNorm * 0.25)).toFixed(2)})`,
-            2.0
+            `rgba(52, 211, 153, ${(0.94 * echoStrength * (1 - retNorm * 0.25)).toFixed(2)})`,
+            activeReflection.regime === 'flaw_full' ? 2.3 : 1.8
           );
 
-          // Glowing return echo core bead
           const retGlow = ctx.createRadialGradient(ex, ey, 0.5, ex, ey, 6.5);
           retGlow.addColorStop(0, 'rgba(167, 243, 208, 0.98)');
           retGlow.addColorStop(0.5, 'rgba(16, 185, 129, 0.65)');
@@ -1658,11 +2192,36 @@ export function drawUltrasonicBeamCone2D(params: {
           ctx.beginPath();
           ctx.arc(ex, ey, 6.5, 0, Math.PI * 2);
           ctx.fill();
+
+          drawDirectionalArrow(ex, ey, seg.ux, seg.uy, 7.0, '#6ee7b7');
           break;
         }
         rem -= seg.len;
       }
     }
+
+    // Concise in-canvas reflection badge right next to the flaw impact
+    if (typeof ctx.fillText === 'function') {
+      const tagText =
+        activeReflection.regime === 'flaw_full'
+          ? `FULL ECHO ◀ ${activeReflection.reflectedToProbePct}% · SHADOW 0%`
+          : `ECHO ◀ ${activeReflection.reflectedToProbePct}% · PASS ▶ ${activeReflection.transmittedBypassPct}%`;
+      ctx.font = 'bold 8.5px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = activeReflection.regime === 'flaw_full' ? '#fda4af' : '#6ee7b7';
+      ctx.fillText(tagText, defX, Math.max(20, defY - 13));
+    }
+  } else if (!hasLeg2 && typeof ctx.fillText === 'function') {
+    // 0° straight beam backwall 100% reflection arrow back up to probe
+    drawDirectionalArrow(
+      bounceX - ux1 * (leg1LenPx * 0.35),
+      bounceY - uy1 * (leg1LenPx * 0.35),
+      -ux1,
+      -uy1,
+      8.5,
+      '#34d399',
+      '#052e16'
+    );
   }
 
   ctx.restore();

@@ -17,6 +17,8 @@ import type {
 } from '../../client/types';
 import type { Language } from '../../types';
 import { useOptionalSiteAccount } from '../../account/SiteAccountContext';
+import { useTheme } from '../../utils/themeStore';
+import { networkSurface } from './networkTheme';
 import { NetworkRulesStatus } from './NetworkRulesStatus';
 import {
   EMPTY_GROUP_DRAFT,
@@ -41,9 +43,6 @@ interface NetworkGroupsSectionProps {
   slowAfterMs?: number;
 }
 
-const fieldClass =
-  'w-full min-w-0 rounded-lg border border-[#2a2a4d] bg-[#0b0b18] px-2 py-1.5 text-[11px] text-slate-200 placeholder:text-slate-600 focus:border-violet-400 focus:outline-none';
-
 /**
  * `#network/groups` — the groups members create themselves.
  *
@@ -60,6 +59,8 @@ export const NetworkGroupsSection: React.FC<NetworkGroupsSectionProps> = ({
 }) => {
   const account = useOptionalSiteAccount();
   const isAr = language === 'ar';
+  const { isLight } = useTheme();
+  const s = networkSurface(isLight);
 
   const [groups, setGroups] = useState<CommunityGroup[]>([]);
   const [memberships, setMemberships] = useState<CommunityGroupMember[]>([]);
@@ -177,7 +178,7 @@ export const NetworkGroupsSection: React.FC<NetworkGroupsSectionProps> = ({
         setCreating(false);
       }
     },
-    [account?.user, card, draft, errors.length]
+    [account?.user, card, draft, errors.length, isAr]
   );
 
   const join = useCallback(
@@ -218,12 +219,12 @@ export const NetworkGroupsSection: React.FC<NetworkGroupsSectionProps> = ({
 
   if (!serviceReady) {
     return (
-      <div data-testid="network-groups-unavailable" className="rounded-xl border border-[#232345] bg-[#0f0f22] p-4">
-        <div className="flex items-center gap-2 text-sm font-bold text-white">
-          <CircleAlert className="h-4 w-4 shrink-0 text-violet-300" aria-hidden="true" />
+      <div data-testid="network-groups-unavailable" className={`${s.card} p-4`}>
+        <div className={`flex items-center gap-2 text-sm font-bold ${s.heading}`}>
+          <CircleAlert className="h-4 w-4 shrink-0 text-violet-400" aria-hidden="true" />
           {isAr ? 'الجروبات غير متاحة في هذه النسخة' : 'Groups are not available in this build'}
         </div>
-        <p className="mt-1.5 max-w-2xl text-[11px] leading-relaxed text-slate-400">
+        <p className={`mt-1.5 max-w-2xl text-[11px] leading-relaxed ${s.subtext}`}>
           {isAr
             ? 'لم يُهيَّأ اتصال Firebase، فلا توجد جروبات حقيقية — ولن نعرض جروبات تجريبية بدلاً منها.'
             : 'Firebase is not initialised, so there are no real groups — and we will not show trial groups instead.'}
@@ -233,38 +234,37 @@ export const NetworkGroupsSection: React.FC<NetworkGroupsSectionProps> = ({
   }
 
   return (
-    <div data-testid="network-groups-live" className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,300px)]">
+    <div data-testid="network-groups-live" className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,280px)]">
       <div className="min-w-0 space-y-3">
-        {/* The deployment fact behind every refusal on this page, measured not assumed. */}
         <NetworkRulesStatus language={language} />
 
         {/* -------------------------------- create -------------------------------- */}
         {canCreate ? (
-          <form onSubmit={create} className="min-w-0 rounded-xl border border-[#232345] bg-[#0f0f22] p-3">
-            <div className="flex flex-wrap items-center gap-1.5 text-xs font-bold text-white">
-              <Plus className="h-4 w-4 shrink-0 text-violet-300" aria-hidden="true" />
+          <form onSubmit={create} className={`${s.card} min-w-0 p-3`}>
+            <div className={`flex flex-wrap items-center gap-1.5 text-xs font-bold ${s.heading}`}>
+              <Plus className="h-4 w-4 shrink-0 text-violet-400" aria-hidden="true" />
               {isAr ? 'أنشئ جروباً' : 'Create a group'}
-              <span className="ms-auto text-[10px] font-normal text-slate-500">
+              <span className={`ms-auto text-[10px] font-normal ${s.muted}`}>
                 {isAr ? `المالك: ${card?.displayName}` : `Owner: ${card?.displayName}`}
               </span>
             </div>
 
             <div className="mt-2 grid min-w-0 gap-2">
               <label className="min-w-0">
-                <span className="block text-[10px] font-bold text-slate-400">{isAr ? 'اسم الجروب' : 'Group name'}</span>
+                <span className={`block text-[10px] font-bold ${s.subtext}`}>{isAr ? 'اسم الجروب' : 'Group name'}</span>
                 <input
                   value={draft.name}
                   onChange={event => update('name', event.target.value)}
                   maxLength={NETWORK_GROUP_LIMITS.nameMax}
-                  className={fieldClass}
+                  className={s.input}
                   aria-label={isAr ? 'اسم الجروب' : 'Group name'}
                   placeholder={isAr ? 'مثال: مفتشو PAUT في مصر' : 'e.g. PAUT inspectors in Egypt'}
                 />
               </label>
               <label className="min-w-0">
-                <span className="block text-[10px] font-bold text-slate-400">
+                <span className={`block text-[10px] font-bold ${s.subtext}`}>
                   {isAr ? 'الغرض' : 'Purpose'}
-                  <span className="ms-1 font-normal text-slate-500">
+                  <span className={`ms-1 font-normal ${s.muted}`}>
                     {isAr ? '(يظهر لكل زائر)' : '(visible to every visitor)'}
                   </span>
                 </span>
@@ -273,18 +273,18 @@ export const NetworkGroupsSection: React.FC<NetworkGroupsSectionProps> = ({
                   onChange={event => update('description', event.target.value)}
                   maxLength={NETWORK_GROUP_LIMITS.descriptionMax}
                   rows={2}
-                  className={`${fieldClass} resize-none`}
+                  className={`${s.input} resize-none`}
                   aria-label={isAr ? 'وصف الجروب' : 'Group description'}
                 />
               </label>
 
               <div className="grid min-w-0 gap-2 sm:grid-cols-2">
                 <label className="min-w-0">
-                  <span className="block text-[10px] font-bold text-slate-400">{isAr ? 'كيف ينضم الناس؟' : 'How do people join?'}</span>
+                  <span className={`block text-[10px] font-bold ${s.subtext}`}>{isAr ? 'كيف ينضم الناس؟' : 'How do people join?'}</span>
                   <select
                     value={draft.joinPolicy}
                     onChange={event => update('joinPolicy', event.target.value as NetworkGroupDraft['joinPolicy'])}
-                    className={fieldClass}
+                    className={s.input}
                     aria-label={isAr ? 'سياسة الانضمام' : 'Join policy'}
                   >
                     {NETWORK_GROUP_JOIN_POLICIES.map(policy => (
@@ -295,11 +295,11 @@ export const NetworkGroupsSection: React.FC<NetworkGroupsSectionProps> = ({
                   </select>
                 </label>
                 <label className="min-w-0">
-                  <span className="block text-[10px] font-bold text-slate-400">{isAr ? 'من ينشر؟' : 'Who may post?'}</span>
+                  <span className={`block text-[10px] font-bold ${s.subtext}`}>{isAr ? 'من ينشر؟' : 'Who may post?'}</span>
                   <select
                     value={draft.postPolicy}
                     onChange={event => update('postPolicy', event.target.value as NetworkGroupDraft['postPolicy'])}
-                    className={fieldClass}
+                    className={s.input}
                     aria-label={isAr ? 'سياسة النشر' : 'Post policy'}
                   >
                     {NETWORK_GROUP_POST_POLICIES.map(policy => (
@@ -316,28 +316,28 @@ export const NetworkGroupsSection: React.FC<NetworkGroupsSectionProps> = ({
               <button
                 type="submit"
                 disabled={creating || errors.length > 0}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-violet-500 px-3 py-1.5 text-[11px] font-bold text-slate-950 transition cursor-pointer hover:bg-violet-400 disabled:cursor-not-allowed disabled:opacity-50"
+                className={s.buttonPrimary}
               >
                 {creating ? <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden="true" /> : <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />}
                 {isAr ? 'إنشاء الجروب' : 'Create group'}
               </button>
               {touched && errors.length > 0 ? (
-                <span role="alert" className="text-[10px] text-rose-300">{isAr ? errors[0].ar : errors[0].en}</span>
+                <span role="alert" className="text-[10px] text-rose-400">{isAr ? errors[0].ar : errors[0].en}</span>
               ) : null}
               {created ? (
-                <span role="status" className="text-[10px] font-bold text-emerald-300">
+                <span role="status" className="text-[10px] font-bold text-emerald-500">
                   {isAr ? 'أُنشئ الجروب.' : 'Group created.'}
                 </span>
               ) : null}
             </div>
           </form>
         ) : (
-          <div data-testid="network-groups-gate" className="rounded-xl border border-[#232345] bg-[#0f0f22] p-3">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-white">
-              <UsersRound className="h-4 w-4 shrink-0 text-violet-300" aria-hidden="true" />
+          <div data-testid="network-groups-gate" className={`${s.card} p-3`}>
+            <div className={`flex items-center gap-1.5 text-xs font-bold ${s.heading}`}>
+              <UsersRound className="h-4 w-4 shrink-0 text-violet-400" aria-hidden="true" />
               {isAr ? 'أنشئ جروباً' : 'Create a group'}
             </div>
-            <p className="mt-1 text-[11px] leading-relaxed text-slate-400">
+            <p className={`mt-1 text-[11px] leading-relaxed ${s.subtext}`}>
               {!account?.ready
                 ? isAr ? 'جارٍ التحقق من جلسة حسابك…' : 'Checking your account session…'
                 : !uid
@@ -348,17 +348,21 @@ export const NetworkGroupsSection: React.FC<NetworkGroupsSectionProps> = ({
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
               {account?.ready && !uid ? (
-                <button type="button" onClick={() => onOpenAccount('signin')} className="rounded-lg bg-violet-500 px-3 py-1.5 text-[11px] font-bold text-slate-950 transition cursor-pointer hover:bg-violet-400">
+                <button type="button" onClick={() => onOpenAccount('signin')} className={s.buttonPrimary}>
                   {isAr ? 'تسجيل الدخول' : 'Sign in'}
                 </button>
               ) : null}
               {account?.ready && uid && !verified ? (
-                <button type="button" onClick={() => onOpenAccount('account')} className="rounded-lg border border-amber-400/50 bg-amber-400/10 px-3 py-1.5 text-[11px] font-bold text-amber-200 transition cursor-pointer hover:border-amber-300">
+                <button
+                  type="button"
+                  onClick={() => onOpenAccount('account')}
+                  className="rounded-lg border border-amber-400/50 bg-amber-400/10 px-3 py-1.5 text-[11px] font-bold text-amber-500 transition cursor-pointer hover:border-amber-300"
+                >
                   {isAr ? 'فتح حسابي' : 'Open my account'}
                 </button>
               ) : null}
               {account?.ready && uid && verified && !card ? (
-                <button type="button" onClick={onOpenProfile} className="rounded-lg bg-violet-500 px-3 py-1.5 text-[11px] font-bold text-slate-950 transition cursor-pointer hover:bg-violet-400">
+                <button type="button" onClick={onOpenProfile} className={s.buttonPrimary}>
                   {isAr ? 'إنشاء البطاقة' : 'Create the card'}
                 </button>
               ) : null}
@@ -367,57 +371,57 @@ export const NetworkGroupsSection: React.FC<NetworkGroupsSectionProps> = ({
         )}
 
         {/* -------------------------------- search -------------------------------- */}
-        <div className="flex min-w-0 items-center gap-1.5 rounded-lg border border-[#232345] bg-[#0f0f22] px-2 py-1.5">
-          <Search className="h-3.5 w-3.5 shrink-0 text-violet-300" aria-hidden="true" />
+        <div className={`${s.card} flex min-w-0 items-center gap-1.5 px-2.5 py-1.5`}>
+          <Search className="h-3.5 w-3.5 shrink-0 text-violet-400" aria-hidden="true" />
           <input
             value={term}
             onChange={event => setTerm(event.target.value)}
             aria-label={isAr ? 'ابحث في الجروبات' : 'Search groups'}
             placeholder={isAr ? 'ابحث بالاسم أو الوصف أو المالك…' : 'Search by name, purpose or owner…'}
-            className="min-w-0 flex-1 bg-transparent text-[11px] text-slate-200 placeholder:text-slate-600 focus:outline-none"
+            className={`min-w-0 flex-1 bg-transparent text-[11px] focus:outline-none ${isLight ? 'text-slate-900 placeholder:text-slate-400' : 'text-slate-200 placeholder:text-slate-600'}`}
           />
         </div>
 
         {actionError ? (
-          <p role="alert" className="rounded border border-rose-500/40 bg-rose-500/10 px-2 py-1 text-[10px] text-rose-200">
+          <p role="alert" className="rounded border border-rose-500/40 bg-rose-500/10 px-2 py-1 text-[10px] text-rose-400">
             {actionError}
           </p>
         ) : null}
         {error ? (
-          <p role="alert" className="rounded border border-rose-500/40 bg-rose-500/10 px-2 py-1 text-[10px] text-rose-200">
+          <p role="alert" className="rounded border border-rose-500/40 bg-rose-500/10 px-2 py-1 text-[10px] text-rose-400">
             {describeGroupFailure({ message: error }, isAr)}
           </p>
         ) : null}
 
         {/* --------------------------------- list --------------------------------- */}
         {loading ? (
-          <div data-testid="network-groups-loading" className="rounded-xl border border-[#232345] bg-[#0f0f22] p-4">
+          <div data-testid="network-groups-loading" className={`${s.card} p-4`}>
             {slow ? (
               <>
-                <div className="flex items-center gap-2 text-xs font-bold text-amber-200">
+                <div className="flex items-center gap-2 text-xs font-bold text-amber-500">
                   <CircleAlert className="h-4 w-4 shrink-0" aria-hidden="true" />
                   {isAr ? 'الاتصال بالتخزين بطيء أو محجوب' : 'The store is slow or blocked'}
                 </div>
-                <p className="mt-1 text-[10px] leading-relaxed text-amber-100/90">
+                <p className={`mt-1 text-[10px] leading-relaxed ${s.subtext}`}>
                   {isAr ? 'لم تصل أي مجموعة بعد — هذا ليس فراغاً، بل اتصال لم يكتمل.' : 'No group has arrived yet — this is not emptiness, but an unfinished connection.'}
                 </p>
               </>
             ) : (
-              <p role="status" className="flex items-center gap-2 text-[11px] text-slate-400">
+              <p role="status" className={`flex items-center gap-2 text-[11px] ${s.subtext}`}>
                 <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden="true" />
                 {isAr ? 'جارٍ تحميل الجروبات…' : 'Loading groups…'}
               </p>
             )}
           </div>
         ) : visible.length === 0 ? (
-          <div data-testid="network-groups-empty" className="rounded-xl border border-dashed border-[#2a2a4d] bg-[#0b0b18] p-6 text-center">
-            <UsersRound className="mx-auto h-6 w-6 text-slate-600" aria-hidden="true" />
-            <p className="mt-2 text-xs font-bold text-slate-300">
+          <div data-testid="network-groups-empty" className={`${s.card} border-dashed p-6 text-center`}>
+            <UsersRound className={`mx-auto h-6 w-6 shrink-0 ${s.muted}`} aria-hidden="true" />
+            <p className={`mt-2 text-xs font-bold ${s.heading}`}>
               {groups.length === 0
                 ? isAr ? 'لا توجد جروبات بعد' : 'No groups yet'
                 : isAr ? 'لا نتائج مطابقة' : 'No matching groups'}
             </p>
-            <p className="mx-auto mt-1 max-w-md text-[10px] leading-relaxed text-slate-500">
+            <p className={`mx-auto mt-1 max-w-md text-[10px] leading-relaxed ${s.muted}`}>
               {groups.length === 0
                 ? isAr
                   ? 'أول جروب حقيقي يظهر هنا بمجرد إنشائه من عضو مؤكَّد البريد. لا جروبات وهمية.'
@@ -433,32 +437,32 @@ export const NetworkGroupsSection: React.FC<NetworkGroupsSectionProps> = ({
               const joinPolicy = joinPolicyById(group.joinPolicy);
               const postPolicy = postPolicyById(group.postPolicy);
               return (
-                <li key={group.id} data-testid="network-group-card" className="min-w-0 rounded-xl border border-[#232345] bg-[#0f0f22] p-3">
+                <li key={group.id} data-testid="network-group-card" className={`${s.card} min-w-0 p-3`}>
                   <div className="flex min-w-0 items-start justify-between gap-1.5">
-                    <h3 className="min-w-0 text-sm font-bold leading-snug text-white">{group.name}</h3>
+                    <h3 className={`min-w-0 text-sm font-bold leading-snug ${s.heading}`}>{group.name}</h3>
                     {access.isOwner ? (
-                      <span className="shrink-0 rounded border border-violet-500/40 bg-violet-500/10 px-1 text-[9px] font-bold text-violet-200">
+                      <span className="shrink-0 rounded border border-violet-500/40 bg-violet-500/10 px-1 text-[9px] font-bold text-violet-400">
                         {isAr ? 'مالك' : 'Owner'}
                       </span>
                     ) : access.state === 'member' ? (
-                      <span className="shrink-0 rounded border border-emerald-500/40 bg-emerald-500/10 px-1 text-[9px] font-bold text-emerald-200">
+                      <span className="shrink-0 rounded border border-emerald-500/40 bg-emerald-500/10 px-1 text-[9px] font-bold text-emerald-500">
                         {isAr ? 'عضو' : 'Member'}
                       </span>
                     ) : access.state === 'pending' ? (
-                      <span className="shrink-0 rounded border border-amber-500/40 bg-amber-500/10 px-1 text-[9px] font-bold text-amber-200">
+                      <span className="shrink-0 rounded border border-amber-500/40 bg-amber-500/10 px-1 text-[9px] font-bold text-amber-500">
                         {isAr ? 'قيد المراجعة' : 'Pending'}
                       </span>
                     ) : null}
                   </div>
-                  <p className="mt-1 line-clamp-3 text-[10px] leading-relaxed text-slate-400">{group.description}</p>
-                  <p className="mt-1 text-[9px] text-slate-500">
+                  <p className={`mt-1 line-clamp-3 text-[10px] leading-relaxed ${s.subtext}`}>{group.description}</p>
+                  <p className={`mt-1 text-[9px] ${s.muted}`}>
                     {isAr ? `المالك: ${group.ownerName}` : `Owner: ${group.ownerName}`}
                   </p>
                   <div className="mt-1.5 flex flex-wrap gap-1">
-                    <span className="rounded border border-[#2a2a4d] bg-[#14142a] px-1.5 py-0.5 text-[9px] text-slate-300">
+                    <span className={s.chip}>
                       {isAr ? joinPolicy.ar : joinPolicy.en}
                     </span>
-                    <span className="rounded border border-[#2a2a4d] bg-[#14142a] px-1.5 py-0.5 text-[9px] text-slate-300">
+                    <span className={s.chip}>
                       {isAr ? postPolicy.ar : postPolicy.en}
                     </span>
                   </div>
@@ -468,31 +472,31 @@ export const NetworkGroupsSection: React.FC<NetworkGroupsSectionProps> = ({
                       type="button"
                       onClick={() => onOpenGroup(group.id)}
                       data-testid="network-group-open"
-                      className="inline-flex items-center gap-1 rounded-md border border-[#2a2a4d] bg-[#14142a] px-2 py-0.5 text-[10px] font-bold text-slate-300 transition cursor-pointer hover:border-violet-400/50 hover:text-white"
+                      className={s.buttonSecondary}
                     >
                       <DoorOpen className="h-3 w-3 shrink-0" aria-hidden="true" />
                       {isAr ? 'فتح الجروب' : 'Open the group'}
                     </button>
 
                     {access.state === 'member' || access.isOwner ? (
-                      <span data-testid="network-group-member-state" className="inline-flex items-center gap-1 text-[9px] text-emerald-300">
+                      <span data-testid="network-group-member-state" className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-500">
                         <Users className="h-3 w-3 shrink-0" aria-hidden="true" />
                         {isAr ? 'داخل الجروب' : 'Inside'}
                       </span>
                     ) : access.state === 'pending' ? (
-                      <span data-testid="network-group-pending" className="inline-flex items-center gap-1 text-[9px] text-amber-300">
+                      <span data-testid="network-group-pending" className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-500">
                         <Clock3 className="h-3 w-3 shrink-0" aria-hidden="true" />
                         {isAr ? 'طلبك قيد المراجعة' : 'Your request is pending'}
                       </span>
                     ) : access.state === 'rejected' ? (
-                      <span className="inline-flex items-center gap-1 text-[9px] text-rose-300">
+                      <span className="inline-flex items-center gap-1 text-[9px] text-rose-400">
                         {isAr ? 'رُفض طلبك' : 'Your request was rejected'}
                       </span>
                     ) : access.joinIntent === 'invite-only' ? (
                       <span
                         data-testid="network-group-invite-only"
                         title={isAr ? 'يضيفك مالك الجروب' : 'The group owner adds members'}
-                        className="inline-flex items-center gap-1 rounded-md border border-[#2a2a4d] bg-[#14142a] px-2 py-0.5 text-[10px] font-bold text-slate-500"
+                        className={`${s.chip} inline-flex items-center gap-1 font-bold`}
                       >
                         <Lock className="h-3 w-3 shrink-0" aria-hidden="true" />
                         {isAr ? 'بدعوة فقط' : 'Invitation only'}
@@ -514,8 +518,8 @@ export const NetworkGroupsSection: React.FC<NetworkGroupsSectionProps> = ({
                         data-testid="network-group-join"
                         className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-bold transition ${
                           uid && verified && card
-                            ? 'border-violet-400/50 bg-violet-500/10 text-violet-200 cursor-pointer hover:border-violet-300'
-                            : 'border-[#2a2a4d] bg-[#14142a] text-slate-500 opacity-70 cursor-not-allowed'
+                            ? 'border-violet-400/50 bg-violet-500/10 text-violet-500 cursor-pointer hover:border-violet-400'
+                            : 'border-slate-500/30 opacity-60 cursor-not-allowed'
                         }`}
                       >
                         {joining === group.id ? (
@@ -540,18 +544,24 @@ export const NetworkGroupsSection: React.FC<NetworkGroupsSectionProps> = ({
 
       {/* ------------------------------- right rail ------------------------------ */}
       <aside className="min-w-0 space-y-3">
-        <div className="rounded-xl border border-sky-500/30 bg-sky-500/10 p-3 text-[10px] leading-relaxed text-sky-100">
-          <div className="mb-1 text-[11px] font-bold text-sky-200">
+        <div
+          className={`rounded-xl border p-3 text-[10px] leading-relaxed ${
+            isLight
+              ? 'border-sky-300 bg-sky-50 text-sky-900'
+              : 'border-sky-500/30 bg-sky-500/10 text-sky-100'
+          }`}
+        >
+          <div className="mb-1 text-[11px] font-bold">
             {isAr ? 'المالك يقرّر، والقاعدة تفرض' : 'The owner decides, the rules enforce'}
           </div>
           {isAr
             ? 'سياسة الانضمام وسياسة النشر يختارهما مالك الجروب، ومكتوبتان على بطاقة الجروب قبل أي نقرة — و`firestore.rules` ترفض ما يخالفهما.'
             : 'The owner chooses how people join and who posts; both are printed on the card before any click — and `firestore.rules` refuses anything else.'}
         </div>
-        <div className="rounded-xl border border-[#232345] bg-[#0f0f22] p-3 text-[10px] leading-relaxed text-slate-400">
+        <div className={`${s.card} p-3 text-[10px] leading-relaxed ${s.subtext}`}>
           {isAr
-            ? 'منشورات الجروب لا تظهر في التغذية العامة ولا في صفحتك العامة — تغذية الجروب مكانها داخله.'
-            : 'Group posts never appear in the public feed or on your public page — a group feed stays inside its group.'}
+            ? 'منشورات ومكتبة الجروب لا تظهر في التغذية العامة — مساحة الجروب خاصة بأعضائه المعتمدين.'
+            : 'Group posts and resources never appear in the public feed — a group stays scoped to its approved members.'}
         </div>
       </aside>
     </div>

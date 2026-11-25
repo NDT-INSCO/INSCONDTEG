@@ -167,6 +167,8 @@ export type CommunityAvailabilityStatus =
   | 'hiring'
   | 'offering_services';
 
+export type CommunityMessagePolicy = 'everyone' | 'connections' | 'none';
+
 export interface CommunityWorkspaceProfile {
   uid: string;
   displayName: string;
@@ -183,6 +185,7 @@ export interface CommunityWorkspaceProfile {
   yearsExperience?: number;
   availabilityStatus?: CommunityAvailabilityStatus;
   followersCount?: number;
+  connectionsCount?: number;
   endorsementsCount?: number;
   /** Storage URL or an HTTPS link the member pasted; rules require https. */
   photoURL?: string;
@@ -196,6 +199,19 @@ export interface CommunityWorkspaceProfile {
    * One string on purpose: `firestore.rules` can then prove the whole field.
    */
   skills?: string;
+  professionalRole?: string;
+  relatedFields?: string[];
+  languages?: string[];
+  experienceSummary?: string;
+  educationSummary?: string;
+  projectsSummary?: string;
+  shareAcademyProgress?: boolean;
+  messagePolicy?: CommunityMessagePolicy;
+  /** Admin-only verification tracks — strictly independent. */
+  identityVerified?: boolean;
+  organizationVerified?: boolean;
+  credentialVerified?: boolean;
+  verifiedOrganizationId?: string;
   createdAt?: unknown;
   updatedAt?: unknown;
 }
@@ -207,18 +223,37 @@ export type CommunityPostType =
   | 'equipment_review'
   | 'announcement';
 
+export type CommunityPostFormat =
+  | 'standard'
+  | 'question'
+  | 'case_study'
+  | 'poll'
+  | 'article'
+  | 'academy_share'
+  | 'company_update'
+  | 'event_share';
+
 export type CommunityNdtMethod =
   | 'GENERAL'
   | 'RT'
   | 'UT'
   | 'PAUT'
+  | 'TOFD'
   | 'MT'
   | 'PT'
   | 'VT'
+  | 'ET'
   | 'PWHT'
   | 'AR';
 
 export type CommunityReactionType = 'like' | 'insightful' | 'verified' | 'celebrate';
+
+export interface CommunityReactionsBreakdown {
+  like?: number;
+  insightful?: number;
+  verified?: number;
+  celebrate?: number;
+}
 
 export interface CommunityPost {
   id: string;
@@ -228,19 +263,67 @@ export interface CommunityPost {
   authorOrg: string;
   authorCompanyCode?: string;
   postType: CommunityPostType;
+  categoryTag?: 'general' | 'article' | 'question' | 'case_study' | 'media' | 'poll' | 'job' | 'company_update' | 'academy' | 'event';
+  postFormat?: CommunityPostFormat;
   ndtMethod: CommunityNdtMethod;
   title: string;
   body: string;
   tags?: string[];
   technicalSnippet?: string;
   aiSummary?: string;
+  isAiAssisted?: boolean;
+  aiGenerated?: boolean;
+  pollOptions?: string[];
+  mediaUrl?: string;
+  documentUrl?: string;
+  linkUrl?: string;
+  attachmentLabel?: string;
+  externalLink?: string;
+  academyCourseId?: string;
+  academyCourseTitle?: string;
+  academyLessonTitle?: string;
+  companyId?: string;
+  companyName?: string;
+  eventId?: string;
+  groupId?: string;
   likesCount: number;
   commentsCount: number;
+  answersCount?: number;
+  acceptedAnswerId?: string;
+  isSolved?: boolean;
+  reactionsBreakdown?: CommunityReactionsBreakdown;
   visibility: 'public' | 'members_only';
   aiModerationStatus: 'approved' | 'flagged';
   isPinnedAnnouncement: boolean;
   createdAt?: unknown;
   updatedAt?: unknown;
+}
+
+export interface CommunityPostAnswer {
+  id: string;
+  postId: string;
+  authorUid: string;
+  authorName: string;
+  authorHeadline?: string;
+  body: string;
+  references?: string;
+  academyCourseId?: string;
+  upvotesCount: number;
+  isAccepted: boolean;
+  expertReviewed: boolean;
+  reviewerUid?: string;
+  reviewerName?: string;
+  isAiAssisted: boolean;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+}
+
+export interface CommunityPollVote {
+  id: string;
+  postId: string;
+  uid: string;
+  optionIndex: number;
+  createdAt?: unknown;
 }
 
 export type CommunityGroupJoinPolicy = 'open' | 'request' | 'invite';
@@ -260,6 +343,7 @@ export interface CommunityGroup {
   joinPolicy: CommunityGroupJoinPolicy;
   postPolicy: CommunityGroupPostPolicy;
   coverURL?: string;
+  discipline?: string;
   createdAt?: unknown;
   updatedAt?: unknown;
 }
@@ -286,6 +370,19 @@ export interface CommunityGroupPost {
   body: string;
   createdAt?: unknown;
   updatedAt?: unknown;
+}
+
+export interface CommunityGroupResource {
+  id: string;
+  groupId: string;
+  authorUid: string;
+  authorName: string;
+  kind: 'document' | 'announcement' | 'event';
+  title: string;
+  description: string;
+  url?: string;
+  eventDateIso?: string;
+  createdAt?: unknown;
 }
 
 /**
@@ -322,6 +419,7 @@ export interface CommunityPostComment {
   authorName: string;
   authorHeadline?: string;
   body: string;
+  parentCommentId?: string;
   isAiAssisted: boolean;
   createdAt?: unknown;
 }
@@ -346,6 +444,8 @@ export interface CommunityConnection {
 }
 
 export type CommunityOpportunityType = 'job' | 'tender' | 'equipment';
+export type CommunityEmploymentType = 'full_time' | 'part_time' | 'contract' | 'shutdown' | 'freelance' | 'internship' | 'training' | 'project_based';
+export type CommunityExperienceLevel = 'junior' | 'mid' | 'senior' | 'lead';
 
 export interface CommunityOpportunity {
   id: string;
@@ -353,13 +453,282 @@ export interface CommunityOpportunity {
   authorName: string;
   authorOrg: string;
   companyCode?: string;
+  companyId?: string;
   opportunityType: CommunityOpportunityType;
+  employmentType?: CommunityEmploymentType;
+  experienceLevel?: CommunityExperienceLevel;
+  salaryRange?: string;
+  applicationsCount?: number;
   title: string;
   location: string;
   methods: string[];
   requirements: string;
   status: 'open' | 'closed';
   visibility: 'public';
+  createdAt?: unknown;
+  updatedAt?: unknown;
+}
+
+export type CommunityJobApplicationStatus = 'submitted' | 'shortlisted' | 'contacted' | 'rejected';
+
+export interface CommunityJobApplication {
+  id: string;
+  opportunityId: string;
+  opportunityTitle: string;
+  employerUid: string;
+  applicantUid: string;
+  applicantName: string;
+  applicantHeadline?: string;
+  applicantOrg?: string;
+  coverNote: string;
+  cvSummary?: string;
+  status: CommunityJobApplicationStatus;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+}
+
+export interface CommunityCompany {
+  id: string;
+  ownerUid: string;
+  name: string;
+  nameAr?: string;
+  industry: string;
+  description: string;
+  headquarters?: string;
+  branches?: string;
+  website?: string;
+  contactEmail?: string;
+  services: string[];
+  specializations: string[];
+  projectsSummary?: string;
+  logoURL?: string;
+  coverURL?: string;
+  verificationStatus: 'unverified' | 'pending' | 'verified';
+  followersCount: number;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+}
+
+export type OrgHierarchyRoleKey =
+  | 'managing_director'
+  | 'operations_manager'
+  | 'technical_manager'
+  | 'department_manager'
+  | 'team_leader'
+  | 'engineer_inspector'
+  | 'custom';
+
+export interface CommunityCompanyDepartment {
+  id: string;
+  companyId: string;
+  name: string;
+  parentDepartmentId?: string;
+  levelOrder: number;
+  roleTitle: string;
+  roleKey?: OrgHierarchyRoleKey;
+  managerUid?: string;
+  managerName?: string;
+  services?: string[];
+  specialties?: string[];
+  activeProjects?: string[];
+  overview?: string;
+  teamMembersCount?: number;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+}
+
+export interface CommunityCompanyAffiliation {
+  id: string;
+  companyId: string;
+  companyName: string;
+  departmentId?: string;
+  departmentName?: string;
+  employeeUid: string;
+  employeeName: string;
+  roleTitle: string;
+  invitedByUid: string;
+  status: 'invited' | 'accepted' | 'declined' | 'removed';
+  createdAt?: unknown;
+  updatedAt?: unknown;
+}
+
+export type CommunityEventKind = 'conference' | 'webinar' | 'workshop' | 'seminar' | 'training' | 'career_fair' | 'networking';
+
+export interface CommunityEvent {
+  id: string;
+  organizerUid: string;
+  organizerName: string;
+  organizerOrg: string;
+  companyId?: string;
+  eventType: CommunityEventKind;
+  title: string;
+  description: string;
+  speakers?: string[];
+  dateIso: string;
+  venueOrLink: string;
+  capacity: number;
+  attendeesCount: number;
+  academyCourseId?: string;
+  postEventResources?: string;
+  status: 'upcoming' | 'completed' | 'cancelled';
+  createdAt?: unknown;
+  updatedAt?: unknown;
+}
+
+export interface CommunityEventRegistration {
+  id: string;
+  eventId: string;
+  uid: string;
+  displayName: string;
+  status: 'registered' | 'cancelled';
+  createdAt?: unknown;
+  updatedAt?: unknown;
+}
+
+export interface CommunityFollow {
+  id: string;
+  followerUid: string;
+  targetType: 'member' | 'company';
+  targetId: string;
+  targetName: string;
+  createdAt?: unknown;
+}
+
+export interface CommunityBookmark {
+  id: string;
+  uid: string;
+  postId: string;
+  postTitle: string;
+  createdAt?: unknown;
+}
+
+export interface CommunityMessageThread {
+  id: string;
+  participantUids: string[];
+  participantNames: Record<string, string>;
+  lastMessage: string;
+  lastSenderUid: string;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+}
+
+export interface CommunityDirectMessage {
+  id: string;
+  threadId: string;
+  senderUid: string;
+  senderName: string;
+  recipientUid: string;
+  body: string;
+  attachmentUrl?: string;
+  isRead: boolean;
+  createdAt?: unknown;
+}
+
+export type CommunityEmailCategory =
+  | 'general'
+  | 'technical_inquiry'
+  | 'inspection_coordination'
+  | 'job_inquiry'
+  | 'academy';
+
+export type CommunityEmailPriority = 'normal' | 'urgent';
+
+export interface CommunityEmail {
+  id: string;
+  participantUids: string[];
+  senderUid: string;
+  senderName: string;
+  senderOrg?: string;
+  recipientUid: string;
+  recipientName: string;
+  subject: string;
+  category: CommunityEmailCategory;
+  priority: CommunityEmailPriority;
+  body: string;
+  attachmentUrl?: string;
+  replyToEmailId?: string;
+  recipientRead: boolean;
+  senderStarred: boolean;
+  recipientStarred: boolean;
+  senderFolder: 'sent' | 'archive';
+  recipientFolder: 'inbox' | 'archive';
+  createdAt?: unknown;
+  updatedAt?: unknown;
+}
+
+export interface CommunityBlock {
+  id: string;
+  blockerUid: string;
+  blockedUid: string;
+  reason?: string;
+  createdAt?: unknown;
+}
+
+export type CommunityNotificationCategory =
+  | 'connection'
+  | 'comment'
+  | 'reaction'
+  | 'group'
+  | 'job'
+  | 'message'
+  | 'academy'
+  | 'verification'
+  | 'event';
+
+export interface CommunityNotification {
+  id: string;
+  recipientUid: string;
+  actorUid: string;
+  actorName: string;
+  category: CommunityNotificationCategory;
+  title: string;
+  body: string;
+  linkSection?: string;
+  linkEntryId?: string;
+  isRead: boolean;
+  createdAt?: unknown;
+}
+
+export interface CommunityNotificationPrefs {
+  uid: string;
+  connections: boolean;
+  comments: boolean;
+  groups: boolean;
+  jobs: boolean;
+  messages: boolean;
+  events: boolean;
+  academy: boolean;
+  weeklyDigest: boolean;
+  updatedAt?: unknown;
+}
+
+export type VerificationTrack = 'identity' | 'organization' | 'credential';
+export type VerificationStatus = 'pending' | 'approved' | 'rejected';
+
+export interface CommunityVerification {
+  id: string;
+  uid: string;
+  memberName: string;
+  track: VerificationTrack;
+  subjectTitle: string;
+  issuerOrCompany: string;
+  evidenceNote: string;
+  evidenceUrl?: string;
+  companyId?: string;
+  status: VerificationStatus;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+}
+
+export interface CommunityReport {
+  id: string;
+  reporterUid: string;
+  reporterName: string;
+  targetType: 'post' | 'comment' | 'answer' | 'company' | 'job' | 'user' | 'message';
+  targetId: string;
+  targetTitle: string;
+  reason: string;
+  status: 'open' | 'reviewed' | 'dismissed' | 'action_taken';
   createdAt?: unknown;
   updatedAt?: unknown;
 }

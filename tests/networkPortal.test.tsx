@@ -1,17 +1,15 @@
 /**
- * The fourth portal — the engineering network.
+ * The fourth portal — the INSCO Engineering Professional Network.
  *
- * The addendum asks for a community that is *obviously* distinct from the
- * brochure, the client portal and the academy, and that never pretends to have
- * members before it has them. These tests pin exactly that:
- *
- *   1. routing — `#network`, its twelve sections and a record inside a section,
+ * Verifies:
+ *   1. routing — `#network`, its twelve live sections and nested entry IDs,
  *   2. isolation — the network brings its own header and footer, and none of the
- *      corporate / client / academy navigation,
- *   3. honesty — the prototype banner, the per-card sample badge, and write
- *      actions that are genuinely disabled,
- *   4. layout safety — bounded grids and clipped icons instead of a sheet that
- *      slides off a phone screen.
+ *      corporate / client / academy navigation or forbidden commercial terms,
+ *   3. honesty & full-stack live migration — zero prototype banners, sample badges,
+ *      or disabled placeholder actions; unavailable states never invent data;
+ *      verification tracks stay strictly separated and never auto-awarded,
+ *   4. layout safety & theme support — bounded grids, clipped icons (shrink-0),
+ *      zero horizontal overflow utilities, and Light/Dark theme toggling.
  */
 import React from 'react';
 import { afterEach, beforeEach, test } from 'node:test';
@@ -38,13 +36,11 @@ dom.window.scrollTo = () => {};
 dom.window.HTMLElement.prototype.scrollIntoView = () => {};
 
 const routes = await import('../src/utils/portalRoutes');
-const { PORTAL_CHOICE_KEY, readPortalChoice } = await import(
-  '../src/utils/portalChoice'
-);
+const { PORTAL_CHOICE_KEY, readPortalChoice } = await import('../src/utils/portalChoice');
 const { NetworkPortal } = await import('../src/components/network/NetworkPortal');
 const { PortalSwitchBar } = await import('../src/components/PortalSwitchBar');
 const { App } = await import('../src/App');
-const { render, cleanup, waitFor } = await import('@testing-library/react');
+const { render, cleanup, fireEvent, waitFor } = await import('@testing-library/react');
 
 beforeEach(() => {
   localStorage.clear();
@@ -119,7 +115,7 @@ test('the visitor can remember the network as their preferred portal', () => {
   assert.equal(readPortalChoice(), 'network');
 });
 
-test('the network renders its own header and links back to the other two portals', () => {
+test('the network renders its own header and links back to the other portals', () => {
   const { container, getByTestId } = render(
     <NetworkPortal
       language="ar"
@@ -139,15 +135,14 @@ test('the network renders its own header and links back to the other two portals
   assert.ok(text.includes('الأكاديمية'), 'a door back to the academy');
   assert.ok(text.includes('بوابة الشركة'), 'a door back to the company profile');
 
-  // Corporate commerce and academy coursework never appear inside the network.
   for (const forbidden of ['طلب عرض سعر', 'ملف تأهيل المورد', 'معامل المحاكاة', 'مسارات التعلم']) {
     assert.ok(!text.includes(forbidden), `"${forbidden}" must not appear in the network`);
   }
 });
 
-test('every one of the twelve sections renders without throwing', () => {
+test('every one of the twelve sections renders live without prototype banners or fake disabled actions', async () => {
   for (const section of routes.NETWORK_SECTIONS) {
-    const { container, unmount } = render(
+    const { container, queryAllByTestId, unmount } = render(
       <NetworkPortal
         language="ar"
         section={section}
@@ -156,11 +151,19 @@ test('every one of the twelve sections renders without throwing', () => {
         onOpenAcademy={() => {}}
       />
     );
-    assert.ok(
-      container.querySelector(`[data-testid="network-section-${section}"]`),
-      `section ${section} must render its own body`
+    await waitFor(
+      () => {
+        assert.ok(
+          container.querySelector(`[data-testid="network-section-${section}"]`),
+          `section ${section} must render its own live body`
+        );
+      },
+      { timeout: 5000 }
     );
-    assert.ok(container.querySelector('[data-testid="network-prototype-banner"]'));
+    assert.equal(container.querySelector('[data-testid="network-prototype-banner"]'), null);
+    assert.equal(container.querySelector('[data-prototype="true"]'), null);
+    assert.equal(queryAllByTestId('network-sample-badge').length, 0);
+    assert.equal(queryAllByTestId('network-write-disabled').length, 0);
     unmount();
   }
 });
@@ -180,56 +183,7 @@ test('the four doors are present in the switch bar, with the network marked as c
 
 /* --------------------------------- honesty --------------------------------- */
 
-test('the banner tells the truth about what is live and what is still a prototype', () => {
-  const { container, getAllByTestId } = render(
-    <NetworkPortal
-      language="ar"
-      section="articles"
-      onOpenSection={() => {}}
-      onOpenCompany={() => {}}
-      onOpenAcademy={() => {}}
-    />
-  );
-
-  const banner = getAllByTestId('network-prototype-banner')[0];
-  const bannerText = banner.textContent ?? '';
-  // What is live now: the account, the card, the directory, the feed, the jobs board.
-  assert.ok(bannerText.includes('ملفك المهني'));
-  assert.ok(bannerText.includes('دليل الأعضاء'));
-  assert.ok(bannerText.includes('الفرص المهنية'));
-  // What is still a prototype: groups, messages, notifications, verification.
-  assert.ok(bannerText.includes('تصوراً تصميمياً'));
-  assert.ok(bannerText.includes('معطّل'));
-
-  assert.ok(container.querySelector('[data-prototype="true"]'));
-  const badges = getAllByTestId('network-sample-badge');
-  assert.ok(badges.length >= 3, 'an articles page must badge each template, not the page once');
-});
-
-test('write actions are genuinely disabled, not merely styled to look disabled', () => {
-  // The feed and the groups are live now, so each is checked in its own suite; these
-  // sections are still prototypes and must keep every write visibly disabled.
-  for (const section of ['messages', 'verify'] as const) {
-    const { getAllByTestId, unmount } = render(
-      <NetworkPortal
-        language="ar"
-        section={section}
-        onOpenSection={() => {}}
-        onOpenCompany={() => {}}
-        onOpenAcademy={() => {}}
-      />
-    );
-    const actions = getAllByTestId('network-write-disabled');
-    assert.ok(actions.length > 0, `${section} must show at least one write action`);
-    for (const action of actions) {
-      assert.equal((action as HTMLButtonElement).disabled, true, `${section} left a live write button`);
-      assert.equal(action.getAttribute('aria-disabled'), 'true');
-    }
-    unmount();
-  }
-});
-
-test('groups is a real section now, so it shows no disabled placeholder button', () => {
+test('groups renders its real state without fake disabled buttons', async () => {
   const { queryAllByTestId, container } = render(
     <NetworkPortal
       language="ar"
@@ -239,15 +193,17 @@ test('groups is a real section now, so it shows no disabled placeholder button',
       onOpenAcademy={() => {}}
     />
   );
-  assert.equal(queryAllByTestId('network-write-disabled').length, 0, 'a live section must not ship fake disabled buttons');
-  const states = ['network-groups-live', 'network-groups-gate', 'network-groups-unavailable', 'network-groups-loading'];
-  assert.ok(
-    states.some(id => container.querySelector(`[data-testid="${id}"]`)),
-    'groups renders its real state, whatever that state is'
-  );
+  await waitFor(() => {
+    const states = ['network-groups-live', 'network-groups-gate', 'network-groups-unavailable', 'network-groups-loading'];
+    assert.ok(
+      states.some(id => container.querySelector(`[data-testid="${id}"]`)),
+      'groups renders its real state'
+    );
+  });
+  assert.equal(queryAllByTestId('network-write-disabled').length, 0);
 });
 
-test('the message box cannot be typed into, and the feed offers no dead composer', () => {
+test('without Firestore configured, feed and messages cleanly show unavailable state instead of fake forms', async () => {
   const feed = render(
     <NetworkPortal
       language="ar"
@@ -257,9 +213,7 @@ test('the message box cannot be typed into, and the feed offers no dead composer
       onOpenAcademy={() => {}}
     />
   );
-  // Without an account service the feed shows its unavailable state rather than
-  // a composer that accepts text and then fails to publish it.
-  assert.ok(feed.getByTestId('network-feed-unavailable'));
+  await waitFor(() => assert.ok(feed.getByTestId('network-feed-unavailable')));
   assert.equal(feed.container.querySelector('textarea'), null);
   feed.unmount();
 
@@ -272,12 +226,11 @@ test('the message box cannot be typed into, and the feed offers no dead composer
       onOpenAcademy={() => {}}
     />
   );
-  const boxes = messages.container.querySelectorAll('input');
-  assert.ok(boxes.length > 0);
-  boxes.forEach(box => assert.equal((box as HTMLInputElement).disabled, true));
+  await waitFor(() => assert.ok(messages.getByTestId('network-messages-unavailable')));
+  messages.unmount();
 });
 
-test('the profile never invents a card, and verification keeps the two tracks apart', () => {
+test('the profile never invents a card, and verification keeps the three tracks separate', async () => {
   const profile = render(
     <NetworkPortal
       language="ar"
@@ -287,8 +240,7 @@ test('the profile never invents a card, and verification keeps the two tracks ap
       onOpenAcademy={() => {}}
     />
   );
-  // With no account service in this render the card cannot be created — and the
-  // page says so instead of showing a plausible-looking empty profile.
+  await waitFor(() => assert.ok(profile.container.querySelector('[data-testid="network-section-profile"]')));
   const profileText = profile.container.textContent ?? '';
   assert.ok(profileText.includes('لن نعرض لك ملفاً وهمياً'));
   assert.ok(!profileText.includes('شهادة مُتحقَّقة'), 'no certificate may be pre-verified');
@@ -303,11 +255,32 @@ test('the profile never invents a card, and verification keeps the two tracks ap
       onOpenAcademy={() => {}}
     />
   );
+  await waitFor(() => assert.ok(verify.container.querySelector('[data-testid="network-section-verify"]')));
   const verifyText = verify.container.textContent ?? '';
   assert.ok(verifyText.includes('التحقق من الهوية'));
+  assert.ok(verifyText.includes('التحقق من المؤسسة'));
   assert.ok(verifyText.includes('التحقق من المؤهل'));
   assert.ok(verifyText.includes('لا تُمنح أي شارة تلقائياً'));
   verify.unmount();
+});
+
+/* ------------------------------ theme support ------------------------------ */
+
+test('the network header includes a working Light/Dark theme toggle that updates surfaces', () => {
+  const { container, getByTestId } = render(
+    <NetworkPortal
+      language="ar"
+      section="feed"
+      onOpenSection={() => {}}
+      onOpenCompany={() => {}}
+      onOpenAcademy={() => {}}
+    />
+  );
+  const root = container.querySelector('[data-portal="network"]')!;
+  const initialClass = root.className;
+  const toggle = getByTestId('network-theme-toggle');
+  fireEvent.click(toggle);
+  assert.notEqual(root.className, initialClass, 'toggling theme must switch network surface classes');
 });
 
 /* ----------------------------- layout safety ------------------------------- */
@@ -330,7 +303,6 @@ test('the network navigation is a bounded grid, and icons never get squashed', (
   assert.ok(navClass.includes('grid-cols-4'), 'four columns on the narrowest screen');
   assert.ok(!navClass.includes('overflow-x'), 'the navigation must not scroll sideways');
 
-  // Every icon inside the network shell is explicitly protected from shrinking.
   const svgs = container.querySelectorAll('svg');
   assert.ok(svgs.length > 0);
   svgs.forEach(svg => {
@@ -338,10 +310,10 @@ test('the network navigation is a bounded grid, and icons never get squashed', (
   });
 });
 
-test('network source files avoid the two patterns that broke the mobile rebuilds', () => {
+test('network source files avoid whitespace-nowrap and overflow-x-auto', () => {
   const dir = join(process.cwd(), 'src', 'components', 'network');
   const files = readdirSync(dir).filter(file => file.endsWith('.tsx') || file.endsWith('.ts'));
-  assert.ok(files.length >= 4);
+  assert.ok(files.length >= 10);
 
   for (const file of files) {
     const source = readFileSync(join(dir, file), 'utf8');
@@ -373,7 +345,5 @@ test('a #network deep link opens the network portal instead of the company home'
 
   assert.equal(container.querySelector('[data-portal="company"]'), null);
   assert.ok(document.title.includes('الشبكة الهندسية'));
-  // A shared deep link opens the portal without silently rewriting the visitor's
-  // saved preference — that only happens when they choose a door themselves.
   assert.equal(localStorage.getItem(PORTAL_CHOICE_KEY), null);
 });

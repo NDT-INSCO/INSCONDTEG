@@ -84,6 +84,14 @@ export interface NetworkProfileDraft {
   profileVisibility: NetworkProfileVisibility;
   /** Comma-separated catalogue ids — the same string the rules validate. */
   skills: string;
+  professionalRole: string;
+  relatedFields: string[];
+  languages: string[];
+  experienceSummary: string;
+  educationSummary: string;
+  projectsSummary: string;
+  shareAcademyProgress: boolean;
+  messagePolicy: 'everyone' | 'connections' | 'none';
 }
 
 export const EMPTY_NETWORK_PROFILE: NetworkProfileDraft = {
@@ -103,6 +111,14 @@ export const EMPTY_NETWORK_PROFILE: NetworkProfileDraft = {
   linkedInUrl: '',
   profileVisibility: 'public',
   skills: '',
+  professionalRole: '',
+  relatedFields: [],
+  languages: ['ar', 'en'],
+  experienceSummary: '',
+  educationSummary: '',
+  projectsSummary: '',
+  shareAcademyProgress: false,
+  messagePolicy: 'everyone',
 };
 
 export type NetworkProfileField = keyof NetworkProfileDraft;
@@ -135,6 +151,22 @@ export function draftFromProfile(profile: CommunityWorkspaceProfile | null): Net
     linkedInUrl: profile.linkedInUrl ?? '',
     skills: parseSkills(profile.skills ?? '').join(','),
     profileVisibility: visibilityById(profile.profileVisibility),
+    professionalRole: profile.professionalRole ?? '',
+    relatedFields: Array.isArray(profile.relatedFields)
+      ? profile.relatedFields
+      : typeof profile.relatedFields === 'string' && profile.relatedFields
+        ? String(profile.relatedFields).split(',').map(s => s.trim()).filter(Boolean)
+        : [],
+    languages: Array.isArray(profile.languages)
+      ? profile.languages
+      : typeof profile.languages === 'string' && profile.languages
+        ? String(profile.languages).split(',').map(s => s.trim()).filter(Boolean)
+        : [],
+    experienceSummary: profile.experienceSummary ?? '',
+    educationSummary: profile.educationSummary ?? '',
+    projectsSummary: profile.projectsSummary ?? '',
+    shareAcademyProgress: profile.shareAcademyProgress === true,
+    messagePolicy: (profile.messagePolicy === 'connections' || profile.messagePolicy === 'none' ? profile.messagePolicy : 'everyone'),
   };
 }
 
@@ -284,6 +316,14 @@ export interface NetworkWorkspaceWrite {
   linkedInUrl?: string;
   profileVisibility?: NetworkProfileVisibility;
   skills?: string;
+  professionalRole?: string;
+  relatedFields?: string[];
+  languages?: string[];
+  experienceSummary?: string;
+  educationSummary?: string;
+  projectsSummary?: string;
+  shareAcademyProgress?: boolean;
+  messagePolicy?: 'everyone' | 'connections' | 'none';
 }
 
 const trimmed = (value: string) => value.trim();
@@ -311,6 +351,10 @@ export function toWorkspaceWrite(
   const bio = optional(draft.bio);
   const city = optional(draft.city);
   const companyCode = existing?.companyCode ? existing.companyCode : undefined;
+  const professionalRole = optional(draft.professionalRole ?? '');
+  const experienceSummary = optional(draft.experienceSummary ?? '');
+  const educationSummary = optional(draft.educationSummary ?? '');
+  const projectsSummary = optional(draft.projectsSummary ?? '');
 
   return {
     displayName: trimmed(draft.displayName),
@@ -335,6 +379,18 @@ export function toWorkspaceWrite(
     profileVisibility: draft.profileVisibility,
     /* Always written, even when empty: omitting it on update would keep the old list. */
     skills: parseSkills(draft.skills).join(','),
+    ...(professionalRole ? { professionalRole: professionalRole.slice(0, 60) } : {}),
+    ...(Array.isArray(draft.relatedFields) && draft.relatedFields.length > 0
+      ? { relatedFields: draft.relatedFields.slice(0, 8) }
+      : {}),
+    ...(Array.isArray(draft.languages) && draft.languages.length > 0
+      ? { languages: draft.languages.slice(0, 6) }
+      : {}),
+    ...(experienceSummary ? { experienceSummary: experienceSummary.slice(0, 1200) } : {}),
+    ...(educationSummary ? { educationSummary: educationSummary.slice(0, 600) } : {}),
+    ...(projectsSummary ? { projectsSummary: projectsSummary.slice(0, 800) } : {}),
+    ...(draft.shareAcademyProgress !== undefined ? { shareAcademyProgress: Boolean(draft.shareAcademyProgress) } : {}),
+    ...(draft.messagePolicy ? { messagePolicy: draft.messagePolicy } : {}),
   };
 }
 

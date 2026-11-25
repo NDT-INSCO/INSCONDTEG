@@ -77,10 +77,12 @@ export const NETWORK_METHODS: { id: CommunityNdtMethod; ar: string; en: string }
   { id: 'GENERAL', ar: 'عام', en: 'General' },
   { id: 'UT', ar: 'موجات فوق صوتية UT', en: 'Ultrasonic UT' },
   { id: 'PAUT', ar: 'مصفوفات PAUT', en: 'Phased array PAUT' },
+  { id: 'TOFD', ar: 'حيود الطيران TOFD', en: 'Time-of-Flight TOFD' },
   { id: 'RT', ar: 'تصوير إشعاعي RT', en: 'Radiography RT' },
   { id: 'MT', ar: 'جسيمات مغناطيسية MT', en: 'Magnetic particle MT' },
   { id: 'PT', ar: 'سوائل نافذة PT', en: 'Penetrant PT' },
   { id: 'VT', ar: 'فحص بصري VT', en: 'Visual VT' },
+  { id: 'ET', ar: 'تيارات دوامية ET', en: 'Eddy current ET' },
   { id: 'PWHT', ar: 'معالجة حرارية PWHT', en: 'Heat treatment PWHT' },
   { id: 'AR', ar: 'مركبات وأتمتة AR', en: 'AR & automation' },
 ];
@@ -103,6 +105,8 @@ export function defaultMethodForDiscipline(disciplineId: string): CommunityNdtMe
   }
 }
 
+import type { CommunityPostFormat } from '../client/types';
+
 export interface NetworkPostDraft {
   kind: string;
   method: CommunityNdtMethod;
@@ -111,6 +115,13 @@ export interface NetworkPostDraft {
   /** Comma or `#` separated, as typed. Normalised before writing. */
   tags: string;
   visibility: 'public' | 'members_only';
+  postFormat?: CommunityPostFormat;
+  pollOptionsText?: string;
+  externalLink?: string;
+  mediaUrl?: string;
+  academyCourseId?: string;
+  academyLessonTitle?: string;
+  aiGenerated?: boolean;
 }
 
 export const EMPTY_POST_DRAFT: NetworkPostDraft = {
@@ -120,6 +131,13 @@ export const EMPTY_POST_DRAFT: NetworkPostDraft = {
   body: '',
   tags: '',
   visibility: 'public',
+  postFormat: 'standard',
+  pollOptionsText: '',
+  externalLink: '',
+  mediaUrl: '',
+  academyCourseId: '',
+  academyLessonTitle: '',
+  aiGenerated: false,
 };
 
 export type NetworkPostField = keyof NetworkPostDraft;
@@ -232,12 +250,29 @@ export function toPostInput(draft: NetworkPostDraft, author: NetworkPostAuthor) 
   const kind = postKindById(draft.kind);
   const tags = normaliseTags(draft.tags);
   const headline = trimmed(author.headline ?? '');
+  const pollOptions = (draft.pollOptionsText ?? '')
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean)
+    .slice(0, 5);
+  const extLink = trimmed(draft.externalLink ?? '');
+  const mediaUrl = trimmed(draft.mediaUrl ?? '');
+  const academyCourseId = trimmed(draft.academyCourseId ?? '');
+  const academyLessonTitle = trimmed(draft.academyLessonTitle ?? '');
+
   return {
     authorName: trimmed(author.displayName),
     ...(headline ? { authorHeadline: headline.slice(0, NETWORK_POST_LIMITS.authorHeadlineMax) } : {}),
     authorOrg: trimmed(author.organizationName),
     ...(author.companyCode ? { authorCompanyCode: author.companyCode } : {}),
     postType: kind ? kind.stored : ('discussion' as const),
+    ...(draft.postFormat && draft.postFormat !== 'standard' ? { postFormat: draft.postFormat } : {}),
+    ...(pollOptions.length >= 2 && draft.postFormat === 'poll' ? { pollOptions } : {}),
+    ...(extLink && /^https:\/\//i.test(extLink) ? { externalLink: extLink.slice(0, 300) } : {}),
+    ...(mediaUrl && /^https:\/\//i.test(mediaUrl) ? { mediaUrl: mediaUrl.slice(0, 300) } : {}),
+    ...(academyCourseId ? { academyCourseId: academyCourseId.slice(0, 80) } : {}),
+    ...(academyLessonTitle ? { academyLessonTitle: academyLessonTitle.slice(0, 140) } : {}),
+    ...(draft.aiGenerated ? { aiGenerated: true } : {}),
     ndtMethod: draft.method,
     title: trimmed(draft.title),
     body: trimmed(draft.body),

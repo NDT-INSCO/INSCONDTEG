@@ -7,6 +7,9 @@ import {
   ExtendedWeldFlawId,
   INSPECTION_CODES_META,
   InspectionCodeId,
+  UltrasonicReflectionRegime,
+  UltrasonicWaveMode,
+  computeRayReflectionBreakdown,
   computeUltrasonicBeamCone,
   drawComprehensiveDefectMorphology,
   drawUltrasonicBeamCone2D,
@@ -76,12 +79,14 @@ export const BeamConeAndDefectExplorer: React.FC<BeamConeAndDefectExplorerProps>
   const [isToleranceModalOpen, setIsToleranceModalOpen] = useState<boolean>(false);
   const [autoAlertOnDefectSelect, setAutoAlertOnDefectSelect] = useState<boolean>(true);
 
-  // Visual Imagination Layers
+  // Visual Imagination Layers & Wave / Reflection Controls
   const [showNearField, setShowNearField] = useState<boolean>(true);
   const [showOuter20dBCone, setShowOuter20dBCone] = useState<boolean>(true);
   const [showSideLobes, setShowSideLobes] = useState<boolean>(true);
   const [showWavefronts, setShowWavefronts] = useState<boolean>(true);
   const [showDefectWireframe, setShowDefectWireframe] = useState<boolean>(true);
+  const [waveMode, setWaveMode] = useState<UltrasonicWaveMode>('shear');
+  const [reflectionRegime, setReflectionRegime] = useState<UltrasonicReflectionRegime>('auto');
   const { entries: loggedDefects } = useDiscoveredDefectsLog();
 
   // Interactive 3D Isometric Camera Orbit Angles
@@ -105,7 +110,7 @@ export const BeamConeAndDefectExplorer: React.FC<BeamConeAndDefectExplorerProps>
       ? ALL_WELD_DEFECTS_CATALOG
       : ALL_WELD_DEFECTS_CATALOG.filter((d) => d.family === activeFamily);
 
-  const velocityMs = probeAngleDeg === 0 ? 5920 : 3240;
+  const velocityMs = waveMode === 'longitudinal' ? 5920 : 3240;
   const coneMetrics = computeUltrasonicBeamCone({
     frequencyMhz,
     velocityMs,
@@ -144,6 +149,32 @@ export const BeamConeAndDefectExplorer: React.FC<BeamConeAndDefectExplorerProps>
   const currentDefectTolerance = getDefectCodeTolerance(currentDefect.id, selectedCode, plateThicknessMm);
   const activeCodeMeta =
     INSPECTION_CODES_META.find((c) => c.id === selectedCode) || INSPECTION_CODES_META[0];
+
+  const explorerScatterMode: 'specular_planar' | 'corner_trap' | 'volumetric_scatter' | 'tip_diffraction' | 'lamination' =
+    currentDefect.id === 'base_lamination'
+      ? 'lamination'
+      : currentDefect.echoWaveformType === 'sharp_spike_tip'
+      ? 'tip_diffraction'
+      : currentDefect.id === 'root_crack' ||
+        currentDefect.id === 'root_lof' ||
+        currentDefect.id === 'incomplete_penetration'
+      ? 'corner_trap'
+      : currentDefect.category === 'Volumetric'
+      ? 'volumetric_scatter'
+      : 'specular_planar';
+
+  const explorerHitActive = isIn6dBCore || isIn20dBEdge;
+  const explorerOcclusion = explorerHitActive
+    ? Math.min(1, Math.max(0.24, (currentDefect.heightMm * 1.45) / Math.max(3, coneRadius6dB * 2)))
+    : 0;
+  const explorerReflectionBreakdown = computeRayReflectionBreakdown({
+    isHit: explorerHitActive,
+    beamOcclusionRatio: explorerOcclusion,
+    scatterMode: explorerScatterMode,
+    angleDiffDeg: Math.abs(probeAngleDeg - currentDefect.optimalAngleDeg),
+    isStraightZeroBeam: probeAngleDeg === 0,
+    regimeOverride: reflectionRegime,
+  });
 
   // Auto-log 3D volumetric defect discovery when user sweeps probe into -6 dB core intersection
   // (Skipped on very first mount so passive opening doesn't pollute user's inspection log until interaction/hit)
@@ -209,6 +240,7 @@ export const BeamConeAndDefectExplorer: React.FC<BeamConeAndDefectExplorerProps>
     hasInteracted3DRef.current = true;
     setActiveDefectId(def.id);
     setProbeAngleDeg(def.optimalAngleDeg);
+    setWaveMode(def.optimalAngleDeg === 0 ? 'longitudinal' : 'shear');
     const targetX =
       def.optimalAngleDeg === 0
         ? def.distanceFromWeldCenterMm
@@ -965,6 +997,8 @@ export const BeamConeAndDefectExplorer: React.FC<BeamConeAndDefectExplorerProps>
         showNearField,
         isHit: isIn6dBCore,
         animationPhase: phaseSec,
+        waveMode,
+        reflectionBreakdown: explorerReflectionBreakdown,
         defectImpact: {
           x: defCanvasX,
           y: defCanvasY,
@@ -1076,6 +1110,12 @@ export const BeamConeAndDefectExplorer: React.FC<BeamConeAndDefectExplorerProps>
     plateThicknessMm,
     rayXAtFlaw,
     rayXLeg2AtFlaw,
+    waveMode,
+    reflectionRegime,
+    explorerReflectionBreakdown.regime,
+    explorerReflectionBreakdown.reflectedToProbePct,
+    explorerReflectionBreakdown.transmittedBypassPct,
+    explorerReflectionBreakdown.shadowZoneActive,
   ]);
 
   return (
@@ -1334,6 +1374,73 @@ export const BeamConeAndDefectExplorer: React.FC<BeamConeAndDefectExplorerProps>
               height={235}
               className="w-full h-56 rounded-lg bg-slate-950 border border-slate-800 select-none"
             />
+
+            {/* Wave Shape & Directional Reflection Controls */}
+            <div className="p-2 rounded-lg bg-slate-950 border border-slate-800 space-y-1.5 font-mono text-[10px]">
+              <div className="flex flex-wrap items-center justify-between gap-1.5">
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    aria-pressed={waveMode === 'longitudinal'}
+                    onClick={() => setWaveMode('longitudinal')}
+                    className={`px-2 py-0.5 rounded border cursor-pointer font-bold ${
+                      waveMode === 'longitudinal'
+                        ? 'bg-emerald-600 text-white border-emerald-400'
+                        : 'bg-slate-900 text-slate-300 border-slate-800'
+                    }`}
+                  >
+                    {isAr ? 'موجة طولية ⇄' : 'L-Wave ⇄'}
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={waveMode === 'shear'}
+                    onClick={() => setWaveMode('shear')}
+                    className={`px-2 py-0.5 rounded border cursor-pointer font-bold ${
+                      waveMode === 'shear'
+                        ? 'bg-cyan-600 text-white border-cyan-400'
+                        : 'bg-slate-900 text-slate-300 border-slate-800'
+                    }`}
+                  >
+                    {isAr ? 'موجة مستعرضة ⇅' : 'S-Wave ⇅'}
+                  </button>
+                </div>
+                <div className="flex items-center gap-1">
+                  {(
+                    [
+                      { id: 'auto', ar: 'تلقائي', en: 'Auto' },
+                      { id: 'full', ar: 'كلي', en: 'Full' },
+                      { id: 'partial', ar: 'جزئي', en: 'Partial' },
+                    ] as const
+                  ).map((reg) => (
+                    <button
+                      key={reg.id}
+                      type="button"
+                      aria-pressed={reflectionRegime === reg.id}
+                      onClick={() => setReflectionRegime(reg.id)}
+                      className={`px-1.5 py-0.5 rounded border cursor-pointer ${
+                        reflectionRegime === reg.id
+                          ? 'bg-amber-500 text-slate-950 border-amber-300 font-bold'
+                          : 'bg-slate-900 text-slate-400 border-slate-800'
+                      }`}
+                    >
+                      {isAr ? reg.ar : reg.en}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-2 text-[9.5px] tabular-nums text-slate-300">
+                <span className="text-sky-300">TX ▶ {explorerReflectionBreakdown.incidentPct}%</span>
+                <span className="text-emerald-300">ECHO ◀ {explorerReflectionBreakdown.reflectedToProbePct}%</span>
+                <span className="text-amber-300">OFF-AXIS ↗ {explorerReflectionBreakdown.reflectedOffAxisPct}%</span>
+                <span className={explorerReflectionBreakdown.shadowZoneActive ? 'text-rose-300 font-bold' : 'text-cyan-300'}>
+                  {explorerReflectionBreakdown.shadowZoneActive
+                    ? isAr
+                      ? 'ظل صوتي 0%'
+                      : 'SHADOW 0%'
+                    : `PASS ▶ ${explorerReflectionBreakdown.transmittedBypassPct}%`}
+                </span>
+              </div>
+            </div>
           </div>
 
           {/* Interactive Beam Cone Shaping Sliders */}
@@ -1376,6 +1483,7 @@ export const BeamConeAndDefectExplorer: React.FC<BeamConeAndDefectExplorerProps>
                       type="button"
                       onClick={() => {
                         setProbeAngleDeg(ang);
+                        setWaveMode(ang === 0 ? 'longitudinal' : 'shear');
                         if (ang === 0) setProbeStandoffMm(currentDefect.distanceFromWeldCenterMm);
                       }}
                       className={`py-1 rounded border text-[10px] cursor-pointer ${

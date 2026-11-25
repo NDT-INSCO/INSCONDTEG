@@ -34,7 +34,9 @@ import {
   Activity,
   Crosshair,
   Eye,
-  EyeOff
+  EyeOff,
+  Search,
+  Waves
 } from 'lucide-react';
 import {
   DEFAULT_UNIT_SYSTEM_CHANGE_EVENT,
@@ -67,8 +69,89 @@ import {
   GeConversionLogPdfReportData
 } from '../../../utils/geRadiographicExposurePdfGenerator';
 import { IsotopeDecayCurveChart } from './IsotopeDecayCurveChart';
+import { LongitudinalWavePenetrationSim } from './LongitudinalWavePenetrationSim';
 
 export type GeUnitSystem = 'metric' | 'imperial';
+
+export type GePresetId =
+  | 'pipe_2in_ir'
+  | 'pipe_6in_ir'
+  | 'plate_se75'
+  | 'vessel_co60'
+  | 'tube_xray';
+
+export type GePresetCategoryId = 'pipe' | 'plate' | 'vessel' | 'xray';
+
+export interface GePresetCategoryMeta {
+  id: GePresetCategoryId;
+  labelEn: string;
+  labelAr: string;
+}
+
+export interface GeIndustryPresetMeta {
+  id: GePresetId;
+  testId: string;
+  category: GePresetCategoryId;
+  labelEn: string;
+  labelAr: string;
+  sourceLabel: string;
+  searchKeywords: string;
+}
+
+export const GE_PRESET_CATEGORIES: GePresetCategoryMeta[] = [
+  { id: 'pipe', labelEn: 'Pipe', labelAr: 'أنابيب' },
+  { id: 'plate', labelEn: 'Plate', labelAr: 'ألواح' },
+  { id: 'vessel', labelEn: 'Vessel', labelAr: 'أوعية ضغط' },
+  { id: 'xray', labelEn: 'X-Ray', labelAr: 'أشعة سينية' }
+];
+
+export const GE_INDUSTRY_PRESETS: GeIndustryPresetMeta[] = [
+  {
+    id: 'pipe_2in_ir',
+    testId: 'preset-pipe-2in',
+    category: 'pipe',
+    labelEn: '2" Pipe Elliptical (Ir-192 DWDI)',
+    labelAr: 'أنبوب 2 بوصة بيضاوي (Ir-192 DWDI)',
+    sourceLabel: 'Ir-192',
+    searchKeywords: '2 pipe elliptical ir192 ir-192 iridium dwdi'
+  },
+  {
+    id: 'pipe_6in_ir',
+    testId: 'preset-pipe-6in',
+    category: 'pipe',
+    labelEn: '6" Pipe Contact (Ir-192 DWSI)',
+    labelAr: 'أنبوب 6 بوصة ملامس (Ir-192 DWSI)',
+    sourceLabel: 'Ir-192',
+    searchKeywords: '6 pipe contact ir192 ir-192 iridium dwsi'
+  },
+  {
+    id: 'plate_se75',
+    testId: 'preset-plate-se75',
+    category: 'plate',
+    labelEn: '10mm Plate (Se-75 SWSI)',
+    labelAr: 'لوح 10 مم (Se-75 SWSI)',
+    sourceLabel: 'Se-75',
+    searchKeywords: '10mm plate se75 se-75 selenium swsi'
+  },
+  {
+    id: 'vessel_co60',
+    testId: 'preset-vessel-co60',
+    category: 'vessel',
+    labelEn: '65mm Vessel (Co-60 Heavy)',
+    labelAr: 'وعاء ضغط 65 مم (Co-60 ثقيل)',
+    sourceLabel: 'Co-60',
+    searchKeywords: '65mm vessel heavy co60 co-60 cobalt swsi'
+  },
+  {
+    id: 'tube_xray',
+    testId: 'preset-tube-xray',
+    category: 'xray',
+    labelEn: '6mm Tube (X-Ray 180kV)',
+    labelAr: 'ماسورة 6 مم (X-Ray 180kV)',
+    sourceLabel: 'X-Ray',
+    searchKeywords: '6mm tube x-ray xray 180kv directional tube_xray'
+  }
+];
 
 export const GE_PB_PHOTOELECTRON_PATHS_STORAGE_KEY = 'ge_app_pb_photoelectron_paths_visible';
 export type GePbGhostTrailLength = 'short' | 'medium' | 'long';
@@ -1682,6 +1765,14 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
   const [realtime4dSpeed, setRealtime4dSpeed] = useState<0.5 | 1 | 2>(1);
   const [realtime4dHorizonHalfLives, setRealtime4dHorizonHalfLives] = useState<2 | 3 | 5>(3);
 
+  // Quick Industry Presets Categorized Tabs, Dropdown & Search Filter State
+  const [presetCategoryTab, setPresetCategoryTab] = useState<GePresetCategoryId>('pipe');
+  const [activePresetId, setActivePresetId] = useState<GePresetId | null>(null);
+  const [presetSearchQuery, setPresetSearchQuery] = useState<string>('');
+
+  // Ultrasonic Longitudinal Waves Simulation Option inside #ge-exposure-calculator-app
+  const [showLongitudinalWaveSim, setShowLongitudinalWaveSim] = useState<boolean>(false);
+
   // Audio tone helper
   const playBeep = (freq: number = 880, durationMs: number = 180) => {
     if (!soundEnabled) return;
@@ -2146,6 +2237,10 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
     setIs4dPlaying(false);
     setIsRealtime4dPlaying(false);
     setRealtime4dHorizonHalfLives(3);
+    setPresetCategoryTab('pipe');
+    setActivePresetId(null);
+    setPresetSearchQuery('');
+    setShowLongitudinalWaveSim(false);
 
     setResetConfirmed(true);
     setTimeout(() => setResetConfirmed(false), 2000);
@@ -2278,7 +2373,12 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
   };
 
   // Quick Preset Loader
-  const loadPreset = (presetKey: 'pipe_2in_ir' | 'pipe_6in_ir' | 'plate_se75' | 'vessel_co60' | 'tube_xray') => {
+  const loadPreset = (presetKey: GePresetId) => {
+    const matchedMeta = GE_INDUSTRY_PRESETS.find((item) => item.id === presetKey);
+    if (matchedMeta) {
+      setPresetCategoryTab(matchedMeta.category);
+    }
+    setActivePresetId(presetKey);
     if (presetKey === 'pipe_2in_ir') {
       selectAndTrackSource('ir192');
       setTechnique('dwdi_elliptical');
@@ -2329,6 +2429,27 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
       setTargetOpticalDensity(2.2);
     }
   };
+
+  const normalizedPresetSearch = presetSearchQuery.trim().toLowerCase();
+  const visiblePresets = useMemo(() => {
+    if (normalizedPresetSearch) {
+      return GE_INDUSTRY_PRESETS.filter((preset) => {
+        const catMeta = GE_PRESET_CATEGORIES.find((c) => c.id === preset.category);
+        const haystack = [
+          preset.labelEn,
+          preset.labelAr,
+          preset.sourceLabel,
+          preset.searchKeywords,
+          catMeta?.labelEn ?? '',
+          catMeta?.labelAr ?? ''
+        ]
+          .join(' ')
+          .toLowerCase();
+        return haystack.includes(normalizedPresetSearch);
+      });
+    }
+    return GE_INDUSTRY_PRESETS.filter((preset) => preset.category === presetCategoryTab);
+  }, [normalizedPresetSearch, presetCategoryTab]);
 
   const formatMinSec = (totalSecs: number) => {
     const m = Math.floor(totalSecs / 60);
@@ -2506,6 +2627,7 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
 
   return (
     <div
+      id="ge-exposure-calculator-app"
       dir={isAr ? 'rtl' : 'ltr'}
       data-testid="ge-exposure-calculator-app"
       className={`rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xl p-6 sm:p-8 space-y-6 ${className}`}
@@ -2535,7 +2657,7 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2.5">
           {/* Unit System Toggle (Metric mm/cm vs Imperial in/ft) + Conversion Log */}
           <div ref={unitTogglerRef} className="relative">
             <div
@@ -2602,130 +2724,137 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
             </div>
 
             {/* Conversion Log Dropdown Popover */}
-            {showConversionLog && (
-              <div
-                data-testid="ge-conversion-log-panel"
-                className={`absolute top-full mt-2 ${
-                  isAr ? 'left-0' : 'right-0'
-                } z-50 w-80 sm:w-96 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl p-4 space-y-3 text-xs font-mono`}
-              >
-                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
-                  <div className="flex items-center gap-1.5 font-bold text-slate-900 dark:text-white">
-                    <ArrowLeftRight className="w-4 h-4 text-amber-500" />
-                    <span>{isAr ? 'سجل تحويلات الوحدات (آخر 5)' : 'Conversion Log (Last 5)'}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    {conversionLog.length > 0 && (
-                      <>
-                        <button
-                          type="button"
-                          data-testid="ge-conversion-log-export-pdf-btn"
-                          onClick={handleExportConversionLogPdf}
-                          className={`px-2 py-1 rounded-lg text-[10px] font-bold transition flex items-center gap-1 cursor-pointer ${
-                            conversionPdfExportedConfirmed
-                              ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                              : 'text-amber-600 dark:text-amber-400 hover:bg-amber-500/10'
-                          }`}
-                          title={isAr ? 'تصدير السجل كملف PDF منسق' : 'Export conversion log as structured PDF report'}
-                        >
-                          <FileText className="w-3 h-3 shrink-0" aria-hidden="true" />
-                          <span>
-                            {conversionPdfExportedConfirmed
-                              ? (isAr ? 'تم التصدير' : 'PDF Exported')
-                              : (isAr ? 'تصدير PDF' : 'Export PDF')}
-                          </span>
-                        </button>
-                        <button
-                          type="button"
-                          data-testid="ge-conversion-log-clear-btn"
-                          onClick={handleClearConversionLog}
-                          className="px-2 py-1 rounded-lg text-[10px] text-red-500 hover:bg-red-500/10 transition flex items-center gap-1 cursor-pointer"
-                          title={isAr ? 'مسح السجل' : 'Clear Conversion Log'}
-                        >
-                          <Trash2 className="w-3 h-3 shrink-0" aria-hidden="true" />
-                          <span>{isAr ? 'مسح' : 'Clear'}</span>
-                        </button>
-                      </>
-                    )}
-                    <button
-                      type="button"
-                      data-testid="ge-conversion-log-close-btn"
-                      onClick={() => setShowConversionLog(false)}
-                      className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white cursor-pointer"
-                      aria-label={isAr ? 'إغلاق السجل' : 'Close Conversion Log'}
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-
-                {conversionLog.length === 0 ? (
-                  <div
-                    data-testid="ge-conversion-log-empty"
-                    className="py-5 text-center text-[11px] text-slate-500 dark:text-slate-400 space-y-1"
-                  >
-                    <History className="w-6 h-6 mx-auto text-slate-400 opacity-60" />
-                    <p>
-                      {isAr
-                        ? 'لا توجد تحويلات مسجلة بعد. بدّل بين المتري والإمبراطوري لحفظ السجل تلقائياً.'
-                        : 'No conversions logged yet. Switch between Metric & Imperial to record history.'}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-2 max-h-72 overflow-y-auto pr-0.5">
-                    {conversionLog.map((entry, idx) => (
-                      <div
-                        key={entry.id}
-                        data-testid={`ge-conversion-log-entry-${idx}`}
-                        className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1.5 hover:border-amber-500/40 transition"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-300 font-bold text-[10px]">
-                            <span>{entry.fromUnit === 'metric' ? 'mm/cm' : 'in/ft'}</span>
-                            <ArrowRight className="w-2.5 h-2.5" />
-                            <span>{entry.toUnit === 'metric' ? 'mm/cm' : 'in/ft'}</span>
-                          </span>
-                          <span className="text-[10px] text-slate-400 tabular-nums">{entry.timestamp}</span>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-1.5 text-[11px] text-slate-700 dark:text-slate-300">
-                          <div>
-                            <span className="text-slate-400 block text-[9px]">
-                              {isAr ? 'السُمك (t):' : 'Wall (t):'}
-                            </span>
-                            <strong>
-                              {entry.thicknessMm} mm ⇄ {entry.thicknessInches} in
-                            </strong>
-                          </div>
-                          <div>
-                            <span className="text-slate-400 block text-[9px]">
-                              {isAr ? 'المسافة (SFD):' : 'SFD:'}
-                            </span>
-                            <strong>
-                              {entry.sfdCm} cm ⇄ {entry.sfdInches} in
-                            </strong>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between pt-1 border-t border-slate-200/70 dark:border-slate-800/70 text-[10px]">
-                          <span className="text-emerald-600 dark:text-emerald-400 font-bold">
-                            {entry.sourceLabel} · {entry.formattedDuration} ({entry.calculatedTotalSeconds}s)
-                          </span>
+            <AnimatePresence>
+              {showConversionLog && (
+                <motion.div
+                  key="ge-conversion-log-panel"
+                  data-testid="ge-conversion-log-panel"
+                  initial={{ opacity: 0, x: isAr ? -32 : 32 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: isAr ? -32 : 32 }}
+                  transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                  className={`absolute top-full mt-2 ${
+                    isAr ? 'left-0' : 'right-0'
+                  } z-50 w-80 sm:w-96 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl p-4 space-y-3 text-xs font-mono`}
+                >
+                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+                    <div className="flex items-center gap-1.5 font-bold text-slate-900 dark:text-white">
+                      <ArrowLeftRight className="w-4 h-4 shrink-0 text-amber-500" />
+                      <span>{isAr ? 'سجل تحويلات الوحدات (آخر 5)' : 'Conversion Log (Last 5)'}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      {conversionLog.length > 0 && (
+                        <>
                           <button
                             type="button"
-                            data-testid={`ge-conversion-log-restore-${idx}`}
-                            onClick={() => handleRestoreConversionEntry(entry)}
-                            className="px-2 py-0.5 rounded-md bg-sky-500/10 hover:bg-sky-500 hover:text-white text-sky-600 dark:text-sky-400 font-bold transition cursor-pointer"
+                            data-testid="ge-conversion-log-export-pdf-btn"
+                            onClick={handleExportConversionLogPdf}
+                            className={`px-2 py-1 rounded-lg text-[10px] font-bold transition flex items-center gap-1 cursor-pointer ${
+                              conversionPdfExportedConfirmed
+                                ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                                : 'text-amber-600 dark:text-amber-400 hover:bg-amber-500/10'
+                            }`}
+                            title={isAr ? 'تصدير السجل كملف PDF منسق' : 'Export conversion log as structured PDF report'}
                           >
-                            {isAr ? 'تطبيق' : 'Apply'}
+                            <FileText className="w-3 h-3 shrink-0" aria-hidden="true" />
+                            <span>
+                              {conversionPdfExportedConfirmed
+                                ? (isAr ? 'تم التصدير' : 'PDF Exported')
+                                : (isAr ? 'تصدير PDF' : 'Export PDF')}
+                            </span>
                           </button>
-                        </div>
-                      </div>
-                    ))}
+                          <button
+                            type="button"
+                            data-testid="ge-conversion-log-clear-btn"
+                            onClick={handleClearConversionLog}
+                            className="px-2 py-1 rounded-lg text-[10px] text-red-500 hover:bg-red-500/10 transition flex items-center gap-1 cursor-pointer"
+                            title={isAr ? 'مسح السجل' : 'Clear Conversion Log'}
+                          >
+                            <Trash2 className="w-3 h-3 shrink-0" aria-hidden="true" />
+                            <span>{isAr ? 'مسح' : 'Clear'}</span>
+                          </button>
+                        </>
+                      )}
+                      <button
+                        type="button"
+                        data-testid="ge-conversion-log-close-btn"
+                        onClick={() => setShowConversionLog(false)}
+                        className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white cursor-pointer"
+                        aria-label={isAr ? 'إغلاق السجل' : 'Close Conversion Log'}
+                      >
+                        <X className="w-3.5 h-3.5 shrink-0" />
+                      </button>
+                    </div>
                   </div>
-                )}
-              </div>
-            )}
+
+                  {conversionLog.length === 0 ? (
+                    <div
+                      data-testid="ge-conversion-log-empty"
+                      className="py-5 text-center text-[11px] text-slate-500 dark:text-slate-400 space-y-1"
+                    >
+                      <History className="w-6 h-6 shrink-0 mx-auto text-slate-400 opacity-60" />
+                      <p>
+                        {isAr
+                          ? 'لا توجد تحويلات مسجلة بعد. بدّل بين المتري والإمبراطوري لحفظ السجل تلقائياً.'
+                          : 'No conversions logged yet. Switch between Metric & Imperial to record history.'}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-72 overflow-y-auto pr-0.5">
+                      {conversionLog.map((entry, idx) => (
+                        <div
+                          key={entry.id}
+                          data-testid={`ge-conversion-log-entry-${idx}`}
+                          className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1.5 hover:border-amber-500/40 transition"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-300 font-bold text-[10px]">
+                              <span>{entry.fromUnit === 'metric' ? 'mm/cm' : 'in/ft'}</span>
+                              <ArrowRight className="w-2.5 h-2.5 shrink-0" />
+                              <span>{entry.toUnit === 'metric' ? 'mm/cm' : 'in/ft'}</span>
+                            </span>
+                            <span className="text-[10px] text-slate-400 tabular-nums">{entry.timestamp}</span>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-1.5 text-[11px] text-slate-700 dark:text-slate-300">
+                            <div>
+                              <span className="text-slate-400 block text-[9px]">
+                                {isAr ? 'السُمك (t):' : 'Wall (t):'}
+                              </span>
+                              <strong>
+                                {entry.thicknessMm} mm ⇄ {entry.thicknessInches} in
+                              </strong>
+                            </div>
+                            <div>
+                              <span className="text-slate-400 block text-[9px]">
+                                {isAr ? 'المسافة (SFD):' : 'SFD:'}
+                              </span>
+                              <strong>
+                                {entry.sfdCm} cm ⇄ {entry.sfdInches} in
+                              </strong>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between pt-1 border-t border-slate-200/70 dark:border-slate-800/70 text-[10px]">
+                            <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                              {entry.sourceLabel} · {entry.formattedDuration} ({entry.calculatedTotalSeconds}s)
+                            </span>
+                            <button
+                              type="button"
+                              data-testid={`ge-conversion-log-restore-${idx}`}
+                              onClick={() => handleRestoreConversionEntry(entry)}
+                              className="px-2 py-0.5 rounded-md bg-sky-500/10 hover:bg-sky-500 hover:text-white text-sky-600 dark:text-sky-400 font-bold transition cursor-pointer"
+                            >
+                              {isAr ? 'تطبيق' : 'Apply'}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           <button
@@ -2817,58 +2946,242 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
       )}
 
       {/* -------------------------------------------------------------------
-          QUICK FIELD PRESETS BAR
+          SIMULATION MODE SELECTOR (RT EXPOSURE vs ULTRASONIC LONGITUDINAL WAVES)
       ------------------------------------------------------------------- */}
-      <div className="flex flex-wrap items-center gap-2 text-xs">
+      <div
+        data-testid="ge-simulation-mode-bar"
+        className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-950/80 p-3 text-xs"
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+            <Activity className="w-4 h-4 shrink-0 text-cyan-500" aria-hidden="true" />
+            <span>{isAr ? 'نمط محاكاة الفحص والاختراق:' : 'Penetration Simulation Mode:'}</span>
+          </span>
+
+          <div
+            role="group"
+            aria-label={isAr ? 'خيارات المحاكاة داخل التطبيق' : 'In-App Simulation Modes'}
+            className="flex flex-wrap items-center gap-1.5"
+          >
+            <button
+              type="button"
+              data-testid="ge-mode-rt-btn"
+              aria-pressed={!showLongitudinalWaveSim}
+              onClick={() => setShowLongitudinalWaveSim(false)}
+              className={`px-3 py-1.5 rounded-xl border font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                !showLongitudinalWaveSim
+                  ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-sm'
+                  : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-amber-500/60'
+              }`}
+            >
+              <Radio className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+              <span>{isAr ? 'التصوير الإشعاعي (RT)' : 'Radiographic Exposure (RT)'}</span>
+            </button>
+
+            <button
+              id="ge-longitudinal-wave-option"
+              type="button"
+              data-testid="ge-longitudinal-wave-option-btn"
+              aria-pressed={showLongitudinalWaveSim}
+              onClick={() => setShowLongitudinalWaveSim((prev) => !prev)}
+              className={`px-3 py-1.5 rounded-xl border font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                showLongitudinalWaveSim
+                  ? 'bg-cyan-500 text-slate-950 border-cyan-400 shadow-sm font-black'
+                  : 'bg-white dark:bg-slate-900 border-cyan-500/40 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-500/10'
+              }`}
+            >
+              <Waves className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+              <span>
+                {isAr
+                  ? 'الموجات الطولية (Longitudinal Waves)'
+                  : 'Longitudinal Waves (الموجات الطولية)'}
+              </span>
+              <span className="px-1.5 py-0.5 rounded bg-slate-950/15 text-[10px] font-mono uppercase">
+                {showLongitudinalWaveSim ? (isAr ? 'نشط' : 'ON') : 'UT'}
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
+          {showLongitudinalWaveSim
+            ? (isAr
+                ? 'يعرض شكل الموجة الطولية وتغيّر كثافة التضاغط عند اختراق المادة المختارة'
+                : 'Showing longitudinal compression/rarefaction shape & penetration density shift')
+            : (isAr
+                ? 'فعّل "الموجات الطولية" لمحاكاة شكل الموجة وتغير كثافتها عند الاختراق'
+                : 'Select "Longitudinal Waves" to simulate ultrasonic wave shape & density on penetration')}
+        </span>
+      </div>
+
+      {/* Ultrasonic Longitudinal Waves Penetration Simulator (Activated via Longitudinal Waves option) */}
+      {showLongitudinalWaveSim && (
+        <LongitudinalWavePenetrationSim
+          language={language}
+          materialId={materialId}
+          onChangeMaterialId={setMaterialId}
+          materialThicknessMm={materialThicknessMm}
+          onChangeThicknessMm={setMaterialThicknessMm}
+          unitSystem={unitSystem}
+        />
+      )}
+
+      {/* -------------------------------------------------------------------
+          QUICK FIELD PRESETS BAR (CATEGORIZED TABS, DROPDOWN & SEARCH)
+      ------------------------------------------------------------------- */}
+      <div
+        data-testid="ge-quick-presets-bar"
+        className="flex flex-wrap items-center gap-2 text-xs rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-slate-50/70 dark:bg-slate-900/50 p-2.5"
+      >
         <span className="font-bold text-slate-600 dark:text-slate-400 flex items-center gap-1.5 me-1">
-          <Sliders className="w-3.5 h-3.5 text-amber-500" />
+          <Sliders className="w-3.5 h-3.5 text-amber-500 shrink-0" />
           <span>{isAr ? 'نماذج الاختبار السريعة الجاهزة:' : 'Quick Industry Presets:'}</span>
         </span>
 
-        <button
-          type="button"
-          data-testid="preset-pipe-2in"
-          onClick={() => loadPreset('pipe_2in_ir')}
-          className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 hover:border-amber-500 font-mono transition cursor-pointer"
+        {/* Categorized Tabs */}
+        <div
+          role="tablist"
+          aria-label={isAr ? 'تصنيفات نماذج الاختبار' : 'Preset Categories'}
+          data-testid="ge-preset-category-tabs"
+          className="flex flex-wrap items-center gap-1 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-1"
         >
-          2" Pipe Elliptical (Ir-192 DWDI)
-        </button>
+          {GE_PRESET_CATEGORIES.map((category) => {
+            const count = GE_INDUSTRY_PRESETS.filter((p) => p.category === category.id).length;
+            const isSelected = !normalizedPresetSearch && presetCategoryTab === category.id;
+            return (
+              <button
+                key={category.id}
+                type="button"
+                role="tab"
+                aria-selected={isSelected}
+                data-testid={`ge-preset-tab-${category.id}`}
+                onClick={() => {
+                  setPresetCategoryTab(category.id);
+                  if (presetSearchQuery) {
+                    setPresetSearchQuery('');
+                  }
+                }}
+                className={`px-2.5 py-1 rounded-lg font-semibold transition flex items-center gap-1.5 cursor-pointer ${
+                  isSelected
+                    ? 'bg-amber-500 text-slate-950 shadow-sm'
+                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                <span>{isAr ? category.labelAr : category.labelEn}</span>
+                <span
+                  className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono tabular-nums ${
+                    isSelected
+                      ? 'bg-slate-950/15 text-slate-950'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                  }`}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
 
-        <button
-          type="button"
-          data-testid="preset-pipe-6in"
-          onClick={() => loadPreset('pipe_6in_ir')}
-          className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 hover:border-amber-500 font-mono transition cursor-pointer"
+        {/* Categorized Quick-Select Dropdown */}
+        <select
+          aria-label={isAr ? 'اختر نموذجاً سريعاً حسب الفئة' : 'Quick select preset by category'}
+          data-testid="ge-preset-category-select"
+          value={activePresetId ?? ''}
+          onChange={(e) => {
+            const val = e.target.value as GePresetId | '';
+            if (val) {
+              loadPreset(val);
+            }
+          }}
+          className="px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-200 font-medium focus:outline-none focus:border-amber-500 cursor-pointer"
         >
-          6" Pipe Contact (Ir-192 DWSI)
-        </button>
+          <option value="">{isAr ? 'انتقال سريع حسب الفئة...' : 'Jump to preset...'}</option>
+          {GE_PRESET_CATEGORIES.map((category) => (
+            <optgroup key={category.id} label={isAr ? category.labelAr : category.labelEn}>
+              {GE_INDUSTRY_PRESETS.filter((p) => p.category === category.id).map((preset) => (
+                <option key={preset.id} value={preset.id}>
+                  {isAr ? preset.labelAr : preset.labelEn}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
 
-        <button
-          type="button"
-          data-testid="preset-plate-se75"
-          onClick={() => loadPreset('plate_se75')}
-          className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 hover:border-amber-500 font-mono transition cursor-pointer"
-        >
-          10mm Plate (Se-75 SWSI)
-        </button>
+        {/* Search Input Filter by Name or Source Type */}
+        <div className="relative flex items-center min-w-[190px] flex-1 sm:flex-initial">
+          <Search className="w-3.5 h-3.5 text-slate-400 shrink-0 absolute start-2.5 pointer-events-none" />
+          <input
+            type="text"
+            value={presetSearchQuery}
+            onChange={(e) => setPresetSearchQuery(e.target.value)}
+            data-testid="ge-preset-search-input"
+            aria-label={
+              isAr
+                ? 'ابحث في النماذج بالاسم أو نوع المصدر'
+                : 'Search quick presets by name or source type'
+            }
+            placeholder={
+              isAr ? 'بحث بالاسم أو المصدر (Ir-192, Co-60)...' : 'Filter by name or source (Ir-192, Se-75)...'
+            }
+            className="w-full ps-8 pe-7 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:border-amber-500"
+          />
+          {presetSearchQuery && (
+            <button
+              type="button"
+              data-testid="ge-preset-search-clear"
+              aria-label={isAr ? 'مسح البحث' : 'Clear preset search'}
+              onClick={() => setPresetSearchQuery('')}
+              className="absolute end-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5 shrink-0" />
+            </button>
+          )}
+        </div>
 
-        <button
-          type="button"
-          data-testid="preset-vessel-co60"
-          onClick={() => loadPreset('vessel_co60')}
-          className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 hover:border-amber-500 font-mono transition cursor-pointer"
+        {/* Active Category or Search Match Preset Buttons */}
+        <div
+          data-testid="ge-preset-buttons-list"
+          className="flex flex-wrap items-center gap-2 basis-full sm:basis-auto"
         >
-          65mm Vessel (Co-60 Heavy)
-        </button>
-
-        <button
-          type="button"
-          data-testid="preset-tube-xray"
-          onClick={() => loadPreset('tube_xray')}
-          className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 hover:border-amber-500 font-mono transition cursor-pointer"
-        >
-          6mm Tube (X-Ray 180kV)
-        </button>
+          {visiblePresets.length > 0 ? (
+            visiblePresets.map((preset) => {
+              const isActive = activePresetId === preset.id;
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  data-testid={preset.testId}
+                  onClick={() => loadPreset(preset.id)}
+                  className={`px-3 py-1.5 rounded-xl border font-mono transition cursor-pointer ${
+                    isActive
+                      ? 'border-amber-500 bg-amber-500/15 text-amber-700 dark:text-amber-300 font-bold'
+                      : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-300 hover:border-amber-500'
+                  }`}
+                >
+                  {isAr ? preset.labelAr : preset.labelEn}
+                </button>
+              );
+            })
+          ) : (
+            <div
+              data-testid="ge-preset-search-empty"
+              className="flex flex-wrap items-center gap-2 px-3 py-1.5 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400"
+            >
+              <span>
+                {isAr
+                  ? `لا توجد نماذج مطابقة لـ "${presetSearchQuery}"`
+                  : `No presets matching "${presetSearchQuery}"`}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPresetSearchQuery('')}
+                className="text-amber-600 dark:text-amber-400 font-bold underline cursor-pointer"
+              >
+                {isAr ? 'إعادة ضبط' : 'Clear'}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* -------------------------------------------------------------------
@@ -4943,6 +5256,20 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                   )}
                   <button
                     type="button"
+                    data-testid="ge-beam-toggle-longitudinal-waves"
+                    aria-pressed={showLongitudinalWaveSim}
+                    onClick={() => setShowLongitudinalWaveSim((prev) => !prev)}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono font-bold transition-colors cursor-pointer ${
+                      showLongitudinalWaveSim
+                        ? 'bg-cyan-500 text-slate-950 border-cyan-400 shadow-sm'
+                        : 'bg-white dark:bg-slate-900 border-cyan-500/40 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-500/10'
+                    }`}
+                  >
+                    <Waves className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                    <span>{isAr ? 'الموجات الطولية (UT)' : 'Longitudinal Waves'}</span>
+                  </button>
+                  <button
+                    type="button"
                     data-testid="ge-4d-view-toggle"
                     aria-pressed={is4dViewActive}
                     onClick={handleToggle4dView}
@@ -6757,30 +7084,36 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
           PRINTABLE TECHNIQUE SHEET MODAL (ASME SECTION V ARTICLE 2)
       ------------------------------------------------------------------- */}
       {showTechniqueSheetModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 sm:p-8 max-w-2xl w-full space-y-6 shadow-2xl overflow-y-auto max-h-[90vh]">
-            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+        <div
+          id="ge-technique-card-modal"
+          data-testid="ge-technique-card-modal"
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 print:static print:block print:bg-white print:p-0"
+        >
+          <div className="ge-technique-card-sheet rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 sm:p-8 max-w-2xl w-full space-y-6 shadow-2xl overflow-y-auto max-h-[90vh] print:max-w-none print:max-h-none print:overflow-visible print:rounded-lg print:border-slate-700 print:bg-white print:text-slate-900 print:shadow-none">
+            <div className="ge-technique-card-header flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
               <div className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-amber-500" />
-                <h3 className="text-lg font-black text-slate-900 dark:text-white">
+                <FileText className="w-5 h-5 text-amber-500 print:text-slate-800" />
+                <h3 className="text-lg font-black text-slate-900 dark:text-white print:text-slate-900">
                   {isAr ? 'كارت تقنية التصوير الإشعاعي (ASME Sec V Technique Card)' : 'ASME Sec V Article 2 Radiographic Technique Card'}
                 </h3>
               </div>
               <button
+                type="button"
+                aria-label={isAr ? 'إغلاق كارت التقنية' : 'Close Technique Card'}
                 onClick={() => setShowTechniqueSheetModal(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white cursor-pointer"
+                className="ge-technique-card-no-print p-1.5 rounded-lg text-slate-400 hover:text-white cursor-pointer print:hidden"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Technique Card Body */}
-            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-4 space-y-3 font-mono text-xs">
+            <div className="ge-technique-card-body rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-4 space-y-3 font-mono text-xs print:bg-slate-50 print:text-slate-900 print:border-slate-300">
               <div className="flex justify-between border-b border-slate-200/60 dark:border-slate-800/60 pb-2">
                 <span>GOVERNING STANDARD:</span>
-                <span className="font-bold text-amber-500">ASME Section V Article 2 / Section VIII Div 1</span>
+                <span className="font-bold text-amber-500 print:text-slate-900">ASME Section V Article 2 / Section VIII Div 1</span>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="ge-technique-card-grid grid grid-cols-2 gap-2">
                 <div>SOURCE: {selectedIsotope.nameEn}</div>
                 <div>ACTIVITY: {calcResult.currentLiveActivityCi} Ci (Decayed)</div>
                 <div>MATERIAL: {selectedMaterial.nameEn}</div>
@@ -6817,11 +7150,16 @@ export const GeRadiographicExposureTimeApp: React.FC<GeRadiographicExposureTimeA
                 <div>
                   CALCULATED Ug: {calcResult.calculatedUgMm} mm ({(calcResult.calculatedUgMm / 25.4).toFixed(4)} in) ({calcResult.passesAsmeUg ? 'PASS' : 'FAIL'})
                 </div>
-                <div className="font-bold text-emerald-500">EXPOSURE: {calcResult.formattedDuration}</div>
+                <div className="font-bold text-emerald-500 print:text-slate-900">EXPOSURE: {calcResult.formattedDuration}</div>
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
+            <div className="ge-technique-card-print-meta hidden print:flex">
+              <span>INSCO Radiographic Technique Summary</span>
+              <span>Ug Limit Status: {calcResult.passesAsmeUg ? 'PASS' : 'REVIEW'}</span>
+            </div>
+
+            <div className="ge-technique-card-no-print flex flex-wrap items-center justify-end gap-3 pt-2 print:hidden">
               <button
                 type="button"
                 data-testid="ge-modal-export-pdf-btn"

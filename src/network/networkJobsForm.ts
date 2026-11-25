@@ -41,6 +41,34 @@ export function opportunityTypeById(id: string) {
   return NETWORK_OPPORTUNITY_TYPES.find(type => type.id === id);
 }
 
+import type {
+  CommunityEmploymentType,
+  CommunityExperienceLevel,
+} from '../client/types';
+
+export const NETWORK_EMPLOYMENT_TYPES: {
+  id: CommunityEmploymentType;
+  ar: string;
+  en: string;
+}[] = [
+  { id: 'full_time', ar: 'دوام كامل', en: 'Full-time' },
+  { id: 'contract', ar: 'عقد مشروع', en: 'Project contract' },
+  { id: 'shutdown', ar: 'إيقاف تشغيل (Shutdown / TAR)', en: 'Shutdown / Turnaround' },
+  { id: 'freelance', ar: 'مهمة مستقلة / مفتش حر', en: 'Freelance / Independent' },
+  { id: 'internship', ar: 'تدريب مهني', en: 'Internship' },
+];
+
+export const NETWORK_EXPERIENCE_LEVELS: {
+  id: CommunityExperienceLevel;
+  ar: string;
+  en: string;
+}[] = [
+  { id: 'junior', ar: 'مبتدئ / Level I', en: 'Junior / Level I' },
+  { id: 'mid', ar: 'متوسط / Level II', en: 'Mid / Level II' },
+  { id: 'senior', ar: 'خبير / Senior Level II-III', en: 'Senior / Level II–III' },
+  { id: 'lead', ar: 'قيادي / Level III & مدير', en: 'Lead / Level III & Manager' },
+];
+
 export interface NetworkJobDraft {
   type: CommunityOpportunityType;
   title: string;
@@ -48,6 +76,9 @@ export interface NetworkJobDraft {
   /** Comma separated method codes, as typed. */
   methods: string;
   requirements: string;
+  employmentType?: CommunityEmploymentType;
+  experienceLevel?: CommunityExperienceLevel;
+  salaryRange?: string;
 }
 
 export const EMPTY_JOB_DRAFT: NetworkJobDraft = {
@@ -56,6 +87,9 @@ export const EMPTY_JOB_DRAFT: NetworkJobDraft = {
   location: '',
   methods: '',
   requirements: '',
+  employmentType: 'full_time',
+  experienceLevel: 'mid',
+  salaryRange: '',
 };
 
 export type NetworkJobField = keyof NetworkJobDraft;
@@ -149,11 +183,15 @@ export interface NetworkJobAuthor {
 
 /** Draft → the exact input `createCommunityOpportunity` accepts. */
 export function toOpportunityInput(draft: NetworkJobDraft, author: NetworkJobAuthor) {
+  const salaryRange = trimmed(draft.salaryRange ?? '');
   return {
     authorName: trimmed(author.displayName),
     authorOrg: trimmed(author.organizationName),
     ...(author.companyCode ? { companyCode: author.companyCode } : {}),
     opportunityType: draft.type,
+    ...(draft.employmentType ? { employmentType: draft.employmentType } : {}),
+    ...(draft.experienceLevel ? { experienceLevel: draft.experienceLevel } : {}),
+    ...(salaryRange ? { salaryRange: salaryRange.slice(0, 80) } : {}),
     title: trimmed(draft.title),
     location: trimmed(draft.location),
     // The service substitutes ['GENERAL'] when empty, but the rules require 1–8,

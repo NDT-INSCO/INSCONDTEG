@@ -382,3 +382,21 @@ textarea.ad-input { resize: vertical; line-height: 1.65; }
   .ad-filters .ad-filter-search { flex-basis: 100%; }
   .ad-announcement-shortcut button { margin-inline-start: 0; }
 }
+
+
+/* AI agents workspace — status is observational; execution controls are intentionally separate. */
+.ad-agent-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.ad-agent-card { min-width: 0; padding: 15px; border: 1px solid var(--ad-edge); border-radius: 12px; background: var(--ad-panel); }
+.ad-agent-card h3 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: .94rem; }
+.ad-agent-card p { margin: 8px 0 0; color: var(--ad-muted); font-size: .82rem; line-height: 1.6; }
+.ad-agent-topline { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.ad-agent-state { display: inline-flex; align-items: center; gap: 6px; color: var(--ad-muted); font-size: .74rem; white-space: nowrap; }
+.ad-agent-state .ad-dot { width: 7px; height: 7px; }
+.ad-agent-state.is-on { color: var(--ad-teal, #6bc8b2); }
+.ad-agent-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.ad-agent-summary > div { min-width: 0; padding: 13px; border: 1px solid var(--ad-edge); border-radius: 11px; background: var(--ad-inset); }
+.ad-agent-summary small { display: block; color: var(--ad-faint); font-size: .72rem; }
+.ad-agent-summary strong { display: block; margin-top: 5px; overflow-wrap: anywhere; font-size: .96rem; }
+.ad-agent-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 9px; }
+@media (max-width: 760px) { .ad-sidebar-nav { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .ad-agent-grid { grid-template-columns: minmax(0, 1fr); } .ad-agent-summary { grid-template-columns: minmax(0, 1fr); } }

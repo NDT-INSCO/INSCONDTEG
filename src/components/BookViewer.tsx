@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import './BookViewer.css';
 import { clickable, clickableRow } from '../utils/a11y';
 import { 
   BookOpen, 
@@ -132,7 +133,7 @@ export const BookViewer: React.FC<BookViewerProps> = ({
 
   // Paper Appearance Theme
   type PaperTheme = 'dark-engineering' | 'parchment' | 'midnight-slate';
-  const [paperTheme, setPaperTheme] = useState<PaperTheme>('dark-engineering');
+  const [paperTheme, setPaperTheme] = useState<PaperTheme>('parchment');
 
   // Bookmarks in localStorage: Record<bookId, pageNumber[]>
   const BOOKMARK_KEY = 'insco_3d_book_bookmarks';
@@ -253,6 +254,8 @@ export const BookViewer: React.FC<BookViewerProps> = ({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (isTocOpen || isBookSelectorOpen) return;
+      const target = e.target as HTMLElement | null;
+      if (target?.isContentEditable || target?.matches('input, textarea, select, [role="textbox"]')) return;
       if (e.key === 'ArrowRight') {
         if (isAr) flipToPrevPage();
         else flipToNextPage();
@@ -327,12 +330,12 @@ export const BookViewer: React.FC<BookViewerProps> = ({
     <div 
       ref={containerRef}
       dir={isAr ? 'rtl' : 'ltr'} 
-      className={`relative select-none font-sans text-slate-100 ${isFullscreen ? 'fixed inset-0 z-50 bg-[#04050d] p-4 sm:p-8 overflow-y-auto' : ''} ${className}`}
+      className={`insco-book-reader relative font-sans text-slate-100 ${isFullscreen ? 'fixed inset-0 z-50 bg-[#04050d] p-4 sm:p-8 overflow-y-auto' : ''} ${className}`}
     >
       {/* ========================================================================= */}
       {/* 1. TOP BOOK CONTROLLER & TOOLBAR */}
       {/* ========================================================================= */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-[#0a0d24] border-2 border-[#1f275c] p-3 sm:p-4 rounded-3xl shadow-2xl mb-6">
+      <div className="insco-book-toolbar flex flex-wrap items-center justify-between gap-3 bg-[#0a0d24] border-2 border-[#1f275c] p-3 sm:p-4 rounded-3xl shadow-2xl mb-6">
         {/* Book Selector Trigger */}
         <div className="relative">
           <button
@@ -562,7 +565,7 @@ export const BookViewer: React.FC<BookViewerProps> = ({
       >
         {/* Hardcover Outer Frame with Leatherette Edge & Metal Corners */}
         <div 
-          className={`relative rounded-[32px] p-2.5 sm:p-5 border-4 ${themeStyles.bookCover} shadow-[0_30px_70px_-15px_rgba(0,0,0,0.85)]`}
+          className={`insco-book-frame relative rounded-[32px] p-2.5 sm:p-5 border-4 ${themeStyles.bookCover} shadow-[0_30px_70px_-15px_rgba(0,0,0,0.85)]`}
           style={{ transformStyle: 'preserve-3d' }}
         >
           {/* Metal Corner Protectors (Top-Right, Top-Left, Bottom-Right, Bottom-Left) */}
@@ -583,7 +586,7 @@ export const BookViewer: React.FC<BookViewerProps> = ({
           </div>
 
           {/* ================= THE OPEN BOOK SPREAD ================= */}
-          <div className="relative rounded-[24px] overflow-hidden min-h-[660px]">
+          <div className="insco-book-spread relative rounded-[24px] overflow-hidden min-h-[660px]">
             {/* Page Stack Thickness Layer (Multi-border depth) */}
             <div 
               className="absolute inset-0 pointer-events-none z-20"
@@ -636,7 +639,7 @@ export const BookViewer: React.FC<BookViewerProps> = ({
 
             {/* ================= ACTIVE PAGE SURFACE ================= */}
             <div 
-              className={`relative z-10 p-6 sm:p-12 border-2 rounded-[22px] min-h-[660px] flex flex-col justify-between transition-all duration-300 ${themeStyles.pagePaper}`}
+              className={`insco-book-page relative z-10 p-6 sm:p-12 border-2 rounded-[22px] min-h-[660px] flex flex-col justify-between transition-all duration-300 ${themeStyles.pagePaper}`}
               style={{
                 transformStyle: 'preserve-3d',
                 transform: isFlipping 

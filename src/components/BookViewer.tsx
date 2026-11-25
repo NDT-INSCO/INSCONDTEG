@@ -395,9 +395,26 @@ export const BookViewer: React.FC<BookViewerProps> = ({
             <ChevronLeft className={`w-4 h-4 ${isAr ? 'rotate-180' : ''}`} />
           </button>
 
-          <span className="text-xs font-mono font-bold text-amber-400 px-2 min-w-[70px] text-center">
-            {currentPage.pageNumber} / {totalPages}
-          </span>
+          <label className="flex items-center gap-1.5 text-xs font-mono font-bold text-amber-400 px-1">
+            <span className="sr-only">{isAr ? 'الانتقال إلى الصفحة' : 'Go to page'}</span>
+            <input
+              aria-label={isAr ? 'الانتقال إلى الصفحة' : 'Go to page'}
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={totalPages}
+              value={currentPage.pageNumber}
+              disabled={isFlipping}
+              onChange={(event) => {
+                const requestedPage = Number(event.target.value);
+                if (Number.isInteger(requestedPage) && requestedPage >= 1 && requestedPage <= totalPages) {
+                  setCurrentPageIndex(requestedPage - 1);
+                }
+              }}
+              className="insco-page-jump w-12 rounded-lg border border-amber-500/30 bg-[#090d22] px-1.5 py-1 text-center text-amber-300 outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+            />
+            <span className="text-slate-400">/ {totalPages}</span>
+          </label>
 
           <button
             onClick={flipToNextPage}
@@ -409,6 +426,10 @@ export const BookViewer: React.FC<BookViewerProps> = ({
           >
             <ChevronRight className={`w-4 h-4 ${isAr ? 'rotate-180' : ''}`} />
           </button>
+        </div>
+
+        <div className="insco-reading-progress" role="progressbar" aria-label={isAr ? 'تقدم القراءة' : 'Reading progress'} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(((currentPageIndex + 1) / totalPages) * 100)}>
+          <span style={{ width: `${((currentPageIndex + 1) / totalPages) * 100}%` }} />
         </div>
 
         {/* Toolbar Utilities (Sound, Bookmark, Theme, TOC, Fullscreen) */}

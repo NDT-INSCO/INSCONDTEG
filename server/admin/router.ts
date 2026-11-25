@@ -1,4 +1,4 @@
-import { createHmac, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
+import { createHmac, randomBytes, randomUUID, scryptSync, timingSafeEqual } from 'node:crypto';
 import express, { type ErrorRequestHandler, type Request, type RequestHandler, type Response } from 'express';
 import { isAdminPassword, isAdminToken, isQuoteStatus, INSCO_PAGES_ORIGIN, NOTICE_LIMIT } from '../../src/admin/contract.js';
 import type { AnnouncementInput, DashboardData } from '../../src/admin/contract.js';
@@ -9,6 +9,7 @@ import { createPasskeyRouter } from './passkeys.js';
 import { PASSKEY_PASSWORD_WINDOW, PAGES_SESSION_TTL, SESSION_TTL } from './state.js';
 import type { WebAuthnCredential } from '@simplewebauthn/server';
 import type { AdminStore } from './store.js';
+import { normaliseAgentTaskProposal } from '../../src/ai/agentTasksContract.js';
 
 const ATTEMPT_WINDOW = 15 * 60 * 1000;
 const COOKIE = 'insco_admin';
@@ -211,6 +212,31 @@ export function createAdminRouter({
       clearTimeout(timer);
       res.off('close', stop);
     }
+  }));
+
+  // Agent proposals are private, persisted and inert. Approval is recorded for audit;
+  // it does not execute code, publish content, or mutate customer records.
+  router.get('/agents/tasks', runAsync(async (_req, res) => {
+    res.json({ items: await store.listAgentTasks(50) });
+  }));
+
+  router.post('/agents/tasks', readJsonBody('4kb'), runAsync(async (req, res) => {
+    const input = normaliseAgentTaskProposal(req.body);
+    if (!input) return fail(res, 400, 'agent_task_invalid');
+    const createdAt = new Date(now()).toISOString();
+    const task = await store.proposeAgentTask({ id: randomUUID(), ...input, createdAt });
+    res.status(201).json(task);
+  }));
+
+  router.patch('/agents/tasks/:id', readJson, runAsync(async (req, res) => {
+    const decision = req.body?.decision;
+    if (decision !== 'approved' && decision !== 'rejected') return fail(res, 400, 'agent_task_invalid_decision');
+    const task = await store.agentTask(req.params.id);
+    if (!task) return fail(res, 404, 'agent_task_not_found');
+    const reviewedAt = new Date(now()).toISOString();
+    const reviewed = await store.reviewAgentTask(req.params.id, decision, 'admin-session', reviewedAt);
+    if (!reviewed) return fail(res, 409, 'agent_task_already_reviewed');
+    res.json(await store.agentTask(req.params.id));
   }));
 
   router.get('/quotes', runAsync(async (req, res) => {

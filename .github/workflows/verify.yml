@@ -27,6 +27,11 @@ jobs:
       - name: Environment
         run: node -v && npm -v
 
+      - name: Vercel Auth module compatibility
+        run: |
+          node --test tests/vercelAuthCompatibility.test.mjs
+          node --no-experimental-require-module scripts/prepare-vercel-auth.mjs
+
       - name: Type-check
         run: npm run lint
 

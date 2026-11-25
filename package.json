@@ -50,7 +50,7 @@
     "docs:check": "tsx scripts/compare-docs-build.ts",
     "test:simlabs": "tsx --test tests/simLabsRtLayout.test.tsx",
     "build:hosted": "INSCO_HOSTED_BUILD=1 SITE_BASE=/ VITE_ADMIN_PORTAL_URL= VITE_PAGES_ADMIN_API_URL= VITE_RFQ_ENDPOINT= vite build --outDir dist",
-    "build:vercel": "npm run build:hosted",
+    "build:vercel": "node --no-experimental-require-module scripts/prepare-vercel-auth.mjs && npm run build:hosted",
     "lint:rules": "eslint firestore.rules storage.rules",
     "test:account-rules": "tsx --test --test-timeout=45000 tests/accountPrivacy.emulator.test.ts tests/networkGroups.emulator.test.ts tests/networkReputation.emulator.test.ts",
     "rules:deploy": "npx --yes firebase-tools@15.37.0 deploy --only firestore:rules,storage --project ai-studio-applet-webapp-18922",

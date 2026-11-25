@@ -100,8 +100,20 @@ export const BookViewer: React.FC<BookViewerProps> = ({
     return NDT_TEXTBOOKS.find(b => b.id === selectedBookId) || NDT_TEXTBOOKS[0];
   }, [selectedBookId]);
 
-  // Current page index (0 to activeBook.pages.length - 1)
-  const [currentPageIndex, setCurrentPageIndex] = useState<number>(0);
+  // Resume the last page for this book unless a deep link explicitly requests a page.
+  const [currentPageIndex, setCurrentPageIndex] = useState<number>(() => {
+    const initialBook = NDT_TEXTBOOKS.find(book => book.id === (initialBookId || NDT_TEXTBOOKS[0].id)) || NDT_TEXTBOOKS[0];
+    if (Number.isInteger(initialPageNumber) && (initialPageNumber || 0) > 0) {
+      return Math.min((initialPageNumber as number) - 1, initialBook.pages.length - 1);
+    }
+    try {
+      const saved = JSON.parse(localStorage.getItem('insco_book_reading_progress') || '{}');
+      const savedPage = Number(saved[initialBook.id]);
+      return Number.isInteger(savedPage) && savedPage >= 1 && savedPage <= initialBook.pages.length ? savedPage - 1 : 0;
+    } catch {
+      return 0;
+    }
+  });
 
   // Deep-link support from the NDE-Ed courses and Quick Knowledge Check citations.
   useEffect(() => {
@@ -172,6 +184,16 @@ export const BookViewer: React.FC<BookViewerProps> = ({
 
   const currentPage = activeBook.pages[currentPageIndex] || activeBook.pages[0];
   const totalPages = activeBook.pages.length;
+
+  // Persist reading position independently for each textbook.
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('insco_book_reading_progress') || '{}');
+      localStorage.setItem('insco_book_reading_progress', JSON.stringify({ ...saved, [activeBook.id]: currentPage.pageNumber }));
+    } catch {
+      // Reading remains available when browser storage is disabled or full.
+    }
+  }, [activeBook.id, currentPage.pageNumber]);
 
   useEffect(() => {
     onBookStateChange?.(activeBook, currentPage.pageNumber);
@@ -361,7 +383,13 @@ export const BookViewer: React.FC<BookViewerProps> = ({
                     key={b.id}
                     onClick={() => {
                       setSelectedBookId(b.id);
-                      setCurrentPageIndex(0);
+                      try {
+                        const saved = JSON.parse(localStorage.getItem('insco_book_reading_progress') || '{}');
+                        const savedPage = Number(saved[b.id]);
+                        setCurrentPageIndex(Number.isInteger(savedPage) && savedPage >= 1 && savedPage <= b.pages.length ? savedPage - 1 : 0);
+                      } catch {
+                        setCurrentPageIndex(0);
+                      }
                       setIsBookSelectorOpen(false);
                       if (soundEnabled) playPageFlipSound();
                     }}

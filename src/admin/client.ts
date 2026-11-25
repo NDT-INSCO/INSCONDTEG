@@ -6,6 +6,7 @@ import { ADMIN_API, PAGES_ADMIN_API, isAdminToken, isQuoteStatus } from './contr
 import { approvedPagesAdminOrigin, isInscoPages } from './pages';
 import type { Announcement, AnnouncementInput, DashboardData, ManagedQuote, PasskeySettings, PasskeySummary, QuotePage, QuoteStatus } from './contract';
 import { FACTORY_DRAFT_PATH, FACTORY_LIMITS, normaliseFactoryDraft, type FactoryRequest } from './factory';
+import type { AgentTask, AgentTaskAgent, AgentTaskStatus } from '../ai/agentTasksContract';
 
 export class AdminApiError extends Error {
   constructor(public readonly code: string, public readonly retryAfter = 0) {
@@ -154,6 +155,15 @@ export function createAdminClient(pagesOrigin?: string | null) {
       if (!draft) throw new AdminApiError('factory_invalid_draft');
       return draft;
     },
+    agentTasks: async (signal?: AbortSignal) => {
+      const data = await request<{ items: AgentTask[] }>('/agents/tasks', { signal });
+      if (!data || !Array.isArray(data.items)) throw new AdminApiError('invalid_response');
+      return data.items;
+    },
+    proposeAgentTask: (input: { agent: AgentTaskAgent; title: string; summary: string }) =>
+      request<AgentTask>('/agents/tasks', { method: 'POST', body: input }),
+    reviewAgentTask: (id: string, decision: Extract<AgentTaskStatus, 'approved' | 'rejected'>) =>
+      request<AgentTask>(`/agents/tasks/${encodeURIComponent(id)}`, { method: 'PATCH', body: { decision } }),
     passkeyStatus: (signal: AbortSignal) => request<{ available: boolean }>('/passkeys/status', { signal }),
     passkeys: (signal: AbortSignal) => request<PasskeySettings>('/passkeys', { signal }),
     passkeyAuthOptions: (signal: AbortSignal) => passkeyOptions<PublicKeyCredentialRequestOptionsJSON>('/passkeys/authenticate/options', {}, signal),

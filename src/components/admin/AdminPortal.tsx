@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CircuitBoard, Fingerprint, Globe2, Inbox, LayoutDashboard, LogOut, Megaphone, RotateCw, ShieldCheck } from 'lucide-react';
+import { BrainCircuit, CircuitBoard, Fingerprint, Globe2, Inbox, LayoutDashboard, LogOut, Megaphone, RotateCw, ShieldCheck } from 'lucide-react';
 import { AdminApiError, adminClient as sameOriginClient, createAdminClient } from '../../admin/client';
 import { AdminConnection, useAdminClient } from '../../admin/connection';
 import type { DashboardData, QuoteStatus } from '../../admin/contract';
@@ -10,6 +10,7 @@ import { adminPortalLink } from '../../admin/public';
 import type { Language } from '../../types';
 import { isStaticPages } from '../../utils/staticPages';
 import { AdminAnnouncement } from './AdminAnnouncement';
+import { AdminAgents } from './AdminAgents';
 import { AdminLogin, type LoginPhase } from './AdminLogin';
 import { AdminOverview } from './AdminOverview';
 import { AdminPasskeys } from './AdminPasskeys';
@@ -139,6 +140,7 @@ function AdminGate({ pages, ...props }: PortalProps & { pages: boolean }) {
 const VIEWS = [
   { id: 'overview', icon: LayoutDashboard, ar: 'نظرة عامة', en: 'Overview' },
   { id: 'factory', icon: CircuitBoard, ar: 'مصنع البرمجيات', en: 'Software Factory' },
+  { id: 'agents', icon: BrainCircuit, ar: 'وكلاء الذكاء الاصطناعي', en: 'AI Agents' },
   { id: 'quotes', icon: Inbox, ar: 'صندوق الطلبات', en: 'Quote requests' },
   { id: 'announcement', icon: Megaphone, ar: 'إعلانات الموقع', en: 'Announcements' },
   { id: 'passkeys', icon: Fingerprint, ar: 'مفاتيح المرور', en: 'Passkeys' },
@@ -155,6 +157,7 @@ function AdminWorkspace({ language, initial, onBack, onToggleLanguage, onSession
   const [data, setData] = useState(initial);
   const [active, setActive] = useState<ViewId>('overview');
   const [factoryVisited, setFactoryVisited] = useState(false);
+  const [agentsVisited, setAgentsVisited] = useState(false);
   const [initialStatus, setInitialStatus] = useState<QuoteStatus | ''>('');
   const [reference, setReference] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -203,6 +206,7 @@ function AdminWorkspace({ language, initial, onBack, onToggleLanguage, onSession
   function navigate(view: ViewId, status: QuoteStatus | '' = '', quote: string | null = null) {
     setActive(view);
     if (view === 'factory') setFactoryVisited(true);
+    if (view === 'agents') setAgentsVisited(true);
     setInitialStatus(status);
     setReference(quote);
     setError(null);
@@ -250,6 +254,7 @@ function AdminWorkspace({ language, initial, onBack, onToggleLanguage, onSession
           {active === 'quotes' && <AdminQuotes language={language} initialStatus={initialStatus} reference={reference} onOpen={selectQuote} onSessionError={onSessionError} onUpdate={() => void refresh()} />}
           {active === 'announcement' && <AdminAnnouncement language={language} initial={data.announcement} onSessionError={onSessionError} onSaved={announcement => setData(current => ({ ...current, announcement }))} />}
           {active === 'passkeys' && <AdminPasskeys language={language} onSessionError={onSessionError} />}
+          {agentsVisited && <div hidden={active !== 'agents'}><AdminAgents language={language} active={active === 'agents'} /></div>}
           {factoryVisited && <div hidden={active !== 'factory'}>
             <Suspense fallback={<AdminLoading language={language} />}>
               <AdminFactory language={language} snapshot={factorySnapshot(data)} aiConfigured={data.services.factoryAiConfigured === true}

@@ -87,4 +87,29 @@ END;
 CREATE TRIGGER IF NOT EXISTS admin_prune_throttle_update AFTER UPDATE ON admin_throttle BEGIN
   DELETE FROM admin_throttle WHERE resets_at <= NEW.checked_at;
 END;
+CREATE TABLE IF NOT EXISTS agent_tasks (
+  id TEXT PRIMARY KEY,
+  agent TEXT NOT NULL CHECK (agent IN ('tutor', 'copilot', 'site-manager', 'community')),
+  title TEXT NOT NULL CHECK (length(title) BETWEEN 1 AND 120),
+  summary TEXT NOT NULL CHECK (length(summary) BETWEEN 1 AND 1000),
+  status TEXT NOT NULL CHECK (status IN ('proposed', 'approved', 'rejected')),
+  created_at TEXT NOT NULL,
+  reviewed_at TEXT,
+  reviewed_by TEXT
+) STRICT;
+CREATE INDEX IF NOT EXISTS agent_tasks_created ON agent_tasks (created_at DESC, id DESC);
+CREATE TABLE IF NOT EXISTS agent_task_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  task_id TEXT NOT NULL REFERENCES agent_tasks(id),
+  event TEXT NOT NULL CHECK (event IN ('proposed', 'approved', 'rejected')),
+  actor TEXT NOT NULL,
+  created_at TEXT NOT NULL
+) STRICT;
+CREATE INDEX IF NOT EXISTS agent_task_events_task ON agent_task_events (task_id, created_at DESC);
+CREATE TRIGGER IF NOT EXISTS agent_task_events_no_update BEFORE UPDATE ON agent_task_events BEGIN
+  SELECT RAISE(ABORT, 'agent task events are immutable');
+END;
+CREATE TRIGGER IF NOT EXISTS agent_task_events_no_delete BEFORE DELETE ON agent_task_events BEGIN
+  SELECT RAISE(ABORT, 'agent task events are immutable');
+END;
 `;

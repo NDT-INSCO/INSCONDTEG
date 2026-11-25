@@ -106,4 +106,10 @@ CREATE TABLE IF NOT EXISTS agent_task_events (
   created_at TEXT NOT NULL
 ) STRICT;
 CREATE INDEX IF NOT EXISTS agent_task_events_task ON agent_task_events (task_id, created_at DESC);
+CREATE TRIGGER IF NOT EXISTS agent_task_events_no_update BEFORE UPDATE ON agent_task_events BEGIN
+  SELECT RAISE(ABORT, 'agent task events are immutable');
+END;
+CREATE TRIGGER IF NOT EXISTS agent_task_events_no_delete BEFORE DELETE ON agent_task_events BEGIN
+  SELECT RAISE(ABORT, 'agent task events are immutable');
+END;
 `;

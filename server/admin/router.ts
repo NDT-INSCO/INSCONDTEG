@@ -234,7 +234,9 @@ export function createAdminRouter({
     const task = await store.agentTask(req.params.id);
     if (!task) return fail(res, 404, 'agent_task_not_found');
     const reviewedAt = new Date(now()).toISOString();
-    const reviewed = await store.reviewAgentTask(req.params.id, decision, 'admin-session', reviewedAt);
+    const grant = res.locals.sessionGrant as { token?: string } | undefined;
+    const actor = typeof grant?.token === 'string' ? `admin-session:${grant.token.slice(0, 12)}` : 'admin-session';
+    const reviewed = await store.reviewAgentTask(req.params.id, decision, actor, reviewedAt);
     if (!reviewed) return fail(res, 409, 'agent_task_already_reviewed');
     res.json(await store.agentTask(req.params.id));
   }));

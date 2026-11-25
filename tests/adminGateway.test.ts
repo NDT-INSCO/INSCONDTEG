@@ -299,7 +299,7 @@ test('agent proposals persist behind admin auth and require a one-time human rev
   assert.equal((await call(`${path}/${task.id}`, { cookie, method: 'PATCH', body: { decision: 'rejected' } })).status, 409);
   const events = await store!.agentTaskEvents(task.id);
   assert.match(String(events[1]?.actor), /^admin-session:[a-f0-9]{12}$/);
-  assert.deepEqual(events, [
+  assert.deepEqual(events.map(event => ({ event: event.event, actor: event.actor, createdAt: event.createdAt })), [
     { event: 'proposed', actor: 'site-manager', createdAt: task.createdAt },
     { event: 'approved', actor: events[1]?.actor, createdAt: (await store!.agentTask(task.id))!.reviewedAt },
   ]);

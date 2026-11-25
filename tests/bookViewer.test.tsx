@@ -83,6 +83,28 @@ test('BookViewer renders initial page and simulates 3D book navigation', () => {
   fireEvent.click(nextBtn);
 });
 
+test('BookViewer allows direct page navigation and exposes reading progress', () => {
+  const ui = render(<BookViewer language="en" initialBookId="book-ut" />);
+  const pageInput = ui.getByRole('spinbutton', { name: /Go to page/i });
+  assert.equal((pageInput as HTMLInputElement).value, '1');
+  assert.ok(ui.getByRole('progressbar', { name: /Reading progress/i }));
+  fireEvent.change(pageInput, { target: { value: '2' } });
+  assert.equal((ui.getByRole('spinbutton', { name: /Go to page/i }) as HTMLInputElement).value, '2');
+  assert.ok(ui.getByText(NDT_TEXTBOOKS[0].pages[1].pageTitleEn));
+});
+
+test('BookViewer restores the last-read page for the same textbook', () => {
+  const firstRender = render(<BookViewer language="en" initialBookId="book-ut" />);
+  const pageInput = firstRender.getByRole('spinbutton', { name: /Go to page/i });
+  fireEvent.change(pageInput, { target: { value: '2' } });
+  assert.equal(JSON.parse(localStorage.getItem('insco_book_reading_progress') || '{}')['book-ut'], 2);
+  firstRender.unmount();
+
+  const resumed = render(<BookViewer language="en" initialBookId="book-ut" />);
+  assert.equal((resumed.getByRole('spinbutton', { name: /Go to page/i }) as HTMLInputElement).value, '2');
+  assert.ok(resumed.getByText(NDT_TEXTBOOKS[0].pages[1].pageTitleEn));
+});
+
 test('BookViewer Knowledge Check interactive feedback allows option selection and provides explanation', () => {
   const ui = render(<BookViewer language="en" initialBookId="book-ut" />);
   

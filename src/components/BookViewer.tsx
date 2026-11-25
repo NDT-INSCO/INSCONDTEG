@@ -99,8 +99,20 @@ export const BookViewer: React.FC<BookViewerProps> = ({
     return NDT_TEXTBOOKS.find(b => b.id === selectedBookId) || NDT_TEXTBOOKS[0];
   }, [selectedBookId]);
 
-  // Current page index (0 to activeBook.pages.length - 1)
-  const [currentPageIndex, setCurrentPageIndex] = useState<number>(0);
+  // Resume the last page for this book unless a deep link explicitly requests a page.
+  const [currentPageIndex, setCurrentPageIndex] = useState<number>(() => {
+    const initialBook = NDT_TEXTBOOKS.find(book => book.id === (initialBookId || NDT_TEXTBOOKS[0].id)) || NDT_TEXTBOOKS[0];
+    if (Number.isInteger(initialPageNumber) && (initialPageNumber || 0) > 0) {
+      return Math.min((initialPageNumber as number) - 1, initialBook.pages.length - 1);
+    }
+    try {
+      const saved = JSON.parse(localStorage.getItem('insco_book_reading_progress') || '{}');
+      const savedPage = Number(saved[initialBook.id]);
+      return Number.isInteger(savedPage) && savedPage >= 1 && savedPage <= initialBook.pages.length ? savedPage - 1 : 0;
+    } catch {
+      return 0;
+    }
+  });
 
   // Deep-link support from the NDE-Ed courses and Quick Knowledge Check citations.
   useEffect(() => {
@@ -108,8 +120,18 @@ export const BookViewer: React.FC<BookViewerProps> = ({
     const target = NDT_TEXTBOOKS.find(book => book.id === initialBookId);
     if (!target) return;
     setSelectedBookId(target.id);
-    const index = Math.min(Math.max((initialPageNumber || 1) - 1, 0), target.pages.length - 1);
-    setCurrentPageIndex(index);
+    if (Number.isInteger(initialPageNumber) && (initialPageNumber || 0) > 0) {
+      const index = Math.min(Math.max((initialPageNumber as number) - 1, 0), target.pages.length - 1);
+      setCurrentPageIndex(index);
+      return;
+    }
+    try {
+      const saved = JSON.parse(localStorage.getItem('insco_book_reading_progress') || '{}');
+      const savedPage = Number(saved[target.id]);
+      setCurrentPageIndex(Number.isInteger(savedPage) && savedPage >= 1 && savedPage <= target.pages.length ? savedPage - 1 : 0);
+    } catch {
+      setCurrentPageIndex(0);
+    }
   }, [initialBookId, initialPageNumber, navigationNonce]);
 
   // 3D Flip animation state
@@ -132,7 +154,7 @@ export const BookViewer: React.FC<BookViewerProps> = ({
 
   // Paper Appearance Theme
   type PaperTheme = 'dark-engineering' | 'parchment' | 'midnight-slate';
-  const [paperTheme, setPaperTheme] = useState<PaperTheme>('dark-engineering');
+  const [paperTheme, setPaperTheme] = useState<PaperTheme>('parchment');
 
   // Bookmarks in localStorage: Record<bookId, pageNumber[]>
   const BOOKMARK_KEY = 'insco_3d_book_bookmarks';
@@ -171,6 +193,16 @@ export const BookViewer: React.FC<BookViewerProps> = ({
 
   const currentPage = activeBook.pages[currentPageIndex] || activeBook.pages[0];
   const totalPages = activeBook.pages.length;
+
+  // Persist reading position independently for each textbook.
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('insco_book_reading_progress') || '{}');
+      localStorage.setItem('insco_book_reading_progress', JSON.stringify({ ...saved, [activeBook.id]: currentPage.pageNumber }));
+    } catch {
+      // Reading remains available when browser storage is disabled or full.
+    }
+  }, [activeBook.id, currentPage.pageNumber]);
 
   useEffect(() => {
     onBookStateChange?.(activeBook, currentPage.pageNumber);
@@ -253,6 +285,8 @@ export const BookViewer: React.FC<BookViewerProps> = ({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (isTocOpen || isBookSelectorOpen) return;
+      const target = e.target as HTMLElement | null;
+      if (target?.isContentEditable || target?.matches('input, textarea, select, [role="textbox"]')) return;
       if (e.key === 'ArrowRight') {
         if (isAr) flipToPrevPage();
         else flipToNextPage();
@@ -327,12 +361,12 @@ export const BookViewer: React.FC<BookViewerProps> = ({
     <div 
       ref={containerRef}
       dir={isAr ? 'rtl' : 'ltr'} 
-      className={`relative select-none font-sans text-slate-100 ${isFullscreen ? 'fixed inset-0 z-50 bg-[#04050d] p-4 sm:p-8 overflow-y-auto' : ''} ${className}`}
+      className={`insco-book-reader relative font-sans text-slate-100 ${isFullscreen ? 'fixed inset-0 z-50 bg-[#04050d] p-4 sm:p-8 overflow-y-auto' : ''} ${className}`}
     >
       {/* ========================================================================= */}
       {/* 1. TOP BOOK CONTROLLER & TOOLBAR */}
       {/* ========================================================================= */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-[#0a0d24] border-2 border-[#1f275c] p-3 sm:p-4 rounded-3xl shadow-2xl mb-6">
+      <div className="insco-book-toolbar flex flex-wrap items-center justify-between gap-3 bg-[#0a0d24] border-2 border-[#1f275c] p-3 sm:p-4 rounded-3xl shadow-2xl mb-6">
         {/* Book Selector Trigger */}
         <div className="relative">
           <button
@@ -358,7 +392,13 @@ export const BookViewer: React.FC<BookViewerProps> = ({
                     key={b.id}
                     onClick={() => {
                       setSelectedBookId(b.id);
-                      setCurrentPageIndex(0);
+                      try {
+                        const saved = JSON.parse(localStorage.getItem('insco_book_reading_progress') || '{}');
+                        const savedPage = Number(saved[b.id]);
+                        setCurrentPageIndex(Number.isInteger(savedPage) && savedPage >= 1 && savedPage <= b.pages.length ? savedPage - 1 : 0);
+                      } catch {
+                        setCurrentPageIndex(0);
+                      }
                       setIsBookSelectorOpen(false);
                       if (soundEnabled) playPageFlipSound();
                     }}
@@ -392,9 +432,26 @@ export const BookViewer: React.FC<BookViewerProps> = ({
             <ChevronLeft className={`w-4 h-4 ${isAr ? 'rotate-180' : ''}`} />
           </button>
 
-          <span className="text-xs font-mono font-bold text-amber-400 px-2 min-w-[70px] text-center">
-            {currentPage.pageNumber} / {totalPages}
-          </span>
+          <label className="flex items-center gap-1.5 text-xs font-mono font-bold text-amber-400 px-1">
+            <span className="sr-only">{isAr ? 'الانتقال إلى الصفحة' : 'Go to page'}</span>
+            <input
+              aria-label={isAr ? 'الانتقال إلى الصفحة' : 'Go to page'}
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={totalPages}
+              value={currentPage.pageNumber}
+              disabled={isFlipping}
+              onChange={(event) => {
+                const requestedPage = Number(event.target.value);
+                if (Number.isInteger(requestedPage) && requestedPage >= 1 && requestedPage <= totalPages) {
+                  setCurrentPageIndex(requestedPage - 1);
+                }
+              }}
+              className="insco-page-jump w-12 rounded-lg border border-amber-500/30 bg-[#090d22] px-1.5 py-1 text-center text-amber-300 outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+            />
+            <span className="text-slate-400">/ {totalPages}</span>
+          </label>
 
           <button
             onClick={flipToNextPage}
@@ -406,6 +463,10 @@ export const BookViewer: React.FC<BookViewerProps> = ({
           >
             <ChevronRight className={`w-4 h-4 ${isAr ? 'rotate-180' : ''}`} />
           </button>
+        </div>
+
+        <div className="insco-reading-progress" role="progressbar" aria-label={isAr ? 'تقدم القراءة' : 'Reading progress'} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(((currentPageIndex + 1) / totalPages) * 100)}>
+          <span style={{ width: `${((currentPageIndex + 1) / totalPages) * 100}%` }} />
         </div>
 
         {/* Toolbar Utilities (Sound, Bookmark, Theme, TOC, Fullscreen) */}
@@ -562,7 +623,7 @@ export const BookViewer: React.FC<BookViewerProps> = ({
       >
         {/* Hardcover Outer Frame with Leatherette Edge & Metal Corners */}
         <div 
-          className={`relative rounded-[32px] p-2.5 sm:p-5 border-4 ${themeStyles.bookCover} shadow-[0_30px_70px_-15px_rgba(0,0,0,0.85)]`}
+          className={`insco-book-frame relative rounded-[32px] p-2.5 sm:p-5 border-4 ${themeStyles.bookCover} shadow-[0_30px_70px_-15px_rgba(0,0,0,0.85)]`}
           style={{ transformStyle: 'preserve-3d' }}
         >
           {/* Metal Corner Protectors (Top-Right, Top-Left, Bottom-Right, Bottom-Left) */}
@@ -583,7 +644,7 @@ export const BookViewer: React.FC<BookViewerProps> = ({
           </div>
 
           {/* ================= THE OPEN BOOK SPREAD ================= */}
-          <div className="relative rounded-[24px] overflow-hidden min-h-[660px]">
+          <div className="insco-book-spread relative rounded-[24px] overflow-hidden min-h-[660px]">
             {/* Page Stack Thickness Layer (Multi-border depth) */}
             <div 
               className="absolute inset-0 pointer-events-none z-20"
@@ -636,7 +697,7 @@ export const BookViewer: React.FC<BookViewerProps> = ({
 
             {/* ================= ACTIVE PAGE SURFACE ================= */}
             <div 
-              className={`relative z-10 p-6 sm:p-12 border-2 rounded-[22px] min-h-[660px] flex flex-col justify-between transition-all duration-300 ${themeStyles.pagePaper}`}
+              className={`insco-book-page relative z-10 p-6 sm:p-12 border-2 rounded-[22px] min-h-[660px] flex flex-col justify-between transition-all duration-300 ${themeStyles.pagePaper}`}
               style={{
                 transformStyle: 'preserve-3d',
                 transform: isFlipping 

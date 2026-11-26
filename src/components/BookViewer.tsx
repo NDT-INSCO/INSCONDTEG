@@ -190,6 +190,8 @@ export const BookViewer: React.FC<BookViewerProps> = ({
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, number>>({});
   // Mastered questions tracking
   const [masteredPages, setMasteredPages] = useState<Record<number, boolean>>({});
+  // Keep interactive learning tools outside the printed reading leaf.
+  const [activeLearningPanel, setActiveLearningPanel] = useState<'quiz' | 'lab'>('quiz');
 
   const currentPage = activeBook.pages[currentPageIndex] || activeBook.pages[0];
   const totalPages = activeBook.pages.length;
@@ -833,16 +835,96 @@ export const BookViewer: React.FC<BookViewerProps> = ({
                     </div>
                   )}
 
-                  {/* ================= EMBEDDED LIVE VIRTUAL LABORATORY ================= */}
-                  {currentPage.experimentId && (
-                    <div className="my-6">
-                      <InteractiveBookExperiment
-                        experimentId={currentPage.experimentId}
-                        language={language}
-                      />
-                    </div>
-                  )}
 
+                </div>
+              </div>
+
+              {/* ================= BOTTOM FLIPPING ACTION FOOTER ================= */}
+              <div className={`border-t pt-5 mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 ${themeStyles.pageHeaderBorder}`}>
+                {/* Previous Page Turn Button */}
+                <button
+                  onClick={flipToPrevPage}
+                  disabled={currentPageIndex === 0 || isFlipping}
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-bold transition-all shadow-md cursor-pointer ${
+                    currentPageIndex === 0
+                      ? 'bg-[#12163b] text-slate-600 border border-transparent cursor-not-allowed opacity-40'
+                      : 'bg-[#141a47] hover:bg-[#1e2666] border border-[#27347a] text-slate-200 hover:scale-[1.02]'
+                  }`}
+                >
+                  <ArrowLeft className={`w-3.5 h-3.5 text-amber-400 ${isAr ? 'rotate-180' : ''}`} />
+                  <span>{isAr ? '← اقلب للصفحة السابقة' : '← Flip to Previous Page'}</span>
+                </button>
+
+                {/* Page Number & Slider */}
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-mono font-bold text-amber-400">
+                    {currentPage.pageNumber} / {totalPages}
+                  </span>
+                  <div className="w-28 sm:w-36 bg-[#12163b] h-2 rounded-full overflow-hidden border border-[#202758]">
+                    <div 
+                      className="bg-gradient-to-r from-amber-500 to-amber-300 h-full rounded-full transition-all duration-300"
+                      style={{ width: `${(currentPage.pageNumber / totalPages) * 100}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Next Page Turn Button */}
+                <button
+                  onClick={flipToNextPage}
+                  disabled={currentPageIndex >= totalPages - 1 || isFlipping}
+                  className={`flex items-center gap-2 px-6 py-2.5 rounded-2xl text-xs font-black transition-all shadow-lg cursor-pointer ${
+                    currentPageIndex >= totalPages - 1
+                      ? 'bg-[#12163b] text-slate-600 border border-transparent cursor-not-allowed opacity-40'
+                      : 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/25 hover:scale-[1.02]'
+                  }`}
+                >
+                  <span>{isAr ? 'اقلب للصفحة التالية →' : 'Flip to Next Page →'}</span>
+                  <ArrowRight className={`w-3.5 h-3.5 ${isAr ? 'rotate-180' : ''}`} />
+                </button>
+              </div>
+
+              {/* Interactive Corner Curl Cue */}
+              <div
+                {...(currentPageIndex < totalPages - 1
+                  ? clickable(flipToNextPage, isAr ? 'حافة الصفحة: تقليب للأمام' : 'Page corner: turn forward')
+                  : {})}
+                className="absolute bottom-2 end-2 w-10 h-10 cursor-pointer overflow-hidden opacity-60 hover:opacity-100 transition-opacity pointer-events-auto"
+                title={isAr ? 'انقر على حافة الصفحة للتقليب' : 'Click corner to flip page'}
+              >
+                <div className="w-full h-full border-b-2 border-e-2 border-amber-400/80 rounded-br-lg transform rotate-0 hover:scale-110 transition-transform" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Learning tools live below the paper, never inside the reading page. */}
+      <section className="insco-book-learning-tools mt-6 rounded-2xl border border-slate-700/70 bg-[#0b1022] p-4 sm:p-6" aria-label={isAr ? 'أدوات التعلم للصفحة الحالية' : 'Learning tools for the current page'}>
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+          <div>
+            <p className="text-[10px] font-bold tracking-[.18em] uppercase text-amber-400">{isAr ? 'مساحة التطبيق والتقييم' : 'APPLICATION & ASSESSMENT'}</p>
+            <h3 className="text-lg font-black text-white mt-1">{isAr ? 'تعلّم وطبّق' : 'Learn & Apply'}</h3>
+            <p className="text-xs text-slate-400 mt-1">{isAr ? 'انتهِ من القراءة أولاً، ثم انتقل إلى المعمل أو اختبر فهمك.' : 'Finish the reading first, then open the lab or check your understanding.'}</p>
+          </div>
+          <div className="flex flex-wrap gap-2" role="tablist" aria-label={isAr ? 'أدوات التعلم' : 'Learning tools'}>
+            {currentPage.experimentId && (
+              <button type="button" role="tab" aria-selected={activeLearningPanel === 'lab'} onClick={() => setActiveLearningPanel('lab')} className={`rounded-xl px-4 py-2 text-xs font-bold border transition ${activeLearningPanel === 'lab' ? 'bg-amber-500 text-slate-950 border-amber-400' : 'bg-[#141b31] text-slate-300 border-slate-700 hover:border-amber-400'}`}>
+                {isAr ? 'المعمل الافتراضي' : 'Virtual Lab'}
+              </button>
+            )}
+            <button type="button" role="tab" aria-selected={activeLearningPanel === 'quiz'} onClick={() => setActiveLearningPanel('quiz')} className={`rounded-xl px-4 py-2 text-xs font-bold border transition ${activeLearningPanel === 'quiz' ? 'bg-amber-500 text-slate-950 border-amber-400' : 'bg-[#141b31] text-slate-300 border-slate-700 hover:border-amber-400'}`}>
+              {isAr ? 'اختبر فهمك' : 'Knowledge Check'}
+            </button>
+          </div>
+        </div>
+        {activeLearningPanel === 'lab' && currentPage.experimentId && (
+          <div role="tabpanel" className="rounded-xl border border-slate-700/70 bg-[#10182b] p-3 sm:p-5">
+            <h4 className="text-sm font-bold text-amber-300 mb-4">{isAr ? 'المعمل الافتراضي المرتبط بالدرس' : 'Lesson virtual laboratory'}</h4>
+            <InteractiveBookExperiment experimentId={currentPage.experimentId} language={language} />
+          </div>
+        )}
+        {activeLearningPanel === 'quiz' && (
+          <div role="tabpanel" className="insco-book-quiz-panel">
                   {/* ========================================================================= */}
                   {/* KNOWLEDGE CHECK QUIZ FEATURE (GENERATED FROM CURRENT PAGE CONTENT) */}
                   {/* ========================================================================= */}
@@ -980,68 +1062,9 @@ export const BookViewer: React.FC<BookViewerProps> = ({
                       </div>
                     )}
                   </div>
-                </div>
-              </div>
-
-              {/* ================= BOTTOM FLIPPING ACTION FOOTER ================= */}
-              <div className={`border-t pt-5 mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 ${themeStyles.pageHeaderBorder}`}>
-                {/* Previous Page Turn Button */}
-                <button
-                  onClick={flipToPrevPage}
-                  disabled={currentPageIndex === 0 || isFlipping}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-bold transition-all shadow-md cursor-pointer ${
-                    currentPageIndex === 0
-                      ? 'bg-[#12163b] text-slate-600 border border-transparent cursor-not-allowed opacity-40'
-                      : 'bg-[#141a47] hover:bg-[#1e2666] border border-[#27347a] text-slate-200 hover:scale-[1.02]'
-                  }`}
-                >
-                  <ArrowLeft className={`w-3.5 h-3.5 text-amber-400 ${isAr ? 'rotate-180' : ''}`} />
-                  <span>{isAr ? '← اقلب للصفحة السابقة' : '← Flip to Previous Page'}</span>
-                </button>
-
-                {/* Page Number & Slider */}
-                <div className="flex items-center gap-3">
-                  <span className="text-xs font-mono font-bold text-amber-400">
-                    {currentPage.pageNumber} / {totalPages}
-                  </span>
-                  <div className="w-28 sm:w-36 bg-[#12163b] h-2 rounded-full overflow-hidden border border-[#202758]">
-                    <div 
-                      className="bg-gradient-to-r from-amber-500 to-amber-300 h-full rounded-full transition-all duration-300"
-                      style={{ width: `${(currentPage.pageNumber / totalPages) * 100}%` }}
-                    />
-                  </div>
-                </div>
-
-                {/* Next Page Turn Button */}
-                <button
-                  onClick={flipToNextPage}
-                  disabled={currentPageIndex >= totalPages - 1 || isFlipping}
-                  className={`flex items-center gap-2 px-6 py-2.5 rounded-2xl text-xs font-black transition-all shadow-lg cursor-pointer ${
-                    currentPageIndex >= totalPages - 1
-                      ? 'bg-[#12163b] text-slate-600 border border-transparent cursor-not-allowed opacity-40'
-                      : 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/25 hover:scale-[1.02]'
-                  }`}
-                >
-                  <span>{isAr ? 'اقلب للصفحة التالية →' : 'Flip to Next Page →'}</span>
-                  <ArrowRight className={`w-3.5 h-3.5 ${isAr ? 'rotate-180' : ''}`} />
-                </button>
-              </div>
-
-              {/* Interactive Corner Curl Cue */}
-              <div
-                {...(currentPageIndex < totalPages - 1
-                  ? clickable(flipToNextPage, isAr ? 'حافة الصفحة: تقليب للأمام' : 'Page corner: turn forward')
-                  : {})}
-                className="absolute bottom-2 end-2 w-10 h-10 cursor-pointer overflow-hidden opacity-60 hover:opacity-100 transition-opacity pointer-events-auto"
-                title={isAr ? 'انقر على حافة الصفحة للتقليب' : 'Click corner to flip page'}
-              >
-                <div className="w-full h-full border-b-2 border-e-2 border-amber-400/80 rounded-br-lg transform rotate-0 hover:scale-110 transition-transform" />
-              </div>
-            </div>
           </div>
-        </div>
-      </div>
-
+        )}
+      </section>
       {/* ========================================================================= */}
       {/* 4. KEYBOARD SHORTCUTS & HINTS CUE */}
       {/* ========================================================================= */}

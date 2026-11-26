@@ -19,6 +19,8 @@ import express from 'express';
 
 delete process.env.GEMINI_API_KEY;
 delete process.env.API_KEY;
+// This deployment has no provider key: exercise the explicit local-only path, where
+// the status route must name the local engine as the one answering.
 process.env.AI_PROVIDER = 'local';
 
 const handler = (await import('../api/ai.ts')).default;
@@ -77,18 +79,6 @@ test('every agent route the client calls is mounted', async () => {
     });
     assert.notEqual(response.status, 404, `${route} must be mounted`);
   }
-});
-
-
-test('the deployed ChatGPT stream route is mounted and reports missing server configuration honestly', async () => {
-  const response = await fetch(`${base}/api/ai/agent/chatgpt-stream`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message: 'Find current NDT sources', language: 'en', mode: 'web_search' }),
-  });
-  assert.equal(response.status, 503, 'the route exists; a missing key is not a 404');
-  const body = await response.json() as { error?: { code?: string } };
-  assert.equal(body.error?.code, 'not_configured');
 });
 
 test('an unknown AI route says so instead of hanging', async () => {

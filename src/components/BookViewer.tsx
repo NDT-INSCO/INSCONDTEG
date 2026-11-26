@@ -27,6 +27,7 @@ import {
 import { Language } from '../types';
 import { NDT_TEXTBOOKS, NdtTextbook, BookPage } from '../data/ndeTextbooksData';
 import { InteractiveBookExperiment } from './academy/InteractiveBookExperiment';
+import { FormulaDisplay } from './FormulaDisplay';
 import { 
   generateKnowledgeCheckQuestions, 
   KnowledgeCheckQuestion 
@@ -630,12 +631,12 @@ export const BookViewer: React.FC<BookViewerProps> = ({
       {/* 3. PHYSICAL 3D BOOK DESK & 3D PAGE-FLIP CONTAINER */}
       {/* ========================================================================= */}
       <div 
-        className="relative mx-auto my-4 transition-all duration-300"
+insco-book-stage relative mx-auto my-4
         style={{ perspective: '2600px' }}
       >
         {/* Hardcover Outer Frame with Leatherette Edge & Metal Corners */}
         <div 
-          className={`insco-book-frame relative rounded-[32px] p-2.5 sm:p-5 border-4 ${themeStyles.bookCover} shadow-[0_30px_70px_-15px_rgba(0,0,0,0.85)]`}
+insco-book-frame relative
           style={{ transformStyle: 'preserve-3d' }}
         >
           {/* Metal Corner Protectors (Top-Right, Top-Left, Bottom-Right, Bottom-Left) */}
@@ -656,7 +657,7 @@ export const BookViewer: React.FC<BookViewerProps> = ({
           </div>
 
           {/* ================= THE OPEN BOOK SPREAD ================= */}
-          <div className="insco-book-spread relative rounded-[24px] overflow-hidden min-h-[660px]">
+insco-book-spread relative rounded-[24px]
             {/* Page Stack Thickness Layer (Multi-border depth) */}
             <div 
               className="absolute inset-0 pointer-events-none z-20"
@@ -697,7 +698,7 @@ export const BookViewer: React.FC<BookViewerProps> = ({
                   </p>
                   {facingPage.formula && (
                     <div className={`mt-5 p-3 rounded-xl border text-center ${themeStyles.formulaBg}`}>
-                      <div className="font-mono font-bold text-sm">{facingPage.formula.latex}</div>
+                      <FormulaDisplay latex={facingPage.formula.latex} />
                       <p className="text-[10px] mt-2">{isAr ? facingPage.formula.descriptionAr : facingPage.formula.descriptionEn}</p>
                     </div>
                   )}
@@ -738,7 +739,7 @@ export const BookViewer: React.FC<BookViewerProps> = ({
                 }}
               >
                 <div 
-                  className={`absolute inset-0 rounded-[22px] transition-transform duration-500 ease-in-out ${themeStyles.pagePaper}`}
+insco-page-turn-leaf absolute inset-0 rounded-[22px]
                   style={{
                     transformOrigin: isAr
                       ? (flipDirection === 'forward' ? '0% 50%' : '100% 50%')
@@ -764,7 +765,7 @@ export const BookViewer: React.FC<BookViewerProps> = ({
 
             {/* ================= ACTIVE PAGE SURFACE ================= */}
             <div 
-              className={`insco-book-page relative z-10 p-6 sm:p-9 border-2 rounded-[22px] min-h-[660px] flex flex-col justify-between transition-all duration-300 ${themeStyles.pagePaper} ${activePageColumn}`}
+insco-book-page relative z-10
               style={{
                 transformStyle: 'preserve-3d',
                 transform: isFlipping 
@@ -818,9 +819,7 @@ export const BookViewer: React.FC<BookViewerProps> = ({
                       <span className="text-[11px] opacity-80 block font-sans">
                         {isAr ? currentPage.formula.descriptionAr : currentPage.formula.descriptionEn}
                       </span>
-                      <div className="text-base sm:text-xl font-mono font-black tracking-wide">
-                        {currentPage.formula.latex}
-                      </div>
+                       <FormulaDisplay latex={currentPage.formula.latex} />
                     </div>
                   )}
 
@@ -847,7 +846,7 @@ export const BookViewer: React.FC<BookViewerProps> = ({
               </div>
 
               {/* ================= BOTTOM FLIPPING ACTION FOOTER ================= */}
-              <div className={`border-t pt-5 mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 ${themeStyles.pageHeaderBorder}`}>
+insco-book-page-controls border-t pt-5 mt-8 flex flex-col sm:flex-row items-center justify-between gap-4
                 {/* Previous Page Turn Button */}
                 <button
                   onClick={flipToPrevPage}

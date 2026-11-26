@@ -193,6 +193,10 @@ export const BookViewer: React.FC<BookViewerProps> = ({
 
   const currentPage = activeBook.pages[currentPageIndex] || activeBook.pages[0];
   const totalPages = activeBook.pages.length;
+  const facingPage = currentPageIndex > 0 ? activeBook.pages[currentPageIndex - 1] : null;
+  const activePageColumn = isAr
+    ? (currentPageIndex % 2 === 0 ? 'col-start-1' : 'col-start-2')
+    : (currentPageIndex % 2 === 0 ? 'col-start-2' : 'col-start-1');
 
   // Persist reading position independently for each textbook.
   useEffect(() => {
@@ -661,6 +665,60 @@ export const BookViewer: React.FC<BookViewerProps> = ({
               style={{ background: themeStyles.spineShadow }}
             />
 
+            {/* ================= FACING PAGE / PREVIOUS LEAF ================= */}
+            <article
+              className={`insco-book-facing-page relative z-10 p-6 sm:p-9 border-2 rounded-[22px] ${themeStyles.pagePaper}`}
+              aria-label={facingPage ? (isAr ? `الصفحة السابقة: ${facingPage.pageTitleAr}` : `Previous page: ${facingPage.pageTitleEn}`) : (isAr ? 'بداية الكتاب' : 'Book opening')}
+            >
+              {facingPage ? (
+                <>
+                  <div className={`flex items-center justify-between gap-2 border-b pb-3 mb-5 ${themeStyles.pageHeaderBorder}`}>
+                    <span className={`text-[10px] font-mono font-bold ${themeStyles.headingColor}`}>
+                      {isAr ? facingPage.chapterTitleAr : facingPage.chapterTitleEn}
+                    </span>
+                    <span className={`text-[10px] font-mono ${themeStyles.pageNumberColor}`}>
+                      {facingPage.pageNumber}
+                    </span>
+                  </div>
+                  <h3 className={`text-lg sm:text-xl font-black leading-snug mb-5 ${themeStyles.headingColor}`}>
+                    {isAr ? facingPage.pageTitleAr : facingPage.pageTitleEn}
+                  </h3>
+                  <p className={`text-sm leading-8 whitespace-pre-line text-justify ${themeStyles.textColor}`}>
+                    {isAr ? facingPage.contentAr : facingPage.contentEn}
+                  </p>
+                  {facingPage.formula && (
+                    <div className={`mt-5 p-3 rounded-xl border text-center ${themeStyles.formulaBg}`}>
+                      <div className="font-mono font-bold text-sm">{facingPage.formula.latex}</div>
+                      <p className="text-[10px] mt-2">{isAr ? facingPage.formula.descriptionAr : facingPage.formula.descriptionEn}</p>
+                    </div>
+                  )}
+                  {(isAr ? facingPage.keyPointsAr : facingPage.keyPointsEn) && (
+                    <ul className="mt-5 space-y-2 text-xs leading-6">
+                      {(isAr ? facingPage.keyPointsAr : facingPage.keyPointsEn || facingPage.keyPointsAr || []).map((point, index) => (
+                        <li key={index} className="flex gap-2">
+                          <span className="text-emerald-500">◆</span><span>{point}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <div className={`mt-8 pt-3 border-t text-[10px] text-center ${themeStyles.pageNumberColor} ${themeStyles.pageHeaderBorder}`}>
+                    INSCO NDT EGY · {isAr ? `صفحة ${facingPage.pageNumber}` : `Page ${facingPage.pageNumber}`}
+                  </div>
+                </>
+              ) : (
+                <div className="h-full min-h-[520px] flex flex-col items-center justify-center text-center opacity-80">
+                  <BookOpen className={`w-14 h-14 mb-5 ${themeStyles.pageNumberColor}`} />
+                  <span className={`text-xs font-mono tracking-[.25em] ${themeStyles.pageNumberColor}`}>INSCO NDT EGY</span>
+                  <h3 className={`text-2xl font-black mt-4 ${themeStyles.headingColor}`}>
+                    {isAr ? 'المكتبة الفنية' : 'Technical Library'}
+                  </h3>
+                  <p className={`text-sm mt-3 ${themeStyles.textColor}`}>
+                    {isAr ? 'مرجعك الهندسي المتخصص' : 'Your Engineering Reference'}
+                  </p>
+                </div>
+              )}
+            </article>
+
             {/* ================= 3D FLIPPING LEAF SIMULATION LAYER ================= */}
             {isFlipping && nextTargetPage && (
               <div 
@@ -697,7 +755,7 @@ export const BookViewer: React.FC<BookViewerProps> = ({
 
             {/* ================= ACTIVE PAGE SURFACE ================= */}
             <div 
-              className={`insco-book-page relative z-10 p-6 sm:p-12 border-2 rounded-[22px] min-h-[660px] flex flex-col justify-between transition-all duration-300 ${themeStyles.pagePaper}`}
+              className={`insco-book-page relative z-10 p-6 sm:p-9 border-2 rounded-[22px] min-h-[660px] flex flex-col justify-between transition-all duration-300 ${themeStyles.pagePaper} ${activePageColumn}`}
               style={{
                 transformStyle: 'preserve-3d',
                 transform: isFlipping 

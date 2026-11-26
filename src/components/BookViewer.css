@@ -175,7 +175,8 @@
   margin: 0;
   -webkit-appearance: none;
 }
-@media (max-width: 900px) {
+/* Tablet and mobile use one clean reading leaf, without a false center fold. */
+@media (max-width: 1100px) {
   .insco-book-spread {
     display: block;
     min-height: 0;
@@ -183,15 +184,23 @@
     box-shadow: none;
   }
   .insco-book-facing-page,
-  .insco-book-spread::after {
-    display: none;
+  .insco-book-spread::after,
+  .insco-book-spine {
+    display: none !important;
   }
   .insco-book-page {
-    min-height: min(780px, 75vh);
+    display: flex;
+    width: 100%;
+    min-height: 0;
+    grid-column: 1 / -1;
     border: 1px solid var(--reader-paper-edge);
-    border-radius: 10px;
+    border-radius: 12px;
     box-shadow: 0 8px 26px rgba(0,0,0,.16);
   }
+}
+
+@media (min-width: 1101px) {
+  .insco-book-spine { display: block; }
 }
 @media (max-width: 720px) {
   .insco-book-toolbar {

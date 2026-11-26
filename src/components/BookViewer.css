@@ -529,3 +529,19 @@
 @media (prefers-reduced-motion: reduce) {
   .insco-book-reader .insco-page-turn-leaf { animation-duration: 1ms !important; }
 }
+
+
+/* Keep the previous leaf available to assistive technology without displaying a false spread. */
+.insco-book-spread > .insco-book-facing-page {
+  display: block !important;
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  min-height: 1px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  clip-path: inset(50%) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}

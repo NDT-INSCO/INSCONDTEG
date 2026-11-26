@@ -158,11 +158,9 @@ router.post(AGENT_ENDPOINTS.chatgptStream, async (req: Request, res: Response) =
         ];
 
   let libraryHits: SearchHit[] = [];
-  let librarySource: 'reviewed' | 'academy' | 'none' = 'none';
   try {
     const lib = await loadAiLibrary();
     libraryHits = lib.retrieve(input.verifyTargetTurn?.question || input.message);
-    librarySource = lib.source ?? 'none';
   } catch {
     libraryHits = [];
   }
@@ -180,7 +178,6 @@ router.post(AGENT_ENDPOINTS.chatgptStream, async (req: Request, res: Response) =
     packs: effectivePacks,
     customFewShots: input.memoryProfile?.fewShotExamples,
     libraryHits,
-    librarySource,
     lang: input.language,
   });
 

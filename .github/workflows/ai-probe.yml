@@ -44,8 +44,22 @@ jobs:
 
           # Check that the same release contains both integrations, without a password
           # or a billable draft. An empty body cannot create anything even if the gate fails.
-          build_info=$(curl -fsS --max-time 20 "$base/api/site/build-info")
-          manus_info=$(curl -fsS --max-time 20 "$base/api/ai/manus/status")
+          # Probe both routes independently so one HTTP 500 cannot hide the other route's result.
+          build_code=$(curl -sS -o /tmp/build-info.json -w '%{http_code}' --max-time 20 "$base/api/site/build-info" || true)
+          manus_code=$(curl -sS -o /tmp/manus-status.json -w '%{http_code}' --max-time 20 "$base/api/ai/manus/status" || true)
+          echo "::notice title=/api/site/build-info::HTTP ${build_code:-000}"
+          echo "::notice title=/api/ai/manus/status::HTTP ${manus_code:-000}"
+          if [ "${build_code:-000}" != "200" ]; then
+            echo "::error title=/api/site/build-info::Expected HTTP 200; received ${build_code:-000}."
+          fi
+          if [ "${manus_code:-000}" != "200" ]; then
+            echo "::error title=/api/ai/manus/status::Expected HTTP 200; received ${manus_code:-000}."
+          fi
+          if [ "${build_code:-000}" != "200" ] || [ "${manus_code:-000}" != "200" ]; then
+            exit 1
+          fi
+          build_info=$(cat /tmp/build-info.json)
+          manus_info=$(cat /tmp/manus-status.json)
           factory_code=$(curl -sS -o /tmp/factory-gate.json -w '%{http_code}' --max-time 20 \
             -H "Origin: $base" -H 'Content-Type: application/json' -d '{}' "$base/api/admin/factory/draft")
           if ! jq -e --arg sha "$sha" '.commit == $sha and .hasAdminFactoryRoute == true' <<< "$build_info" > /dev/null \

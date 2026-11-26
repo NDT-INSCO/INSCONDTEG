@@ -199,6 +199,58 @@ export class AdminStore {
     const activity = days.map(day => ({ day, count: counts.get(day) ?? 0 }));
     return { totals, activity, recent: recent as unknown as QuoteSummary[], announcement };
   }
+
+  /** Persist an agent proposal; proposals are inert until a human reviews them. */
+  async proposeAgentTask(input: { id: string; agent: string; title: string; summary: string; createdAt: string }) {
+    await this.db.run(`
+      INSERT INTO agent_tasks (id, agent, title, summary, status, created_at)
+      VALUES (?, ?, ?, ?, 'proposed', ?)
+    `, input.id, input.agent, input.title, input.summary, input.createdAt);
+    await this.db.run(
+      "INSERT INTO agent_task_events (task_id, event, actor, created_at) VALUES (?, 'proposed', ?, ?)",
+      input.id, input.agent, input.createdAt
+    );
+    return this.agentTask(input.id);
+  }
+
+  async agentTask(id: string) {
+    const [row] = await this.db.all(`
+      SELECT id, agent, title, summary, status, created_at AS createdAt,
+        reviewed_at AS reviewedAt, reviewed_by AS reviewedBy
+      FROM agent_tasks WHERE id = ?
+    `, id);
+    return row ?? null;
+  }
+
+  async listAgentTasks(limit = 50) {
+    return this.db.all(`
+      SELECT id, agent, title, summary, status, created_at AS createdAt,
+        reviewed_at AS reviewedAt, reviewed_by AS reviewedBy
+      FROM agent_tasks ORDER BY created_at DESC, id DESC LIMIT ?
+    `, Math.min(100, Math.max(1, limit)));
+  }
+
+  /** Compare-and-set prevents two admins from reviewing the same proposal differently. */
+  async reviewAgentTask(id: string, decision: 'approved' | 'rejected', actor: string, reviewedAt: string) {
+    const changed = await this.db.run(`
+      UPDATE agent_tasks SET status = ?, reviewed_at = ?, reviewed_by = ?
+      WHERE id = ? AND status = 'proposed'
+    `, decision, reviewedAt, actor, id);
+    if (!changed) return false;
+    await this.db.run(
+      'INSERT INTO agent_task_events (task_id, event, actor, created_at) VALUES (?, ?, ?, ?)',
+      id, decision, actor, reviewedAt
+    );
+    return true;
+  }
+
+  async agentTaskEvents(id: string) {
+    return this.db.all(
+      'SELECT event, actor, created_at AS createdAt FROM agent_task_events WHERE task_id = ? ORDER BY id ASC',
+      id
+    );
+  }
+
 }
 
 /** Preserve an existing delivery channel. Without one, a durable inbox write is delivery. */

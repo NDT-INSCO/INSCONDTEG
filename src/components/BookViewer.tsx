@@ -739,14 +739,13 @@ insco-book-spread relative rounded-[24px]
                 }}
               >
                 <div 
-insco-page-turn-leaf absolute inset-0 rounded-[22px]
+                  className={`insco-page-turn-leaf absolute inset-0 rounded-[22px] ${themeStyles.pagePaper}`}
                   style={{
                     transformOrigin: isAr
                       ? (flipDirection === 'forward' ? '0% 50%' : '100% 50%')
                       : (flipDirection === 'forward' ? '100% 50%' : '0% 50%'),
-                    transform: flipDirection === 'forward'
-                      ? (isAr ? 'rotateY(75deg)' : 'rotateY(-75deg)')
-                      : (isAr ? 'rotateY(-75deg)' : 'rotateY(75deg)'),
+                    animation: `insco-leaf-${flipDirection} 550ms cubic-bezier(.22,.68,.2,1) both`,
+                    boxShadow: '0 20px 50px rgba(0,0,0,0.6)'
                     boxShadow: '0 20px 50px rgba(0,0,0,0.6)'
                   }}
                 >
@@ -765,13 +764,8 @@ insco-page-turn-leaf absolute inset-0 rounded-[22px]
 
             {/* ================= ACTIVE PAGE SURFACE ================= */}
             <div 
-insco-book-page relative z-10
-              style={{
-                transformStyle: 'preserve-3d',
-                transform: isFlipping 
-                  ? (flipDirection === 'forward' 
-                      ? (isAr ? 'rotateY(4deg) translateZ(8px)' : 'rotateY(-4deg) translateZ(8px)') 
-                      : (isAr ? 'rotateY(-4deg) translateZ(8px)' : 'rotateY(4deg) translateZ(8px)'))
+              className={`insco-book-page relative z-10 ${themeStyles.pagePaper} ${activePageColumn}`}
+              >
                   : 'rotateY(0deg) translateZ(0)'
               }}
             >

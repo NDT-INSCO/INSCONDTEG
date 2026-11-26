@@ -44,41 +44,54 @@ export interface BookViewerProps {
   className?: string;
 }
 
-// Synthesized Realistic Paper Page-Flip Sound via Web Audio API
+// Reusable Web Audio engine for a soft, layered paper-rustle page turn.
+let pageFlipAudioContext: AudioContext | null = null;
+let pageFlipNoiseBuffer: AudioBuffer | null = null;
+
 const playPageFlipSound = () => {
   try {
     const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
     if (!AudioContextClass) return;
-    const ctx = new AudioContextClass();
-    
-    // Generate gentle white noise burst for paper rustle
-    const bufferSize = ctx.sampleRate * 0.16;
-    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.045));
+    const ctx: AudioContext = pageFlipAudioContext || (pageFlipAudioContext = new AudioContextClass());
+    if (ctx.state === 'suspended') void ctx.resume();
+    if (!pageFlipNoiseBuffer) {
+      const length = Math.ceil(ctx.sampleRate * 0.42);
+      pageFlipNoiseBuffer = ctx.createBuffer(1, length, ctx.sampleRate);
+      const samples = pageFlipNoiseBuffer.getChannelData(0);
+      let previous = 0;
+      for (let i = 0; i < length; i++) {
+        const white = Math.random() * 2 - 1;
+        previous = previous * 0.72 + white * 0.28;
+        samples[i] = previous;
+      }
     }
 
-    const noise = ctx.createBufferSource();
-    noise.buffer = buffer;
+    const now = ctx.currentTime + 0.012;
+    const playRustle = (delay: number, duration: number, frequency: number, q: number, volume: number, sweep = 0) => {
+      const source = ctx.createBufferSource();
+      source.buffer = pageFlipNoiseBuffer;
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(frequency, now + delay);
+      if (sweep) filter.frequency.exponentialRampToValueAtTime(Math.max(250, frequency + sweep), now + delay + duration);
+      filter.Q.value = q;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.0001, now + delay);
+      gain.gain.linearRampToValueAtTime(volume, now + delay + Math.min(0.035, duration * 0.22));
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + delay + duration);
+      source.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+      source.start(now + delay);
+      source.stop(now + delay + duration + 0.015);
+    };
 
-    // Filter to sound like natural paper movement
-    const filter = ctx.createBiquadFilter();
-    filter.type = 'bandpass';
-    filter.frequency.value = 1750;
-    filter.Q.value = 1.3;
-
-    const gain = ctx.createGain();
-    gain.gain.setValueAtTime(0.22, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
-
-    noise.connect(filter);
-    filter.connect(gain);
-    gain.connect(ctx.destination);
-
-    noise.start();
+    // Broad soft swish, a crisp paper edge flick, then a short settling flutter.
+    playRustle(0, 0.34, 1050, 0.65, 0.16, 1250);
+    playRustle(0.055, 0.13, 2850, 1.1, 0.075, -850);
+    playRustle(0.22, 0.17, 1650, 0.85, 0.055, -500);
   } catch {
-    // Fail silently if audio context is blocked
+    // Audio is optional; never interrupt page navigation if the browser blocks it.
   }
 };
 

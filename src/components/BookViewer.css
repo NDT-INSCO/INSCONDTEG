@@ -1,16 +1,19 @@
-/* Professional, accessible reading surface for the INSCO technical library. */
+/* INSCO Academic Reader — editorial book layout */
 .insco-book-reader {
-  --reader-ink: #252018;
-  --reader-muted: #71685d;
-  --reader-line: #ded3c3;
-  --reader-accent: #9a5a19;
+  --reader-paper: #fbf8f1;
+  --reader-paper-edge: #e7dece;
+  --reader-ink: #28251f;
+  --reader-muted: #746b5f;
+  --reader-line: #ded4c4;
+  --reader-accent: #a66a2b;
   color: #e2e8f0;
+  isolation: isolate;
 }
 .insco-book-reader :is(button, [role="button"]) {
   -webkit-tap-highlight-color: transparent;
 }
 .insco-book-reader button:focus-visible {
-  outline: 3px solid #f4b544;
+  outline: 3px solid #e6aa4b;
   outline-offset: 3px;
 }
 .insco-book-toolbar {
@@ -21,157 +24,133 @@
   box-shadow: 0 14px 36px rgba(0,0,0,.24);
 }
 .insco-book-frame {
-  width: min(100%, 1240px);
+  width: min(100%, 1440px);
   margin-inline: auto;
-  padding: clamp(.5rem, 1.5vw, 1.15rem);
-  border-width: 7px;
-  border-color: #684b2c;
-  background: linear-gradient(135deg, #39291c 0%, #72502e 18%, #302317 50%, #68482a 82%, #2d2118 100%);
-  box-shadow: 0 28px 70px rgba(0,0,0,.36), inset 0 0 0 1px rgba(255,226,170,.24);
+  padding: clamp(.45rem, 1.2vw, 1rem);
+  border: 6px solid #62462b;
+  border-radius: 22px;
+  background:
+    linear-gradient(135deg, #2c2119 0%, #72502e 16%, #382719 48%, #765432 82%, #2b2018 100%);
+  box-shadow: 0 28px 70px rgba(0,0,0,.38), inset 0 0 0 1px rgba(255,226,170,.22);
 }
 .insco-book-spread {
+  position: relative;
+  isolation: isolate;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: stretch;
   gap: 0;
-  min-height: clamp(620px, calc(100vh - 260px), 900px);
-  background: #d8c7ad;
-  box-shadow: inset 0 0 28px rgba(45,30,15,.25);
+  min-height: 760px;
+  background: #e8dfd0;
+  border-radius: 13px;
+  box-shadow: inset 0 0 26px rgba(45,30,15,.18);
 }
 .insco-book-facing-page,
 .insco-book-page {
+  box-sizing: border-box;
   min-width: 0;
-  min-height: inherit;
-  max-height: clamp(680px, calc(100vh - 280px), 940px);
-  overflow-y: auto;
-  scrollbar-width: thin;
+  min-height: 760px;
+  max-height: none;
+  overflow: visible;
+  color: var(--reader-ink);
+  background:
+    linear-gradient(90deg, rgba(130,100,65,.035), transparent 9%, transparent 91%, rgba(130,100,65,.035)),
+    var(--reader-paper);
+  border: 1px solid var(--reader-paper-edge);
+  box-shadow: 0 4px 22px rgba(45,35,22,.09), inset 0 0 34px rgba(139,94,60,.035);
 }
 .insco-book-facing-page {
+  padding: clamp(1.5rem, 3.2vw, 3.25rem);
   border-inline-end: 0;
   border-start-end-radius: 0;
   border-end-end-radius: 0;
 }
 .insco-book-page {
+  position: relative;
+  padding: clamp(1.5rem, 3.2vw, 3.25rem);
   border-inline-start: 0;
   border-start-start-radius: 0;
   border-end-start-radius: 0;
-}
-.insco-book-page {
-  min-height: inherit;
-  padding: clamp(1.35rem, 4vw, 3.6rem);
-  border-radius: 13px;
   user-select: text;
   -webkit-user-select: text;
-  box-shadow: 0 5px 24px rgba(32,24,15,.13), inset 0 0 42px rgba(139,94,60,.07);
 }
 .insco-book-page > div:first-child,
-.insco-book-page > div:nth-child(2) {
-  max-width: 850px;
+.insco-book-page > div:nth-child(2),
+.insco-book-facing-page > div {
   width: 100%;
+  max-width: 68ch;
   margin-inline: auto;
 }
-.insco-book-page h2 {
-  color: #29231c;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(1.5rem, 2.8vw, 2.35rem);
-  letter-spacing: -.025em;
-  line-height: 1.22;
-  text-wrap: balance;
+.insco-book-page h2,
+.insco-book-facing-page h3 {
+  color: #29251f;
+  font-family: Georgia, "Times New Roman", "Noto Naskh Arabic", serif;
+  font-size: clamp(1.55rem, 2.15vw, 2.2rem);
+  font-weight: 750;
+  letter-spacing: -.018em;
+  line-height: 1.42;
+  text-wrap: pretty;
 }
-.insco-book-page .text-justify {
-  font-size: clamp(.94rem, 1.15vw, 1.06rem);
-  line-height: 1.95;
+.insco-book-page .text-justify,
+.insco-book-facing-page .text-justify {
+  color: #373229;
+  font-family: "Noto Naskh Arabic", "Amiri", Georgia, serif;
+  font-size: clamp(1rem, 1.15vw, 1.12rem);
+  line-height: 2.05;
   text-align: start;
   overflow-wrap: anywhere;
+  word-break: normal;
 }
-.insco-book-page .insco-reading-column {
-  max-width: 74ch;
+.insco-book-page p,
+.insco-book-facing-page p {
+  max-width: 68ch;
 }
-.insco-book-page :is(ul, ol) {
+.insco-book-page :is(ul, ol),
+.insco-book-facing-page :is(ul, ol) {
   padding-inline-start: 1.35rem;
 }
-.insco-book-page .border-t {
+.insco-book-page li,
+.insco-book-facing-page li {
+  line-height: 1.9;
+}
+.insco-book-page .border-t,
+.insco-book-facing-page .border-t {
   border-color: var(--reader-line);
 }
+.insco-book-page :is(.rounded-2xl, .rounded-3xl) {
+  break-inside: avoid;
+}
 .insco-book-reader .insco-book-spread > [style*="background: linear-gradient"] {
-  opacity: .85;
+  opacity: .92;
 }
 .insco-book-reader [data-testid^="knowledge-check"] {
   user-select: auto;
 }
 .insco-book-reader .insco-book-page .text-slate-400 {
-  color: #655b50;
+  color: #746b5f;
 }
 .insco-book-reader .insco-book-page .text-slate-300 {
   color: #51483f;
 }
 .insco-book-reader .insco-book-page .text-white,
 .insco-book-reader .insco-book-page .text-slate-100 {
-  color: #29231c;
+  color: #29251f;
 }
-@media (max-width: 900px) {
-  .insco-book-spread { display: block; min-height: 0; }
-  .insco-book-facing-page { display: none; }
-  .insco-book-page {
-    max-height: none;
-    min-height: 0;
-    border: 2px solid var(--reader-line);
-    border-radius: 13px;
-  }
+.insco-book-reader .insco-book-page .insco-reading-column {
+  max-width: 68ch;
 }
-@media (max-width: 720px) {
-  .insco-book-toolbar {
-    border-radius: 1rem;
-    padding: .75rem;
-    gap: .65rem;
-  }
-  .insco-book-frame {
-    border-width: 4px;
-    border-radius: 1.15rem;
-    padding: .35rem;
-  }
-  .insco-book-spread {
-    min-height: 0;
-    border-radius: .8rem;
-  }
-  .insco-book-page {
-    min-height: 0;
-    padding: 1.15rem .95rem 1.4rem;
-    border-radius: .7rem;
-  }
-  .insco-book-page h2 {
-    font-size: 1.45rem;
-    margin-bottom: 1.15rem;
-  }
-  .insco-book-page .text-justify {
-    font-size: .94rem;
-    line-height: 1.85;
-  }
-  .insco-book-reader .insco-book-page .flex.flex-col.sm\\:flex-row {
-    gap: .75rem;
-  }
+.insco-book-spread::after {
+  content: "";
+  position: absolute;
+  z-index: 25;
+  inset-block: 0;
+  inset-inline-start: 50%;
+  width: 26px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(72,52,32,.12), rgba(255,255,255,.28) 42%, rgba(72,52,32,.12));
+  box-shadow: 0 0 14px rgba(48,34,20,.10);
 }
-@media print {
-  .insco-book-toolbar,
-  .insco-book-reader > div:last-child,
-  .insco-book-reader [data-testid="bookviewer-open-quick-check"] {
-    display: none !important;
-  }
-  .insco-book-reader,
-  .insco-book-frame,
-  .insco-book-spread,
-  .insco-book-page {
-    position: static !important;
-    width: 100% !important;
-    min-height: 0 !important;
-    max-height: none !important;
-    overflow: visible !important;
-    color: #111 !important;
-    background: #fff !important;
-    box-shadow: none !important;
-    border: 0 !important;
-  }
-}
-
 .insco-reading-progress {
   position: relative;
   flex: 0 0 100%;
@@ -196,17 +175,401 @@
   margin: 0;
   -webkit-appearance: none;
 }
-.insco-book-spread {
-  position: relative;
-  isolation: isolate;
+/* Tablet and mobile use one clean reading leaf, without a false center fold. */
+@media (max-width: 1100px) {
+  .insco-book-spread {
+    display: block;
+    min-height: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  .insco-book-facing-page,
+  .insco-book-spread::after,
+  .insco-book-spine {
+    display: none !important;
+  }
+  .insco-book-page {
+    display: flex;
+    width: 100%;
+    min-height: 0;
+    grid-column: 1 / -1;
+    border: 1px solid var(--reader-paper-edge);
+    border-radius: 12px;
+    box-shadow: 0 8px 26px rgba(0,0,0,.16);
+  }
 }
-.insco-book-spread::after {
+
+@media (min-width: 1101px) {
+  .insco-book-spine { display: block; }
+}
+@media (max-width: 720px) {
+  .insco-book-toolbar {
+    border-radius: 1rem;
+    padding: .75rem;
+    gap: .65rem;
+  }
+  .insco-book-frame {
+    border-width: 4px;
+    border-radius: 1rem;
+    padding: .3rem;
+  }
+  .insco-book-spread {
+    min-height: 0;
+    border-radius: .65rem;
+  }
+  .insco-book-page {
+    min-height: 0;
+    padding: 1.4rem 1.05rem 1.6rem;
+    border-radius: .65rem;
+  }
+  .insco-book-page h2 {
+    font-size: 1.55rem;
+    line-height: 1.5;
+    margin-bottom: 1.15rem;
+  }
+  .insco-book-page .text-justify {
+    font-size: 1rem;
+    line-height: 2;
+  }
+  .insco-book-reader .insco-book-page .flex.flex-col.sm\\:flex-row {
+    gap: .75rem;
+  }
+}
+@media print {
+  .insco-book-toolbar,
+  .insco-book-reader > div:last-child,
+  .insco-book-reader [data-testid="bookviewer-open-quick-check"] {
+    display: none !important;
+  }
+  .insco-book-reader,
+  .insco-book-frame,
+  .insco-book-spread,
+  .insco-book-page,
+  .insco-book-facing-page {
+    position: static !important;
+    width: 100% !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    color: #111 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+    border: 0 !important;
+  }
+}
+
+
+/* Separate study tools from the editorial reading surface. */
+.insco-book-learning-tools {
+  color: #e2e8f0;
+  box-shadow: 0 16px 42px rgba(0,0,0,.2);
+}
+.insco-book-learning-tools [role="tabpanel"] {
+  min-width: 0;
+}
+.insco-book-quiz-panel > div {
+  margin-block: 0;
+  background-color: #111827;
+  border-color: #374151;
+}
+.insco-book-learning-tools button:focus-visible {
+  outline: 3px solid #e6aa4b;
+  outline-offset: 3px;
+}
+@media (max-width: 720px) {
+  .insco-book-learning-tools {
+    padding: 1rem;
+    border-radius: 1rem;
+  }
+  .insco-book-learning-tools [role="tablist"] {
+    width: 100%;
+  }
+  .insco-book-learning-tools [role="tab"] {
+    flex: 1 1 auto;
+  }
+}
+@media print {
+  .insco-book-learning-tools {
+    display: none !important;
+  }
+}
+
+
+/* INSCO Book — calm editorial reading experience */
+.insco-book-reader {
+  --reader-paper: #fffdf7;
+  --reader-paper-edge: #e9dfcf;
+  --reader-ink: #302b25;
+  --reader-muted: #82786b;
+  --reader-line: #e8dfd2;
+  --reader-accent: #b77936;
+  color: #e8e2d8;
+}
+.insco-book-stage {
+  width: min(100%, 1040px);
+  padding: clamp(.25rem, 1vw, .8rem);
+  perspective: 1800px;
+}
+.insco-book-frame {
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 22px;
+  background: transparent !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+.insco-book-frame > .absolute:not(.insco-book-ribbon) {
+  display: none !important;
+}
+.insco-book-spread {
+  display: block !important;
+  position: relative;
+  min-height: 0 !important;
+  overflow: visible !important;
+  padding: 0;
+  border: 0;
+  border-radius: 18px;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.insco-book-spread::after,
+.insco-book-spine,
+.insco-book-facing-page {
+  display: none !important;
+}
+.insco-book-page {
+  position: relative;
+  display: block !important;
+  width: min(100%, 920px);
+  min-height: clamp(660px, 76svh, 920px) !important;
+  max-height: none !important;
+  margin-inline: auto;
+  padding: clamp(2rem, 5.4vw, 4.5rem) clamp(1.35rem, 6vw, 5.2rem) 2rem !important;
+  overflow: visible !important;
+  border: 1px solid #e6dccb !important;
+  border-radius: 8px 22px 22px 8px !important;
+  color: #302b25 !important;
+  background:
+    linear-gradient(90deg, rgba(151,112,64,.07), transparent 3.5%, transparent 97%, rgba(151,112,64,.035)),
+    repeating-linear-gradient(0deg, transparent 0 35px, rgba(160,139,108,.045) 36px),
+    #fffdf7 !important;
+  box-shadow:
+    0 2px 3px rgba(36,27,17,.06),
+    0 16px 36px rgba(10,8,5,.2),
+    0 38px 80px rgba(0,0,0,.18),
+    inset 8px 0 16px rgba(110,78,43,.045) !important;
+  transform: none !important;
+}
+.insco-book-page::before {
   content: "";
   position: absolute;
-  z-index: 2;
-  inset-block: 0;
-  inset-inline-start: 0;
-  width: 9px;
+  inset: 18px;
+  border: 1px solid rgba(173,145,108,.19);
+  border-radius: 4px 13px 13px 4px;
   pointer-events: none;
-  background: linear-gradient(90deg, rgba(58,39,22,.22), rgba(255,255,255,.12), transparent);
+}
+.insco-book-page > div:first-child {
+  position: relative;
+  z-index: 1;
+  max-width: 70ch;
+  margin-inline: auto;
+}
+.insco-book-page h2 {
+  max-width: 22ch;
+  margin: 1.5rem auto 2rem;
+  color: #33291f !important;
+  font-family: "Noto Naskh Arabic", "Amiri", Georgia, serif;
+  font-size: clamp(1.8rem, 3vw, 2.65rem) !important;
+  font-weight: 800;
+  line-height: 1.48 !important;
+  letter-spacing: 0;
+  text-align: center;
+  text-wrap: balance;
+}
+.insco-book-page .text-justify,
+.insco-book-page p.whitespace-pre-line {
+  color: #494137 !important;
+  font-family: "Noto Naskh Arabic", "Amiri", Georgia, serif;
+  font-size: clamp(1.08rem, 1.45vw, 1.24rem) !important;
+  line-height: 2.15 !important;
+  text-align: justify;
+  text-align-last: start;
+  overflow-wrap: break-word;
+}
+.insco-book-page .border-b {
+  border-color: #e7dccb !important;
+}
+.insco-book-page .border-t {
+  border-color: #e7dccb !important;
+}
+.insco-book-page .insco-book-page-controls {
+  position: relative;
+  z-index: 2;
+  margin-top: clamp(2rem, 5vw, 4rem) !important;
+  padding-top: 1.25rem !important;
+  border-color: #e8dfd2 !important;
+}
+.insco-book-page-controls button {
+  min-height: 46px;
+  border-radius: 999px !important;
+  padding-inline: 1.25rem !important;
+  box-shadow: 0 5px 14px rgba(64,45,22,.12) !important;
+}
+.insco-book-page-controls button:not(:disabled):last-child {
+  background: #9b642f !important;
+  color: #fffaf1 !important;
+  border: 1px solid #875326 !important;
+}
+.insco-book-page-controls button:not(:disabled):first-child {
+  background: #f3eadc !important;
+  color: #55412c !important;
+  border: 1px solid #e2d3bd !important;
+}
+.insco-book-page-controls > div > span {
+  color: #98652f !important;
+}
+.insco-book-page-controls > div > div {
+  background: #e9decd !important;
+  border-color: #e1d2bd !important;
+}
+.insco-book-page-controls > div > div > div {
+  background: linear-gradient(90deg,#9b642f,#d5a35d) !important;
+}
+.insco-book-learning-tools {
+  width: min(100%, 920px);
+  margin: 1.5rem auto 0;
+  border-color: rgba(210,185,145,.2) !important;
+  background: linear-gradient(145deg,#182338,#101827) !important;
+  border-radius: 20px !important;
+}
+.insco-math-display {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: .16em;
+  max-width: 100%;
+  padding: .85rem .4rem;
+  color: #704522;
+  font-family: "Cambria Math", "STIX Two Math", Georgia, serif;
+  font-size: clamp(1.15rem, 2.1vw, 1.75rem);
+  font-weight: 650;
+  line-height: 1.7;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.insco-math-frac {
+  display: inline-flex;
+  vertical-align: middle;
+  flex-direction: column;
+  align-items: stretch;
+  margin: 0 .12em;
+  text-align: center;
+  line-height: 1.15;
+}
+.insco-math-frac > span:first-child {
+  padding: 0 .22em .12em;
+  border-bottom: 1.4px solid currentColor;
+}
+.insco-math-frac > span:last-child {
+  padding: .12em .22em 0;
+}
+.insco-math-root {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: .08em;
+}
+.insco-math-root > span {
+  display: inline-block;
+  padding: .02em .12em;
+  border-top: 1px solid currentColor;
+}
+.insco-math-display sup,
+.insco-math-display sub {
+  font-size: .68em;
+  line-height: 0;
+}
+.insco-book-reader .insco-page-turn-leaf {
+  z-index: 50;
+  overflow: hidden;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  border: 1px solid #e5d8c5;
+  background:
+    linear-gradient(90deg, rgba(93,65,35,.18), transparent 7%, rgba(255,255,255,.8) 48%, rgba(113,78,42,.12)),
+    repeating-linear-gradient(0deg, rgba(128,102,69,.025) 0 1px, transparent 1px 5px),
+    #fffdf7 !important;
+  box-shadow: inset 0 0 22px rgba(119,88,52,.1), 0 14px 30px rgba(26,18,10,.2);
+  will-change: transform, filter;
+}
+.insco-book-reader .insco-page-turn-leaf::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(75,48,22,.2), transparent 14%, transparent 82%, rgba(255,255,255,.62)),
+    linear-gradient(180deg, rgba(255,255,255,.8), transparent 18%, transparent 84%, rgba(113,83,49,.1));
+  opacity: .8;
+}
+.insco-book-reader .insco-page-turn-leaf::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 16px;
+  background: linear-gradient(90deg, rgba(72,48,25,.22), rgba(255,255,255,.55), transparent);
+  opacity: .55;
+  inset-inline-end: 0;
+}
+@keyframes insco-leaf-forward {
+  0% { transform: rotateY(0deg) translateZ(1px) scaleX(1); filter: brightness(1); }
+  22% { filter: brightness(.96); }
+  48% { transform: rotateY(-88deg) translateZ(16px) scaleX(1.015); filter: brightness(.82); }
+  72% { filter: brightness(.94); }
+  100% { transform: rotateY(-178deg) translateZ(1px) scaleX(1); filter: brightness(1); }
+}
+@keyframes insco-leaf-backward {
+  0% { transform: rotateY(0deg) translateZ(1px) scaleX(1); filter: brightness(1); }
+  22% { filter: brightness(.96); }
+  48% { transform: rotateY(88deg) translateZ(16px) scaleX(1.015); filter: brightness(.82); }
+  72% { filter: brightness(.94); }
+  100% { transform: rotateY(178deg) translateZ(1px) scaleX(1); filter: brightness(1); }
+}
+.insco-book-reader .insco-book-ribbon {
+  display: block;
+}
+@media (max-width: 720px) {
+  .insco-book-stage { padding: 0; }
+  .insco-book-page {
+    min-height: 0 !important;
+    padding: 2rem 1.25rem 1.4rem !important;
+    border-radius: 8px 16px 16px 8px !important;
+  }
+  .insco-book-page::before { inset: 10px; }
+  .insco-book-page h2 { margin-block: 1.1rem 1.5rem; }
+  .insco-book-page .text-justify,
+  .insco-book-page p.whitespace-pre-line { font-size: 1.05rem !important; line-height: 2 !important; }
+  .insco-book-page-controls { gap: .75rem !important; }
+  .insco-book-page-controls button { width: 100%; justify-content: center; }
+  .insco-math-display { font-size: 1.08rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .insco-book-reader .insco-page-turn-leaf { animation-duration: 1ms !important; }
+}
+
+
+/* Keep the previous leaf available to assistive technology without displaying a false spread. */
+.insco-book-spread > .insco-book-facing-page {
+  display: block !important;
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  min-height: 1px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  clip-path: inset(50%) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
 }

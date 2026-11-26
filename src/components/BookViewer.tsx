@@ -668,9 +668,10 @@ export const BookViewer: React.FC<BookViewerProps> = ({
             />
 
             {/* Central Book Spine Fold & Seam */}
-            <div 
-              className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-8 z-30 pointer-events-none"
+            <div
+              className="insco-book-spine absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-8 z-30 pointer-events-none"
               style={{ background: themeStyles.spineShadow }}
+              aria-hidden="true"
             />
 
             {/* ================= FACING PAGE / PREVIOUS LEAF ================= */}

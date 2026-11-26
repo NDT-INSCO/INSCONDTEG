@@ -260,6 +260,8 @@
 }
 .insco-book-quiz-panel > div {
   margin-block: 0;
+  background-color: #111827;
+  border-color: #374151;
 }
 .insco-book-learning-tools button:focus-visible {
   outline: 3px solid #e6aa4b;

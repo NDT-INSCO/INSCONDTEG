@@ -194,6 +194,12 @@ export const BookViewer: React.FC<BookViewerProps> = ({
   const [activeLearningPanel, setActiveLearningPanel] = useState<'quiz' | 'lab'>('quiz');
 
   const currentPage = activeBook.pages[currentPageIndex] || activeBook.pages[0];
+
+  useEffect(() => {
+    if (!currentPage.experimentId && activeLearningPanel === 'lab') {
+      setActiveLearningPanel('quiz');
+    }
+  }, [currentPage.experimentId, activeLearningPanel]);
   const totalPages = activeBook.pages.length;
   const facingPage = currentPageIndex > 0 ? activeBook.pages[currentPageIndex - 1] : null;
   const activePageColumn = isAr

@@ -290,7 +290,7 @@ export const BookViewer: React.FC<BookViewerProps> = ({
     setTimeout(() => {
       setCurrentPageIndex(prev => prev + 1);
       setIsFlipping(false);
-    }, 550);
+    }, 720);
   }, [isFlipping, currentPageIndex, totalPages, soundEnabled]);
 
   const flipToPrevPage = useCallback(() => {
@@ -304,7 +304,7 @@ export const BookViewer: React.FC<BookViewerProps> = ({
     setTimeout(() => {
       setCurrentPageIndex(prev => prev - 1);
       setIsFlipping(false);
-    }, 550);
+    }, 720);
   }, [isFlipping, currentPageIndex, soundEnabled]);
 
   // Keyboard navigation
@@ -755,7 +755,7 @@ insco-book-spread relative rounded-[24px]
                   className={`insco-page-turn-leaf absolute inset-0 rounded-[22px] ${themeStyles.pagePaper}`}
                   style={{
                     transformOrigin: isAr ? (flipDirection === 'forward' ? '0% 50%' : '100% 50%') : (flipDirection === 'forward' ? '100% 50%' : '0% 50%'),
-                    animation: `insco-leaf-${flipDirection} 550ms cubic-bezier(.22,.68,.2,1) both`,
+                    animation: `insco-leaf-${flipDirection} 720ms cubic-bezier(.35,.02,.22,1) both`,
                     boxShadow: '0 20px 50px rgba(0,0,0,0.6)'
                   }}
                 >

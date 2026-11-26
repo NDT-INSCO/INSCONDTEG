@@ -248,3 +248,37 @@
     border: 0 !important;
   }
 }
+
+
+/* Separate study tools from the editorial reading surface. */
+.insco-book-learning-tools {
+  color: #e2e8f0;
+  box-shadow: 0 16px 42px rgba(0,0,0,.2);
+}
+.insco-book-learning-tools [role="tabpanel"] {
+  min-width: 0;
+}
+.insco-book-quiz-panel > div {
+  margin-block: 0;
+}
+.insco-book-learning-tools button:focus-visible {
+  outline: 3px solid #e6aa4b;
+  outline-offset: 3px;
+}
+@media (max-width: 720px) {
+  .insco-book-learning-tools {
+    padding: 1rem;
+    border-radius: 1rem;
+  }
+  .insco-book-learning-tools [role="tablist"] {
+    width: 100%;
+  }
+  .insco-book-learning-tools [role="tab"] {
+    flex: 1 1 auto;
+  }
+}
+@media print {
+  .insco-book-learning-tools {
+    display: none !important;
+  }
+}

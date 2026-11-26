@@ -73,6 +73,14 @@ test('BookViewer renders initial page and simulates 3D book navigation', () => {
   // Confirms the textbook title and page title appear
   assert.ok(ui.getByText(NDT_TEXTBOOKS[0].titleEn));
   assert.ok(ui.getByText(NDT_TEXTBOOKS[0].pages[0].pageTitleEn));
+  // Formulas are rendered as mathematical notation, not raw LaTeX commands.
+  if (NDT_TEXTBOOKS[0].pages[0].formula) {
+    const formula = ui.container.querySelector('.insco-math-display');
+    assert.ok(formula);
+    assert.ok(formula?.querySelector('.insco-math-frac'));
+    assert.equal(formula?.textContent?.includes('\\frac'), false);
+  }
+  assert.ok(ui.container.querySelector('.insco-book-page'));
   assert.ok(ui.getByLabelText('Book opening'));
 
   // Confirms Knowledge Check section is rendered for current page

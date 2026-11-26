@@ -738,14 +738,11 @@ insco-book-spread relative rounded-[24px]
                   transformStyle: 'preserve-3d'
                 }}
               >
-                <div 
+                <div
                   className={`insco-page-turn-leaf absolute inset-0 rounded-[22px] ${themeStyles.pagePaper}`}
                   style={{
-                    transformOrigin: isAr
-                      ? (flipDirection === 'forward' ? '0% 50%' : '100% 50%')
-                      : (flipDirection === 'forward' ? '100% 50%' : '0% 50%'),
+                    transformOrigin: isAr ? (flipDirection === 'forward' ? '0% 50%' : '100% 50%') : (flipDirection === 'forward' ? '100% 50%' : '0% 50%'),
                     animation: `insco-leaf-${flipDirection} 550ms cubic-bezier(.22,.68,.2,1) both`,
-                    boxShadow: '0 20px 50px rgba(0,0,0,0.6)'
                     boxShadow: '0 20px 50px rgba(0,0,0,0.6)'
                   }}
                 >
@@ -763,9 +760,9 @@ insco-book-spread relative rounded-[24px]
             )}
 
             {/* ================= ACTIVE PAGE SURFACE ================= */}
-            <div 
+            <div
               className={`insco-book-page relative z-10 ${themeStyles.pagePaper} ${activePageColumn}`}
-              >
+            >
                   : 'rotateY(0deg) translateZ(0)'
               }}
             >

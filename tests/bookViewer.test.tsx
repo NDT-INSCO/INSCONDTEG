@@ -73,6 +73,7 @@ test('BookViewer renders initial page and simulates 3D book navigation', () => {
   // Confirms the textbook title and page title appear
   assert.ok(ui.getByText(NDT_TEXTBOOKS[0].titleEn));
   assert.ok(ui.getByText(NDT_TEXTBOOKS[0].pages[0].pageTitleEn));
+  assert.ok(ui.getByLabelText('Book opening'));
 
   // Confirms Knowledge Check section is rendered for current page
   assert.ok(ui.getByText('Knowledge Check Quiz'));
@@ -91,6 +92,7 @@ test('BookViewer allows direct page navigation and exposes reading progress', ()
   fireEvent.change(pageInput, { target: { value: '2' } });
   assert.equal((ui.getByRole('spinbutton', { name: /Go to page/i }) as HTMLInputElement).value, '2');
   assert.ok(ui.getByText(NDT_TEXTBOOKS[0].pages[1].pageTitleEn));
+  assert.ok(ui.getByLabelText(/Previous page: Wave Propagation Mechanics/i));
 });
 
 test('BookViewer restores the last-read page for the same textbook', () => {

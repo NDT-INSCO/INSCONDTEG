@@ -77,6 +77,8 @@ test('BookViewer renders initial page and simulates 3D book navigation', () => {
 
   // Confirms Knowledge Check section is rendered for current page
   assert.ok(ui.getByText('Knowledge Check Quiz'));
+  // Interactive learning content must stay outside the printed reading leaf.
+  assert.equal(ui.getByText('Knowledge Check Quiz').closest('.insco-book-page'), null);
 
   // Test page turn forward
   const nextBtn = ui.getByRole('button', { name: /Flip to Next Page/i });

@@ -293,3 +293,239 @@
     display: none !important;
   }
 }
+
+
+/* INSCO Book — calm editorial reading experience */
+.insco-book-reader {
+  --reader-paper: #fffdf7;
+  --reader-paper-edge: #e9dfcf;
+  --reader-ink: #302b25;
+  --reader-muted: #82786b;
+  --reader-line: #e8dfd2;
+  --reader-accent: #b77936;
+  color: #e8e2d8;
+}
+.insco-book-stage {
+  width: min(100%, 1040px);
+  padding: clamp(.25rem, 1vw, .8rem);
+  perspective: 1800px;
+}
+.insco-book-frame {
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 22px;
+  background: transparent !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+.insco-book-frame > .absolute:not(.insco-book-ribbon) {
+  display: none !important;
+}
+.insco-book-spread {
+  display: block !important;
+  position: relative;
+  min-height: 0 !important;
+  overflow: visible !important;
+  padding: 0;
+  border: 0;
+  border-radius: 18px;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.insco-book-spread::after,
+.insco-book-spine,
+.insco-book-facing-page {
+  display: none !important;
+}
+.insco-book-page {
+  position: relative;
+  display: block !important;
+  width: min(100%, 920px);
+  min-height: clamp(660px, 76svh, 920px) !important;
+  max-height: none !important;
+  margin-inline: auto;
+  padding: clamp(2rem, 5.4vw, 4.5rem) clamp(1.35rem, 6vw, 5.2rem) 2rem !important;
+  overflow: visible !important;
+  border: 1px solid #e6dccb !important;
+  border-radius: 8px 22px 22px 8px !important;
+  color: #302b25 !important;
+  background:
+    linear-gradient(90deg, rgba(151,112,64,.07), transparent 3.5%, transparent 97%, rgba(151,112,64,.035)),
+    repeating-linear-gradient(0deg, transparent 0 35px, rgba(160,139,108,.045) 36px),
+    #fffdf7 !important;
+  box-shadow:
+    0 2px 3px rgba(36,27,17,.06),
+    0 16px 36px rgba(10,8,5,.2),
+    0 38px 80px rgba(0,0,0,.18),
+    inset 8px 0 16px rgba(110,78,43,.045) !important;
+  transform: none !important;
+}
+.insco-book-page::before {
+  content: "";
+  position: absolute;
+  inset: 18px;
+  border: 1px solid rgba(173,145,108,.19);
+  border-radius: 4px 13px 13px 4px;
+  pointer-events: none;
+}
+.insco-book-page > div:first-child {
+  position: relative;
+  z-index: 1;
+  max-width: 70ch;
+  margin-inline: auto;
+}
+.insco-book-page h2 {
+  max-width: 22ch;
+  margin: 1.5rem auto 2rem;
+  color: #33291f !important;
+  font-family: "Noto Naskh Arabic", "Amiri", Georgia, serif;
+  font-size: clamp(1.8rem, 3vw, 2.65rem) !important;
+  font-weight: 800;
+  line-height: 1.48 !important;
+  letter-spacing: 0;
+  text-align: center;
+  text-wrap: balance;
+}
+.insco-book-page .text-justify,
+.insco-book-page p.whitespace-pre-line {
+  color: #494137 !important;
+  font-family: "Noto Naskh Arabic", "Amiri", Georgia, serif;
+  font-size: clamp(1.08rem, 1.45vw, 1.24rem) !important;
+  line-height: 2.15 !important;
+  text-align: justify;
+  text-align-last: start;
+  overflow-wrap: break-word;
+}
+.insco-book-page .border-b {
+  border-color: #e7dccb !important;
+}
+.insco-book-page .border-t {
+  border-color: #e7dccb !important;
+}
+.insco-book-page .insco-book-page-controls {
+  position: relative;
+  z-index: 2;
+  margin-top: clamp(2rem, 5vw, 4rem) !important;
+  padding-top: 1.25rem !important;
+  border-color: #e8dfd2 !important;
+}
+.insco-book-page-controls button {
+  min-height: 46px;
+  border-radius: 999px !important;
+  padding-inline: 1.25rem !important;
+  box-shadow: 0 5px 14px rgba(64,45,22,.12) !important;
+}
+.insco-book-page-controls button:not(:disabled):last-child {
+  background: #9b642f !important;
+  color: #fffaf1 !important;
+  border: 1px solid #875326 !important;
+}
+.insco-book-page-controls button:not(:disabled):first-child {
+  background: #f3eadc !important;
+  color: #55412c !important;
+  border: 1px solid #e2d3bd !important;
+}
+.insco-book-page-controls > div > span {
+  color: #98652f !important;
+}
+.insco-book-page-controls > div > div {
+  background: #e9decd !important;
+  border-color: #e1d2bd !important;
+}
+.insco-book-page-controls > div > div > div {
+  background: linear-gradient(90deg,#9b642f,#d5a35d) !important;
+}
+.insco-book-learning-tools {
+  width: min(100%, 920px);
+  margin: 1.5rem auto 0;
+  border-color: rgba(210,185,145,.2) !important;
+  background: linear-gradient(145deg,#182338,#101827) !important;
+  border-radius: 20px !important;
+}
+.insco-math-display {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: .16em;
+  max-width: 100%;
+  padding: .85rem .4rem;
+  color: #704522;
+  font-family: "Cambria Math", "STIX Two Math", Georgia, serif;
+  font-size: clamp(1.15rem, 2.1vw, 1.75rem);
+  font-weight: 650;
+  line-height: 1.7;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.insco-math-frac {
+  display: inline-flex;
+  vertical-align: middle;
+  flex-direction: column;
+  align-items: stretch;
+  margin: 0 .12em;
+  text-align: center;
+  line-height: 1.15;
+}
+.insco-math-frac > span:first-child {
+  padding: 0 .22em .12em;
+  border-bottom: 1.4px solid currentColor;
+}
+.insco-math-frac > span:last-child {
+  padding: .12em .22em 0;
+}
+.insco-math-root {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: .08em;
+}
+.insco-math-root > span {
+  display: inline-block;
+  padding: .02em .12em;
+  border-top: 1px solid currentColor;
+}
+.insco-math-display sup,
+.insco-math-display sub {
+  font-size: .68em;
+  line-height: 0;
+}
+.insco-book-reader .insco-page-turn-leaf {
+  z-index: 50;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  border: 1px solid #e5d8c5;
+  background:
+    linear-gradient(90deg,rgba(90,62,32,.13),transparent 18%,rgba(255,255,255,.8) 52%,rgba(90,62,32,.1)),
+    #fffdf7 !important;
+}
+@keyframes insco-leaf-forward {
+  0% { transform: rotateY(0deg); transform-origin: left center; filter: brightness(1); }
+  48% { filter: brightness(.88); box-shadow: 0 22px 40px rgba(0,0,0,.25); }
+  100% { transform: rotateY(-178deg); transform-origin: left center; filter: brightness(1); }
+}
+@keyframes insco-leaf-backward {
+  0% { transform: rotateY(0deg); transform-origin: right center; filter: brightness(1); }
+  48% { filter: brightness(.88); box-shadow: 0 22px 40px rgba(0,0,0,.25); }
+  100% { transform: rotateY(178deg); transform-origin: right center; filter: brightness(1); }
+}
+.insco-book-reader .insco-book-ribbon {
+  display: block;
+}
+@media (max-width: 720px) {
+  .insco-book-stage { padding: 0; }
+  .insco-book-page {
+    min-height: 0 !important;
+    padding: 2rem 1.25rem 1.4rem !important;
+    border-radius: 8px 16px 16px 8px !important;
+  }
+  .insco-book-page::before { inset: 10px; }
+  .insco-book-page h2 { margin-block: 1.1rem 1.5rem; }
+  .insco-book-page .text-justify,
+  .insco-book-page p.whitespace-pre-line { font-size: 1.05rem !important; line-height: 2 !important; }
+  .insco-book-page-controls { gap: .75rem !important; }
+  .insco-book-page-controls button { width: 100%; justify-content: center; }
+  .insco-math-display { font-size: 1.08rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .insco-book-reader .insco-page-turn-leaf { animation-duration: 1ms !important; }
+}

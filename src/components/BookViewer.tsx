@@ -694,7 +694,7 @@ export const BookViewer: React.FC<BookViewerProps> = ({
                   )}
                   {(isAr ? facingPage.keyPointsAr : facingPage.keyPointsEn) && (
                     <ul className="mt-5 space-y-2 text-xs leading-6">
-                      {(isAr ? facingPage.keyPointsAr : facingPage.keyPointsEn || facingPage.keyPointsAr || []).map((point, index) => (
+                      {(isAr ? (facingPage.keyPointsAr || []) : (facingPage.keyPointsEn || facingPage.keyPointsAr || [])).map((point, index) => (
                         <li key={index} className="flex gap-2">
                           <span className="text-emerald-500">◆</span><span>{point}</span>
                         </li>

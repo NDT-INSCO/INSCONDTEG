@@ -18,6 +18,7 @@ import {
   useDriveAcademyLibrary,
 } from '../../utils/driveAcademyStore';
 import type { SimulationLabsSectionId } from './InteractiveWorkshops';
+import { clickableRow } from '../../utils/a11y';
 
 interface DriveSimulatorRunnerProps {
   language: Language;
@@ -323,8 +324,8 @@ export const DriveSimulatorRunner: React.FC<DriveSimulatorRunnerProps> = ({
                 {activeSim.datasetRows.slice(0, 8).map((row, rIdx) => (
                   <tr
                     key={rIdx}
-                    onClick={() => applyDatasetRow(activeSim.datasetHeaders!, row)}
-                    className="border-b border-[#1c2345] hover:bg-emerald-500/10 cursor-pointer text-slate-200"
+                    {...clickableRow(() => applyDatasetRow(activeSim.datasetHeaders!, row))}
+                    className="border-b border-[#1c2345] hover:bg-emerald-500/10 cursor-pointer text-slate-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-400"
                   >
                     {row.map((cell, cIdx) => (
                       <td key={cIdx} className="py-1.5 px-2 font-mono">

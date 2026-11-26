@@ -763,9 +763,6 @@ insco-book-spread relative rounded-[24px]
             <div
               className={`insco-book-page relative z-10 ${themeStyles.pagePaper} ${activePageColumn}`}
             >
-                  : 'rotateY(0deg) translateZ(0)'
-              }}
-            >
               {/* Top Page Header & Breadcrumb */}
               <div>
                 <div className={`flex flex-wrap items-center justify-between gap-2 border-b pb-4 mb-6 ${themeStyles.pageHeaderBorder}`}>
